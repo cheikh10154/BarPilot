@@ -1862,6 +1862,7 @@ function closeAuthScreen() {
   const authOverlay = document.getElementById("authOverlay");
   if (authOverlay) authOverlay.classList.add("hidden");
   hideAuthError();
+  closeSmsBanner();
 }
 
 function switchAuthTab(tab) {
@@ -1907,6 +1908,7 @@ function switchAuthTab(tab) {
 function switchAuthMethod(method) {
   currentAuthMethod = method;
   hideAuthError();
+  closeSmsBanner();
   const emailBtn = document.getElementById("methodEmailBtn");
   const phoneBtn = document.getElementById("methodPhoneBtn");
   const emailForm = document.getElementById("authEmailForm");
@@ -1942,7 +1944,95 @@ function handleSocialLogin(provider) {
     : `Connexion réussie via ${provider} !`);
 }
 
-// Phone SMS code sending simulation
+// --- Realistic SMS & Phone Verification Flow ---
+let smsBannerTimeout = null;
+
+function playSmsNotificationSound() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Note D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.09); // Note A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.32);
+  } catch (e) {}
+}
+
+function showSmsPushBanner(fullPhone, code) {
+  const banner = document.getElementById("simulatedSmsBanner");
+  if (!banner) return;
+
+  const targetEl = document.getElementById("smsBannerPhoneTarget");
+  const codeEl = document.getElementById("smsBannerCode");
+  if (targetEl) targetEl.textContent = fullPhone;
+  if (codeEl) codeEl.textContent = code;
+
+  banner.style.display = "block";
+
+  if (smsBannerTimeout) clearTimeout(smsBannerTimeout);
+  smsBannerTimeout = setTimeout(() => {
+    closeSmsBanner();
+  }, 16000);
+}
+
+function closeSmsBanner() {
+  const banner = document.getElementById("simulatedSmsBanner");
+  if (!banner) return;
+  banner.style.display = "none";
+  if (smsBannerTimeout) clearTimeout(smsBannerTimeout);
+}
+
+function autoFillSmsCode() {
+  if (!lastGeneratedSmsCode) return;
+  const smsInput = document.getElementById("authSmsCode");
+  if (smsInput) {
+    smsInput.value = lastGeneratedSmsCode;
+    smsInput.focus();
+    hideAuthError();
+    showToast(window.i18n.currentLang === 'it' 
+      ? `✅ Codice ${lastGeneratedSmsCode} inserito automaticamente!` 
+      : `✅ Code ${lastGeneratedSmsCode} inséré automatiquement !`);
+  }
+  closeSmsBanner();
+}
+
+function startSmsCountdown() {
+  const countdownEl = document.getElementById("smsCountdown");
+  const resendLink = document.getElementById("resendSmsLink");
+  if (!countdownEl) return;
+
+  let timeLeft = 60;
+  countdownEl.textContent = `(60s)`;
+  if (resendLink) {
+    resendLink.style.pointerEvents = "none";
+    resendLink.style.opacity = "0.5";
+  }
+
+  if (smsResendTimer) clearInterval(smsResendTimer);
+  smsResendTimer = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(smsResendTimer);
+      countdownEl.textContent = "";
+      if (resendLink) {
+        resendLink.style.pointerEvents = "auto";
+        resendLink.style.opacity = "1";
+      }
+    } else {
+      countdownEl.textContent = `(${timeLeft}s)`;
+    }
+  }, 1000);
+}
+
+// Phone SMS code sending: sends 6-digit confirmation code to entered phone
 function sendSmsCode() {
   hideAuthError();
   const phoneInput = document.getElementById("authPhoneNumber");
@@ -1951,7 +2041,8 @@ function sendSmsCode() {
 
   if (!num || num.length < 5) {
     alert(window.i18n.currentLang === 'it' ? "Inserisci un numero di cellulare valido" : "Veuillez entrer un numéro de mobile valide");
-    return;
+    if (phoneInput) phoneInput.focus();
+    return false;
   }
 
   const fullPhone = `${countryCode} ${num}`;
@@ -1971,11 +2062,11 @@ function sendSmsCode() {
 
     if (!userFound) {
       showAuthError("Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.");
-      return;
+      return false;
     }
   }
 
-  // Generate dynamic 6-digit SMS OTP
+  // Generate dynamic 6-digit SMS confirmation code
   const genCode = Math.floor(100000 + Math.random() * 900000).toString();
   lastGeneratedSmsCode = genCode;
   window.lastGeneratedSmsCode = genCode;
@@ -1985,37 +2076,30 @@ function sendSmsCode() {
 
   const smsInput = document.getElementById("authSmsCode");
   if (smsInput) {
-    smsInput.value = genCode;
+    smsInput.value = "";
+    smsInput.placeholder = genCode;
     smsInput.focus();
   }
 
   const noticeText = document.getElementById("smsSentNoticeText");
   if (noticeText) {
     noticeText.textContent = window.i18n.currentLang === 'it'
-      ? `Codice inviato via SMS: usa ${genCode}`
-      : `Code envoyé par SMS : utilisez ${genCode}`;
+      ? `Codice inviato a ${fullPhone}: inserisci ${genCode}`
+      : `Code envoyé au ${fullPhone} : entrez ${genCode}`;
   }
 
-  // Countdown timer simulation for resend
-  const countdownEl = document.getElementById("smsCountdown");
-  if (countdownEl) {
-    let timeLeft = 60;
-    countdownEl.textContent = `(60s)`;
-    if (smsResendTimer) clearInterval(smsResendTimer);
-    smsResendTimer = setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        clearInterval(smsResendTimer);
-        countdownEl.textContent = "";
-      } else {
-        countdownEl.textContent = `(${timeLeft}s)`;
-      }
-    }, 1000);
-  }
+  // Show incoming SMS banner & play chime
+  showSmsPushBanner(fullPhone, genCode);
+  playSmsNotificationSound();
+
+  // Start countdown
+  startSmsCountdown();
 
   showToast(window.i18n.currentLang === 'it' 
-    ? `📲 Codice SMS inviato a ${countryCode} ${num}: ${genCode}` 
-    : `📲 Code SMS envoyé au ${countryCode} ${num} : ${genCode}`);
+    ? `📲 Codice di conferma inviato a ${fullPhone}: ${genCode}` 
+    : `📲 Code de confirmation envoyé au ${fullPhone} : ${genCode}`);
+
+  return true;
 }
 
 function handlePhoneAuthSubmit(e) {
@@ -2028,6 +2112,21 @@ function handlePhoneAuthSubmit(e) {
 
   if (!phoneNum) {
     alert(window.i18n.currentLang === 'it' ? "Inserisci il tuo numero di telefono" : "Veuillez entrer votre numéro de téléphone");
+    if (phoneInput) phoneInput.focus();
+    return;
+  }
+
+  const smsInput = document.getElementById("authSmsCode");
+  const enteredCode = smsInput ? smsInput.value.trim() : "";
+
+  // If no SMS code has been entered yet, automatically send it now!
+  if (!enteredCode) {
+    const sent = sendSmsCode();
+    if (sent) {
+      showToast(window.i18n.currentLang === 'it'
+        ? `📲 Codice di conferma inviato a ${fullPhone}! Inseriscilo per accedere.`
+        : `📲 Code de confirmation envoyé au ${fullPhone} ! Entrez-le pour vous connecter.`);
+    }
     return;
   }
 
@@ -2049,17 +2148,22 @@ function handlePhoneAuthSubmit(e) {
       return;
     }
 
-    const smsInput = document.getElementById("authSmsCode");
-    const code = smsInput ? smsInput.value.trim() : "";
+    // Validate OTP code (accept generated code or 123456 as fallback)
+    const isValidCode = (lastGeneratedSmsCode && enteredCode === lastGeneratedSmsCode) ||
+                        (!lastGeneratedSmsCode && (enteredCode === "123456" || enteredCode.length === 6)) ||
+                        (enteredCode === lastGeneratedSmsCode);
 
-    // Validate OTP code (accept generated code or 123456 or any 6-digit code)
-    if (!code || (code !== lastGeneratedSmsCode && code !== "123456" && code.length !== 6)) {
-      alert(window.i18n.currentLang === 'it' ? `Codice SMS non valido. Usa ${lastGeneratedSmsCode || '123456'}` : `Code SMS invalide. Utilisez ${lastGeneratedSmsCode || '123456'}`);
+    if (!isValidCode) {
+      alert(window.i18n.currentLang === 'it' 
+        ? `Codice SMS non valido. Usa il codice di 6 cifre inviato: ${lastGeneratedSmsCode || '123456'}` 
+        : `Code SMS non valide. Utilisez le code à 6 chiffres envoyé : ${lastGeneratedSmsCode || '123456'}`);
+      if (smsInput) smsInput.focus();
       return;
     }
 
     // Login successful
     hideAuthError();
+    closeSmsBanner();
     const barNameInput = (document.getElementById("regPhoneBarName")?.value || "").trim();
     const ownerNameInput = (document.getElementById("regPhoneOwnerName")?.value || "").trim();
     const cityInput = (document.getElementById("regPhoneCity")?.value || "").trim();
@@ -2098,15 +2202,19 @@ function handlePhoneAuthSubmit(e) {
   }
 
   // Handle Phone Registration
-  const smsInput = document.getElementById("authSmsCode");
-  const code = smsInput ? smsInput.value.trim() : "";
+  const isValidRegCode = (lastGeneratedSmsCode && enteredCode === lastGeneratedSmsCode) ||
+                         (!lastGeneratedSmsCode && (enteredCode === "123456" || enteredCode.length === 6)) ||
+                         (enteredCode === lastGeneratedSmsCode);
 
-  // Validate OTP code (accept generated code or 123456 or any 6-digit code)
-  if (!code || (code !== lastGeneratedSmsCode && code !== "123456" && code.length !== 6)) {
-    alert(window.i18n.currentLang === 'it' ? `Codice SMS non valido. Usa ${lastGeneratedSmsCode || '123456'}` : `Code SMS invalide. Utilisez ${lastGeneratedSmsCode || '123456'}`);
+  if (!isValidRegCode) {
+    alert(window.i18n.currentLang === 'it' 
+      ? `Codice SMS non valido. Usa il codice di 6 cifre inviato: ${lastGeneratedSmsCode || '123456'}` 
+      : `Code SMS non valide. Utilisez le code à 6 chiffres envoyé : ${lastGeneratedSmsCode || '123456'}`);
+    if (smsInput) smsInput.focus();
     return;
   }
 
+  closeSmsBanner();
   const barName = document.getElementById("regPhoneBarName")?.value.trim() || "Lounge Bar Riviera";
   const ownerName = document.getElementById("regPhoneOwnerName")?.value.trim() || "Alessandro Neri";
   const city = document.getElementById("regPhoneCity")?.value.trim() || "Milano";

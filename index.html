@@ -218,6 +218,28 @@
     </div>
   </div>
 
+  <!-- Simulated Incoming SMS Push Banner -->
+  <div id="simulatedSmsBanner" class="sms-push-banner" style="display:none;" onclick="autoFillSmsCode()">
+    <div class="sms-push-header">
+      <div class="sms-push-app">
+        <span class="sms-push-icon">💬</span>
+        <span>MESSAGGI</span>
+        <span class="sms-push-bullet">•</span>
+        <span class="sms-push-time">adesso</span>
+      </div>
+      <button type="button" class="sms-push-close" onclick="event.stopPropagation(); closeSmsBanner();" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="sms-push-body">
+      <div class="sms-push-sender">BarPilot Sicurezza</div>
+      <div class="sms-push-message">
+        Il tuo codice di verifica per <strong id="smsBannerPhoneTarget" style="color:#FFB020;"></strong> è: <span class="sms-code-pill" id="smsBannerCode">123456</span>. Non condividerlo.
+      </div>
+    </div>
+    <div class="sms-push-footer">
+      <span class="sms-push-action-hint">⚡ Tocca per inserire automaticamente il codice</span>
+    </div>
+  </div>
+
   <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL, PHONE) -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-card">
@@ -351,10 +373,10 @@
             <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
             <span id="smsCountdown" style="font-size:11px; color:#10B981; font-weight:600;"></span>
           </div>
-          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="123456" value="123456" style="letter-spacing:4px; font-weight:800; text-align:center;" oninput="hideAuthError()">
+          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="Inserisci 6 cifre (es: 123456)" value="" style="letter-spacing:6px; font-weight:800; text-align:center; font-size:16px;" oninput="hideAuthError()">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-            <span style="font-size:11px; color:#10B981;" id="smsSentNoticeText" data-i18n="smsSentNotice">Codice inviato via SMS: usa 123456</span>
-            <a href="#" onclick="sendSmsCode(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="resendCode">Reinvia SMS</a>
+            <span style="font-size:11px; color:#10B981;" id="smsSentNoticeText" data-i18n="smsSentNotice">Premi 'Invia SMS' o inserisci il codice di conferma</span>
+            <a href="#" onclick="sendSmsCode(); return false;" id="resendSmsLink" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="resendCode">Reinvia SMS</a>
           </div>
         </div>
 
