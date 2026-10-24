@@ -8,6 +8,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. Language Initialization
   window.i18n.applyTranslations();
 
+  // Restore saved session details into activeBar
+  if (isUserLoggedIn()) {
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      if (savedUser) {
+        const bar = window.db.get("activeBar");
+        if (savedUser.name) bar.managerName = savedUser.name;
+        if (savedUser.barName) bar.name = savedUser.barName;
+        window.db.set("activeBar", bar);
+      }
+    } catch (e) {}
+  }
+
   // 3. Render Initial State
   renderApp();
 
@@ -269,10 +282,12 @@ function renderActiveBar() {
   const barSwitcherText = document.getElementById("barSwitcherText");
   const userGreeting = document.getElementById("userGreetingName");
   const trialDaysEl = document.getElementById("trialDaysCount");
+  const sidebarUserName = document.getElementById("sidebarUserName") || document.querySelector(".user-profile-card .user-name");
 
   if (barNameEl) barNameEl.textContent = bar.name;
   if (barSwitcherText) barSwitcherText.textContent = bar.name;
   if (userGreeting) userGreeting.textContent = bar.managerName.split(" ")[0];
+  if (sidebarUserName) sidebarUserName.textContent = bar.managerName;
   if (trialDaysEl) trialDaysEl.textContent = bar.trialDaysRemaining;
 }
 
@@ -1258,10 +1273,14 @@ function finishStoriesAndGoToAuth() {
 // ==========================================================================
 let currentAuthTab = 'login';
 let currentAuthMethod = 'email';
+let lastGeneratedSmsCode = '123456';
+let smsResendTimer = null;
 
 function openAuthScreen() {
   const authOverlay = document.getElementById("authOverlay");
   if (authOverlay) authOverlay.classList.remove("hidden");
+  switchAuthTab(currentAuthTab);
+  switchAuthMethod(currentAuthMethod);
 }
 
 function closeAuthScreen() {
@@ -1273,28 +1292,36 @@ function switchAuthTab(tab) {
   currentAuthTab = tab;
   const btnLogin = document.getElementById("tabBtnLogin");
   const btnRegister = document.getElementById("tabBtnRegister");
-  const extraFields = document.getElementById("registerExtraFields");
-  const submitBtn = document.getElementById("authSubmitBtn");
+  const extraFieldsEmail = document.getElementById("registerExtraFields");
+  const extraFieldsPhone = document.getElementById("registerPhoneExtraFields");
+  const submitBtnEmail = document.getElementById("authSubmitBtn");
+  const submitBtnPhone = document.getElementById("btnPhoneSubmit");
 
   if (btnLogin && btnRegister) {
     btnLogin.classList.toggle("active", tab === 'login');
     btnRegister.classList.toggle("active", tab === 'register');
   }
 
-  if (extraFields) {
-    extraFields.style.display = tab === 'register' ? 'block' : 'none';
+  const isRegister = (tab === 'register');
+  if (extraFieldsEmail) {
+    extraFieldsEmail.style.display = isRegister ? 'block' : 'none';
+  }
+  if (extraFieldsPhone) {
+    extraFieldsPhone.style.display = isRegister ? 'block' : 'none';
   }
 
-  if (submitBtn) {
-    if (tab === 'register') {
-      submitBtn.textContent = window.i18n.currentLang === 'it' 
-        ? "Crea account e inizia 14 giorni gratis" 
-        : "Créer mon bar et lancer 14 jours d'essai";
-    } else {
-      submitBtn.textContent = window.i18n.currentLang === 'it' 
-        ? "Accedi al gestionale" 
-        : "Accéder à BarPilot";
-    }
+  const isIt = !window.i18n || window.i18n.currentLang === 'it';
+
+  if (submitBtnEmail) {
+    submitBtnEmail.textContent = isRegister
+      ? (window.i18n ? window.i18n.t("submitEmailRegister") : "🚀 Crea Bar e attiva 14 giorni gratis")
+      : (window.i18n ? window.i18n.t("submitEmailLogin") : "Accedi al gestionale");
+  }
+
+  if (submitBtnPhone) {
+    submitBtnPhone.textContent = isRegister
+      ? (window.i18n ? window.i18n.t("submitPhoneRegister") : "🚀 Crea Bar con SMS (14 giorni gratis)")
+      : (window.i18n ? window.i18n.t("submitPhoneLogin") : "Verifica e Accedi");
   }
 }
 
@@ -1314,6 +1341,8 @@ function switchAuthMethod(method) {
     emailForm.style.display = method === 'email' ? 'block' : 'none';
     phoneForm.style.display = method === 'phone' ? 'block' : 'none';
   }
+
+  switchAuthTab(currentAuthTab);
 }
 
 // Social Login Simulation (Google & Facebook)
@@ -1326,6 +1355,7 @@ function handleSocialLogin(provider) {
   if (userGreeting) userGreeting.textContent = "Marco";
   renderActiveBar();
 
+  setUserLoggedIn(true, { name: "Marco Rossi", provider: provider });
   closeAuthScreen();
   showToast(window.i18n.currentLang === 'it' 
     ? `Accesso effettuato con successo tramite ${provider}!` 
@@ -1338,44 +1368,156 @@ function sendSmsCode() {
   const countryCode = document.getElementById("phoneCountryCode")?.value || "+39";
   const num = phoneInput ? phoneInput.value.trim() : "";
 
-  if (!num) {
-    alert(window.i18n.currentLang === 'it' ? "Inserisci il tuo numero di telefono" : "Veuillez entrer votre numéro de téléphone");
+  if (!num || num.length < 5) {
+    alert(window.i18n.currentLang === 'it' ? "Inserisci un numero di cellulare valido" : "Veuillez entrer un numéro de mobile valide");
     return;
   }
+
+  // Generate dynamic 6-digit SMS OTP
+  const genCode = Math.floor(100000 + Math.random() * 900000).toString();
+  lastGeneratedSmsCode = genCode;
+  window.lastGeneratedSmsCode = genCode;
 
   const smsGroup = document.getElementById("smsCodeGroup");
   if (smsGroup) smsGroup.style.display = "block";
 
+  const smsInput = document.getElementById("authSmsCode");
+  if (smsInput) {
+    smsInput.value = genCode;
+    smsInput.focus();
+  }
+
+  const noticeText = document.getElementById("smsSentNoticeText");
+  if (noticeText) {
+    noticeText.textContent = window.i18n.currentLang === 'it'
+      ? `Codice inviato via SMS: usa ${genCode}`
+      : `Code envoyé par SMS : utilisez ${genCode}`;
+  }
+
+  // Countdown timer simulation for resend
+  const countdownEl = document.getElementById("smsCountdown");
+  if (countdownEl) {
+    let timeLeft = 60;
+    countdownEl.textContent = `(60s)`;
+    if (smsResendTimer) clearInterval(smsResendTimer);
+    smsResendTimer = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        clearInterval(smsResendTimer);
+        countdownEl.textContent = "";
+      } else {
+        countdownEl.textContent = `(${timeLeft}s)`;
+      }
+    }, 1000);
+  }
+
   showToast(window.i18n.currentLang === 'it' 
-    ? `Codice inviato a ${countryCode} ${num}: 123456` 
-    : `Code SMS envoyé au ${countryCode} ${num} : 123456`);
+    ? `📲 Codice SMS inviato a ${countryCode} ${num}: ${genCode}` 
+    : `📲 Code SMS envoyé au ${countryCode} ${num} : ${genCode}`);
 }
 
 function handlePhoneAuthSubmit(e) {
   e.preventDefault();
+  const phoneInput = document.getElementById("authPhoneNumber");
+  const countryCode = document.getElementById("phoneCountryCode")?.value || "+39";
+  const phoneNum = phoneInput ? phoneInput.value.trim() : "";
+  const fullPhone = `${countryCode} ${phoneNum}`;
+
+  if (!phoneNum) {
+    alert(window.i18n.currentLang === 'it' ? "Inserisci il tuo numero di telefono" : "Veuillez entrer votre numéro de téléphone");
+    return;
+  }
+
   const smsInput = document.getElementById("authSmsCode");
   const code = smsInput ? smsInput.value.trim() : "";
-  const phone = document.getElementById("authPhone")?.value || "";
 
-  if (code === "123456" || code.length >= 4) {
-    setUserLoggedIn(true, { phone: phone, provider: "phone" });
+  // Validate OTP code (accept generated code or 123456 or any 6-digit code)
+  if (!code || (code !== lastGeneratedSmsCode && code !== "123456" && code.length !== 6)) {
+    alert(window.i18n.currentLang === 'it' ? `Codice SMS non valido. Usa ${lastGeneratedSmsCode || '123456'}` : `Code SMS invalide. Utilisez ${lastGeneratedSmsCode || '123456'}`);
+    return;
+  }
+
+  // Handle Phone Registration
+  if (currentAuthTab === 'register') {
+    const barName = document.getElementById("regPhoneBarName")?.value.trim() || "Lounge Bar Riviera";
+    const ownerName = document.getElementById("regPhoneOwnerName")?.value.trim() || "Alessandro Neri";
+    const city = document.getElementById("regPhoneCity")?.value.trim() || "Milano";
+
+    const activeBar = {
+      id: "bar_" + Date.now(),
+      name: barName,
+      city: city,
+      address: `Corso Italia, 45 - ${city}`,
+      currency: "€",
+      role: "Proprietario",
+      managerName: ownerName,
+      managerPhone: fullPhone,
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
+      plan: "Pro",
+      trialDaysRemaining: 14,
+      trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+    };
+
+    const bars = window.db.get("barsList") || [];
+    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address });
+
+    window.db.set("activeBar", activeBar);
+    window.db.set("barsList", bars);
+
+    // Save in persistent user registry
+    try {
+      const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+      regList.push({ type: "phone", phone: fullPhone, name: ownerName, barName: barName, city: city, date: new Date().toISOString() });
+      localStorage.setItem("barpilot_registered_users", JSON.stringify(regList));
+    } catch (err) {}
+
+    setUserLoggedIn(true, { name: ownerName, phone: fullPhone, barName: barName, provider: "phone" });
     closeAuthScreen();
+    renderApp();
+
     showToast(window.i18n.currentLang === 'it' 
-      ? "Numero verificato con successo! Benvenuto in BarPilot." 
-      : "Numéro vérifié avec succès ! Bienvenue sur BarPilot.");
+      ? `🎉 Bar "${barName}" registrato via SMS! Benvenuto ${ownerName}, 14 giorni di prova gratis attivati!` 
+      : `🎉 Bar "${barName}" enregistré via SMS ! Bienvenue ${ownerName}, 14 jours d'essai activés !`);
   } else {
-    alert(window.i18n.currentLang === 'it' ? "Codice SMS errato. Prova con 123456" : "Code SMS incorrect. Essayez 123456");
+    // Handle Phone Login
+    let ownerName = "Gestore";
+    try {
+      const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+      const found = regList.find(u => u.phone === fullPhone);
+      if (found) {
+        ownerName = found.name || ownerName;
+        const bar = window.db.get("activeBar");
+        if (found.barName) bar.name = found.barName;
+        if (found.city) bar.city = found.city;
+        bar.managerName = ownerName;
+        bar.managerPhone = fullPhone;
+        window.db.set("activeBar", bar);
+      } else {
+        const bar = window.db.get("activeBar");
+        bar.managerPhone = fullPhone;
+        ownerName = bar.managerName;
+        window.db.set("activeBar", bar);
+      }
+    } catch (err) {}
+
+    setUserLoggedIn(true, { name: ownerName, phone: fullPhone, provider: "phone" });
+    closeAuthScreen();
+    renderApp();
+
+    showToast(window.i18n.currentLang === 'it' 
+      ? `✅ Numero verificato! Accesso effettuato a ${window.db.get("activeBar").name}.` 
+      : `✅ Numéro vérifié ! Bienvenue sur ${window.db.get("activeBar").name}.`);
   }
 }
 
 function handleAuthSubmit(e) {
   e.preventDefault();
+  const email = document.getElementById("authEmail")?.value.trim() || "marco@barcentrale.it";
 
   if (currentAuthTab === 'register') {
-    const barName = document.getElementById("regBarName")?.value || "Il Mio Nuovo Bar";
-    const ownerName = document.getElementById("regOwnerName")?.value || "Marco";
-    const city = document.getElementById("regCity")?.value || "Roma";
-    const email = document.getElementById("authEmail")?.value || "proprietario@barpilot.it";
+    const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
+    const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
+    const city = document.getElementById("regCity")?.value.trim() || "Roma";
 
     const activeBar = {
       id: "bar_" + Date.now(),
@@ -1398,21 +1540,49 @@ function handleAuthSubmit(e) {
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
 
-    renderActiveBar();
-    renderApp();
+    // Save in persistent user registry
+    try {
+      const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+      regList.push({ type: "email", email: email, name: ownerName, barName: barName, city: city, date: new Date().toISOString() });
+      localStorage.setItem("barpilot_registered_users", JSON.stringify(regList));
+    } catch (err) {}
 
     setUserLoggedIn(true, { name: ownerName, email: email, barName: barName, provider: "email" });
     closeAuthScreen();
+    renderApp();
+
     showToast(window.i18n.currentLang === 'it'
-      ? `Bar "${barName}" registrato! 14 giorni di prova gratuita attivati.`
-      : `Bar "${barName}" enregistré ! 14 jours d'essai gratuit activés.`);
+      ? `🎉 Bar "${barName}" registrato! Benvenuto ${ownerName}, 14 giorni di prova gratuita attivati.`
+      : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
   } else {
-    const email = document.getElementById("authEmail")?.value || "marco@barcentrale.it";
-    setUserLoggedIn(true, { email: email, provider: "email" });
+    // Handle Email Login
+    let ownerName = "Marco Rossi";
+    try {
+      const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+      const found = regList.find(u => u.email === email);
+      if (found) {
+        ownerName = found.name || ownerName;
+        const bar = window.db.get("activeBar");
+        if (found.barName) bar.name = found.barName;
+        if (found.city) bar.city = found.city;
+        bar.managerName = ownerName;
+        bar.managerEmail = email;
+        window.db.set("activeBar", bar);
+      } else {
+        const bar = window.db.get("activeBar");
+        bar.managerEmail = email;
+        ownerName = bar.managerName;
+        window.db.set("activeBar", bar);
+      }
+    } catch (err) {}
+
+    setUserLoggedIn(true, { name: ownerName, email: email, provider: "email" });
     closeAuthScreen();
+    renderApp();
+
     showToast(window.i18n.currentLang === 'it'
-      ? "Accesso effettuato al tuo bar!"
-      : "Connexion réussie à votre bar !");
+      ? `✅ Accesso effettuato a ${window.db.get("activeBar").name}!`
+      : `✅ Connexion réussie à ${window.db.get("activeBar").name} !`);
   }
 }
 

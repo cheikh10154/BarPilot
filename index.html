@@ -307,6 +307,22 @@
 
       <!-- Login Form (Phone SMS Mode) -->
       <form id="authPhoneForm" style="display:none;" onsubmit="handlePhoneAuthSubmit(event)">
+        <!-- Register extra fields for Phone -->
+        <div id="registerPhoneExtraFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
+            <input type="text" class="form-input" id="regPhoneBarName" placeholder="Es: Lounge Bar Riviera">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
+            <input type="text" class="form-input" id="regPhoneOwnerName" placeholder="Es: Alessandro Neri">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="cityLabel">Città</label>
+            <input type="text" class="form-input" id="regPhoneCity" placeholder="Es: Milano / Paris">
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
           <div class="phone-input-row">
@@ -325,9 +341,20 @@
 
         <!-- SMS Verification Code Input -->
         <div class="form-group" id="smsCodeGroup" style="display:none;">
-          <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
+            <span id="smsCountdown" style="font-size:11px; color:#10B981; font-weight:600;"></span>
+          </div>
           <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="123456" value="123456" style="letter-spacing:4px; font-weight:800; text-align:center;">
-          <span style="font-size:11px; color:#10B981; margin-top:4px;" data-i18n="smsSentNotice">Codice inviato via SMS: usa 123456</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="font-size:11px; color:#10B981;" id="smsSentNoticeText" data-i18n="smsSentNotice">Codice inviato via SMS: usa 123456</span>
+            <a href="#" onclick="sendSmsCode(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="resendCode">Reinvia SMS</a>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
+          <input type="checkbox" id="authPhoneRemember" checked style="accent-color:var(--primary); cursor:pointer;">
+          <label for="authPhoneRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
         </div>
 
         <button type="submit" class="btn-primary" style="width:100%; margin-top:12px;" id="btnPhoneSubmit" data-i18n="verifyAndLogin">
@@ -444,7 +471,7 @@
         <div class="user-profile-card">
           <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" alt="Gestore">
           <div class="user-info" onclick="openAuthScreen()" style="cursor:pointer;" title="Clicca per visualizzare o cambiare bar">
-            <span class="user-name">Marco Rossi</span>
+            <span class="user-name" id="sidebarUserName">Marco Rossi</span>
             <span class="user-role" data-i18n="roleOwner">Proprietario</span>
           </div>
           <button type="button" class="btn-sidebar-logout" onclick="logoutUser()" title="Disconnettiti dal gestionale">
