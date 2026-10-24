@@ -62,7 +62,8 @@ class GoogleAuthManager {
     const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
 
     // Official Google URL to view connected Google accounts on this device or create a new one
-    const googleChooserUrl = "https://accounts.google.com/AccountChooser?service=lso&continue=" + encodeURIComponent(window.location.origin);
+    // Note: Do not append arbitrary continue URLs to avoid Google's Error 400 open-redirect check
+    const googleChooserUrl = "https://accounts.google.com/AccountChooser";
 
     const popup = window.open(
       googleChooserUrl,
