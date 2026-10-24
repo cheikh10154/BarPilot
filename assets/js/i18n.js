@@ -16,6 +16,8 @@ const i18nData = {
     confirmLogout: "Sì, Esci",
     switchBar: "Cambia locale",
     greeting: "Buongiorno, {name} 👋",
+    greetingMorning: "Buongiorno, {name} 👋",
+    greetingEvening: "Buonasera, {name} 👋",
     greetingSub: "Ecco cosa sta succedendo nel tuo bar oggi",
     today: "Oggi",
     save: "Salva",
@@ -322,6 +324,8 @@ const i18nData = {
     confirmLogout: "Oui, Se déconnecter",
     switchBar: "Changer d'établissement",
     greeting: "Bonjour, {name} 👋",
+    greetingMorning: "Bonjour, {name} 👋",
+    greetingEvening: "Bonsoir, {name} 👋",
     greetingSub: "Voici ce qui se passe dans votre bar aujourd'hui",
     today: "Aujourd'hui",
     save: "Enregistrer",
@@ -637,9 +641,12 @@ window.i18n = {
       const key = el.getAttribute('data-i18n');
       const paramsAttr = el.getAttribute('data-i18n-params');
       const params = paramsAttr ? JSON.parse(paramsAttr) : {};
-      if (key === 'greeting') {
+      if (key === 'greeting' || key === 'greetingMorning' || key === 'greetingEvening') {
+        const hour = new Date().getHours();
+        // Dalle 03:00 alle 15:00 -> Buongiorno / Bonjour | Dalle 15:00 alle 03:00 -> Buonasera / Bonsoir
+        const targetKey = (hour >= 3 && hour < 15) ? 'greetingMorning' : 'greetingEvening';
         const nameVal = params.name || (window.db ? (window.db.get("activeBar")?.managerName?.split(" ")[0]) : 'Marco') || 'Marco';
-        el.innerHTML = this.t(key, { name: `<span id="userGreetingName">${nameVal}</span>` });
+        el.innerHTML = this.t(targetKey, { name: `<span id="userGreetingName">${nameVal}</span>` });
       } else {
         el.textContent = this.t(key, params);
       }

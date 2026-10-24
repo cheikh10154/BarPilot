@@ -281,13 +281,19 @@ function updateGreeting(name) {
   const managerName = name || (bar ? bar.managerName : "Marco");
   const firstName = (managerName || "Marco").trim().split(" ")[0];
 
+  // Orario: Dalle 03:00 alle 15:00 -> "Buongiorno" | Dalle 15:00 alle 03:00 -> "Buonasera"
+  const currentHour = new Date().getHours();
+  const isMorning = (currentHour >= 3 && currentHour < 15);
+  const targetKey = isMorning ? "greetingMorning" : "greetingEvening";
+
   const greetingEl = document.getElementById("greetingTitleWrap") || document.querySelector("[data-i18n='greeting']");
   if (greetingEl) {
     greetingEl.setAttribute("data-i18n-params", JSON.stringify({ name: firstName }));
     if (window.i18n && typeof window.i18n.t === "function") {
-      greetingEl.innerHTML = window.i18n.t("greeting", { name: `<span id="userGreetingName">${firstName}</span>` });
+      greetingEl.innerHTML = window.i18n.t(targetKey, { name: `<span id="userGreetingName">${firstName}</span>` });
     } else {
-      greetingEl.innerHTML = `Buongiorno, <span id="userGreetingName">${firstName}</span> 👋`;
+      const salutation = isMorning ? "Buongiorno" : "Buonasera";
+      greetingEl.innerHTML = `${salutation}, <span id="userGreetingName">${firstName}</span> 👋`;
     }
   }
 
