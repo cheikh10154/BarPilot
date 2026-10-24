@@ -272,19 +272,19 @@
 
       <!-- Login Form (Email Mode) -->
       <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
-        <!-- Register extra fields -->
-        <div id="registerExtraFields" style="display:none;">
+        <!-- Bar, Owner & City fields (same as Creare un Bar) -->
+        <div id="registerExtraFields">
           <div class="form-group">
             <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
-            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale Roma">
+            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale" value="Bar Centrale" oninput="hideAuthError()" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
-            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi">
+            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi" value="Marco Rossi" oninput="hideAuthError()" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="cityLabel">Città</label>
-            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice">
+            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice" value="Roma" oninput="hideAuthError()" required>
           </div>
         </div>
 

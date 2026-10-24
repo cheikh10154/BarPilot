@@ -1881,7 +1881,8 @@ function switchAuthTab(tab) {
 
   const isRegister = (tab === 'register');
   if (extraFieldsEmail) {
-    extraFieldsEmail.style.display = isRegister ? 'block' : 'none';
+    // Il login con email chiede le stesse cose del "Creare un bar" (Nome bar, Nome/Cognome, Città, Email, Password)
+    extraFieldsEmail.style.display = 'block';
   }
   if (extraFieldsPhone) {
     extraFieldsPhone.style.display = isRegister ? 'block' : 'none';
@@ -2178,6 +2179,18 @@ function handleAuthSubmit(e) {
       date: new Date().toISOString()
     });
 
+    // Update owner in staff table
+    const staffList = window.db.get("staff") || [];
+    const ownerStaff = staffList.find(s => s.role === "Proprietario");
+    if (ownerStaff) {
+      ownerStaff.name = ownerName;
+      ownerStaff.email = email;
+      window.db.set("staff", staffList);
+      if (currentStaff && currentStaff.role === "Proprietario") {
+        currentStaff.name = ownerName;
+      }
+    }
+
     hideAuthError();
     setUserLoggedIn(true, { name: ownerName, email: email, barName: barName, provider: "email" });
     closeAuthScreen();
@@ -2188,6 +2201,10 @@ function handleAuthSubmit(e) {
       : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
   } else {
     // Handle Email Login: Check database credentials!
+    const barNameInput = (document.getElementById("regBarName")?.value || "").trim();
+    const ownerNameInput = (document.getElementById("regOwnerName")?.value || "").trim();
+    const cityInput = (document.getElementById("regCity")?.value || "").trim();
+
     const users = getDatabaseUsers();
     const userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
 
@@ -2197,21 +2214,36 @@ function handleAuthSubmit(e) {
     }
 
     hideAuthError();
-    const ownerName = userFound.name || "Marco Rossi";
+    const ownerName = ownerNameInput || userFound.name || "Marco Rossi";
+    const barName = barNameInput || userFound.barName || "Bar Centrale";
+    const city = cityInput || userFound.city || "Roma";
+
     const bar = window.db.get("activeBar");
-    if (userFound.barName) bar.name = userFound.barName;
-    if (userFound.city) bar.city = userFound.city;
+    bar.name = barName;
+    bar.city = city;
     bar.managerName = ownerName;
     bar.managerEmail = email;
     window.db.set("activeBar", bar);
 
-    setUserLoggedIn(true, { name: ownerName, email: email, provider: "email" });
+    // Update staff owner profile
+    const staffList = window.db.get("staff") || [];
+    const ownerStaff = staffList.find(s => s.role === "Proprietario");
+    if (ownerStaff) {
+      ownerStaff.name = ownerName;
+      ownerStaff.email = email;
+      window.db.set("staff", staffList);
+      if (currentStaff && currentStaff.role === "Proprietario") {
+        currentStaff.name = ownerName;
+      }
+    }
+
+    setUserLoggedIn(true, { name: ownerName, email: email, barName: barName, provider: "email" });
     closeAuthScreen();
     renderApp();
 
     showToast(window.i18n.currentLang === 'it'
-      ? `✅ Accesso effettuato a ${window.db.get("activeBar").name}!`
-      : `✅ Connexion réussie à ${window.db.get("activeBar").name} !`);
+      ? `✅ Accesso effettuato a ${barName}!`
+      : `✅ Connexion réussie à ${barName} !`);
   }
 }
 
