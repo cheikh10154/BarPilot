@@ -1565,7 +1565,7 @@ html.user-authenticated #authOverlay {
   display: flex;
 }
 
-#googlePickerModal, #facebookPickerModal {
+#googlePickerModal, #facebookPickerModal, #logoutConfirmModal {
   position: fixed !important;
   inset: 0 !important;
   z-index: 1000001 !important;
@@ -1577,7 +1577,7 @@ html.user-authenticated #authOverlay {
   padding: 16px;
 }
 
-#googlePickerModal.active, #facebookPickerModal.active {
+#googlePickerModal.active, #facebookPickerModal.active, #logoutConfirmModal.active {
   display: flex !important;
 }
 

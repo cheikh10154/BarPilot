@@ -1458,6 +1458,32 @@
 
   </div>
 
+  <!-- Logout Confirmation Modal (In-App Custom Dialog) -->
+  <div class="modal-overlay" id="logoutConfirmModal">
+    <div class="modal-box" style="max-width: 410px; width: 92%; text-align: center; padding: 28px 24px; border-radius: 22px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 2px solid rgba(239, 68, 68, 0.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; color: #EF4444; box-shadow: 0 0 20px rgba(239,68,68,0.2);">
+        🚪
+      </div>
+
+      <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;" data-i18n="logoutModalTitle">
+        Vuoi davvero uscire?
+      </h3>
+
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 22px;" data-i18n="logoutModalDesc">
+        Sei sicuro di voler effettuare la disconnessione dal tuo locale? Per rientrare dovrai effettuare nuovamente l'accesso.
+      </p>
+
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="btn-secondary" onclick="closeLogoutModal()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px;" data-i18n="cancel">
+          Annulla
+        </button>
+        <button type="button" class="btn-primary" onclick="confirmLogoutAction()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px; background: #EF4444; border-color: #EF4444; box-shadow: 0 4px 14px rgba(239,68,68,0.35);" data-i18n="confirmLogout">
+          Sì, Esci
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Multi-tenant Bar Login / Switcher Modal -->
   <div class="modal-overlay" id="barModalOverlay">
     <div class="modal-box">

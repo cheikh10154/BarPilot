@@ -133,6 +133,7 @@ function setupNavigation() {
       closeSidebar();
       const modal = document.getElementById("barModalOverlay");
       if (modal) modal.classList.remove("active");
+      closeLogoutModal();
       closeAuthScreen();
     }
   });
@@ -885,6 +886,16 @@ function setupModals() {
     });
   }
 
+  // Click outside logout confirm modal
+  const logoutModal = document.getElementById("logoutConfirmModal");
+  if (logoutModal) {
+    logoutModal.addEventListener("click", (e) => {
+      if (e.target === logoutModal) {
+        closeLogoutModal();
+      }
+    });
+  }
+
   if (confirmBarBtn && barSelect && modal) {
     confirmBarBtn.addEventListener("click", () => {
       const selectedId = barSelect.value;
@@ -971,24 +982,33 @@ function setUserLoggedIn(status, userMeta = null) {
 }
 
 function logoutUser() {
-  const isIt = !window.i18n || window.i18n.currentLang === "it";
-  const confirmMsg = isIt
-    ? "Sei sicuro di voler effettuare la disconnessione dal tuo locale?"
-    : "Êtes-vous sûr de vouloir vous déconnecter de votre établissement ?";
-
-  if (confirm(confirmMsg)) {
-    setUserLoggedIn(false);
-    
-    // Close sidebar if open
-    closeSidebar();
-    
-    // Open authentication screen
-    openAuthScreen();
-
-    showToast(isIt
-      ? "Disconnessione effettuata. Per rientrare, effettua nuovamente l'accesso."
-      : "Déconnexion réussie. Pour vous reconnecter, veuillez vous identifier.");
+  const modal = document.getElementById("logoutConfirmModal");
+  if (modal) {
+    modal.classList.add("active");
+  } else {
+    confirmLogoutAction();
   }
+}
+
+function closeLogoutModal() {
+  const modal = document.getElementById("logoutConfirmModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmLogoutAction() {
+  closeLogoutModal();
+  setUserLoggedIn(false);
+  
+  // Close sidebar if open
+  closeSidebar();
+  
+  // Open authentication screen
+  openAuthScreen();
+
+  const isIt = !window.i18n || window.i18n.currentLang === "it";
+  showToast(isIt
+    ? "Disconnessione effettuata. A presto!"
+    : "Déconnexion réussie. À bientôt !");
 }
 
 function initSplashScreen() {
