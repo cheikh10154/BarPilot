@@ -1731,9 +1731,31 @@ html.user-authenticated #authOverlay {
     transform: translateX(-100%) !important;
   }
 
-  /* ON MOBILE: Keep close "X" button visible & interactive */
+  /* ON MOBILE: Show close "X" button in sidebar header */
   .sidebar-close-btn {
     display: flex !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 122, 0, 0.2) !important;
+    border: 1.5px solid var(--primary) !important;
+    color: #FFFFFF !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+    margin-left: auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all var(--transition-fast) !important;
+    flex-shrink: 0 !important;
+    z-index: 10001 !important;
+  }
+
+  .sidebar-close-btn:hover {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    transform: scale(1.12) !important;
+    box-shadow: 0 0 14px var(--primary-glow) !important;
   }
 
   .menu-toggle-btn {
@@ -1761,9 +1783,16 @@ html.user-authenticated #authOverlay {
     pointer-events: auto !important;
   }
 
-  /* ON DESKTOP: Remove close "X" button strictly on desktop */
+  /* ON DESKTOP: Remove close "X" button STRICTLY on desktop */
   .sidebar-close-btn {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
   }
 
   /* ON DESKTOP: Hide mobile hamburger button and backdrop */
@@ -1776,31 +1805,9 @@ html.user-authenticated #authOverlay {
   }
 }
 
-/* Prominent Close "X" Button on Sidebar (Styling for mobile) */
+/* Base fallback: button is hidden by default unless mobile media query matches */
 .sidebar-close-btn {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 122, 0, 0.2) !important;
-  border: 1.5px solid var(--primary) !important;
-  color: #FFFFFF !important;
-  font-size: 18px !important;
-  font-weight: 900 !important;
-  cursor: pointer !important;
-  margin-left: auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all var(--transition-fast) !important;
-  flex-shrink: 0 !important;
-  z-index: 10001 !important;
-}
-
-.sidebar-close-btn:hover {
-  background: var(--primary) !important;
-  color: #FFFFFF !important;
-  transform: scale(1.12) !important;
-  box-shadow: 0 0 14px var(--primary-glow) !important;
+  display: none;
 }
 
 /* ========================================================
