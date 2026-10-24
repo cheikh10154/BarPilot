@@ -1885,7 +1885,8 @@ function switchAuthTab(tab) {
     extraFieldsEmail.style.display = 'block';
   }
   if (extraFieldsPhone) {
-    extraFieldsPhone.style.display = isRegister ? 'block' : 'none';
+    // Anche l'accesso con telefono include i campi del bar (Nome bar, Nome/Cognome, Città, Telefono, Codice SMS)
+    extraFieldsPhone.style.display = 'block';
   }
 
   const isIt = !window.i18n || window.i18n.currentLang === 'it';
@@ -2059,21 +2060,40 @@ function handlePhoneAuthSubmit(e) {
 
     // Login successful
     hideAuthError();
-    const ownerName = userFound.name || "Marco Rossi";
+    const barNameInput = (document.getElementById("regPhoneBarName")?.value || "").trim();
+    const ownerNameInput = (document.getElementById("regPhoneOwnerName")?.value || "").trim();
+    const cityInput = (document.getElementById("regPhoneCity")?.value || "").trim();
+
+    const ownerName = ownerNameInput || userFound.name || "Marco Rossi";
+    const barName = barNameInput || userFound.barName || "Bar Centrale";
+    const city = cityInput || userFound.city || "Roma";
+
     const bar = window.db.get("activeBar");
-    if (userFound.barName) bar.name = userFound.barName;
-    if (userFound.city) bar.city = userFound.city;
+    bar.name = barName;
+    bar.city = city;
     bar.managerName = ownerName;
     bar.managerPhone = fullPhone;
     window.db.set("activeBar", bar);
 
-    setUserLoggedIn(true, { name: ownerName, phone: fullPhone, provider: "phone" });
+    // Update staff owner profile
+    const staffList = window.db.get("staff") || [];
+    const ownerStaff = staffList.find(s => s.role === "Proprietario");
+    if (ownerStaff) {
+      ownerStaff.name = ownerName;
+      ownerStaff.phone = fullPhone;
+      window.db.set("staff", staffList);
+      if (currentStaff && currentStaff.role === "Proprietario") {
+        currentStaff.name = ownerName;
+      }
+    }
+
+    setUserLoggedIn(true, { name: ownerName, phone: fullPhone, barName: barName, provider: "phone" });
     closeAuthScreen();
     renderApp();
 
     showToast(window.i18n.currentLang === 'it' 
-      ? `✅ Numero verificato! Accesso effettuato a ${window.db.get("activeBar").name}.` 
-      : `✅ Numéro vérifié ! Bienvenue sur ${window.db.get("activeBar").name}.`);
+      ? `✅ Accesso effettuato a ${barName}!` 
+      : `✅ Connexion réussie à ${barName} !`);
     return;
   }
 
@@ -2124,6 +2144,18 @@ function handlePhoneAuthSubmit(e) {
     city: city,
     date: new Date().toISOString()
   });
+
+  // Update staff owner profile
+  const staffList = window.db.get("staff") || [];
+  const ownerStaff = staffList.find(s => s.role === "Proprietario");
+  if (ownerStaff) {
+    ownerStaff.name = ownerName;
+    ownerStaff.phone = fullPhone;
+    window.db.set("staff", staffList);
+    if (currentStaff && currentStaff.role === "Proprietario") {
+      currentStaff.name = ownerName;
+    }
+  }
 
   hideAuthError();
   setUserLoggedIn(true, { name: ownerName, phone: fullPhone, barName: barName, provider: "phone" });

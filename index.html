@@ -313,19 +313,19 @@
 
       <!-- Login Form (Phone SMS Mode) -->
       <form id="authPhoneForm" style="display:none;" onsubmit="handlePhoneAuthSubmit(event)">
-        <!-- Register extra fields for Phone -->
-        <div id="registerPhoneExtraFields" style="display:none;">
+        <!-- Bar, Owner & City fields for Phone (same as Creare un Bar) -->
+        <div id="registerPhoneExtraFields">
           <div class="form-group">
             <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
-            <input type="text" class="form-input" id="regPhoneBarName" placeholder="Es: Lounge Bar Riviera">
+            <input type="text" class="form-input" id="regPhoneBarName" placeholder="Es: Bar Centrale" value="Bar Centrale" oninput="hideAuthError()" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
-            <input type="text" class="form-input" id="regPhoneOwnerName" placeholder="Es: Alessandro Neri">
+            <input type="text" class="form-input" id="regPhoneOwnerName" placeholder="Es: Marco Rossi" value="Marco Rossi" oninput="hideAuthError()" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="cityLabel">Città</label>
-            <input type="text" class="form-input" id="regPhoneCity" placeholder="Es: Milano / Paris">
+            <input type="text" class="form-input" id="regPhoneCity" placeholder="Es: Roma / Nice" value="Roma" oninput="hideAuthError()" required>
           </div>
         </div>
 
@@ -346,7 +346,7 @@
         </div>
 
         <!-- SMS Verification Code Input -->
-        <div class="form-group" id="smsCodeGroup" style="display:none;">
+        <div class="form-group" id="smsCodeGroup">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
             <span id="smsCountdown" style="font-size:11px; color:#10B981; font-weight:600;"></span>
