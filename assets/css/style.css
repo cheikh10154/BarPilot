@@ -1730,29 +1730,53 @@ html.user-authenticated #authOverlay {
   .sidebar.closed {
     transform: translateX(-100%) !important;
   }
+
+  /* ON MOBILE: Keep close "X" button visible & interactive */
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+
+  .menu-toggle-btn {
+    display: flex !important;
+  }
 }
 
 @media (min-width: 1025px) {
-  .sidebar {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
+  /* ON DESKTOP: Sidebar is ALWAYS fixed and visible - never closable */
+  .sidebar,
+  .sidebar.mobile-open,
+  .sidebar.open,
   .sidebar.sidebar-closed,
   .sidebar.closed {
-    margin-left: -285px !important;
-    transform: translateX(-100%) !important;
+    display: flex !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    position: static !important;
+    height: 100vh !important;
+    width: 285px !important;
+    min-width: 285px !important;
+    box-shadow: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* ON DESKTOP: Remove close "X" button strictly on desktop */
+  .sidebar-close-btn {
     display: none !important;
   }
 
-  .sidebar.mobile-open,
-  .sidebar.open {
-    display: flex !important;
-    margin-left: 0 !important;
-    transform: translateX(0) !important;
+  /* ON DESKTOP: Hide mobile hamburger button and backdrop */
+  .menu-toggle-btn {
+    display: none !important;
+  }
+
+  .sidebar-backdrop {
+    display: none !important;
   }
 }
 
-/* Prominent Close "X" Button on Sidebar */
+/* Prominent Close "X" Button on Sidebar (Styling for mobile) */
 .sidebar-close-btn {
   width: 36px !important;
   height: 36px !important;
@@ -1777,11 +1801,6 @@ html.user-authenticated #authOverlay {
   color: #FFFFFF !important;
   transform: scale(1.12) !important;
   box-shadow: 0 0 14px var(--primary-glow) !important;
-}
-
-.menu-toggle-btn {
-  display: flex !important;
-  cursor: pointer;
 }
 
 /* ========================================================

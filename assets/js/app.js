@@ -78,7 +78,10 @@ function setupNavigation() {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
       switchView(view);
-      closeSidebar();
+      // Close sidebar only on mobile
+      if (window.innerWidth <= 1024) {
+        closeSidebar();
+      }
     });
   });
 
@@ -114,8 +117,9 @@ function setupNavigation() {
     };
   }
 
-  // Click anywhere outside sidebar on document closes it
+  // Click anywhere outside sidebar on document closes it (Mobile only)
   document.addEventListener("click", (e) => {
+    if (window.innerWidth > 1024) return;
     if (!sidebar) return;
     const isOpen = (sidebar.classList.contains("mobile-open") || sidebar.classList.contains("open")) &&
                    !sidebar.classList.contains("sidebar-closed") &&
@@ -130,11 +134,25 @@ function setupNavigation() {
   // ESC key closes mobile sidebar and modals
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      closeSidebar();
+      if (window.innerWidth <= 1024) {
+        closeSidebar();
+      }
       const modal = document.getElementById("barModalOverlay");
       if (modal) modal.classList.remove("active");
       closeLogoutModal();
       closeAuthScreen();
+    }
+  });
+
+  // Window resize resets mobile sidebar states on desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1024) {
+      if (sidebar) {
+        sidebar.classList.remove("sidebar-closed", "closed", "mobile-open", "open");
+      }
+      if (backdrop) {
+        backdrop.classList.remove("active");
+      }
     }
   });
 }
@@ -162,12 +180,15 @@ function openSidebar() {
     sidebar.classList.add("mobile-open", "open");
     sidebar.classList.remove("sidebar-closed", "closed");
   }
-  if (backdrop) {
+  if (backdrop && window.innerWidth <= 1024) {
     backdrop.classList.add("active");
   }
 }
 
 function closeSidebar() {
+  // On Desktop (> 1024px), sidebar must NEVER be closed!
+  if (window.innerWidth > 1024) return;
+
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
   if (sidebar) {
@@ -180,6 +201,9 @@ function closeSidebar() {
 }
 
 function toggleSidebar() {
+  // On Desktop (> 1024px), sidebar is fixed and cannot be toggled
+  if (window.innerWidth > 1024) return;
+
   const sidebar = document.getElementById("appSidebar");
   if (!sidebar) return;
   const isOpen = (sidebar.classList.contains("mobile-open") || sidebar.classList.contains("open")) && 
