@@ -2443,6 +2443,44 @@ html.user-authenticated #authOverlay {
   padding: 0 12px;
 }
 
+/* Credential Mode Switcher (Password vs PIN) */
+.cred-mode-switch {
+  display: flex;
+  background: var(--bg-card-secondary, #1F2937);
+  border: 1px solid var(--border-color, #374151);
+  border-radius: var(--radius-md, 10px);
+  padding: 3px;
+  gap: 4px;
+  margin: 4px 0 14px;
+}
+
+.cred-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #9CA3AF);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cred-mode-btn:hover {
+  color: #FFFFFF;
+}
+
+.cred-mode-btn.active {
+  background: var(--primary, #FF7A00);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(255, 122, 0, 0.35);
+}
+
 /* Auth Error Alert */
 .auth-error-alert {
   display: flex;

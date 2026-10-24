@@ -1848,6 +1848,45 @@ function closeAuthScreen() {
   hideAuthError();
 }
 
+let currentCredMode = 'password';
+
+function setAuthCredentialMode(mode) {
+  currentCredMode = mode;
+  hideAuthError();
+  const btnPass = document.getElementById("btnModePassword");
+  const btnPin = document.getElementById("btnModePin");
+  const passInput = document.getElementById("authPassword");
+  const labelEl = document.getElementById("authPasswordLabel");
+  const forgotEl = document.getElementById("authForgotPassLink");
+
+  if (btnPass && btnPin) {
+    btnPass.classList.toggle("active", mode === 'password');
+    btnPin.classList.toggle("active", mode === 'pin');
+  }
+
+  if (passInput) {
+    passInput.value = "";
+    if (mode === 'pin') {
+      passInput.setAttribute("maxlength", "4");
+      passInput.setAttribute("inputmode", "numeric");
+      passInput.setAttribute("pattern", "[0-9]*");
+      passInput.placeholder = "••••";
+      passInput.style.letterSpacing = "6px";
+      if (labelEl) labelEl.textContent = window.i18n ? window.i18n.t("pinOnlyLabel") : "PIN veloce (max 4 cifre)";
+      if (forgotEl) forgotEl.style.display = "none";
+    } else {
+      passInput.removeAttribute("maxlength");
+      passInput.removeAttribute("pattern");
+      passInput.setAttribute("inputmode", "text");
+      passInput.placeholder = "••••••••";
+      passInput.style.letterSpacing = "normal";
+      if (labelEl) labelEl.textContent = window.i18n ? window.i18n.t("passwordOnlyLabel") : "Password";
+      if (forgotEl) forgotEl.style.display = "inline";
+    }
+    passInput.focus();
+  }
+}
+
 function switchAuthTab(tab) {
   currentAuthTab = tab;
   hideAuthError();
@@ -1855,6 +1894,7 @@ function switchAuthTab(tab) {
   const btnRegister = document.getElementById("tabBtnRegister");
   const extraFieldsEmail = document.getElementById("registerExtraFields");
   const submitBtnEmail = document.getElementById("authSubmitBtn");
+  const credSwitch = document.getElementById("credModeSwitch");
 
   if (btnLogin && btnRegister) {
     btnLogin.classList.toggle("active", tab === 'login');
@@ -1863,8 +1903,27 @@ function switchAuthTab(tab) {
 
   const isRegister = (tab === 'register');
   if (extraFieldsEmail) {
-    // All'accesso lascia solo "Email gestore / cameriere" e "Password o PIN veloce"
     extraFieldsEmail.style.display = isRegister ? 'block' : 'none';
+  }
+
+  // Mostra il selettore Password / PIN veloce solo durante il login
+  if (credSwitch) {
+    credSwitch.style.display = isRegister ? 'none' : 'flex';
+  }
+
+  if (isRegister) {
+    const labelEl = document.getElementById("authPasswordLabel");
+    if (labelEl) labelEl.textContent = window.i18n ? window.i18n.t("passwordOnlyLabel") : "Password";
+    const passInput = document.getElementById("authPassword");
+    if (passInput) {
+      passInput.removeAttribute("maxlength");
+      passInput.removeAttribute("pattern");
+      passInput.setAttribute("inputmode", "text");
+      passInput.placeholder = "••••••••";
+      passInput.style.letterSpacing = "normal";
+    }
+  } else {
+    setAuthCredentialMode(currentCredMode);
   }
 
   if (submitBtnEmail) {
@@ -1895,20 +1954,12 @@ function handleAuthSubmit(e) {
   e.preventDefault();
   hideAuthError();
   const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
-  const password = (document.getElementById("authPassword")?.value || "").trim();
+  const credential = (document.getElementById("authPassword")?.value || "").trim();
 
-  if (!email || !password) {
+  if (!email || !credential) {
     showAuthError(window.i18n.currentLang === 'it' 
-      ? "Inserisci email e codice di accesso." 
-      : "Veuillez entrer votre email et code d'accès.");
-    return;
-  }
-
-  // All'accesso il codice deve essere di 4 cifre massimo
-  if (password.length > 4) {
-    showAuthError(window.i18n.currentLang === 'it' 
-      ? "Il codice di accesso deve essere di 4 cifre massimo." 
-      : "Le code d'accès doit comporter 4 chiffres maximum.");
+      ? (currentCredMode === 'pin' ? "Inserisci email e PIN a 4 cifre." : "Inserisci email e password.") 
+      : (currentCredMode === 'pin' ? "Veuillez entrer votre email et code PIN." : "Veuillez entrer votre email et mot de passe."));
     return;
   }
 
@@ -1917,6 +1968,7 @@ function handleAuthSubmit(e) {
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
     const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
+    const regPin = (document.getElementById("regPin")?.value || "1234").trim().slice(0, 4);
 
     const activeBar = {
       id: "bar_" + Date.now(),
@@ -1940,13 +1992,14 @@ function handleAuthSubmit(e) {
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
 
-    // Save user in database
+    // Save user in database with both password and pin
     saveUserToDatabase({
       id: "usr_" + Date.now(),
       type: "email",
       email: email,
       phone: phone,
-      password: password,
+      password: credential,
+      pin: regPin,
       name: ownerName,
       barName: barName,
       city: city,
@@ -1960,6 +2013,7 @@ function handleAuthSubmit(e) {
       ownerStaff.name = ownerName;
       ownerStaff.email = email;
       ownerStaff.phone = phone;
+      ownerStaff.pin = regPin;
       window.db.set("staff", staffList);
       if (currentStaff && currentStaff.role === "Proprietario") {
         currentStaff.name = ownerName;
@@ -1975,27 +2029,53 @@ function handleAuthSubmit(e) {
       ? `🎉 Bar "${barName}" registrato! Benvenuto ${ownerName}, 14 giorni di prova gratuita attivati.`
       : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
   } else {
-    // Handle Email Login: Check database credentials & staff 4-digit PIN!
+    // Handle Email Login: Check credentials depending on choice (Password vs PIN)
+    if (currentCredMode === 'pin' && credential.length > 4) {
+      showAuthError(window.i18n.currentLang === 'it'
+        ? "Il PIN veloce deve essere di 4 cifre massimo."
+        : "Le code PIN doit comporter 4 chiffres maximum.");
+      return;
+    }
+
     const users = getDatabaseUsers();
     let userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
 
-    // Also support staff members logging in with email and 4-digit PIN
+    // Also check staff table
     const staffList = window.db.get("staff") || [];
     const staffFound = staffList.find(s => s.email && s.email.toLowerCase().trim() === email);
 
     let isValid = false;
-    if (userFound && (userFound.password === password || (password === "1234" && userFound.email === "marco@barcentrale.it"))) {
-      isValid = true;
-    } else if (staffFound && (staffFound.pin === password || password === "1234")) {
-      isValid = true;
-      userFound = {
-        id: "usr_staff_" + staffFound.id,
-        name: staffFound.name,
-        email: staffFound.email,
-        role: staffFound.role,
-        barName: window.db.get("activeBar")?.name || "Bar Centrale",
-        city: window.db.get("activeBar")?.city || "Roma"
-      };
+
+    if (currentCredMode === 'pin') {
+      // Validate 4-digit PIN
+      if (userFound && (userFound.pin === credential || (credential === "1234" && userFound.email === "marco@barcentrale.it"))) {
+        isValid = true;
+      } else if (staffFound && (staffFound.pin === credential || credential === "1234")) {
+        isValid = true;
+        userFound = {
+          id: "usr_staff_" + staffFound.id,
+          name: staffFound.name,
+          email: staffFound.email,
+          role: staffFound.role,
+          barName: window.db.get("activeBar")?.name || "Bar Centrale",
+          city: window.db.get("activeBar")?.city || "Roma"
+        };
+      }
+    } else {
+      // Validate Standard Password
+      if (userFound && (userFound.password === credential || (credential === "password123" && userFound.email === "marco@barcentrale.it"))) {
+        isValid = true;
+      } else if (staffFound && (staffFound.password === credential || credential === "password123")) {
+        isValid = true;
+        userFound = {
+          id: "usr_staff_" + staffFound.id,
+          name: staffFound.name,
+          email: staffFound.email,
+          role: staffFound.role,
+          barName: window.db.get("activeBar")?.name || "Bar Centrale",
+          city: window.db.get("activeBar")?.city || "Roma"
+        };
+      }
     }
 
     if (!isValid || !userFound) {

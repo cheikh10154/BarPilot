@@ -284,6 +284,10 @@
             <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
             <input type="tel" class="form-input" id="regPhone" placeholder="Es: +39 333 987 6543" data-i18n-placeholder="phonePlaceholder" value="" oninput="hideAuthError()">
           </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="regPinLabel">PIN veloce per il personale (max 4 cifre)</label>
+            <input type="password" maxlength="4" inputmode="numeric" class="form-input" id="regPin" placeholder="Es: 1234" data-i18n-placeholder="regPinPlaceholder" value="" oninput="hideAuthError(); if(this.value.length>4) this.value=this.value.slice(0,4);" style="letter-spacing:4px;">
+          </div>
         </div>
 
         <div class="form-group">
@@ -291,12 +295,22 @@
           <input type="email" class="form-input" id="authEmail" placeholder="marco@barcentrale.it" data-i18n-placeholder="emailPlaceholder" value="" oninput="hideAuthError()" required>
         </div>
 
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between;">
-            <label class="form-label" data-i18n="passwordLabel">Password o PIN veloce (max 4 cifre)</label>
-            <a href="#" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
+        <!-- Choice between Password or Fast PIN -->
+        <div class="cred-mode-switch" id="credModeSwitch">
+          <button type="button" class="cred-mode-btn active" id="btnModePassword" onclick="setAuthCredentialMode('password')">
+            🔒 <span data-i18n="credChoicePassword">Password</span>
+          </button>
+          <button type="button" class="cred-mode-btn" id="btnModePin" onclick="setAuthCredentialMode('pin')">
+            ⚡ <span data-i18n="credChoicePin">PIN veloce (max 4 cifre)</span>
+          </button>
+        </div>
+
+        <div class="form-group" id="authCredentialGroup">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="form-label" id="authPasswordLabel" data-i18n="passwordOnlyLabel">Password</label>
+            <a href="#" id="authForgotPassLink" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
           </div>
-          <input type="password" maxlength="4" inputmode="numeric" class="form-input" id="authPassword" placeholder="••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="hideAuthError(); if(this.value.length>4) this.value=this.value.slice(0,4);" style="letter-spacing:4px;" required>
+          <input type="password" class="form-input" id="authPassword" placeholder="••••••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="hideAuthError()" required>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
