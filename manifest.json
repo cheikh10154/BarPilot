@@ -1,0 +1,21 @@
+{
+  "name": "BarPilot - Smart Bar Management Platform",
+  "short_name": "BarPilot",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F1318",
+  "theme_color": "#FF7A00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

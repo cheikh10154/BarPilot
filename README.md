@@ -1,99 +1,105 @@
-# 🍸 BarPilot — Digital Command Center per Bar & Lounge
+# BarPilot 🍸
+### *Il tuo bar. Il tuo controllo. La tua crescita.*
+### *Votre bar. Votre contrôle. Votre croissance.*
 
-> **BarPilot (v1.0 MVP)** è la piattaforma SaaS B2B progettata specificamente per bar, caffè, cocktail bar, birrerie e lounge bar (mercato italiano e francese).
-> Funziona come centro di comando operativo digitale per il personale di sala e bancone, affiancandosi in sinergia al Registratore Telematico (RT) senza richiedere certificazioni fiscali complesse.
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployment%20Ready-black?logo=vercel)](https://vercel.com)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%26%20Realtime-3ECF8E?logo=supabase)](https://supabase.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php)](https://php.net)
+[![PWA](https://img.shields.io/badge/PWA-Installable%20Mobile%20App-FF7A00)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.4.3-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.3.0-blue?style=flat&logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/State-Zustand-orange?style=flat)](https://github.com/pmndrs/zustand)
-[![i18n](https://img.shields.io/badge/i18n-IT%20%7C%20FR-emerald?style=flat)](https://next-intl-docs.vercel.app/)
-
----
-
-## 🌟 Caratteristiche Principali
-
-- **📱 Mobile POS & Presa Comande Rapida**: Interfaccia ottimizzata per smartphone dei camerieri, con selezione rapida tavoli/ospiti, suddivisione conto (*conti separati alla romana o per quota*), note per il bancone e invio immediato con vibrazione aptica.
-- **🗺️ Plan de Salle / Mappa Tavoli Interattiva**: Visualizzazione in tempo reale di tavoli interni, terrazza, bancone e area VIP. Timer di occupazione, totale da saldare e generazione di codici QR per ciascun tavolo.
-- **🍸 KDS Bancone (Kitchen Display System)**: Display retroilluminato ad alto contrasto per i barman, con raggruppamento comande, indicatore urgenza (*allerta fiamma > 6 min*), spunta singoli drink e sintetizzatore audio Web Audio API per segnali sonori.
-- **📦 Inventario & Scarico Automatico Ricette**: Ogni volta che viene servito un cocktail o un caffè, la distinta base deduce automaticamente i grammi di caffè, i centilitri di spirits, latte o soft drink, segnalando gli ingredienti sotto la scorta minima.
-- **🍷 Catalogo Prodotti & Fiche Tecniche**: Gestione prezzi in centesimi, disponibilità immediata (*Attivo* / *Esaurito*) e composizione ingredienti.
-- **🚚 Fornitori & Buoni d'Acquisto**: Anagrafica fornitori principali (*Caffè Vergnano, Coca-Cola HBC, Campari Group, Metro Italia, Surgital*), con emissione guidata di ordini d'acquisto PDF.
-- **👥 Gestione Personale & RBAC con PIN**: Ruoli dedicati (*Proprietario, Manager, Cameriere, Barman*) con sblocco rapido tramite PIN a 4 cifre per i tablet condivisi.
-- **📊 Rapporti, Margini & Riconciliazione RT**: Analisi del fatturato giornaliero, scontrino medio, calcolo del food cost (margine lordo ~73,5%) e modulo di riconciliazione con il Registratore Telematico esterno per la chiusura di cassa giornaliera.
-- **🌐 Bilingue Nativo (IT / FR)**: Supporto completo multilingua italiano e francese gestito tramite `next-intl`.
+**BarPilot** est la plateforme SaaS mobile & web tout-en-un de gestion intelligente conçue pour les bars, cafés, brasseries, pubs et lounges.
 
 ---
 
-## 🏗️ Architettura Tecnica
+## 📸 Design UX/UI fidèle à la maquette
+L'interface a été conçue d'après la charte officielle BarPilot (orange ambré `#FF7A00`, fond sombre profond `#0B0E13` et mode clair épuré `#F4F6F9`) :
+- **Tableau de bord propriétaire** : Chiffre d'affaires (1.248 €), Commandes (186), Ticket moyen (6,71 €), Alertes stocks (4), graphique horaire des ventes (08h-22h) et répartition en donut par catégorie.
+- **Prise de commandes mobile ("Nuova comanda")** : Sélecteur de table, filtres de catégories tactiles (Caffè, Bevande, Cocktail, Cibo, Snack), grille de produits avec photos et prix, pad d'addition avec boutons stepper `+ / -` et validation d'envoi.
+- **Plan de salle interactif ("Plan de salle")** : Vue de salle complète avec tables `T01` à `T09`, statuts colorés (*Libre*, *Occupée*, *À payer*, *Réservée*), durées d'occupation et montants en temps réel.
+- **Écran de préparation Barman (KDS Comptoir)** : Tickets de commandes en temps réel avec minuteries, articles et passage d'états (*Da preparare* ➔ *In preparazione* ➔ *Pronta* ➔ *Servita*).
+- **Inventaire intelligent & Recettes** : Déduction automatique des stocks théoriques (café, lait, bières, rhums) à chaque préparation selon les recettes cocktails.
+- **Fournisseurs, Personnel & Rapports** : Gestion des tiers (Caffè Vergnano, Campari, etc.), rôles des employés (Propriétaire, Manager, Serveur, Barman) et courbes de rentabilité.
 
+---
+
+## 🌟 Fonctionnalités Clés & Multi-Tenant
+1. **Connexion par Bar (Multi-bar login)** :
+   - Chaque établissement accède à son propre espace sécurisé (Bar Centrale, Milano Lounge, etc.).
+   - Modale d'authentification rapide par email ou code PIN serveur.
+2. **Période d'essai de 14 jours** :
+   - Compte à rebours dynamique dans la barre supérieure (*"Periodo di prova: 14 giorni rimasti"*).
+   - Accès complet aux fonctionnalités de l'offre Pro pendant la phase d'essai.
+3. **3 Offres d'Abonnement SaaS** :
+   - **Starter (29 € / mois / bar)** : Commandes, tables, catalogue et statistiques de base.
+   - **Pro (59 € / mois / bar - Recommandé)** : Starter + stocks intelligents, recettes cocktail, fournisseurs, menu QR code et écran Barman (KDS).
+   - **Premium (99 € / mois / bar)** : Pro + BarPilot IA conversationnelle, prévisions, gestion multi-sites et automatisations.
+   - **Simulateur de revenus interactif** : calcul direct du MRR / ARR (ex: 100 bars = 5.900 € / mois = 70.800 € / an).
+4. **Bilingue Italien (IT) & Français (FR)** :
+   - Bascule instantanée de la langue de l'interface en 1 clic sans rechargement.
+5. **Mode Sombre (Dark) & Mode Clair (Light)** :
+   - Confort visuel optimal de jour comme lors du service de nuit au comptoir.
+
+---
+
+## 🛠️ Architecture Technique
 ```
 barpilot/
-├── src/
-│   ├── app/
-│   │   ├── [locale]/             # Pagine bilingue (IT / FR)
-│   │   │   ├── dashboard/        # Dashboard direzionale + BarPilot AI Copilot
-│   │   │   ├── orders/           # Mobile POS presa comande al tavolo
-│   │   │   ├── tables/           # Plan de salle interattivo + QR Code
-│   │   │   ├── kitchen/          # KDS schermo bancone barman
-│   │   │   ├── products/         # Catalogo listino e ricettario
-│   │   │   ├── inventory/        # Giacenze magazzino e movimenti
-│   │   │   ├── suppliers/        # Fornitori e ordini d'acquisto
-│   │   │   ├── staff/            # Gestione personale e matrice permessi RBAC
-│   │   │   ├── reports/          # Rapporti vendite e riconciliazione RT
-│   │   │   ├── menu/             # Menu digitale QR code per i clienti
-│   │   │   └── onboarding/       # Setup guidato in 5 step
-│   │   └── api/                  # Route handlers Next.js REST
-│   ├── components/               # Componenti UI, Layout e Dashboard
-│   ├── i18n/                     # Traduzioni complete IT/FR
-│   ├── lib/
-│   │   ├── store.ts              # Zustand Store con persistenza localStorage
-│   │   ├── supabase/             # Client SSR e middleware Supabase
-│   │   └── utils.ts              # Formattazione valuta centesimi e helper
-│   └── types/database.ts         # Tipizzazione TypeScript (21 tabelle)
-└── supabase/migrations/          # Schema SQL PostgreSQL con Row Level Security
+├── index.html                   # Application PWA complète et responsive
+├── manifest.json                # Manifeste PWA pour installation smartphone/tablette
+├── service-worker.js            # Cache hors-ligne et fonctionnement continu
+├── assets/
+│   ├── css/
+│   │   └── style.css            # Styles UI/UX, thèmes Dark/Light, grille responsive
+│   ├── js/
+│   │   ├── app.js               # Logique d'application, panier, KDS, plan de salle
+│   │   ├── data.js              # Base locale et stockage persistant
+│   │   ├── i18n.js              # Système bilingue IT / FR
+│   │   └── supabaseClient.js    # Client Supabase PostgreSQL & Realtime
+│   └── images/
+│       ├── logo.png             # Logo officiel BarPilot
+│       └── design_reference.jpg # Référence de la maquette originale
+├── api/                         # Backend PHP prêt pour hébergement LAMP / XAMPP / Docker
+│   ├── db.php                   # Connexion PDO multi-base (PostgreSQL/MySQL/SQLite)
+│   ├── auth.php                 # Authentification multi-établissements
+│   ├── orders.php               # Gestion et cycle de vie des commandes
+│   ├── inventory.php            # Déductions de stocks
+│   └── subscriptions.php        # Gestion des offres et essai de 14 jours
+├── sql/
+│   ├── schema.sql               # Schéma PostgreSQL complet multi-tenant avec RLS
+│   └── seed.sql                 # Données de démonstration prêtes à l'emploi
+├── vercel.json                  # Configuration de déploiement instantané Vercel
+├── .github/workflows/deploy.yml # CI/CD automatique GitHub Actions vers Vercel
+└── package.json                 # Scripts de démarrage et configuration Node.js
 ```
 
 ---
 
-## ⚖️ Conformità Fiscale & Modello Operativo
+## 🚀 Démarrage Rapide
 
-> [!NOTE]
-> **BarPilot non produce scontrini fiscali e non trasmette direttamente corrispettivi all'Agenzia delle Entrate.**  
-> Il sistema opera come **gestionale operativo e POS digitale**. Al momento del pagamento al tavolo, l'operatore rilascia il pre-conto gestionale e batte l'incasso sul Registratore Telematico certificato (Epson, Custom, RCH). Il modulo [Riconciliazione RT](file:///src/app/[locale]/reports/reconciliation/page.tsx) confronta l'incasso registrato su BarPilot con la chiusura Z dell'RT evidenziando eventuali scostamenti.
+### 1. Aperçu local avec Node.js
+```bash
+# Dans le dossier barpilot
+npx serve -l 3000 .
+# Ouvrez votre navigateur sur http://localhost:3000
+```
+
+### 2. Déploiement en 1 clic sur Vercel
+1. Installez le CLI Vercel si besoin : `npm i -g vercel`
+2. Dans le dossier `barpilot`, lancez :
+   ```bash
+   vercel
+   ```
+3. L'application est instantanément accessible en ligne sous une URL HTTPS avec PWA active !
+
+### 3. Connexion à Supabase (PostgreSQL & Realtime)
+1. Créez un projet sur [supabase.com](https://supabase.com).
+2. Dans l'éditeur SQL de Supabase, copiez et exécutez `sql/schema.sql`, puis `sql/seed.sql`.
+3. Indiquez votre URL Supabase et clé publique anon dans `assets/js/supabaseClient.js`.
+
+### 4. Utilisation avec PHP (Apache / XAMPP)
+Placez le dossier dans `htdocs` ou votre racine web Apache/Nginx. Les endpoints de l'API sont prêts sous `/api/orders.php`, `/api/auth.php`, etc.
 
 ---
 
-## 🚀 Avvio Rapido in Locale
-
-### 1. Prerequisiti
-- **Node.js** v20 o superiore
-- **npm** o **pnpm**
-
-### 2. Installazione delle dipendenze
-```bash
-npm install
-```
-
-### 3. Avvio del server di sviluppo
-```bash
-npm run dev -- -p 3005
-```
-
-L'applicazione sarà accessibile all'indirizzo:
-- **Italiano**: [http://localhost:3005/it/dashboard](http://localhost:3005/it/dashboard)
-- **Francese**: [http://localhost:3005/fr/dashboard](http://localhost:3005/fr/dashboard)
-
-### 4. Build di Produzione
-```bash
-npm run build
-npm run start -- -p 3005
-```
-
----
-
-## 📄 Licenza
-
-Distribuito sotto licenza proprietaria SaaS per **BarPilot**.  
-Sviluppato con dedizione per i professionisti del settore Horeca & Bar.
+## 📄 Licence
+Ce projet est développé sous licence **MIT**.

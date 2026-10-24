@@ -1,41 +1,22 @@
 {
   "name": "barpilot",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "BarPilot - Smart Bar Management Platform (Mobile & Web SaaS)",
+  "main": "index.html",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "npx serve -l 3000 .",
+    "dev": "npx serve -l 3000 ."
   },
-  "dependencies": {
-    "@capacitor/cli": "^7.6.9",
-    "@capacitor/core": "^8.5.3",
-    "@capacitor/haptics": "^8.0.2",
-    "@capacitor/status-bar": "^8.0.4",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.109.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.61.0",
-    "next": "16.4.3",
-    "next-intl": "^4.14.9",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "tailwind-merge": "^3.7.0",
-    "uuid": "^14.0.3",
-    "zod": "^4.6.7",
-    "zustand": "^5.0.16"
-  },
-  "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/uuid": "^10.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+  "keywords": [
+    "barpilot",
+    "saas",
+    "pos",
+    "kds",
+    "bar-management",
+    "restaurant",
+    "supabase",
+    "vercel"
+  ],
+  "author": "BarPilot Team",
+  "license": "MIT"
 }

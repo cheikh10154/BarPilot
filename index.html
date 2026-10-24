@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FF7A00">
+  <title>BarPilot - Smart Bar Management Platform</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/images/logo.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- 1. ANIMATED SPLASH SCREEN (3 SECONDS) -->
+  <div class="splash-overlay" id="splashScreen">
+    <button class="splash-skip-btn" id="btnSkipSplash" data-i18n="skip">Salta</button>
+    <div class="splash-center">
+      <div class="splash-logo-wrap">
+        <div class="splash-glow-ring"></div>
+        <img src="assets/images/logo.png" alt="BarPilot" class="splash-logo-img">
+      </div>
+      <h1 class="splash-title">Bar<span>Pilot</span></h1>
+      <p class="splash-tagline" data-i18n="slogan">Il tuo bar. Il tuo controllo. La tua crescita.</p>
+      
+      <div class="splash-loader-bar">
+        <div class="splash-loader-fill" id="splashLoaderFill"></div>
+      </div>
+      <p style="font-size:11px; color:#64748B; margin-top:10px;" data-i18n="splashPreparing">Inizializzazione in corso...</p>
+    </div>
+  </div>
+
+  <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->
+  <div class="stories-overlay hidden" id="storiesOverlay">
+    <div class="stories-viewport" id="storiesViewport">
+      
+      <!-- Progress Bar with 5 Segments -->
+      <div class="story-header">
+        <div class="story-progress-segments">
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill0"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill1"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill2"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill3"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill4"></div></div>
+        </div>
+
+        <div class="story-top-info">
+          <div class="story-brand-pill">
+            <img src="assets/images/logo.png" alt="BarPilot">
+            <span>BarPilot Stories</span>
+          </div>
+          <button class="story-skip-btn" id="btnSkipStories" data-i18n="skip">Salta</button>
+        </div>
+      </div>
+
+      <!-- Left / Right Tap zones -->
+      <div class="story-tap-area story-tap-left" id="storyTapLeft"></div>
+      <div class="story-tap-area story-tap-right" id="storyTapRight"></div>
+
+      <!-- Stories Track with 5 Slides -->
+      <div class="stories-track" id="storiesTrack">
+        
+        <!-- Story 1: Comande -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-ticket">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-weight:800; color:#FF7A00;">#1045 · Tavolo 04</span>
+                <span style="background:rgba(255,122,0,0.15); color:#FF7A00; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">⚡ 10s</span>
+              </div>
+              <div style="font-size:13px; line-height:1.6; color:#CBD5E1;">
+                <div>✓ 2x Cappuccino</div>
+                <div>✓ 1x Croissant burro</div>
+                <div>✓ 1x Espresso Arabica</div>
+              </div>
+              <div style="border-top:1px dashed #334155; margin-top:10px; padding-top:8px; display:flex; justify-content:space-between; font-weight:800;">
+                <span>Totale</span>
+                <span style="color:#10B981;">6,10 €</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story1Badge">01 · VELOCITÀ ASSOLUTA</span>
+            <h2 class="story-title" data-i18n="story1Title">Comande fulminee in 10 secondi</h2>
+            <p class="story-desc" data-i18n="story1Desc">I tuoi camerieri prendono le comande dallo smartphone con 2 tocchi. Il comptoir riceve le comande all'istante: zero errori, clienti serviti al doppio della velocità.</p>
+            <span class="story-highlight-pill" data-i18n="story1Pill">⚡ 50% di tempo risparmiato per tavolo</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 2: Plan de Salle -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box">
+              <div class="story-anim-floor">
+                <div class="story-floor-item active1">
+                  <strong style="font-size:14px;">T01</strong>
+                  <div style="font-size:11px; color:#10B981; font-weight:700;">Libero</div>
+                </div>
+                <div class="story-floor-item active2">
+                  <strong style="font-size:14px;">T02</strong>
+                  <div style="font-size:11px; color:#FF8A00; font-weight:700;">14,50 €</div>
+                </div>
+                <div class="story-floor-item active3">
+                  <strong style="font-size:14px;">T04</strong>
+                  <div style="font-size:11px; color:#3B82F6; font-weight:700;">Da pagare</div>
+                </div>
+                <div class="story-floor-item active4">
+                  <strong style="font-size:14px;">T07</strong>
+                  <div style="font-size:11px; color:#8B5CF6; font-weight:700;">Prenotato</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story2Badge">02 · CONTROLLO SALA</span>
+            <h2 class="story-title" data-i18n="story2Title">Plan de salle dinamico & interattivo</h2>
+            <p class="story-desc" data-i18n="story2Desc">Visualizza ogni tavolo a colpo d'occhio: libero, occupato, conto da pagare o prenotato. Conosci la durata esatta di permanenza e il conto accumulato in tempo reale.</p>
+            <span class="story-highlight-pill" data-i18n="story2Pill">🪑 Monitoraggio completo da smartphone e tablet</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 3: KDS Barman -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-kds">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:14px; font-weight:800; color:#FFFFFF;">Comptoir · #1042</span>
+                <span style="background:#EF4444; color:#FFF; font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">⏱️ 2 min</span>
+              </div>
+              <div style="font-size:13px; color:#94A3B8; margin-bottom:12px;">
+                2x Spritz Aperol · 1x Bière blonde
+              </div>
+              <div style="background:#3B82F6; color:#FFF; padding:8px; border-radius:8px; text-align:center; font-size:12px; font-weight:700;">
+                ✓ Segna come pronta
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story3Badge">03 · COMPTOIR SENZA CONFUSIONE</span>
+            <h2 class="story-title" data-i18n="story3Title">KDS Barman in tempo reale</h2>
+            <p class="story-desc" data-i18n="story3Desc">Schermo da banco touch: mai più scontrini di carta persi o cocktail sbagliati. Il barman segna le bevande in preparazione e pronte con un solo tocco.</p>
+            <span class="story-highlight-pill" data-i18n="story3Pill">🍸 Flusso di lavoro fluido e sincronizzato</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 4: Giacenze -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-stock">
+              <div class="stock-bar-row">
+                <span>☕ Caffè Arabica</span>
+                <span style="color:#10B981; font-weight:700;">4.0 kg (OK)</span>
+              </div>
+              <div class="stock-bar-row">
+                <span>🥛 Latte fresco</span>
+                <span style="color:#EF4444; font-weight:700;">3 L (In allerta)</span>
+              </div>
+              <div class="stock-bar-row">
+                <span>🍹 Aperol</span>
+                <span style="color:#10B981; font-weight:700;">2.5 L (OK)</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story4Badge">04 · ZERO SPRECHI</span>
+            <h2 class="story-title" data-i18n="story4Title">Giacenze & Ricette Cocktail automatiche</h2>
+            <p class="story-desc" data-i18n="story4Desc">Vendi un Mojito o un Cappuccino? Il sistema scarica automaticamente le dosi esatte di caffè, latte, rum e menta dal magazzino, avvisandoti prima che finiscano.</p>
+            <span class="story-highlight-pill" data-i18n="story4Pill">📦 Allarmi di riordino intelligenti</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 5: AI & Profits -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-ai">
+              <div style="font-size:12px; font-weight:700; color:#FF7A00; margin-bottom:6px;">💬 BarPilot AI:</div>
+              <p style="font-size:12px; color:#E2E8F0; line-height:1.4;">
+                "Oggi margine stimato a <strong>438 €</strong> (+12%). Attenzione: scorte di latte basse per il servizio del mattino."
+              </p>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story5Badge">05 · CO-PILOTA DI PROFITTO</span>
+            <h2 class="story-title" data-i18n="story5Title">BarPilot AI & Analisi di Redditività</h2>
+            <p class="story-desc" data-i18n="story5Desc">Monitora margini netti, prodotti più venduti e ricevi suggerimenti intelligenti sulle scorte direttamente dal tuo assistente virtuale di bar management.</p>
+            <span class="story-highlight-pill" data-i18n="story5Pill">📈 +18% di marginalità media stimata</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn">Inizia prova gratuita di 14 giorni</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL, PHONE) -->
+  <div class="auth-overlay hidden" id="authOverlay">
+    <div class="auth-card">
+      <div class="auth-top-brand">
+        <span class="auth-trial-pill" data-i18n="authBadgeTrial">14 GIORNI DI PROVA GRATUITA INCLUSI</span>
+        <img src="assets/images/logo.png" alt="BarPilot" class="auth-logo-badge">
+        <h2 class="auth-title" data-i18n="authMainTitle">Entra in BarPilot</h2>
+        <p class="auth-subtitle" data-i18n="authMainSub">Il software di gestione intelligente per bar, pub, caffè e lounge</p>
+      </div>
+
+      <!-- Auth Tab Switch (Login vs Register) -->
+      <div class="auth-tab-switch">
+        <button class="auth-tab-btn active" id="tabBtnLogin" onclick="switchAuthTab('login')" data-i18n="tabLogin">Accedi</button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="switchAuthTab('register')" data-i18n="tabRegister">Registra il tuo Bar</button>
+      </div>
+
+      <!-- Social Login Buttons (Google & Facebook) -->
+      <div class="social-buttons-grid">
+        <button class="btn-social btn-social-google" onclick="handleSocialLogin('Google')">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span data-i18n="loginWithGoogle">Accedi con Google</span>
+        </button>
+
+        <button class="btn-social btn-social-facebook" onclick="handleSocialLogin('Facebook')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+          <span data-i18n="loginWithFacebook">Accedi con Facebook</span>
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span data-i18n="orWith">oppure con</span>
+      </div>
+
+      <!-- Method Switcher Pills (Email vs Phone) -->
+      <div class="method-switch-pills">
+        <button class="method-pill active" id="methodEmailBtn" onclick="switchAuthMethod('email')">✉️ <span data-i18n="methodEmail">Email</span></button>
+        <button class="method-pill" id="methodPhoneBtn" onclick="switchAuthMethod('phone')">📱 <span data-i18n="methodPhone">Numero di cellulare</span></button>
+      </div>
+
+      <!-- Login Form (Email Mode) -->
+      <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
+        <!-- Register extra fields -->
+        <div id="registerExtraFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
+            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale Roma">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
+            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="cityLabel">Città</label>
+            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="emailLabel">Email</label>
+          <input type="email" class="form-input" id="authEmail" value="marco@barcentrale.it" required>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between;">
+            <label class="form-label" data-i18n="passwordLabel">Password</label>
+            <a href="#" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
+          </div>
+          <input type="password" class="form-input" id="authPassword" value="password123" required>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
+          <input type="checkbox" id="authRemember" checked style="accent-color:var(--primary); cursor:pointer;">
+          <label for="authRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
+          Accedi al gestionale
+        </button>
+      </form>
+
+      <!-- Login Form (Phone SMS Mode) -->
+      <form id="authPhoneForm" style="display:none;" onsubmit="handlePhoneAuthSubmit(event)">
+        <div class="form-group">
+          <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
+          <div class="phone-input-row">
+            <select class="country-code-select" id="phoneCountryCode">
+              <option value="+39" selected>🇮🇹 +39</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+41">🇨🇭 +41</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+44">🇬🇧 +44</option>
+            </select>
+            <input type="tel" class="form-input" id="authPhoneNumber" placeholder="333 123 4567" value="333 987 6543" style="flex:1;" required>
+            <button type="button" class="btn-send-sms" onclick="sendSmsCode()" id="btnSendSms" data-i18n="sendSmsCode">Invia SMS</button>
+          </div>
+        </div>
+
+        <!-- SMS Verification Code Input -->
+        <div class="form-group" id="smsCodeGroup" style="display:none;">
+          <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
+          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="123456" value="123456" style="letter-spacing:4px; font-weight:800; text-align:center;">
+          <span style="font-size:11px; color:#10B981; margin-top:4px;" data-i18n="smsSentNotice">Codice inviato via SMS: usa 123456</span>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:12px;" id="btnPhoneSubmit" data-i18n="verifyAndLogin">
+          Verifica e Accedi
+        </button>
+      </form>
+
+      <!-- 1-Click Demo Account Quick Access -->
+      <div class="demo-account-box">
+        <span style="font-size:11px; color:var(--text-muted);" data-i18n="demoQuickLogin">Oppure prova subito con credenziali dimostrative</span>
+        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" data-i18n="demoQuickBtn">
+          ⚡ Entra con Bar Centrale (Demo 14 giorni)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Top 14-day Free Trial Notice Banner -->
+  <div class="trial-banner" id="trialBanner">
+    <div class="trial-banner-left">
+      <span>🚀</span>
+      <span data-i18n="trialBanner" data-i18n-params='{"days":"14"}'>Periodo di prova: 14 giorni rimasti</span>
+    </div>
+    <button class="trial-cta-btn" onclick="switchView('subscriptions')" data-i18n="trialActivate">Passa a Pro</button>
+  </div>
+
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="appSidebar">
+      
+      <!-- Brand & Logo -->
+      <div class="brand-header">
+        <img src="assets/images/logo.png" alt="BarPilot Logo" class="brand-logo-img">
+        <div class="brand-title-wrap">
+          <span class="brand-title">Bar<span>Pilot</span></span>
+        </div>
+      </div>
+
+      <!-- Bar Switcher Pill -->
+      <button class="bar-switcher-btn" id="barSwitcherBtn">
+        <div>
+          <span class="bar-status-dot"></span>
+          <span id="barSwitcherText">Bar Centrale</span>
+        </div>
+        <span style="font-size:10px;">▼</span>
+      </button>
+
+      <!-- Navigation Menu -->
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-item-icon">📊</span>
+          <span data-i18n="navDashboard">Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-view="orders">
+          <span class="nav-item-icon">🧾</span>
+          <span data-i18n="navOrders">Comande</span>
+        </button>
+
+        <button class="nav-item" data-view="floor">
+          <span class="nav-item-icon">🪑</span>
+          <span data-i18n="navFloorPlan">Plan de salle</span>
+        </button>
+
+        <button class="nav-item" data-view="kds">
+          <span class="nav-item-icon">🍳</span>
+          <span data-i18n="navKDS">Preparazione</span>
+        </button>
+
+        <button class="nav-item" data-view="products">
+          <span class="nav-item-icon">☕</span>
+          <span data-i18n="navProducts">Prodotti</span>
+        </button>
+
+        <button class="nav-item" data-view="inventory">
+          <span class="nav-item-icon">📦</span>
+          <span data-i18n="navInventory">Inventario</span>
+        </button>
+
+        <button class="nav-item" data-view="suppliers">
+          <span class="nav-item-icon">🚚</span>
+          <span data-i18n="navSuppliers">Fornitori</span>
+        </button>
+
+        <button class="nav-item" data-view="staff">
+          <span class="nav-item-icon">👥</span>
+          <span data-i18n="navStaff">Personale</span>
+        </button>
+
+        <button class="nav-item" data-view="reports">
+          <span class="nav-item-icon">📈</span>
+          <span data-i18n="navReports">Rapporti</span>
+        </button>
+
+        <button class="nav-item" data-view="subscriptions">
+          <span class="nav-item-icon">💳</span>
+          <span data-i18n="navSubscriptions">Abbonamenti</span>
+          <span class="nav-badge-pro">14j</span>
+        </button>
+
+        <button class="nav-item" data-view="settings">
+          <span class="nav-item-icon">⚙️</span>
+          <span data-i18n="navSettings">Impostazioni</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        
+        <!-- User Profile Card & Quick Actions -->
+        <div class="user-profile-card" onclick="openAuthScreen()" style="cursor:pointer;" title="Clicca per cambiare account o registrare un bar">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" alt="Marco Rossi">
+          <div class="user-info">
+            <span class="user-name">Marco Rossi</span>
+            <span class="user-role" data-i18n="roleOwner">Proprietario</span>
+          </div>
+          <button style="margin-left:auto; background:transparent; border:none; color:var(--primary); font-size:14px;" title="Accedi / Cambia bar">🔑</button>
+        </div>
+
+        <button class="ctrl-btn" onclick="initStoriesOnboarding()" style="width:100%; justify-content:center; gap:6px;">
+          <span>📱</span>
+          <span>Rivedi Storie di Benvenuto</span>
+        </button>
+
+        <!-- Theme & Language Toggles -->
+        <div class="sidebar-controls">
+          <button class="ctrl-btn" id="themeToggleBtn">
+            <span id="themeToggleIcon">☀️</span>
+            <span id="themeToggleText">Light</span>
+          </button>
+
+          <div class="lang-switch">
+            <button class="lang-btn active" data-lang="it">IT</button>
+            <button class="lang-btn" data-lang="fr">FR</button>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="mobileMenuBtn" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div>
+            <h1 class="greeting-title">
+              <span data-i18n="greeting" data-i18n-params='{"name":"Marco"}'>Buongiorno, Marco 👋</span>
+            </h1>
+            <p class="greeting-subtitle" data-i18n="greetingSub">Ecco cosa sta succedendo nel tuo bar oggi</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="date-pill">
+            <span>📅</span>
+            <span>Martedì 20 Ottobre 2025 · <strong data-i18n="today">Oggi</strong></span>
+          </div>
+          <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
+            🔔
+          </button>
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" onclick="switchView('settings')" alt="Profilo">
+        </div>
+      </header>
+
+      <!-- Page Views Container -->
+      <main class="page-content">
+
+        <!-- ========================================================
+             1. DASHBOARD VIEW (Strictly matching design screenshot)
+             ======================================================== -->
+        <section class="view-panel active" id="view-dashboard">
+          
+          <!-- KPI Metrics Cards Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricRevenue">Fatturato registrato</span>
+                <div class="metric-icon-box orange">📊</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricRevenue">1.248 €</span>
+                <span class="metric-badge green">↑ +12%</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricOrders">Comande</span>
+                <div class="metric-icon-box blue">📄</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricOrders">186</span>
+                <span class="metric-badge green">↑ +8%</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricAvgTicket">Scontrino medio</span>
+                <div class="metric-icon-box green">👥</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricAvgTicket">6,71 €</span>
+                <span class="metric-badge green">↑ +5%</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricAlerts">Prodotti in allerta</span>
+                <div class="metric-icon-box red">⚠️</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricAlerts">4</span>
+                <a class="metric-link" onclick="switchView('inventory')" data-i18n="seeStock">Vedi stock →</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-grid">
+            <!-- Hourly Sales Bar Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="hourlySales">Vendite per fascia oraria</h3>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="today">Oggi</span>
+              </div>
+              <div class="bar-chart-container">
+                <div class="chart-y-axis">
+                  <span>400€</span>
+                  <span>300€</span>
+                  <span>200€</span>
+                  <span>100€</span>
+                  <span>0€</span>
+                </div>
+                <div class="chart-bars-wrap" id="hourlyBarsWrap">
+                  <!-- Generated via app.js -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Category Sales Donut Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="categorySales">Vendite per categoria</h3>
+              </div>
+              <div class="donut-chart-container">
+                <div class="donut-svg-wrap">
+                  <svg class="donut-svg" width="140" height="140" viewBox="0 0 42 42">
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border-color)" stroke-width="5"></circle>
+                    <!-- Bevande 42% -->
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#3B82F6" stroke-width="5" stroke-dasharray="42 58" stroke-dashoffset="0"></circle>
+                    <!-- Caffe 28% -->
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#F59E0B" stroke-width="5" stroke-dasharray="28 72" stroke-dashoffset="-42"></circle>
+                    <!-- Cocktail 15% -->
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#10B981" stroke-width="5" stroke-dasharray="15 85" stroke-dashoffset="-70"></circle>
+                    <!-- Cibo 10% -->
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EC4899" stroke-width="5" stroke-dasharray="10 90" stroke-dashoffset="-85"></circle>
+                    <!-- Altro 5% -->
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#8B5CF6" stroke-width="5" stroke-dasharray="5 95" stroke-dashoffset="-95"></circle>
+                  </svg>
+                  <div class="donut-center-text">
+                    <div class="donut-total">1.248 €</div>
+                    <div class="donut-sub" data-i18n="total">Totale</div>
+                  </div>
+                </div>
+
+                <div class="donut-legend">
+                  <div class="legend-item">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" style="background:#3B82F6;"></span>
+                      <span data-i18n="catDrinks">Bevande</span>
+                    </div>
+                    <span class="legend-percent">42%</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" style="background:#F59E0B;"></span>
+                      <span data-i18n="catCoffee">Caffè</span>
+                    </div>
+                    <span class="legend-percent">28%</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" style="background:#10B981;"></span>
+                      <span data-i18n="catCocktails">Cocktail</span>
+                    </div>
+                    <span class="legend-percent">15%</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" style="background:#EC4899;"></span>
+                      <span data-i18n="catFood">Cibo</span>
+                    </div>
+                    <span class="legend-percent">10%</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" style="background:#8B5CF6;"></span>
+                      <span>Altro</span>
+                    </div>
+                    <span class="legend-percent">5%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Tables Grid -->
+          <div class="bottom-tables-grid">
+            
+            <!-- Comande recenti Table -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="recentOrders">Comande recenti</h3>
+                <a class="card-action" onclick="switchView('orders')" data-i18n="viewAll">Vedi tutte →</a>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th data-i18n="tableLabel">Tavolo</th>
+                      <th>Articoli</th>
+                      <th data-i18n="total">Totale</th>
+                      <th data-i18n="status">Stato</th>
+                      <th data-i18n="time">Tempo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentOrdersTableBody">
+                    <!-- Loaded dynamically via app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Prodotti piu venduti Table -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="topProducts">Prodotti più venduti</h3>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="today">Oggi</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Prodotto</th>
+                      <th style="text-align:center;" data-i18n="quantity">Q.tà</th>
+                      <th style="text-align:right;" data-i18n="total">Totale</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bestSellersTableBody">
+                    <!-- Loaded dynamically via app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ========================================================
+             2. ORDER TAKING VIEW ("Nuova comanda" Mobile Mockup)
+             ======================================================== -->
+        <section class="view-panel" id="view-orders">
+          <div class="order-screen-layout">
+            
+            <!-- Left Catalog Pane -->
+            <div class="order-catalog-pane">
+              
+              <div class="order-top-controls">
+                <div>
+                  <h2 style="font-size:18px; font-weight:800;" data-i18n="newOrderTitle">Nuova comanda</h2>
+                  <p style="font-size:12px; color:var(--text-muted);" data-i18n="orderModeServer">Modalità cameriere · Servizio in corso</p>
+                </div>
+
+                <div class="table-picker-box">
+                  <select class="select-table-input" id="orderTableSelect">
+                    <option value="Tavolo 04">Tavolo 04 (4 pers.)</option>
+                    <option value="Tavolo 01">Tavolo 01 (2 pers.)</option>
+                    <option value="Tavolo 02">Tavolo 02 (2 pers.)</option>
+                    <option value="Tavolo 03">Tavolo 03 (4 pers.)</option>
+                    <option value="Tavolo 05">Tavolo 05 (Terrazza)</option>
+                    <option value="Tavolo 08">Tavolo 08 (Terrazza)</option>
+                    <option value="Comptoir">Comptoir / Banco</option>
+                    <option value="VIP 01">Spazio VIP</option>
+                  </select>
+                  <button class="btn-icon-plus" onclick="switchView('floor')" title="Scegli dalla piantina">+</button>
+                </div>
+              </div>
+
+              <!-- Category filter pills -->
+              <div class="category-filter-pills">
+                <button class="cat-pill active" data-cat="all" data-i18n="catAll">Tutti</button>
+                <button class="cat-pill" data-cat="coffee" data-i18n="catCoffee">Caffè</button>
+                <button class="cat-pill" data-cat="drinks" data-i18n="catDrinks">Bevande</button>
+                <button class="cat-pill" data-cat="cocktail" data-i18n="catCocktails">Cocktail</button>
+                <button class="cat-pill" data-cat="food" data-i18n="catFood">Cibo</button>
+                <button class="cat-pill" data-cat="snacks" data-i18n="catSnacks">Snack</button>
+              </div>
+
+              <!-- Product cards grid -->
+              <div class="products-catalog-grid" id="orderCatalogGrid">
+                <!-- Filled via app.js -->
+              </div>
+
+            </div>
+
+            <!-- Right Cart / Order Pad -->
+            <div class="order-cart-pane">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-size:16px; font-weight:800;" data-i18n="operationalBill">Addition opérationnelle</h3>
+                <span style="font-size:12px; color:var(--text-muted);"><span id="cartItemsCount">3</span> <span data-i18n="itemsCount">articoli</span></span>
+              </div>
+
+              <div class="cart-items-list" id="cartItemsList">
+                <!-- Cart items rendered by app.js -->
+              </div>
+
+              <div class="cart-footer">
+                <div class="cart-total-row">
+                  <span class="cart-total-label" data-i18n="total">Totale</span>
+                  <span class="cart-total-val" id="cartTotalVal">8,90 €</span>
+                </div>
+                <div class="cart-actions-grid">
+                  <button class="btn-secondary" id="btnSaveDraft" data-i18n="saveDraft">Salva bozza</button>
+                  <button class="btn-primary" id="btnSendOrder" data-i18n="sendOrder">Invia comanda</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================================
+             3. PLAN DE SALLE / FLOOR PLAN VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-floor">
+          <div class="floor-plan-container">
+            
+            <div class="floor-tabs-bar">
+              <div class="category-filter-pills" style="margin-bottom:0;">
+                <button class="cat-pill floor-pill active" data-area="all" data-i18n="floorAll">Tutti</button>
+                <button class="cat-pill floor-pill" data-area="interno" data-i18n="floorInside">Interno</button>
+                <button class="cat-pill floor-pill" data-area="terrazza" data-i18n="floorTerrace">Terrazza</button>
+                <button class="cat-pill floor-pill" data-area="comptoir" data-i18n="floorCounter">Comptoir</button>
+                <button class="cat-pill floor-pill" data-area="vip" data-i18n="floorVIP">VIP</button>
+              </div>
+
+              <div class="floor-legend">
+                <div class="legend-badge">
+                  <span class="legend-dot free"></span>
+                  <span data-i18n="statusFree">Libero</span>
+                </div>
+                <div class="legend-badge">
+                  <span class="legend-dot occupied"></span>
+                  <span data-i18n="statusOccupied">Occupata</span>
+                </div>
+                <div class="legend-badge">
+                  <span class="legend-dot topay"></span>
+                  <span data-i18n="statusToPay">Da pagare</span>
+                </div>
+                <div class="legend-badge">
+                  <span class="legend-dot reserved"></span>
+                  <span data-i18n="statusReserved">Prenotata</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floor Map Canvas -->
+            <div class="floor-room-canvas" id="floorRoomCanvas">
+              <!-- Rendered via app.js with tables T01 to T09 -->
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================================
+             4. KDS / BARMAN PREPARATION VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-kds">
+          <div class="kds-container">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h2 style="font-size:20px; font-weight:800;" data-i18n="kdsTitle">Preparazione · Comptoir</h2>
+                <p style="font-size:12px; color:var(--text-muted);" data-i18n="kdsSubtitle">Kitchen Display System in tempo reale</p>
+              </div>
+
+              <div class="category-filter-pills" style="margin-bottom:0;">
+                <button class="cat-pill kds-tab-pill active" data-kds-filter="all" data-i18n="filterAll">Tutte</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="to_prep" data-i18n="filterToPrepare">Da preparare</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="in_prep" data-i18n="filterInPrep">In preparazione</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="ready" data-i18n="filterReady">Pronte</button>
+              </div>
+            </div>
+
+            <div class="kds-tickets-grid" id="kdsTicketsGrid">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             5. PRODOTTI / PRODUCTS CATALOG VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-products">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="navProducts">Prodotti</h3>
+                <p style="font-size:12px; color:var(--text-muted);">Catalogo bar, prezzi di vendita e margini</p>
+              </div>
+              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Aggiungi nuovo prodotto')" data-i18n="addProduct">+ Nuovo prodotto</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Prodotto</th>
+                    <th data-i18n="price">Prezzo</th>
+                    <th>Costo stimato</th>
+                    <th>Margine</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             6. INVENTARIO / INVENTORY STOCKS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-inventory">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="inventoryTitle">Inventario materie prime</h3>
+                <p style="font-size:12px; color:var(--text-muted);" data-i18n="recipes">Giacenze teoriche e deduzioni automatiche per cocktail e caffè</p>
+              </div>
+              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Aggiungi ingrediente')" data-i18n="addIngredient">+ Nuovo ingrediente</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Ingrediente</th>
+                    <th data-i18n="theoreticalStock">Giacenza teorica</th>
+                    <th data-i18n="reorderLevel">Soglia minima</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="navSuppliers">Fornitore</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             7. FORNITORI / SUPPLIERS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-suppliers">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h2 style="font-size:20px; font-weight:800;" data-i18n="navSuppliers">Fornitori</h2>
+            <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Nuovo fornitore')" data-i18n="addSupplier">+ Nuovo fornitore</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;" id="suppliersListWrap">
+            <!-- Rendered via app.js -->
+          </div>
+        </section>
+
+        <!-- ========================================================
+             8. PERSONALE / STAFF VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-staff">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="navStaff">Personale</h3>
+              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Invita dipendente')" data-i18n="inviteStaff">+ Invita dipendente</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Ruolo</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             9. RAPPORTI / ANALYTICS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-reports">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="navReports">Rapporti</h3>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="last30Days">01/10/2025 - 20/10/2025 · Ultimi 30 giorni</span>
+              </div>
+            </div>
+
+            <!-- Revenue Trend SVG Chart -->
+            <div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center;">
+              <svg id="reportsCurveSvg" width="520" height="190" viewBox="0 0 520 190" style="width:100%; max-width:600px; overflow:visible;">
+                <!-- Generated by app.js -->
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             10. ABBONAMENTI & 14-DAY TRIAL VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-subscriptions">
+          <div style="text-align:center; max-width:680px; margin: 0 auto 30px;">
+            <h2 style="font-size:26px; font-weight:900;" data-i18n="subTitle">Offerte di abbonamento BarPilot</h2>
+            <p style="font-size:14px; color:var(--text-muted); margin-top:8px;" data-i18n="subSubtitle">
+              14 giorni di prova gratuita, senza impegno, disdici quando vuoi
+            </p>
+          </div>
+
+          <!-- Subscription Plans Grid -->
+          <div class="plans-grid" id="plansGridWrap">
+            <!-- Rendered by app.js -->
+          </div>
+
+          <!-- Revenue Simulator for BarPilot Founders -->
+          <div class="simulator-box">
+            <h3 style="font-size:18px; font-weight:800; margin-bottom:6px;" data-i18n="revenueSimulator">Simulatore di ricavi SaaS</h3>
+            <p style="font-size:12px; color:var(--text-muted);">Calcola il tuo fatturato ricorrente SaaS (MRR / ARR) con 100 bar pilota</p>
+            
+            <input type="range" min="5" max="500" value="100" class="slider-ctrl" id="simBarsCount">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="barsCount">Numero di bar abbonati</span>
+                <div style="font-size:24px; font-weight:800;" id="simBarsDisplay">100</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="monthlyRevenue">Ricavo mensile stimato</span>
+                <div style="font-size:24px; font-weight:800; color:var(--primary);" id="simMonthlyRev">5.900 €</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="annualRevenue">Ricavo annuale stimato</span>
+                <div style="font-size:24px; font-weight:800; color:var(--status-free);" id="simAnnualRev">70.800 €</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             11. IMPOSTAZIONI / SETTINGS VIEW (EXPANDED DASHBOARD)
+             ======================================================== -->
+        <section class="view-panel" id="view-settings">
+          <div class="settings-container">
+            
+            <div>
+              <h2 style="font-size:22px; font-weight:800;" data-i18n="settingsTitle">Impostazioni & Configurazione Bar</h2>
+              <p style="font-size:13px; color:var(--text-muted); margin-top:2px;" data-i18n="settingsSub">
+                Personalizza il funzionamento del tuo locale, stampanti, tasse e menu
+              </p>
+            </div>
+
+            <!-- Settings Tabs Nav -->
+            <div class="settings-tabs-nav">
+              <button class="settings-tab-btn active" onclick="switchSettingsTab('general')">
+                <span>🏢</span> <span data-i18n="settingsTabGeneral">Locale & Fiscale</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('service')">
+                <span>🛎️</span> <span data-i18n="settingsTabService">Servizio & Cassa</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('printers')">
+                <span>🖨️</span> <span data-i18n="settingsTabPrinters">Stampanti & KDS</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('stock')">
+                <span>📦</span> <span data-i18n="settingsTabStock">Giacenze & Alert</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('qr')">
+                <span>📱</span> <span data-i18n="settingsTabQr">Menu QR Code</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('backup')">
+                <span>🔒</span> <span data-i18n="settingsTabBackup">Backup & Sicurezza</span>
+              </button>
+            </div>
+
+            <!-- Pane 1: Locale & Fiscale -->
+            <div class="settings-pane active" id="pane-settings-general">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Dati Identificativi dell'Esercizio</h3>
+                  <p class="settings-card-desc">Informazioni legali e indirizzo stampati sul pre-conto</p>
+                </div>
+
+                <div class="settings-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Nome stabilimento (Insegna)</label>
+                    <input type="text" class="form-input" id="setBarName" value="Bar Centrale">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="legalNameLabel">Ragione Sociale</label>
+                    <input type="text" class="form-input" value="Bar Centrale Roma S.r.l.">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="vatLabel">Partita IVA / Cod. Fiscale</label>
+                    <input type="text" class="form-input" value="IT 12345678901">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="phoneBarLabel">Telefono del Bar</label>
+                    <input type="text" class="form-input" value="+39 06 678 9123">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Indirizzo completo</label>
+                  <input type="text" class="form-input" value="Via del Corso, 142 - 00186 Roma (RM)">
+                </div>
+
+                <div class="settings-grid-2">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="currencyLabel">Valuta Principale</label>
+                    <select class="form-input" id="setCurrency">
+                      <option value="EUR" selected>EUR (€) - Euro</option>
+                      <option value="CHF">CHF (CHF) - Franco Svizzero</option>
+                      <option value="USD">USD ($) - Dollaro USA</option>
+                      <option value="GBP">GBP (£) - Sterlina UK</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="timezoneLabel">Fuso Orario</label>
+                    <select class="form-input">
+                      <option value="Europe/Rome" selected>Europe/Rome (GMT+1 / GMT+2)</option>
+                      <option value="Europe/Paris">Europe/Paris (GMT+1 / GMT+2)</option>
+                      <option value="Europe/Zurich">Europe/Zurich</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveGeneralSettings()" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 2: Servizio & Cassa -->
+            <div class="settings-pane" id="pane-settings-service">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Regole di Servizio & Tariffe</h3>
+                  <p class="settings-card-desc">Personalizza il coperto, arrotondamento e aliquote</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="coverChargeLabel">Coperto / Servizio al tavolo</span>
+                    <span class="switch-sub" data-i18n="coverChargeDesc">Aggiungi automaticamente il coperto a persona su ogni comanda al tavolo</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="number" step="0.5" value="1.50" style="width:75px; text-align:right;" class="form-input"> <span>€</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" checked id="toggleCoverCharge">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="smartHourLabel">Menu orario intelligente (Caffè mattino / Cocktail sera)</span>
+                    <span class="switch-sub" data-i18n="smartHourDesc">Mostra automaticamente i prodotti più venduti in base all'ora del giorno</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleSmartMenu">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="allowTipsLabel">Abilita richiesta mance / pourboire al pagamento</span>
+                    <span class="switch-sub">Consente ai clienti di aggiungere il 5%, 10% o importo libero</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="defaultVatLabel">Aliquota IVA Predefinita</label>
+                    <select class="form-input">
+                      <option value="10" selected>10% - Somministrazione alimenti e bevande (Bar standard)</option>
+                      <option value="22">22% - Aliquota ordinaria / Alcolici da asporto</option>
+                      <option value="4">4% - Generi di prima necessità / Pane</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Arrotondamento resto cassa</label>
+                    <select class="form-input">
+                      <option value="none" selected>Nessuno (Cent esatto)</option>
+                      <option value="5cents">Arrotonda ai 0,05 € più vicini</option>
+                      <option value="10cents">Arrotonda ai 0,10 € più vicini</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast(window.i18n.t('settingsSavedNotice'))" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 3: Stampanti & KDS -->
+            <div class="settings-pane" id="pane-settings-printers">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Schermo Barman & Periferiche di Stampa</h3>
+                  <p class="settings-card-desc">Configurazione allarmi sonori e stampanti termiche</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="soundNotifLabel">Avviso sonoro all'arrivo di nuove comande</span>
+                    <span class="switch-sub" data-i18n="soundNotifDesc">Emetti un suono al comptoir quando il cameriere invia un ordine</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="ctrl-btn" onclick="testNotificationSound()">🔔 Prova suono</button>
+                    <label class="toggle-switch">
+                      <input type="checkbox" checked id="toggleSoundNotif">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="autoPrintReceiptLabel">Stampa automatica comanda su invio</span>
+                    <span class="switch-sub">Invia la comanda direttamente alla stampante termica del banco</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggleAutoPrint">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="printerIpLabel">Indirizzo IP Stampante Termica (ESC/POS)</label>
+                    <input type="text" class="form-input" value="192.168.1.150:9100" placeholder="192.168.1.150:9100">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="prepAlertTimeLabel">Minuti per allarme ritardo comanda</label>
+                    <select class="form-input">
+                      <option value="3">3 minuti (Fast espresso bar)</option>
+                      <option value="5" selected>5 minuti (Standard)</option>
+                      <option value="10">10 minuti (Cocktail lounge)</option>
+                      <option value="15">15 minuti</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni stampanti salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 4: Giacenze & Alert -->
+            <div class="settings-pane" id="pane-settings-stock">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Gestione Intelligente Magazzino</h3>
+                  <p class="settings-card-desc">Regole di scarico merci e soglie di alert</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="autoStockDeductLabel">Scarico automatico ingredienti secondo ricette</span>
+                    <span class="switch-sub" data-i18n="autoStockDeductDesc">Deduci le dosi esatte di caffè, latte, rum e bibite ad ogni comanda</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleAutoStockDeduct">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="allowNegativeStockLabel">Consenti vendite anche con giacenza a zero</span>
+                    <span class="switch-sub" data-i18n="allowNegativeStockDesc">Evita di bloccare i camerieri durante le ore di punta se il magazzino non è ancora caricato</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleAllowNegativeStock">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="emailNotifLabel">Email per Notifiche e Report Scorte</label>
+                    <input type="email" class="form-input" value="magazzino@barcentrale.it">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Frequenza report automatico scorte</label>
+                    <select class="form-input">
+                      <option value="daily" selected>Ogni sera alla chiusura (23:00)</option>
+                      <option value="weekly">Ogni lunedì mattina</option>
+                      <option value="realtime">Immediata non appena un prodotto entra in allerta</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni magazzino salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 5: Menu QR Code -->
+            <div class="settings-pane" id="pane-settings-qr">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Menu Digitale & Ordinazione da Tavolo</h3>
+                  <p class="settings-card-desc">Offri il menu contactless con QR Code posizionato sui tavoli</p>
+                </div>
+
+                <div class="qr-preview-box">
+                  <div class="qr-graphic">
+                    <!-- SVG Vector QR Code -->
+                    <svg viewBox="0 0 100 100" fill="#0F172A">
+                      <rect x="0" y="0" width="30" height="30" rx="4" />
+                      <rect x="5" y="5" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="9" y="9" width="12" height="12" />
+                      <rect x="70" y="0" width="30" height="30" rx="4" />
+                      <rect x="75" y="5" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="79" y="9" width="12" height="12" />
+                      <rect x="0" y="70" width="30" height="30" rx="4" />
+                      <rect x="5" y="75" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="9" y="79" width="12" height="12" />
+                      <rect x="36" y="8" width="8" height="8" />
+                      <rect x="50" y="14" width="8" height="8" />
+                      <rect x="38" y="38" width="24" height="24" rx="2" fill="#FF7A00" />
+                      <rect x="70" y="44" width="10" height="10" />
+                      <rect x="85" y="70" width="14" height="14" />
+                      <rect x="44" y="75" width="12" height="12" />
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <label class="form-label" data-i18n="qrMenuUrlLabel">Link pubblico del tuo Menu QR Code</label>
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                      <input type="text" class="form-input" value="https://barpilot.app/menu/bar_centrale" readonly style="flex:1; background:var(--bg-card); font-weight:700; color:var(--primary);">
+                      <button class="btn-secondary" onclick="copyQrLink()">📋 Copia</button>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px;">
+                      <button class="btn-primary" style="font-size:12px; padding:8px 14px;" onclick="downloadQrPdf()">⬇️ Scarica QR PDF da Stampare</button>
+                      <button class="btn-secondary" style="font-size:12px; padding:8px 14px;" onclick="window.open('https://barpilot.app', '_blank')">👁️ Anteprima Menu</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row" style="margin-top:20px;">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="qrDirectOrderLabel">Consenti ordinazione diretta dal tavolo via QR</span>
+                    <span class="switch-sub" data-i18n="qrDirectOrderDesc">I clienti possono inviare la comanda dal proprio smartphone</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleQrDirectOrder">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="qrAllergensLabel">Mostra tabella allergeni e calorie nel menu</span>
+                    <span class="switch-sub">Conformità normativa per trasparenza ingredienti alimentari</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni QR Code salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 6: Backup & Sicurezza -->
+            <div class="settings-pane" id="pane-settings-backup">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Protezione Dati, Esportazioni & Ripristino</h3>
+                  <p class="settings-card-desc">Esporta i dati contabili o salva una copia di sicurezza</p>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800;">📊 Esportazione Vendite per Commercialista</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Scarica tutte le comande, totali e IVA suddivisa in formato CSV o Excel</p>
+                    </div>
+                    <button class="btn-primary" style="padding:8px 14px; font-size:12px;" onclick="exportSalesCsv()">
+                      ⬇️ Esporta CSV
+                    </button>
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800;">💾 Salvataggio Backup Completo</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Salva prodotti, ricette, tavoli e fornitori in un unico file JSON</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="downloadBackupJson()">
+                        ⬇️ Backup JSON
+                      </button>
+                      <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="restoreBackupJson()">
+                        ⬆️ Ripristina
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(239,68,68,0.06); padding:16px; border-radius:var(--radius-lg); border:1px dashed var(--status-alert);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800; color:var(--status-alert);">⚠️ Ripristino Dati di Fabbrica (Demo)</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Reimposta l'applicazione ai dati di partenza (Bar Centrale)</p>
+                    </div>
+                    <button class="btn-secondary" style="padding:8px 14px; font-size:12px; border-color:var(--status-alert); color:var(--status-alert);" onclick="resetDemoData()">
+                      🔄 Reset Demo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- Multi-tenant Bar Login / Switcher Modal -->
+  <div class="modal-overlay" id="barModalOverlay">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:18px; font-weight:800;" data-i18n="loginTitle">Accedi al tuo bar</h3>
+        <button id="closeBarModal" style="background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;" data-i18n="loginSubtitle">
+        Seleziona il tuo stabilimento ed entra nel gestionale
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="barSelectLabel">Seleziona il locale</label>
+        <select class="form-input" id="modalBarSelect">
+          <option value="bar_01">Bar Centrale (Roma)</option>
+          <option value="bar_02">Milano Lounge & Cocktail (Milano)</option>
+          <option value="bar_03">Café de Paris (Nice)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="emailLabel">Email gérant / cameriere</label>
+        <input type="email" class="form-input" value="marco@barcentrale.it">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="passwordLabel">Password o PIN veloce</label>
+        <input type="password" class="form-input" value="••••••">
+      </div>
+
+      <button class="btn-primary" style="width:100%; margin-top:10px;" id="confirmBarSwitch" data-i18n="enterApp">
+        Accedi a BarPilot
+      </button>
+
+      <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:14px;" data-i18n="demoCredentials">
+        Credenziali demo precompilate per test rapido
+      </p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/supabaseClient.js"></script>
+  <script src="assets/js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('BarPilot ServiceWorker registered:', reg.scope))
+          .catch(err => console.log('ServiceWorker registration failed:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>
