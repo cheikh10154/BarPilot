@@ -218,29 +218,7 @@
     </div>
   </div>
 
-  <!-- Simulated Incoming SMS Push Banner -->
-  <div id="simulatedSmsBanner" class="sms-push-banner" style="display:none;" onclick="autoFillSmsCode()">
-    <div class="sms-push-header">
-      <div class="sms-push-app">
-        <span class="sms-push-icon">💬</span>
-        <span>MESSAGGI</span>
-        <span class="sms-push-bullet">•</span>
-        <span class="sms-push-time">adesso</span>
-      </div>
-      <button type="button" class="sms-push-close" onclick="event.stopPropagation(); closeSmsBanner();" aria-label="Chiudi">✕</button>
-    </div>
-    <div class="sms-push-body">
-      <div class="sms-push-sender">BarPilot Sicurezza</div>
-      <div class="sms-push-message">
-        Il tuo codice di verifica per <strong id="smsBannerPhoneTarget" style="color:#FFB020;"></strong> è: <span class="sms-code-pill" id="smsBannerCode">123456</span>. Non condividerlo.
-      </div>
-    </div>
-    <div class="sms-push-footer">
-      <span class="sms-push-action-hint">⚡ Tocca per inserire automaticamente il codice</span>
-    </div>
-  </div>
-
-  <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL, PHONE) -->
+  <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL) -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-card">
       <div class="auth-top-brand">
@@ -277,13 +255,7 @@
       </div>
 
       <div class="auth-divider">
-        <span data-i18n="orWith">oppure con</span>
-      </div>
-
-      <!-- Method Switcher Pills (Email vs Phone) -->
-      <div class="method-switch-pills">
-        <button class="method-pill active" id="methodEmailBtn" onclick="switchAuthMethod('email')">✉️ <span data-i18n="methodEmail">Email</span></button>
-        <button class="method-pill" id="methodPhoneBtn" onclick="switchAuthMethod('phone')">📱 <span data-i18n="methodPhone">Numero di cellulare</span></button>
+        <span data-i18n="orWith">oppure con email</span>
       </div>
 
       <!-- Red Error Alert Box for invalid credentials -->
@@ -330,63 +302,6 @@
 
         <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
           Accedi al gestionale
-        </button>
-      </form>
-
-      <!-- Login Form (Phone SMS Mode) -->
-      <form id="authPhoneForm" style="display:none;" onsubmit="handlePhoneAuthSubmit(event)">
-        <!-- Bar, Owner & City fields for Phone (same as Creare un Bar) -->
-        <div id="registerPhoneExtraFields">
-          <div class="form-group">
-            <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
-            <input type="text" class="form-input" id="regPhoneBarName" placeholder="Es: Bar Centrale" value="Bar Centrale" oninput="hideAuthError()" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
-            <input type="text" class="form-input" id="regPhoneOwnerName" placeholder="Es: Marco Rossi" value="Marco Rossi" oninput="hideAuthError()" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" data-i18n="cityLabel">Città</label>
-            <input type="text" class="form-input" id="regPhoneCity" placeholder="Es: Roma / Nice" value="Roma" oninput="hideAuthError()" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
-          <div class="phone-input-row">
-            <select class="country-code-select" id="phoneCountryCode" onchange="hideAuthError()">
-              <option value="+39" selected>🇮🇹 +39</option>
-              <option value="+33">🇫🇷 +33</option>
-              <option value="+41">🇨🇭 +41</option>
-              <option value="+34">🇪🇸 +34</option>
-              <option value="+49">🇩🇪 +49</option>
-              <option value="+44">🇬🇧 +44</option>
-            </select>
-            <input type="tel" class="form-input" id="authPhoneNumber" placeholder="333 123 4567" value="333 987 6543" style="flex:1;" oninput="hideAuthError()" required>
-            <button type="button" class="btn-send-sms" onclick="sendSmsCode()" id="btnSendSms" data-i18n="sendSmsCode">Invia SMS</button>
-          </div>
-        </div>
-
-        <!-- SMS Verification Code Input -->
-        <div class="form-group" id="smsCodeGroup">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
-            <span id="smsCountdown" style="font-size:11px; color:#10B981; font-weight:600;"></span>
-          </div>
-          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="Inserisci 6 cifre (es: 123456)" value="" style="letter-spacing:6px; font-weight:800; text-align:center; font-size:16px;" oninput="hideAuthError()">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-            <span style="font-size:11px; color:#10B981;" id="smsSentNoticeText" data-i18n="smsSentNotice">Premi 'Invia SMS' o inserisci il codice di conferma</span>
-            <a href="#" onclick="sendSmsCode(); return false;" id="resendSmsLink" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="resendCode">Reinvia SMS</a>
-          </div>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
-          <input type="checkbox" id="authPhoneRemember" checked style="accent-color:var(--primary); cursor:pointer;">
-          <label for="authPhoneRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
-        </div>
-
-        <button type="submit" class="btn-primary" style="width:100%; margin-top:12px;" id="btnPhoneSubmit" data-i18n="verifyAndLogin">
-          Verifica e Accedi
         </button>
       </form>
 
