@@ -1520,17 +1520,39 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100000;
   padding: 16px;
 }
 
 .modal-overlay.active {
   display: flex;
+}
+
+#googlePickerModal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000001 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 16px;
+}
+
+#googlePickerModal.active {
+  display: flex !important;
+}
+
+.google-acc-item:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
 }
 
 .modal-box {

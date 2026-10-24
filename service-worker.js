@@ -1,5 +1,5 @@
 // BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v1';
+const CACHE_NAME = 'barpilot-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './assets/js/i18n.js',
   './assets/js/data.js',
   './assets/js/supabaseClient.js',
+  './assets/js/googleAuth.js',
   './assets/js/app.js',
   './assets/images/logo.png'
 ];
