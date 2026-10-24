@@ -1630,17 +1630,19 @@ body {
   }
 }
 
-/* Mobile Sidebar Backdrop */
+/* ========================================================
+   SIDEBAR DRAWER & RESPONSIVE CONTROLS
+   ======================================================== */
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
-  z-index: 105;
+  z-index: 9998;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .sidebar-backdrop.active {
@@ -1649,63 +1651,83 @@ body {
   pointer-events: auto;
 }
 
-/* Universal Close "X" Buttons */
-.modal-close-icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-main);
-  font-size: 17px;
-  font-weight: 800;
-  cursor: pointer;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 285px !important;
+    max-width: 85vw !important;
+    transform: translateX(-100%);
+    z-index: 9999 !important;
+    box-shadow: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .sidebar.mobile-open,
+  .sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .sidebar.sidebar-closed,
+  .sidebar.closed {
+    transform: translateX(-100%) !important;
+  }
 }
 
-.modal-close-icon-btn:hover {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #FFFFFF;
-  transform: scale(1.1);
+@media (min-width: 1025px) {
+  .sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar.sidebar-closed,
+  .sidebar.closed {
+    margin-left: -285px !important;
+    transform: translateX(-100%) !important;
+    display: none !important;
+  }
+
+  .sidebar.mobile-open,
+  .sidebar.open {
+    display: flex !important;
+    margin-left: 0 !important;
+    transform: translateX(0) !important;
+  }
 }
 
+/* Prominent Close "X" Button on Sidebar */
 .sidebar-close-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #FFFFFF;
-  font-size: 17px;
-  font-weight: 800;
-  cursor: pointer;
-  margin-left: auto;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 122, 0, 0.2) !important;
+  border: 1.5px solid var(--primary) !important;
+  color: #FFFFFF !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  margin-left: auto !important;
   display: flex !important;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all var(--transition-fast) !important;
+  flex-shrink: 0 !important;
+  z-index: 10001 !important;
 }
 
 .sidebar-close-btn:hover {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #FFFFFF;
-  transform: scale(1.1);
-}
-
-.sidebar.sidebar-closed {
-  transform: translateX(-100%) !important;
-  display: none !important;
+  background: var(--primary) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.12) !important;
+  box-shadow: 0 0 14px var(--primary-glow) !important;
 }
 
 .menu-toggle-btn {
   display: flex !important;
+  cursor: pointer;
 }
 
 /* ========================================================

@@ -62,7 +62,7 @@ function setupNavigation() {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
       switchView(view);
-      closeMobileSidebar();
+      closeSidebar();
     });
   });
 
@@ -72,41 +72,41 @@ function setupNavigation() {
   const backdrop = document.getElementById("sidebarBackdrop");
   const closeBtn = document.getElementById("sidebarCloseBtn");
 
-  if (menuBtn && sidebar) {
-    menuBtn.addEventListener("click", (e) => {
+  if (menuBtn) {
+    menuBtn.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      const isVisible = sidebar.classList.contains("mobile-open") || !sidebar.classList.contains("sidebar-closed");
-      if (sidebar.classList.contains("mobile-open")) {
-        closeMobileSidebar();
-      } else if (sidebar.classList.contains("sidebar-closed")) {
-        openMobileSidebar();
-      } else {
-        // Toggle mobile-open
-        openMobileSidebar();
-      }
-    });
+      toggleSidebar();
+    };
   }
 
   // Click on close button inside sidebar
   if (closeBtn) {
-    closeBtn.addEventListener("click", (e) => {
+    closeBtn.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      closeMobileSidebar();
-    });
+      closeSidebar();
+    };
   }
 
   // Click on backdrop outside sidebar closes it
   if (backdrop) {
-    backdrop.addEventListener("click", () => {
-      closeMobileSidebar();
-    });
+    backdrop.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSidebar();
+    };
   }
 
   // Click anywhere outside sidebar on document closes it
   document.addEventListener("click", (e) => {
-    if (sidebar && sidebar.classList.contains("mobile-open")) {
+    if (!sidebar) return;
+    const isOpen = (sidebar.classList.contains("mobile-open") || sidebar.classList.contains("open")) &&
+                   !sidebar.classList.contains("sidebar-closed") &&
+                   !sidebar.classList.contains("closed");
+    if (isOpen) {
       if (!sidebar.contains(e.target) && (!menuBtn || !menuBtn.contains(e.target))) {
-        closeMobileSidebar();
+        closeSidebar();
       }
     }
   });
@@ -114,7 +114,7 @@ function setupNavigation() {
   // ESC key closes mobile sidebar and modals
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      closeMobileSidebar();
+      closeSidebar();
       const modal = document.getElementById("barModalOverlay");
       if (modal) modal.classList.remove("active");
       closeAuthScreen();
@@ -138,25 +138,49 @@ function switchView(viewName) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function openMobileSidebar() {
+function openSidebar() {
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
   if (sidebar) {
-    sidebar.classList.add("mobile-open");
-    sidebar.classList.remove("sidebar-closed");
+    sidebar.classList.add("mobile-open", "open");
+    sidebar.classList.remove("sidebar-closed", "closed");
   }
-  if (backdrop) backdrop.classList.add("active");
+  if (backdrop) {
+    backdrop.classList.add("active");
+  }
 }
 
-function closeMobileSidebar() {
+function closeSidebar() {
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
   if (sidebar) {
-    sidebar.classList.remove("mobile-open");
-    sidebar.classList.add("sidebar-closed");
+    sidebar.classList.remove("mobile-open", "open");
+    sidebar.classList.add("sidebar-closed", "closed");
   }
-  if (backdrop) backdrop.classList.remove("active");
+  if (backdrop) {
+    backdrop.classList.remove("active");
+  }
 }
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("appSidebar");
+  if (!sidebar) return;
+  const isOpen = (sidebar.classList.contains("mobile-open") || sidebar.classList.contains("open")) && 
+                 !sidebar.classList.contains("sidebar-closed") && 
+                 !sidebar.classList.contains("closed");
+  if (isOpen) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+
+// Global functions for inline onclick & external calls
+window.openSidebar = openSidebar;
+window.closeSidebar = closeSidebar;
+window.toggleSidebar = toggleSidebar;
+window.openMobileSidebar = openSidebar;
+window.closeMobileSidebar = closeSidebar;
 
 // --------------------------------------------------------------------------
 // Theme & Language
