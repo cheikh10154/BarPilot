@@ -322,7 +322,7 @@ const initialData = {
     { id: 5, name: "Surgital", category: "Prodotti surgelati e panificati", phone: "+39 0545 80328", email: "horeca@surgital.it", status: "active" }
   ],
   staff: [
-    { id: 1, name: "Marco Rossi", role: "Proprietario", email: "marco@barcentrale.it", pin: "1234", status: "active", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" },
+    { id: 1, name: "Marco Rossi", role: "Proprietario", email: "marco@barcentrale.it", pin: null, status: "active", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" },
     { id: 2, name: "Laura Bianchi", role: "Manager", email: "laura@barcentrale.it", pin: "0000", status: "active", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop" },
     { id: 3, name: "Giulia Conti", role: "Cameriere", email: "giulia@barcentrale.it", pin: "1111", status: "active", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop" },
     { id: 4, name: "Alessandro De Luca", role: "Barman", email: "ale@barcentrale.it", pin: "3333", status: "active", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop" },
@@ -388,7 +388,9 @@ class BarPilotStorage {
         }
         if (Array.isArray(this.data.staff)) {
           this.data.staff.forEach(s => {
-            if (!s.pin) {
+            if (s.role === "Proprietario") {
+              s.pin = null;
+            } else if (!s.pin) {
               const init = initialData.staff.find(i => i.id === s.id || i.name === s.name);
               s.pin = init ? init.pin : "1234";
             }

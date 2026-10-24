@@ -921,8 +921,9 @@ function renderStaff() {
 
   tbody.innerHTML = staff.map(s => {
     const isCurrentActive = currentStaff && currentStaff.id === s.id;
+    const isOwner = s.role === "Proprietario";
     let roleBadgeClass = "badge-role-waiter";
-    if (s.role === "Proprietario") roleBadgeClass = "badge-role-owner";
+    if (isOwner) roleBadgeClass = "badge-role-owner";
     else if (s.role === "Manager") roleBadgeClass = "badge-role-manager";
     else if (s.role === "Barman") roleBadgeClass = "badge-role-barman";
     else if (s.role === "Cassa") roleBadgeClass = "badge-role-cashier";
@@ -945,7 +946,10 @@ function renderStaff() {
         <span class="staff-pill-role ${roleBadgeClass}">${s.role}</span>
       </td>
       <td>
-        <code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px;">${s.pin || '1234'}</code>
+        ${isOwner 
+          ? '<span style="color:var(--text-muted); font-size:12px; font-weight:600;">🔒 Solo Password (Nessun PIN)</span>' 
+          : `<code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px;">${s.pin || '1234'}</code>`
+        }
       </td>
       <td>
         <span class="table-badge ${s.status === 'active' ? 'badge-served' : 'badge-alert'}">
@@ -953,9 +957,10 @@ function renderStaff() {
         </span>
       </td>
       <td>
-        <button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo dipendente">
-          🔑 Accedi con PIN
-        </button>
+        ${isOwner
+          ? '<span style="color:var(--primary); font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">👑 Amministratore</span>'
+          : `<button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo dipendente">🔑 Accedi con PIN</button>`
+        }
       </td>
     </tr>
   `;
@@ -970,14 +975,18 @@ function openStaffPinModal(staffId = null) {
   if (!modal) return;
 
   const staffList = (window.db ? window.db.get("staff") : []) || [];
-  if (staffList.length === 0) return;
+  const switchableStaff = staffList.filter(s => s.role !== "Proprietario" && s.pin);
+  if (switchableStaff.length === 0) {
+    showToast("⚠️ Il cambio rapido con PIN è riservato al personale operativo (camerieri, barman, cassa).");
+    return;
+  }
 
   if (staffId) {
-    selectedPinStaff = staffList.find(s => s.id === staffId) || staffList[0];
-  } else if (currentStaff) {
-    selectedPinStaff = staffList.find(s => s.id === currentStaff.id) || staffList[0];
+    selectedPinStaff = switchableStaff.find(s => s.id === staffId) || switchableStaff[0];
+  } else if (currentStaff && currentStaff.role !== "Proprietario") {
+    selectedPinStaff = switchableStaff.find(s => s.id === currentStaff.id) || switchableStaff[0];
   } else {
-    selectedPinStaff = staffList[0];
+    selectedPinStaff = switchableStaff[0];
   }
 
   enteredPin = "";
@@ -1001,7 +1010,8 @@ function renderStaffPinSelector() {
   if (!row) return;
 
   const staffList = (window.db ? window.db.get("staff") : []) || [];
-  row.innerHTML = staffList.map(s => {
+  const switchableStaff = staffList.filter(s => s.role !== "Proprietario" && s.pin);
+  row.innerHTML = switchableStaff.map(s => {
     const isSelected = selectedPinStaff && selectedPinStaff.id === s.id;
     const isCurrentActive = currentStaff && currentStaff.id === s.id;
     let badgeClass = "badge-role-waiter";
@@ -1190,7 +1200,7 @@ function handleAddStaffSubmit(e) {
   const name = document.getElementById("newStaffName")?.value.trim();
   const role = document.getElementById("newStaffRole")?.value || "Cameriere";
   const email = document.getElementById("newStaffEmail")?.value.trim();
-  const pin = document.getElementById("newStaffPin")?.value.trim() || "1234";
+  const pin = role === "Proprietario" ? null : ((document.getElementById("newStaffPin")?.value.trim() || "1234").slice(0, 4));
 
   if (!name || !email) return;
 
@@ -1218,7 +1228,9 @@ function handleAddStaffSubmit(e) {
   renderStaff();
   closeAddStaffModal();
   document.getElementById("addStaffForm")?.reset();
-  showToast(`👥 ${name} aggiunto al personale come ${role} (PIN: ${pin})!`);
+  showToast(role === "Proprietario" 
+    ? `👥 ${name} aggiunto come Proprietario (accesso esclusivo con Password, nessun PIN).` 
+    : `👥 ${name} aggiunto al personale come ${role} (PIN: ${pin})!`);
 }
 
 // Global Exports
@@ -1992,31 +2004,33 @@ function handleAuthSubmit(e) {
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
 
-    // Save user in database with both password and pin
+    // Save user in database (Owner uses password, has no PIN)
     saveUserToDatabase({
       id: "usr_" + Date.now(),
       type: "email",
       email: email,
       phone: phone,
       password: credential,
-      pin: regPin,
+      pin: null,
+      role: "Proprietario",
       name: ownerName,
       barName: barName,
       city: city,
       date: new Date().toISOString()
     });
 
-    // Update owner in staff table
+    // Update owner in staff table (Owner has no PIN on dashboard)
     const staffList = window.db.get("staff") || [];
     const ownerStaff = staffList.find(s => s.role === "Proprietario");
     if (ownerStaff) {
       ownerStaff.name = ownerName;
       ownerStaff.email = email;
       ownerStaff.phone = phone;
-      ownerStaff.pin = regPin;
+      ownerStaff.pin = null;
       window.db.set("staff", staffList);
       if (currentStaff && currentStaff.role === "Proprietario") {
         currentStaff.name = ownerName;
+        currentStaff.pin = null;
       }
     }
 
@@ -2043,6 +2057,17 @@ function handleAuthSubmit(e) {
     // Also check staff table
     const staffList = window.db.get("staff") || [];
     const staffFound = staffList.find(s => s.email && s.email.toLowerCase().trim() === email);
+
+    if (currentCredMode === 'pin') {
+      const isOwner = (userFound && (userFound.role === 'Proprietario' || userFound.email === 'marco@barcentrale.it')) ||
+                      (staffFound && staffFound.role === 'Proprietario');
+      if (isOwner) {
+        showAuthError(window.i18n.currentLang === 'it'
+          ? "🔒 Il proprietario non ha un PIN. Accedi selezionando l'opzione 'Password'."
+          : "🔒 Le propriétaire n'a pas de code PIN. Connectez-vous en sélectionnant 'Mot de passe'.");
+        return;
+      }
+    }
 
     let isValid = false;
 
