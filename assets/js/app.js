@@ -1857,7 +1857,8 @@ function switchAuthTab(tab) {
 
   const isRegister = (tab === 'register');
   if (extraFieldsEmail) {
-    extraFieldsEmail.style.display = 'block';
+    // All'accesso lascia solo "Email gestore / cameriere" e "Password o PIN veloce"
+    extraFieldsEmail.style.display = isRegister ? 'block' : 'none';
   }
 
   if (submitBtnEmail) {
@@ -1894,6 +1895,7 @@ function handleAuthSubmit(e) {
     const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
+    const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
 
     const activeBar = {
       id: "bar_" + Date.now(),
@@ -1904,6 +1906,7 @@ function handleAuthSubmit(e) {
       role: "Proprietario",
       managerName: ownerName,
       managerEmail: email,
+      managerPhone: phone,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
       trialDaysRemaining: 14,
@@ -1921,6 +1924,7 @@ function handleAuthSubmit(e) {
       id: "usr_" + Date.now(),
       type: "email",
       email: email,
+      phone: phone,
       password: password,
       name: ownerName,
       barName: barName,
@@ -1934,6 +1938,7 @@ function handleAuthSubmit(e) {
     if (ownerStaff) {
       ownerStaff.name = ownerName;
       ownerStaff.email = email;
+      ownerStaff.phone = phone;
       window.db.set("staff", staffList);
       if (currentStaff && currentStaff.role === "Proprietario") {
         currentStaff.name = ownerName;
@@ -1941,7 +1946,7 @@ function handleAuthSubmit(e) {
     }
 
     hideAuthError();
-    setUserLoggedIn(true, { name: ownerName, email: email, barName: barName, provider: "email" });
+    setUserLoggedIn(true, { name: ownerName, email: email, phone: phone, barName: barName, provider: "email" });
     closeAuthScreen();
     renderApp();
 
@@ -1950,10 +1955,6 @@ function handleAuthSubmit(e) {
       : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
   } else {
     // Handle Email Login: Check database credentials!
-    const barNameInput = (document.getElementById("regBarName")?.value || "").trim();
-    const ownerNameInput = (document.getElementById("regOwnerName")?.value || "").trim();
-    const cityInput = (document.getElementById("regCity")?.value || "").trim();
-
     const users = getDatabaseUsers();
     const userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
 
@@ -1963,9 +1964,9 @@ function handleAuthSubmit(e) {
     }
 
     hideAuthError();
-    const ownerName = ownerNameInput || userFound.name || "Marco Rossi";
-    const barName = barNameInput || userFound.barName || "Bar Centrale";
-    const city = cityInput || userFound.city || "Roma";
+    const ownerName = userFound.name || "Marco Rossi";
+    const barName = userFound.barName || "Bar Centrale";
+    const city = userFound.city || "Roma";
 
     const bar = window.db.get("activeBar");
     bar.name = barName;

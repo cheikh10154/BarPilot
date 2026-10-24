@@ -266,30 +266,34 @@
 
       <!-- Login Form (Email Mode) -->
       <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
-        <!-- Bar, Owner & City fields (same as Creare un Bar) -->
-        <div id="registerExtraFields">
+        <!-- Bar, Owner, City & Phone fields (for Registration only) -->
+        <div id="registerExtraFields" style="display:none;">
           <div class="form-group">
             <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
-            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale" value="Bar Centrale" oninput="hideAuthError()" required>
+            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale" value="Bar Centrale" oninput="hideAuthError()">
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
-            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi" value="Marco Rossi" oninput="hideAuthError()" required>
+            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi" value="Marco Rossi" oninput="hideAuthError()">
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="cityLabel">Città</label>
-            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice" value="Roma" oninput="hideAuthError()" required>
+            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice" value="Roma" oninput="hideAuthError()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
+            <input type="tel" class="form-input" id="regPhone" placeholder="Es: +39 333 987 6543" value="+39 333 987 6543" oninput="hideAuthError()">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="emailLabel">Email</label>
+          <label class="form-label" data-i18n="emailLabel">Email gestore / cameriere</label>
           <input type="email" class="form-input" id="authEmail" value="marco@barcentrale.it" oninput="hideAuthError()" required>
         </div>
 
         <div class="form-group">
           <div style="display:flex; justify-content:space-between;">
-            <label class="form-label" data-i18n="passwordLabel">Password</label>
+            <label class="form-label" data-i18n="passwordLabel">Password o PIN veloce</label>
             <a href="#" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
           </div>
           <input type="password" class="form-input" id="authPassword" value="password123" oninput="hideAuthError()" required>
@@ -1478,7 +1482,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" data-i18n="emailLabel">Email gérant / cameriere</label>
+        <label class="form-label" data-i18n="emailLabel">Email gestore / cameriere</label>
         <input type="email" class="form-input" value="marco@barcentrale.it">
       </div>
 
