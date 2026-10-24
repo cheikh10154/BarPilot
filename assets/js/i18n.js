@@ -637,7 +637,12 @@ window.i18n = {
       const key = el.getAttribute('data-i18n');
       const paramsAttr = el.getAttribute('data-i18n-params');
       const params = paramsAttr ? JSON.parse(paramsAttr) : {};
-      el.textContent = this.t(key, params);
+      if (key === 'greeting') {
+        const nameVal = params.name || (window.db ? (window.db.get("activeBar")?.managerName?.split(" ")[0]) : 'Marco') || 'Marco';
+        el.innerHTML = this.t(key, { name: `<span id="userGreetingName">${nameVal}</span>` });
+      } else {
+        el.textContent = this.t(key, params);
+      }
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');

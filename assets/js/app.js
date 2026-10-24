@@ -276,19 +276,42 @@ function setupLanguageToggle() {
 // --------------------------------------------------------------------------
 // Active Bar & Multi-tenant Profile
 // --------------------------------------------------------------------------
+function updateGreeting(name) {
+  const bar = window.db ? window.db.get("activeBar") : null;
+  const managerName = name || (bar ? bar.managerName : "Marco");
+  const firstName = (managerName || "Marco").trim().split(" ")[0];
+
+  const greetingEl = document.getElementById("greetingTitleWrap") || document.querySelector("[data-i18n='greeting']");
+  if (greetingEl) {
+    greetingEl.setAttribute("data-i18n-params", JSON.stringify({ name: firstName }));
+    if (window.i18n && typeof window.i18n.t === "function") {
+      greetingEl.innerHTML = window.i18n.t("greeting", { name: `<span id="userGreetingName">${firstName}</span>` });
+    } else {
+      greetingEl.innerHTML = `Buongiorno, <span id="userGreetingName">${firstName}</span> 👋`;
+    }
+  }
+
+  const userGreeting = document.getElementById("userGreetingName");
+  if (userGreeting) {
+    userGreeting.textContent = firstName;
+  }
+}
+window.updateGreeting = updateGreeting;
+
 function renderActiveBar() {
   const bar = window.db.get("activeBar");
   const barNameEl = document.getElementById("activeBarName");
   const barSwitcherText = document.getElementById("barSwitcherText");
-  const userGreeting = document.getElementById("userGreetingName");
   const trialDaysEl = document.getElementById("trialDaysCount");
   const sidebarUserName = document.getElementById("sidebarUserName") || document.querySelector(".user-profile-card .user-name");
 
   if (barNameEl) barNameEl.textContent = bar.name;
   if (barSwitcherText) barSwitcherText.textContent = bar.name;
-  if (userGreeting) userGreeting.textContent = bar.managerName.split(" ")[0];
   if (sidebarUserName) sidebarUserName.textContent = bar.managerName;
   if (trialDaysEl) trialDaysEl.textContent = bar.trialDaysRemaining;
+
+  // Refresh greeting dynamically with manager name
+  updateGreeting(bar.managerName);
 }
 
 // --------------------------------------------------------------------------
