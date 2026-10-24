@@ -4,6 +4,7 @@
 class GoogleAuthManager {
   constructor() {
     this.clientId = localStorage.getItem("barpilot_google_client_id") || window.GOOGLE_CLIENT_ID || "";
+    this.showingAddForm = false;
     this.init();
   }
 
@@ -24,6 +25,42 @@ class GoogleAuthManager {
     }
   }
 
+  // Get currently connected Google accounts on this device
+  getConnectedAccounts() {
+    try {
+      const raw = localStorage.getItem("barpilot_google_accounts");
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Save account to connected list
+  saveConnectedAccount(profile) {
+    let accounts = this.getConnectedAccounts();
+    accounts = accounts.filter(acc => acc.email.toLowerCase() !== profile.email.toLowerCase());
+    accounts.unshift({
+      name: profile.name,
+      email: profile.email,
+      picture: profile.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=FF7A00&color=fff`,
+      lastLogin: new Date().toISOString()
+    });
+    localStorage.setItem("barpilot_google_accounts", JSON.stringify(accounts));
+  }
+
+  // Remove a connected account from this device
+  removeConnectedAccount(email, event) {
+    if (event) event.stopPropagation();
+    let accounts = this.getConnectedAccounts();
+    accounts = accounts.filter(acc => acc.email.toLowerCase() !== email.toLowerCase());
+    localStorage.setItem("barpilot_google_accounts", JSON.stringify(accounts));
+    this.showGooglePickerModal();
+    const isIt = !window.i18n || window.i18n.currentLang === "it";
+    if (typeof showToast === "function") {
+      showToast(isIt ? "Account Google rimosso dal dispositivo" : "Compte Google supprimé de cet appareil");
+    }
+  }
+
   // Trigger Google Sign-In Flow
   signIn() {
     console.log("[GoogleAuth] signIn() initiated. ClientID present:", !!this.clientId);
@@ -37,7 +74,6 @@ class GoogleAuthManager {
     // 2. If real Google Client ID is configured and SDK is present
     if (this.clientId && window.google?.accounts?.id) {
       try {
-        // Re-initialize to ensure valid callback and options
         window.google.accounts.id.initialize({
           client_id: this.clientId,
           callback: (response) => this.handleGoogleCredentialResponse(response),
@@ -47,11 +83,12 @@ class GoogleAuthManager {
         window.google.accounts.id.prompt();
         return;
       } catch (err) {
-        console.warn("[GoogleAuth] Real Google prompt failed, fallback to interactive picker:", err);
+        console.warn("[GoogleAuth] Real Google prompt fallback:", err);
       }
     }
 
     // 3. Realistic Interactive Google Account Picker Modal
+    this.showingAddForm = false;
     this.showGooglePickerModal();
   }
 
@@ -76,13 +113,16 @@ class GoogleAuthManager {
         this.loginWithGoogleProfile({
           name: payload.name || "Utente Google",
           email: payload.email || "utente@gmail.com",
-          picture: payload.picture || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
+          picture: payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || "Google")}&background=FF7A00&color=fff`
         });
       }
     }
   }
 
   loginWithGoogleProfile(profile) {
+    // Save to connected accounts
+    this.saveConnectedAccount(profile);
+
     const bar = window.db.get("activeBar");
     bar.managerName = profile.name;
     bar.managerEmail = profile.email;
@@ -114,19 +154,33 @@ class GoogleAuthManager {
     }
   }
 
+  toggleAddAccountForm(show) {
+    this.showingAddForm = (typeof show === "boolean") ? show : !this.showingAddForm;
+    this.showGooglePickerModal();
+  }
+
   showGooglePickerModal() {
     let modal = document.getElementById("googlePickerModal");
     const isIt = !window.i18n || window.i18n.currentLang === "it";
+    const connectedAccounts = this.getConnectedAccounts();
 
     const titleText = isIt ? "Accedi con Google" : "Se connecter avec Google";
+    const connectedTitle = isIt ? "Account Google collegati" : "Comptes Google connectés";
+    const noAccountsText = isIt 
+      ? "Nessun account Google collegato su questo dispositivo." 
+      : "Aucun compte Google connecté sur cet appareil.";
     const subText = isIt 
-      ? "Scegli un account per continuare su <strong>BarPilot</strong>" 
-      : "Choisissez un compte pour continuer sur <strong>BarPilot</strong>";
-    const orCustomText = isIt ? "Oppure inserisci la tua email Google:" : "Ou saisissez votre adresse email Google :";
-    const loginBtnText = isIt ? "Accedi" : "Connexion";
-    const hintText = isIt
-      ? "Per configurare le credenziali reali Google Cloud, vai su <strong>Impostazioni > Backup & Sicurezza</strong>."
-      : "Pour configurer les identifiants réels Google Cloud, allez dans <strong>Paramètres > Sauvegarde & Sécurité</strong>.";
+      ? "Scegli un account Google per continuare su <strong>BarPilot</strong>" 
+      : "Choisissez un compte Google pour continuer sur <strong>BarPilot</strong>";
+    const useAnotherBtnText = isIt ? "➕ Utilizza un altro account Google" : "➕ Utiliser un autre compte Google";
+    const connectNewTitle = isIt ? "Collega un nuovo account Google" : "Connecter un nouveau compte Google";
+    const emailPlaceholder = isIt ? "iltuonome@gmail.com" : "votre.nom@gmail.com";
+    const namePlaceholder = isIt ? "Il tuo Nome e Cognome" : "Votre Nom et Prénom";
+    const submitLoginText = isIt ? "Accedi con questo account" : "Se connecter avec ce compte";
+    const createGoogleAccountText = isIt 
+      ? "Non hai ancora un account Google? <a href='https://accounts.google.com/signup' target='_blank' rel='noopener' style='color:var(--primary); font-weight:700; text-decoration:none;'>Crea un account Google ↗</a>" 
+      : "Vous n'avez pas de compte Google ? <a href='https://accounts.google.com/signup' target='_blank' rel='noopener' style='color:var(--primary); font-weight:700; text-decoration:none;'>Créer un compte Google ↗</a>";
+    const backBtnText = isIt ? "← Torna agli account collegati" : "← Retour aux comptes connectés";
 
     if (!modal) {
       modal = document.createElement("div");
@@ -134,15 +188,94 @@ class GoogleAuthManager {
       modal.className = "modal-overlay active";
       document.body.appendChild(modal);
 
-      // Close on backdrop click
       modal.addEventListener("click", (e) => {
         if (e.target === modal) this.hideGooglePickerModal();
       });
     }
 
+    let bodyHtml = "";
+
+    // View A: Has accounts and not in add form
+    if (connectedAccounts.length > 0 && !this.showingAddForm) {
+      const accountsListHtml = connectedAccounts.map(acc => `
+        <div class="google-acc-item" onclick="window.googleAuth.selectSavedAccount('${encodeURIComponent(acc.email)}')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; background:var(--bg-card-secondary); border:1px solid var(--border-color); cursor:pointer; transition:all 0.15s ease; position:relative;">
+          <img src="${acc.picture}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);" alt="${acc.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(acc.name)}&background=FF7A00&color=fff'">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${acc.name}</div>
+            <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${acc.email}</div>
+          </div>
+          <span style="font-size:12px; color:var(--primary); font-weight:700; margin-right:6px;">Accedi →</span>
+          <button type="button" title="${isIt ? 'Rimuovi dal dispositivo' : 'Supprimer de l\'appareil'}" onclick="window.googleAuth.removeConnectedAccount('${acc.email}', event)" style="width:26px; height:26px; border-radius:50%; background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:color 0.15s;" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+        </div>
+      `).join("");
+
+      bodyHtml = `
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+          ${subText}
+        </p>
+
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+          ${connectedTitle} (${connectedAccounts.length})
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap: 8px; max-height: 220px; overflow-y: auto;">
+          ${accountsListHtml}
+        </div>
+
+        <button type="button" class="btn-secondary" onclick="window.googleAuth.toggleAddAccountForm(true)" style="width:100%; margin-top:14px; padding:10px; font-size:13px; font-weight:700; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px;">
+          ${useAnotherBtnText}
+        </button>
+
+        <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color); text-align:center; font-size:12px; color:var(--text-muted);">
+          ${createGoogleAccountText}
+        </div>
+      `;
+    } 
+    // View B: No accounts connected OR user clicked "Add/Use another account"
+    else {
+      bodyHtml = `
+        ${connectedAccounts.length === 0 ? `
+          <div style="background:var(--bg-card-secondary); border-radius:12px; padding:12px 14px; margin-bottom:14px; border:1px solid var(--border-color); display:flex; align-items:center; gap:10px;">
+            <span style="font-size:18px;">ℹ️</span>
+            <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+              ${noAccountsText}
+            </div>
+          </div>
+        ` : `
+          <button type="button" onclick="window.googleAuth.toggleAddAccountForm(false)" style="background:none; border:none; color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; padding:0; margin-bottom:12px; display:inline-flex; align-items:center; gap:4px;">
+            ${backBtnText}
+          </button>
+        `}
+
+        <div style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">
+          ${connectNewTitle}
+        </div>
+
+        <form id="googleNewAccForm" onsubmit="window.googleAuth.handleNewAccountSubmit(event)" style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display:block; margin-bottom:4px;">Email Google (@gmail.com)</label>
+            <input type="email" id="newGoogleEmailInput" placeholder="${emailPlaceholder}" required class="form-input" style="width:100%; padding:10px 14px; font-size:13px; border-radius:10px;">
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display:block; margin-bottom:4px;">Nome e Cognome</label>
+            <input type="text" id="newGoogleNameInput" placeholder="${namePlaceholder}" class="form-input" style="width:100%; padding:10px 14px; font-size:13px; border-radius:10px;">
+          </div>
+
+          <button type="submit" class="btn-primary" style="width:100%; padding:11px; font-size:13px; font-weight:700; border-radius:10px; margin-top:4px;">
+            ${submitLoginText}
+          </button>
+        </form>
+
+        <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border-color); text-align:center; font-size:12px; color:var(--text-muted);">
+          ${createGoogleAccountText}
+        </div>
+      `;
+    }
+
     modal.innerHTML = `
-      <div class="modal-box" style="max-width: 440px; width: 92%; padding: 26px; border-radius: 20px; box-shadow: 0 25px 70px rgba(0,0,0,0.85); background: var(--bg-card); border: 1px solid var(--border-color); position: relative; animation: modalPop 0.25s ease-out;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+      <div class="modal-box" style="max-width: 440px; width: 92%; padding: 24px; border-radius: 20px; box-shadow: 0 25px 70px rgba(0,0,0,0.85); background: var(--bg-card); border: 1px solid var(--border-color); position: relative; animation: modalPop 0.25s ease-out;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
           <div style="display:flex; align-items:center; gap: 10px;">
             <svg width="24" height="24" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -155,48 +288,10 @@ class GoogleAuthManager {
           <button type="button" class="modal-close-icon-btn" onclick="window.googleAuth.hideGooglePickerModal()" style="width:32px; height:32px; font-size:14px; border-radius:50%; background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
         </div>
 
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
-          ${subText}
-        </p>
-
-        <div style="display:flex; flex-direction:column; gap: 10px;">
-          <!-- Account 1 -->
-          <div class="google-acc-item" onclick="window.googleAuth.selectMockAccount('Marco Rossi', 'marco.rossi.bar@gmail.com', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop')" style="display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:var(--bg-card-secondary); border:1px solid var(--border-color); cursor:pointer; transition:all 0.15s ease;">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);" alt="Marco">
-            <div style="flex:1;">
-              <div style="font-size:13px; font-weight:700; color:var(--text-main);">Marco Rossi</div>
-              <div style="font-size:11px; color:var(--text-muted);">marco.rossi.bar@gmail.com</div>
-            </div>
-            <span style="font-size:12px; color:var(--primary); font-weight:700;">Accedi →</span>
-          </div>
-
-          <!-- Account 2 -->
-          <div class="google-acc-item" onclick="window.googleAuth.selectMockAccount('Cheikh Gueye', 'cheikh.barpilot@gmail.com', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop')" style="display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:var(--bg-card-secondary); border:1px solid var(--border-color); cursor:pointer; transition:all 0.15s ease;">
-            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);" alt="Cheikh">
-            <div style="flex:1;">
-              <div style="font-size:13px; font-weight:700; color:var(--text-main);">Cheikh Gueye</div>
-              <div style="font-size:11px; color:var(--text-muted);">cheikh.barpilot@gmail.com</div>
-            </div>
-            <span style="font-size:12px; color:var(--primary); font-weight:700;">Accedi →</span>
-          </div>
-
-          <!-- Custom Account Input -->
-          <div style="margin-top: 6px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
-            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">${orCustomText}</label>
-            <div style="display:flex; gap: 8px; margin-top: 6px;">
-              <input type="email" id="customGoogleEmail" placeholder="iltuonome@gmail.com" class="form-input" style="flex:1; padding: 10px 14px; font-size:12px; border-radius:10px;">
-              <button type="button" class="btn-primary" onclick="window.googleAuth.loginCustomGoogle()" style="padding: 10px 16px; font-size:12px; border-radius:10px;">${loginBtnText}</button>
-            </div>
-          </div>
-        </div>
-
-        <p style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 16px; opacity: 0.85;">
-          ${hintText}
-        </p>
+        ${bodyHtml}
       </div>
     `;
 
-    // Ensure topmost positioning above authOverlay (which is z-index 99980)
     modal.style.cssText = "position: fixed !important; inset: 0 !important; z-index: 1000001 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(0, 0, 0, 0.75) !important; backdrop-filter: blur(8px) !important; padding: 16px;";
     modal.classList.add("active");
   }
@@ -209,23 +304,38 @@ class GoogleAuthManager {
     }
   }
 
-  selectMockAccount(name, email, picture) {
-    this.loginWithGoogleProfile({ name, email, picture });
+  selectSavedAccount(encodedEmail) {
+    const email = decodeURIComponent(encodedEmail);
+    const accounts = this.getConnectedAccounts();
+    const found = accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
+    if (found) {
+      this.loginWithGoogleProfile(found);
+    }
   }
 
-  loginCustomGoogle() {
-    const input = document.getElementById("customGoogleEmail");
-    const email = input ? input.value.trim() : "";
+  handleNewAccountSubmit(event) {
+    if (event) event.preventDefault();
+    const emailInput = document.getElementById("newGoogleEmailInput");
+    const nameInput = document.getElementById("newGoogleNameInput");
+    const email = emailInput ? emailInput.value.trim() : "";
+    let name = nameInput ? nameInput.value.trim() : "";
+
     if (!email || !email.includes("@")) {
-      alert("Inserisci un'email Google valida");
+      alert(window.i18n?.currentLang === "fr" ? "Veuillez entrer une adresse email valide" : "Inserisci un'email valida");
       return;
     }
-    const name = email.split('@')[0].replace(/[._]/g, ' ');
-    const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+    if (!name) {
+      const part = email.split("@")[0].replace(/[._]/g, " ");
+      name = part.charAt(0).toUpperCase() + part.slice(1);
+    }
+
+    const picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=FF7A00&color=fff&size=128`;
+
     this.loginWithGoogleProfile({
-      name: formattedName,
+      name: name,
       email: email,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=FF7A00&color=fff`
+      picture: picture
     });
   }
 
