@@ -48,10 +48,7 @@
             <img src="assets/images/logo.png" alt="BarPilot">
             <span>BarPilot Stories</span>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <button class="story-skip-btn" id="btnSkipStories" data-i18n="skip">Salta</button>
-            <button class="modal-close-icon-btn" onclick="finishStoriesAndGoToAuth()" aria-label="Chiudi finestra" title="Chiudi finestra">✕</button>
-          </div>
+          <button class="story-skip-btn" id="btnSkipStories" data-i18n="skip">Salta</button>
         </div>
       </div>
 
@@ -212,7 +209,6 @@
   <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL, PHONE) -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-card">
-      <button class="modal-close-icon-btn" onclick="closeAuthScreen()" style="position:absolute; top:18px; right:18px;" aria-label="Chiudi" title="Chiudi finestra">✕</button>
       <div class="auth-top-brand">
         <span class="auth-trial-pill" data-i18n="authBadgeTrial">14 GIORNI DI PROVA GRATUITA INCLUSI</span>
         <img src="assets/images/logo.png" alt="BarPilot" class="auth-logo-badge">
