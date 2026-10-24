@@ -51,6 +51,14 @@ function renderApp() {
   renderStaff();
   renderReports();
   renderPlans();
+  renderGoogleSetting();
+}
+
+function renderGoogleSetting() {
+  const googleClientInput = document.getElementById("settingGoogleClientId");
+  if (googleClientInput && window.googleAuth) {
+    googleClientInput.value = window.googleAuth.clientId || "";
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -1411,6 +1419,13 @@ function resetDemoData() {
     window.db.reset();
     renderApp();
     showToast(window.i18n.currentLang === 'it' ? "Dati demo ripristinati!" : "Données de démo réinitialisées !");
+  }
+}
+
+function saveGoogleClientIdSetting() {
+  const input = document.getElementById("settingGoogleClientId");
+  if (input && window.googleAuth) {
+    window.googleAuth.saveClientId(input.value);
   }
 }
 
