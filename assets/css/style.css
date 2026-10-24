@@ -241,36 +241,6 @@ body {
   color: var(--primary);
 }
 
-/* Pulsante sotto il menu laterale */
-.sidebar-action-logout {
-  padding: 10px 14px 4px;
-}
-
-.btn-sidebar-logout-full {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  border-radius: var(--radius-md);
-  color: #EF4444;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-sidebar-logout-full:hover {
-  background: #EF4444;
-  color: #FFFFFF;
-  border-color: #EF4444;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
-  transform: translateY(-1px);
-}
-
 /* Zero-Flicker Session Persistence across Cache */
 html.user-authenticated #splashScreen,
 html.user-authenticated #storiesOverlay,
