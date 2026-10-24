@@ -75,10 +75,13 @@ function setupNavigation() {
   if (menuBtn && sidebar) {
     menuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const isOpen = sidebar.classList.contains("mobile-open");
-      if (isOpen) {
+      const isVisible = sidebar.classList.contains("mobile-open") || !sidebar.classList.contains("sidebar-closed");
+      if (sidebar.classList.contains("mobile-open")) {
         closeMobileSidebar();
+      } else if (sidebar.classList.contains("sidebar-closed")) {
+        openMobileSidebar();
       } else {
+        // Toggle mobile-open
         openMobileSidebar();
       }
     });
@@ -138,14 +141,20 @@ function switchView(viewName) {
 function openMobileSidebar() {
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
-  if (sidebar) sidebar.classList.add("mobile-open");
+  if (sidebar) {
+    sidebar.classList.add("mobile-open");
+    sidebar.classList.remove("sidebar-closed");
+  }
   if (backdrop) backdrop.classList.add("active");
 }
 
 function closeMobileSidebar() {
   const sidebar = document.getElementById("appSidebar");
   const backdrop = document.getElementById("sidebarBackdrop");
-  if (sidebar) sidebar.classList.remove("mobile-open");
+  if (sidebar) {
+    sidebar.classList.remove("mobile-open");
+    sidebar.classList.add("sidebar-closed");
+  }
   if (backdrop) backdrop.classList.remove("active");
 }
 
