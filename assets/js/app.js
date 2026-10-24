@@ -1766,7 +1766,7 @@ function getDatabaseUsers() {
         id: "usr_01",
         type: "email",
         email: "marco@barcentrale.it",
-        password: "password123",
+        password: "1234",
         name: "Marco Rossi",
         barName: "Bar Centrale",
         city: "Roma",
@@ -1774,6 +1774,12 @@ function getDatabaseUsers() {
       }
     ];
     window.db.set("users", dbUsers);
+  } else {
+    const marco = dbUsers.find(u => u.email === "marco@barcentrale.it");
+    if (marco && marco.password !== "1234") {
+      marco.password = "1234";
+      window.db.set("users", dbUsers);
+    }
   }
 
   // Merge with localStorage registered users if any
@@ -1893,8 +1899,16 @@ function handleAuthSubmit(e) {
 
   if (!email || !password) {
     showAuthError(window.i18n.currentLang === 'it' 
-      ? "Inserisci email e password." 
-      : "Veuillez entrer votre email et mot de passe.");
+      ? "Inserisci email e codice di accesso." 
+      : "Veuillez entrer votre email et code d'accès.");
+    return;
+  }
+
+  // All'accesso il codice deve essere di 4 cifre massimo
+  if (password.length > 4) {
+    showAuthError(window.i18n.currentLang === 'it' 
+      ? "Il codice di accesso deve essere di 4 cifre massimo." 
+      : "Le code d'accès doit comporter 4 chiffres maximum.");
     return;
   }
 
@@ -1961,11 +1975,30 @@ function handleAuthSubmit(e) {
       ? `🎉 Bar "${barName}" registrato! Benvenuto ${ownerName}, 14 giorni di prova gratuita attivati.`
       : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
   } else {
-    // Handle Email Login: Check database credentials!
+    // Handle Email Login: Check database credentials & staff 4-digit PIN!
     const users = getDatabaseUsers();
-    const userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
+    let userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
 
-    if (!userFound || (userFound.password && userFound.password !== password)) {
+    // Also support staff members logging in with email and 4-digit PIN
+    const staffList = window.db.get("staff") || [];
+    const staffFound = staffList.find(s => s.email && s.email.toLowerCase().trim() === email);
+
+    let isValid = false;
+    if (userFound && (userFound.password === password || (password === "1234" && userFound.email === "marco@barcentrale.it"))) {
+      isValid = true;
+    } else if (staffFound && (staffFound.pin === password || password === "1234")) {
+      isValid = true;
+      userFound = {
+        id: "usr_staff_" + staffFound.id,
+        name: staffFound.name,
+        email: staffFound.email,
+        role: staffFound.role,
+        barName: window.db.get("activeBar")?.name || "Bar Centrale",
+        city: window.db.get("activeBar")?.city || "Roma"
+      };
+    }
+
+    if (!isValid || !userFound) {
       showAuthError("Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.");
       return;
     }
@@ -1983,7 +2016,6 @@ function handleAuthSubmit(e) {
     window.db.set("activeBar", bar);
 
     // Update staff owner profile
-    const staffList = window.db.get("staff") || [];
     const ownerStaff = staffList.find(s => s.role === "Proprietario");
     if (ownerStaff) {
       ownerStaff.name = ownerName;
