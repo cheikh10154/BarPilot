@@ -1,12 +1,12 @@
 {
-  "name": "BarPilot — Smart Bar Management Platform",
+  "name": "BarPilot — Digital Command Center",
   "short_name": "BarPilot",
-  "description": "Piattaforma Intelligente per la Gestione Operativa del Bar & KDS",
-  "start_url": "/it/dashboard",
+  "description": "Piattaforma Mobile Intelligente per la Gestione Operativa del Bar, Comande e KDS",
+  "start_url": "/it/orders",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#f59e0b",
-  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/logo.png",

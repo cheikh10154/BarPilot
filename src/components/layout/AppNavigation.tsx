@@ -18,6 +18,7 @@ import {
   BarChart3,
   Contact,
   Settings,
+  Smartphone,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
@@ -55,6 +56,7 @@ export function AppNavigation({ locale }: Props) {
 
   const navItems = [
     { href: `/${locale}/dashboard`, icon: LayoutDashboard, label_it: 'Dashboard', label_fr: 'Tableau de bord' },
+    { href: `/${locale}/mobile`, icon: Smartphone, label_it: 'App Mobile POS', label_fr: 'App Mobile POS', chevron: true },
     { href: `/${locale}/orders`, icon: ClipboardList, label_it: 'Comande', label_fr: 'Commandes', chevron: true },
     { href: `/${locale}/tables`, icon: LayoutGrid, label_it: 'Plan de salle', label_fr: 'Plan de salle', chevron: true },
     { href: `/${locale}/kitchen`, icon: ChefHat, label_it: 'Preparazione', label_fr: 'Préparation', count: pendingOrdersCount, chevron: true },
