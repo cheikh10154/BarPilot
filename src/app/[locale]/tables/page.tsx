@@ -2,214 +2,331 @@
 
 import React, { useState, use } from 'react';
 import Link from 'next/link';
-import { useBarPilotStore, DiningTable } from '@/lib/store';
-import { formatCents } from '@/lib/utils';
 import {
-  Grid,
   Plus,
-  UtensilsCrossed,
   QrCode,
-  Printer,
   X,
   Users,
-  Clock
+  Clock,
+  ClipboardList,
+  Receipt,
+  CalendarClock,
+  Printer,
+  ChevronRight,
 } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+type Status = 'free' | 'occupied' | 'bill' | 'reserved';
+type Area = 'indoor' | 'outdoor' | 'bar' | 'vip';
+
+interface FloorTable {
+  id: string;
+  seats: number;
+  status: Status;
+  area: Area;
+  x: number; // % left
+  y: number; // % top
+  w: number; // px
+  h: number; // px
+  round?: boolean;
+  total?: string;
+  minutes?: number;
+  reservation?: string;
+  items?: string[];
+}
+
+const STATUS_THEME: Record<Status, { fill: string; border: string; chair: string; dot: string; it: string; fr: string }> = {
+  free: { fill: '#dcfce7', border: '#86efac', chair: '#bbf7d0', dot: '#22c55e', it: 'Libero', fr: 'Libre' },
+  occupied: { fill: '#ffedd5', border: '#fdba74', chair: '#fed7aa', dot: '#f97316', it: 'Occupato', fr: 'Occupé' },
+  bill: { fill: '#dbeafe', border: '#93c5fd', chair: '#bfdbfe', dot: '#3b82f6', it: 'Da pagare', fr: 'À payer' },
+  reserved: { fill: '#ede9fe', border: '#c4b5fd', chair: '#ddd6fe', dot: '#8b5cf6', it: 'Prenotato', fr: 'Réservé' },
+};
+
+const FLOOR: FloorTable[] = [
+  { id: 'T01', seats: 4, status: 'free', area: 'indoor', x: 6, y: 10, w: 92, h: 72 },
+  { id: 'T02', seats: 2, status: 'occupied', area: 'indoor', x: 30, y: 8, w: 78, h: 78, total: '12,50 €', minutes: 14, items: ['2× Spritz'] },
+  { id: 'T03', seats: 4, status: 'free', area: 'indoor', x: 52, y: 10, w: 92, h: 72 },
+  { id: 'T04', seats: 4, status: 'bill', area: 'outdoor', x: 78, y: 8, w: 92, h: 80, total: '25,00 €', minutes: 41, items: ['2× Cappuccino', '1× Espresso', '2× Croissant', '1× Tagliere'] },
+  { id: 'T05', seats: 2, status: 'occupied', area: 'indoor', x: 8, y: 44, w: 92, h: 76, total: '15,00 €', minutes: 23, items: ['2× Birra bionda', '1× Panino'] },
+  { id: 'T06', seats: 6, status: 'free', area: 'outdoor', x: 50, y: 44, w: 120, h: 76 },
+  { id: 'T07', seats: 4, status: 'reserved', area: 'vip', x: 8, y: 74, w: 104, h: 76, reservation: '20:00' },
+  { id: 'T08', seats: 4, status: 'occupied', area: 'indoor', x: 36, y: 74, w: 92, h: 76, total: '18,50 €', minutes: 9, items: ['3× Birra bionda', '1× Acqua'] },
+  { id: 'T09', seats: 4, status: 'free', area: 'bar', x: 64, y: 74, w: 92, h: 76 },
+];
+
 export default function TablesPlanPage({ params }: PageProps) {
   const { locale } = use(params);
   const isIt = locale === 'it';
 
-  const { tables, orders } = useBarPilotStore();
-  const [selectedArea, setSelectedArea] = useState<string>('indoor');
-  const [qrModalTable, setQrModalTable] = useState<any | null>(null);
+  const [area, setArea] = useState<'all' | Area>('indoor');
+  const [selectedId, setSelectedId] = useState<string>('T04');
+  const [qrTable, setQrTable] = useState<FloorTable | null>(null);
 
-  const areas = [
+  const areas: { id: 'all' | Area; label: string }[] = [
     { id: 'all', label: isIt ? 'Tutti' : 'Tous' },
     { id: 'indoor', label: isIt ? 'Interno' : 'Intérieur' },
     { id: 'outdoor', label: isIt ? 'Terrazza' : 'Terrasse' },
-    { id: 'bar', label: isIt ? 'Comptoir' : 'Comptoir' },
+    { id: 'bar', label: 'Comptoir' },
     { id: 'vip', label: 'VIP' },
   ];
 
-  // Visual tables configuration matching the photo floor plan
-  const visualTables = [
-    { id: 'T01', number: 'T01', capacity: 4, status: 'free', total: null, time: null, color: 'bg-[#dcfce7] border-[#86efac] text-slate-800' },
-    { id: 'T02', number: 'T02', capacity: 2, status: 'occupied', total: '12,50 €', time: null, color: 'bg-[#ffedd5] border-[#fdba74] text-slate-900' },
-    { id: 'T03', number: 'T03', capacity: 4, status: 'free', total: null, time: null, color: 'bg-[#dcfce7] border-[#86efac] text-slate-800' },
-    { id: 'T04', number: 'T04', capacity: 4, status: 'bill', total: '25,00 €', time: null, color: 'bg-[#dbeafe] border-[#93c5fd] text-slate-900' },
-    { id: 'T05', number: 'T05', capacity: 2, status: 'occupied', total: '15,00 €', time: '23 min', color: 'bg-[#ffedd5] border-[#fdba74] text-slate-900' },
-    { id: 'T06', number: 'T06', capacity: 6, status: 'free', total: null, time: null, color: 'bg-[#dcfce7] border-[#86efac] text-slate-800' },
-    { id: 'T07', number: 'T07', capacity: 4, status: 'reserved', total: 'Reservation 20:00', time: null, color: 'bg-[#ede9fe] border-[#c4b5fd] text-slate-900' },
-    { id: 'T08', number: 'T08', capacity: 4, status: 'occupied', total: '18,50 €', time: null, color: 'bg-[#ffedd5] border-[#fdba74] text-slate-900' },
-    { id: 'T09', number: 'T09', capacity: 4, status: 'free', total: null, time: null, color: 'bg-[#dcfce7] border-[#86efac] text-slate-800' },
-  ];
+  const selected = FLOOR.find(t => t.id === selectedId) ?? null;
+  const counts = FLOOR.reduce<Record<Status, number>>(
+    (acc, t) => ({ ...acc, [t.status]: acc[t.status] + 1 }),
+    { free: 0, occupied: 0, bill: 0, reserved: 0 }
+  );
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto pb-12">
-      
-      {/* Header matching photo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+    <div className="max-w-[1400px] mx-auto space-y-4 bp-fade-up">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Plan de salle
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {isIt ? 'Gestione visiva della sala e dei tavoli in tempo reale' : 'Gestion visuelle de la salle et des tables en direct'}
+          <h1 className="text-[24px] sm:text-[26px] font-extrabold text-slate-900 tracking-tight">Plan de salle</h1>
+          <p className="text-sm text-slate-500">
+            {counts.occupied + counts.bill} {isIt ? 'tavoli occupati' : 'tables occupées'} · {counts.free} {isIt ? 'liberi' : 'libres'} ·{' '}
+            {counts.reserved} {isIt ? 'prenotati' : 'réservées'}
           </p>
         </div>
-
         <button
           onClick={() => alert(isIt ? 'Configurazione nuovo tavolo' : 'Ajout de table')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs border border-slate-200 shadow-xs transition self-start sm:self-auto"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-slate-200 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition self-start"
         >
           <Plus className="w-4 h-4 text-orange-500" />
-          <span>{isIt ? '+ Aggiungi tavolo' : '+ Ajouter une table'}</span>
+          {isIt ? 'Aggiungi tavolo' : 'Ajouter une table'}
         </button>
       </div>
 
-      {/* Area Filter Tabs matching photo */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {areas.map(a => (
-          <button
-            key={a.id}
-            onClick={() => setSelectedArea(a.id)}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition-all ${
-              selectedArea === a.id
-                ? 'bg-[#ea580c] text-white shadow-md shadow-orange-500/20'
-                : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80 shadow-xs'
-            }`}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 sm:gap-5">
+        {/* ============ Floor ============ */}
+        <section className="bp-card p-3 sm:p-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 -mx-1 px-1">
+            {areas.map(a => (
+              <button
+                key={a.id}
+                onClick={() => setArea(a.id)}
+                className={`h-9 px-4 rounded-xl text-[13px] font-semibold shrink-0 transition ${
+                  area === a.id
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
 
-      {/* Floor Plan Canvas matching photo */}
-      <div className="bg-[#edeae3] rounded-3xl p-6 sm:p-10 border border-[#d6d0c4] shadow-inner relative overflow-hidden min-h-[560px]">
-        
-        {/* Subtle wooden floor tile grid texture */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {visualTables.map(t => (
-            <div
-              key={t.id}
-              className={`relative rounded-3xl p-5 border-2 ${t.color} shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[140px] cursor-pointer group`}
-              onClick={() => setQrModalTable(t)}
-            >
-              {/* Urgent time tag if any */}
-              {t.time && (
-                <div className="absolute -top-2.5 -right-2.5 px-2 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[10px] shadow-md flex items-center gap-1 animate-pulse">
-                  <Clock className="w-3 h-3" />
-                  <span>{t.time}</span>
-                </div>
-              )}
+          <div className="overflow-x-auto rounded-2xl">
+            <div className="relative bp-wood-floor rounded-2xl min-w-[720px] h-[540px] ring-1 ring-inset ring-black/5 overflow-hidden">
+              {/* Bar counter */}
+              <div className="absolute right-0 top-[34%] h-[30%] w-[7%] bg-gradient-to-l from-[#5b3a22] to-[#7a4f2e] rounded-l-2xl shadow-[-6px_0_18px_rgba(0,0,0,0.18)] flex items-center justify-center">
+                <span className="text-[10px] font-bold tracking-[0.25em] text-amber-100/80 [writing-mode:vertical-rl] rotate-180">COMPTOIR</span>
+              </div>
 
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-lg text-slate-900 tracking-tight">{t.number}</span>
-                  <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                    <Users className="w-3 h-3 text-slate-500" />
-                    <span>{t.capacity} pers.</span>
-                  </span>
-                </div>
+              {/* Plants */}
+              {[
+                { l: '1%', t: '1%' },
+                { l: '94%', t: '88%' },
+                { l: '1%', t: '88%' },
+                { l: '45%', t: '42%' },
+                { l: '94%', t: '1%' },
+              ].map((p, i) => (
+                <span
+                  key={i}
+                  className="absolute text-[34px] drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)] select-none"
+                  style={{ left: p.l, top: p.t }}
+                  aria-hidden
+                >
+                  🪴
+                </span>
+              ))}
 
-                <div className="mt-2">
-                  {t.status === 'free' ? (
-                    <span className="text-xs font-bold text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded-md">
-                      {isIt ? 'Libero' : 'Libre'}
-                    </span>
-                  ) : t.status === 'reserved' ? (
-                    <span className="text-xs font-bold text-purple-900 bg-purple-200/60 px-2 py-0.5 rounded-md">
-                      {t.total}
-                    </span>
-                  ) : (
-                    <div className="space-y-0.5">
-                      <span className="text-base font-black text-slate-900 block">{t.total}</span>
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                        {t.status === 'bill' ? (isIt ? 'Da pagare' : 'À payer') : (isIt ? 'In corso' : 'En cours')}
+              {/* Tables */}
+              {FLOOR.map(t => {
+                const theme = STATUS_THEME[t.status];
+                const dimmed = area !== 'all' && t.area !== area;
+                const isSel = selectedId === t.id;
+                const top = Math.ceil(t.seats / 2);
+                const bottom = Math.floor(t.seats / 2);
+
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedId(t.id)}
+                    className={`absolute group transition-all duration-300 ${dimmed ? 'opacity-30 grayscale' : 'opacity-100'}`}
+                    style={{ left: `${t.x}%`, top: `${t.y}%`, width: t.w, height: t.h + 28 }}
+                  >
+                    {/* chairs top */}
+                    <div className="absolute left-0 right-0 top-0 flex justify-center gap-2">
+                      {Array.from({ length: top }).map((_, i) => (
+                        <span key={i} className="w-6 h-3 rounded-t-lg shadow-sm" style={{ background: theme.chair, border: `1px solid ${theme.border}` }} />
+                      ))}
+                    </div>
+                    {/* table top */}
+                    <div
+                      className={`absolute left-0 right-0 top-[14px] flex flex-col items-center justify-center text-center transition-all ${
+                        t.round ? 'rounded-full' : 'rounded-2xl'
+                      } ${isSel ? 'scale-[1.06]' : 'group-hover:scale-[1.03]'}`}
+                      style={{
+                        height: t.h,
+                        background: theme.fill,
+                        border: `2px solid ${isSel ? '#f97316' : theme.border}`,
+                        boxShadow: isSel
+                          ? '0 0 0 4px rgba(249,115,22,0.25), 0 10px 22px -8px rgba(0,0,0,0.35)'
+                          : '0 8px 18px -10px rgba(0,0,0,0.35)',
+                      }}
+                    >
+                      <span className="text-[13px] font-extrabold text-slate-900 leading-none">{t.id}</span>
+                      <span className="text-[10px] text-slate-500 mt-1">
+                        {t.seats} pers.
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-800 mt-0.5">
+                        {t.total ?? (t.status === 'reserved' ? `${isIt ? 'Prenot.' : 'Réserv.'} ${t.reservation}` : isIt ? 'Libero' : 'Libre')}
                       </span>
                     </div>
-                  )}
-                </div>
-              </div>
+                    {/* chairs bottom */}
+                    <div className="absolute left-0 right-0 bottom-0 flex justify-center gap-2">
+                      {Array.from({ length: bottom }).map((_, i) => (
+                        <span key={i} className="w-6 h-3 rounded-b-lg shadow-sm" style={{ background: theme.chair, border: `1px solid ${theme.border}` }} />
+                      ))}
+                    </div>
 
-              {/* Action buttons inside card */}
-              <div className="pt-3 mt-3 border-t border-black/10 flex items-center justify-between text-xs">
-                <Link
-                  href={`/${locale}/orders`}
-                  className="font-bold text-orange-700 hover:text-orange-800 hover:underline flex items-center gap-1"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <UtensilsCrossed className="w-3.5 h-3.5" />
-                  <span>{t.status === 'free' ? (isIt ? 'Apri' : 'Ouvrir') : (isIt ? 'Comanda' : 'Commande')}</span>
-                </Link>
+                    {/* timer badge */}
+                    {t.minutes && t.minutes > 20 && (
+                      <span className="absolute -top-1 -right-3 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-md bp-ring-urgent flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5" />
+                        {t.minutes} min
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
 
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setQrModalTable(t);
-                  }}
-                  className="p-1 rounded-lg bg-white/70 hover:bg-white text-slate-700 transition"
-                  title="QR Menu"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                </button>
+              {/* Legend */}
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-4 px-4 py-2 rounded-xl bg-white/90 backdrop-blur shadow-md text-[12px] font-medium text-slate-600">
+                {(Object.keys(STATUS_THEME) as Status[]).map(s => (
+                  <span key={s} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_THEME[s].dot }} />
+                    {isIt ? STATUS_THEME[s].it : STATUS_THEME[s].fr}
+                  </span>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        </section>
 
-        {/* Floor Plan Legend Bar at Bottom (matching photo) */}
-        <div className="mt-8 bg-white/90 backdrop-blur-xs rounded-2xl p-3 max-w-md mx-auto shadow-sm border border-slate-200 flex items-center justify-around text-xs font-bold text-slate-700">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-[#86efac] border border-[#22c55e]" />
-            <span>{isIt ? 'Libero' : 'Libre'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-[#fdba74] border border-[#ea580c]" />
-            <span>{isIt ? 'Occupato' : 'Occupé'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-[#93c5fd] border border-[#3b82f6]" />
-            <span>{isIt ? 'Da pagare' : 'À payer'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-[#c4b5fd] border border-[#8b5cf6]" />
-            <span>{isIt ? 'Prenotato' : 'Réservé'}</span>
-          </div>
-        </div>
-
+        {/* ============ Detail panel ============ */}
+        <aside className="bp-card p-5 h-fit xl:sticky xl:top-4">
+          {selected ? (
+            <TableDetail table={selected} isIt={isIt} locale={locale} onQr={() => setQrTable(selected)} />
+          ) : (
+            <p className="text-sm text-slate-400">{isIt ? 'Seleziona un tavolo' : 'Sélectionnez une table'}</p>
+          )}
+        </aside>
       </div>
 
-      {/* QR Code Modal */}
-      {qrModalTable && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl relative border border-slate-200">
-            <button onClick={() => setQrModalTable(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800">
-              <X className="w-5 h-5" />
+      {/* QR modal */}
+      {qrTable && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setQrTable(null)}>
+          <div className="bg-white rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl relative bp-fade-up" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setQrTable(null)} className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">
+              <X className="w-4 h-4" />
             </button>
-            <h3 className="font-extrabold text-lg text-slate-900 mt-1">Bar Centrale</h3>
-            <p className="text-xs font-bold text-orange-600 mb-3">{qrModalTable.number}</p>
-            <div className="p-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl mx-auto w-40 h-40 flex flex-col items-center justify-center shadow-inner">
-              <QrCode className="w-28 h-28 text-slate-900" />
+            <h3 className="font-extrabold text-lg text-slate-900">Bar Centrale</h3>
+            <p className="text-[13px] font-semibold text-orange-600 mb-4">{qrTable.id}</p>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl mx-auto w-44 h-44 flex items-center justify-center">
+              <QrCode className="w-32 h-32 text-slate-900" strokeWidth={1.25} />
             </div>
-            <p className="text-[11px] text-slate-500 mt-3 leading-snug">
-              {isIt ? 'Menu digitale tavolo per smartphone' : 'Menu digital pour smartphone'}
-            </p>
-            <button
-              onClick={() => setQrModalTable(null)}
-              className="w-full mt-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs"
-            >
-              OK
-            </button>
+            <p className="text-[12px] text-slate-500 mt-3">{isIt ? 'Menu digitale del tavolo' : 'Menu digital de la table'}</p>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => window.print()} className="flex-1 h-11 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-700 inline-flex items-center justify-center gap-1.5 hover:bg-slate-50">
+                <Printer className="w-4 h-4" /> {isIt ? 'Stampa' : 'Imprimer'}
+              </button>
+              <Link href={`/${locale}/menu?table=${qrTable.id.replace('T', '')}`} className="flex-1 h-11 bp-btn-primary text-[13px]">
+                {isIt ? 'Apri' : 'Ouvrir'}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TableDetail({ table, isIt, locale, onQr }: { table: FloorTable; isIt: boolean; locale: string; onQr: () => void }) {
+  const theme = STATUS_THEME[table.status];
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[12px] font-medium text-slate-400">{isIt ? 'Tavolo selezionato' : 'Table sélectionnée'}</p>
+          <p className="text-[26px] font-extrabold text-slate-900 leading-tight">{table.id}</p>
+        </div>
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-semibold"
+          style={{ background: theme.fill, color: '#0f172a', boxShadow: `inset 0 0 0 1px ${theme.border}` }}
+        >
+          <span className="w-2 h-2 rounded-full" style={{ background: theme.dot }} />
+          {isIt ? theme.it : theme.fr}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Stat icon={Users} label={isIt ? 'Posti' : 'Places'} value={String(table.seats)} />
+        <Stat icon={Clock} label={isIt ? 'Tempo' : 'Temps'} value={table.minutes ? `${table.minutes}′` : '—'} warn={!!table.minutes && table.minutes > 20} />
+        <Stat icon={Receipt} label={isIt ? 'Conto' : 'Addition'} value={table.total ?? '—'} />
+      </div>
+
+      {table.status === 'reserved' && (
+        <div className="rounded-2xl bg-violet-50 ring-1 ring-inset ring-violet-200 p-3 flex items-center gap-3">
+          <CalendarClock className="w-5 h-5 text-violet-500" />
+          <div className="text-[13px]">
+            <p className="font-semibold text-slate-900">{isIt ? 'Prenotazione' : 'Réservation'} · {table.reservation}</p>
+            <p className="text-slate-500">Famiglia Bianchi · 4 pers.</p>
           </div>
         </div>
       )}
 
+      {table.items && (
+        <div>
+          <p className="text-[12px] font-medium text-slate-400 mb-2">{isIt ? 'Ordinato' : 'Commandé'}</p>
+          <ul className="space-y-1.5">
+            {table.items.map(it => (
+              <li key={it} className="flex items-center justify-between text-[13px] text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
+                {it}
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="space-y-2 pt-1">
+        <Link href={`/${locale}/orders`} className="w-full h-11 bp-btn-primary text-[13px]">
+          <ClipboardList className="w-4 h-4" />
+          {table.status === 'free' ? (isIt ? 'Apri tavolo' : 'Ouvrir la table') : isIt ? 'Aggiungi comanda' : 'Ajouter une commande'}
+        </Link>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="h-11 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center justify-center gap-1.5">
+            <Receipt className="w-4 h-4" /> {isIt ? 'Pre-conto' : 'Addition'}
+          </button>
+          <button onClick={onQr} className="h-11 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center justify-center gap-1.5">
+            <QrCode className="w-4 h-4" /> QR menu
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ icon: Icon, label, value, warn }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; warn?: boolean }) {
+  return (
+    <div className={`rounded-xl p-2.5 ${warn ? 'bg-rose-50 ring-1 ring-inset ring-rose-200' : 'bg-slate-50'}`}>
+      <Icon className={`w-4 h-4 ${warn ? 'text-rose-500' : 'text-slate-400'}`} />
+      <p className={`mt-1.5 text-[14px] font-bold leading-none ${warn ? 'text-rose-600' : 'text-slate-900'}`}>{value}</p>
+      <p className="text-[11px] text-slate-400 mt-1">{label}</p>
     </div>
   );
 }

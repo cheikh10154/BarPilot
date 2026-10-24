@@ -2,18 +2,19 @@
 
 import React, { use, useState, useEffect, useRef } from 'react';
 import { useBarPilotStore, Order } from '@/lib/store';
-import { formatCents } from '@/lib/utils';
+import { ProductThumb } from '@/components/ui/ProductThumb';
 import {
   ChefHat,
   Clock,
   CheckCircle2,
   Play,
   CheckCheck,
-  AlertOctagon,
-  Sparkles,
   Flame,
   Volume2,
-  VolumeX
+  VolumeX,
+  Maximize2,
+  RotateCw,
+  Sparkles
 } from 'lucide-react';
 
 interface PageProps {
@@ -24,24 +25,40 @@ export default function KitchenKdsPage({ params }: PageProps) {
   const { locale } = use(params);
   const isIt = locale === 'it';
 
-  const { orders, updateOrderStatus, updateOrderItemStatus, toggleProductAvailability } = useBarPilotStore();
+  const { orders, updateOrderStatus, updateOrderItemStatus } = useBarPilotStore();
+  const [activeTab, setActiveTab] = useState<'all' | 'sent' | 'preparing' | 'ready'>('all');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [mobileKdsTab, setMobileKdsTab] = useState<'all' | 'incoming' | 'preparing' | 'ready'>('all');
+  const [currentTime, setCurrentTime] = useState('');
   const prevCountRef = useRef<number | null>(null);
 
-  // KDS displays orders in active lifecycle: sent, preparing, ready
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Demo fallback orders if store has few active orders, matching mockup exact orders
+  const displayOrders = orders.filter(o => o.status === 'sent' || o.status === 'preparing' || o.status === 'ready');
+
   const incomingOrders = orders.filter(o => o.status === 'sent');
   const preparingOrders = orders.filter(o => o.status === 'preparing');
   const readyOrders = orders.filter(o => o.status === 'ready');
 
-  // Play synthetic pleasant double-bell chime when a new order arrives
+  const filteredOrders = displayOrders.filter(o => {
+    if (activeTab === 'all') return true;
+    return o.status === activeTab;
+  });
+
   const playChime = () => {
     if (!soundEnabled) return;
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
-      
       const playTone = (freq: number, start: number, duration: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -54,11 +71,10 @@ export default function KitchenKdsPage({ params }: PageProps) {
         osc.start(ctx.currentTime + start);
         osc.stop(ctx.currentTime + start + duration);
       };
-
-      playTone(587.33, 0, 0.4); // D5
-      playTone(880.00, 0.18, 0.6); // A5
+      playTone(587.33, 0, 0.4);
+      playTone(880.00, 0.18, 0.6);
     } catch {
-      // Audio context might be restricted until user gesture
+      // Audio context may require gesture
     }
   };
 
@@ -71,320 +87,243 @@ export default function KitchenKdsPage({ params }: PageProps) {
 
   const getWaitingMinutes = (createdAt: string) => {
     const diffMs = Date.now() - new Date(createdAt).getTime();
-    return Math.floor(diffMs / 60000);
+    return Math.max(1, Math.floor(diffMs / 60000));
   };
 
-  const renderOrderCard = (order: Order, stage: 'incoming' | 'preparing' | 'ready') => {
-    const waitMins = getWaitingMinutes(order.created_at);
-    const isUrgent = waitMins >= 6;
-    const isWarning = waitMins >= 4 && !isUrgent;
-
-    const stageBorder =
-      stage === 'ready'
-        ? 'border-l-emerald-500'
-        : stage === 'preparing'
-        ? 'border-l-blue-500'
-        : 'border-l-amber-500';
-
-    return (
-      <div
-        key={order.id}
-        className={`rounded-2xl border border-l-4 p-4 flex flex-col justify-between transition-all shadow-xl hover:shadow-2xl ${stageBorder} ${
-          isUrgent
-            ? 'bg-gradient-to-br from-rose-950/30 via-slate-900 to-slate-950 border-rose-500/50 shadow-rose-950/20 ring-1 ring-rose-500/30'
-            : stage === 'preparing'
-            ? 'bg-gradient-to-br from-blue-950/20 via-slate-900 to-slate-950 border-slate-800'
-            : stage === 'ready'
-            ? 'bg-gradient-to-br from-emerald-950/20 via-slate-900 to-slate-950 border-slate-800'
-            : 'bg-gradient-to-br from-amber-950/15 via-slate-900 to-slate-950 border-slate-800'
-        }`}
-      >
-        <div>
-          {/* Card Header: Table + Number + Wait Timer */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-black text-white tracking-tight">
-                  {order.table_number}
-                </span>
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  #{order.order_number}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {isIt ? 'Cameriere:' : 'Serveur:'} <span className="text-slate-300 font-semibold">{order.server_name}</span>
-              </p>
+  return (
+    <div className="max-w-[1400px] mx-auto space-y-5 bp-fade-up">
+      {/* Outer KDS Dark Container matching mockup */}
+      <div className="bg-[#0f172a] rounded-3xl p-5 sm:p-7 border border-slate-800 shadow-2xl text-white">
+        
+        {/* Top Header Row matching mockup */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center font-bold">
+              <ChefHat className="w-5 h-5" />
             </div>
-
-            <div
-              className={`flex items-center gap-1.5 text-xs font-mono font-black px-2.5 py-1 rounded-full shadow-inner ${
-                isUrgent
-                  ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/50'
-                  : isWarning
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-slate-800 text-slate-300 border border-slate-700'
-              }`}
-            >
-              {isUrgent ? <Flame className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-              <span>{waitMins} min</span>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>{isIt ? 'Preparazione · Comptoir' : 'Préparation · Comptoir'}</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              </h1>
+              <p className="text-xs text-slate-400">
+                {isIt ? 'Schermo KDS barman · Ricezione comande in tempo reale' : 'Écran KDS barman · Commandes en direct'}
+              </p>
             </div>
           </div>
 
-          {/* Notes if any */}
-          {order.notes && (
-            <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 font-medium">
-              <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
-              <span className="leading-tight">{order.notes}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSoundEnabled(!soundEnabled);
+                if (!soundEnabled) playChime();
+              }}
+              className={`p-2 rounded-xl border transition ${
+                soundEnabled
+                  ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                  : 'bg-slate-900 text-slate-500 border-slate-800'
+              }`}
+              title={soundEnabled ? 'Suono attivo' : 'Muto'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
 
-          {/* Items list with individual check */}
-          <div className="space-y-2 mb-4">
-            {order.items.map(item => {
-              const isItemReady = item.status === 'ready' || order.status === 'ready';
+            <button
+              onClick={() => window.location.reload()}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition"
+              title="Aggiorna"
+            >
+              <RotateCw className="w-4 h-4" />
+            </button>
+
+            <div className="font-mono font-bold text-sm bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
+              {currentTime || '09:41'}
+            </div>
+          </div>
+        </div>
+
+        {/* Status Filter Tabs matching mockup */}
+        <div className="flex items-center gap-2 py-5 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition flex items-center gap-2 ${
+              activeTab === 'all'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <span>{isIt ? 'Tutte' : 'Toutes'}</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-black">
+              {displayOrders.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sent')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition flex items-center gap-2 ${
+              activeTab === 'sent'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <span>{isIt ? 'Da preparare' : 'À préparer'}</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-black">
+              {incomingOrders.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('preparing')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition flex items-center gap-2 ${
+              activeTab === 'preparing'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <span>{isIt ? 'In preparazione' : 'En préparation'}</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-black">
+              {preparingOrders.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ready')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition flex items-center gap-2 ${
+              activeTab === 'ready'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <span>{isIt ? 'Pronte' : 'Prêtes'}</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-black">
+              {readyOrders.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Orders Grid matching mockup cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+          {filteredOrders.length === 0 ? (
+            <div className="col-span-full py-16 text-center text-slate-500 text-sm">
+              {isIt ? 'Nessuna comanda attiva in questo stato' : 'Aucune commande dans cet état'}
+            </div>
+          ) : (
+            filteredOrders.map(order => {
+              const waitMins = getWaitingMinutes(order.created_at);
+              const isUrgent = waitMins >= 4;
 
               return (
                 <div
-                  key={item.id}
-                  onClick={() => {
-                    const nextStatus = item.status === 'ready' ? 'preparing' : 'ready';
-                    updateOrderItemStatus(order.id, item.id, nextStatus);
-                  }}
-                  className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer select-none transition ${
-                    isItemReady
-                      ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200 line-through opacity-70'
-                      : 'bg-slate-950/70 border-slate-800 text-white hover:border-slate-700'
-                  }`}
+                  key={order.id}
+                  className="bg-[#1e293b]/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition shadow-lg relative group"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center shrink-0">
-                      {item.quantity}
-                    </span>
-                    <span className="font-semibold text-sm">{item.product_name}</span>
+                  <div>
+                    {/* Card Top: Order Number + Table + Timer */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+                      <div>
+                        <span className="font-mono font-bold text-xs text-orange-400">
+                          #{order.order_number}
+                        </span>
+                        <h3 className="font-black text-lg text-white leading-tight">
+                          {order.table_number}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-1 font-mono text-xs font-bold">
+                        <Clock className={`w-3.5 h-3.5 ${isUrgent ? 'text-rose-500' : 'text-emerald-400'}`} />
+                        <span className={isUrgent ? 'text-rose-500' : 'text-emerald-400'}>
+                          {waitMins} min
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Notes if any */}
+                    {order.notes && (
+                      <div className="mb-3 p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-300 text-xs flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{order.notes}</span>
+                      </div>
+                    )}
+
+                    {/* Items List with Real Product Photos */}
+                    <div className="space-y-2.5 my-3">
+                      {order.items.map(item => {
+                        const isReady = item.status === 'ready' || order.status === 'ready';
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              const nextStatus = item.status === 'ready' ? 'preparing' : 'ready';
+                              updateOrderItemStatus(order.id, item.id, nextStatus);
+                            }}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer select-none transition ${
+                              isReady
+                                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200 line-through opacity-60'
+                                : 'bg-[#0f172a]/90 border-slate-800 text-white hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <ProductThumb name={item.product_name} size={36} rounded="rounded-lg" />
+                              <div>
+                                <span className="font-bold text-sm text-white">
+                                  {item.quantity}× {item.product_name}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center">
+                              {isReady ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border border-slate-600 hover:border-orange-400" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {isItemReady ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border border-slate-600 hover:border-amber-400" />
+                  {/* Action Button Footer matching mockup */}
+                  <div className="pt-3 border-t border-slate-800/80">
+                    {order.status === 'sent' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        className="w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 transition active:scale-95"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>{isIt ? 'Inizia preparazione' : 'Commencer la préparation'}</span>
+                      </button>
+                    )}
+
+                    {order.status === 'preparing' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'ready')}
+                        className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition active:scale-95"
+                      >
+                        <CheckCheck className="w-4 h-4" />
+                        <span>{isIt ? 'Segna come pronta' : 'Marquer comme prête'}</span>
+                      </button>
+                    )}
+
+                    {order.status === 'ready' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'served')}
+                        className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition active:scale-95"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{isIt ? 'Consegnata al tavolo' : 'Servie à table'}</span>
+                      </button>
                     )}
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
-          {stage === 'incoming' && (
-            <button
-              onClick={() => updateOrderStatus(order.id, 'preparing')}
-              className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition active:scale-95"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isIt ? 'Inizia Preparazione' : 'Commencer la Préparation'}</span>
-            </button>
-          )}
-
-          {stage === 'preparing' && (
-            <button
-              onClick={() => updateOrderStatus(order.id, 'ready')}
-              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition active:scale-95"
-            >
-              <CheckCheck className="w-4 h-4" />
-              <span>{isIt ? 'Tutto Pronto al Banco!' : 'Tout Prêt au Comptoir !'}</span>
-            </button>
-          )}
-
-          {stage === 'ready' && (
-            <button
-              onClick={() => updateOrderStatus(order.id, 'served')}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{isIt ? 'Consegnato / Servito' : 'Remis / Servi'}</span>
-            </button>
+            })
           )}
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      
-      {/* KDS Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-            <ChefHat className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>{isIt ? 'KDS Bancone · Schermo Barista' : 'KDS Comptoir · Écran Barman'}</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            </h1>
-            <p className="text-xs text-slate-400">
-              {isIt 
-                ? 'Ordini in tempo reale · Notifiche acustiche e timer di attesa attivi' 
-                : 'Commandes en temps réel · Alertes sonores et minuteurs de préparation actifs'}
-            </p>
-          </div>
-        </div>
-
-        {/* Quick summary counters and audio toggle */}
-        <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
-          <button
-            onClick={() => {
-              setSoundEnabled(!soundEnabled);
-              if (!soundEnabled) playChime();
-            }}
-            className={`p-2 rounded-xl border flex items-center gap-1.5 font-semibold transition ${
-              soundEnabled
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-slate-950 text-slate-500 border-slate-800'
-            }`}
-            title={soundEnabled ? 'Suono attivo' : 'Muto'}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden sm:inline">{soundEnabled ? (isIt ? 'Audio KDS' : 'Son KDS') : (isIt ? 'Muto' : 'Muet')}</span>
-          </button>
-
-          <div className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
-            {isIt ? 'In Arrivo:' : 'En Attente:'}{' '}
-            <strong className="text-amber-400 ml-1">{incomingOrders.length}</strong>
-          </div>
-          <div className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
-            {isIt ? 'In Corso:' : 'En Cours:'}{' '}
-            <strong className="text-blue-400 ml-1">{preparingOrders.length}</strong>
-          </div>
-          <div className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
-            {isIt ? 'Pronti:' : 'Prêts:'}{' '}
-            <strong className="text-emerald-400 ml-1">{readyOrders.length}</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Stage Segmented Filter (visible on md:hidden) */}
-      <div className="md:hidden flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold gap-1 overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => setMobileKdsTab('all')}
-          className={`flex-1 py-2 px-2.5 rounded-xl transition text-center shrink-0 ${
-            mobileKdsTab === 'all'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          {isIt ? 'Tutti' : 'Tous'} ({incomingOrders.length + preparingOrders.length + readyOrders.length})
-        </button>
-        <button
-          onClick={() => setMobileKdsTab('incoming')}
-          className={`flex-1 py-2 px-2.5 rounded-xl transition text-center shrink-0 ${
-            mobileKdsTab === 'incoming'
-              ? 'bg-amber-500 text-slate-950 shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🟡 {isIt ? 'In Arrivo' : 'Attente'} ({incomingOrders.length})
-        </button>
-        <button
-          onClick={() => setMobileKdsTab('preparing')}
-          className={`flex-1 py-2 px-2.5 rounded-xl transition text-center shrink-0 ${
-            mobileKdsTab === 'preparing'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🔵 {isIt ? 'In Corso' : 'En cours'} ({preparingOrders.length})
-        </button>
-        <button
-          onClick={() => setMobileKdsTab('ready')}
-          className={`flex-1 py-2 px-2.5 rounded-xl transition text-center shrink-0 ${
-            mobileKdsTab === 'ready'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          🟢 {isIt ? 'Pronti' : 'Prêts'} ({readyOrders.length})
-        </button>
-      </div>
-
-      {/* KDS 3 Columns Layout: Incoming / Preparing / Ready */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
-        {/* Col 1: Incoming (Inviate / In arrivo) */}
-        <div className={`space-y-3 ${mobileKdsTab !== 'all' && mobileKdsTab !== 'incoming' ? 'hidden md:block' : 'block'}`}>
-          <div className="flex items-center justify-between px-2">
-            <h2 className="font-bold text-white text-sm flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500" />
-              <span>{isIt ? 'In Arrivo / Da Fare' : 'Nouvelles Commandes'}</span>
-            </h2>
-            <span className="text-xs font-mono font-bold bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">
-              {incomingOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {incomingOrders.length === 0 ? (
-              <div className="h-40 rounded-2xl border border-dashed border-slate-800 flex items-center justify-center text-slate-500 text-xs text-center p-4">
-                {isIt ? 'Nessun ordine in arrivo.' : 'Aucune commande en attente.'}
-              </div>
-            ) : (
-              incomingOrders.map(order => renderOrderCard(order, 'incoming'))
-            )}
-          </div>
-        </div>
-
-        {/* Col 2: In Preparation (In preparazione) */}
-        <div className={`space-y-3 ${mobileKdsTab !== 'all' && mobileKdsTab !== 'preparing' ? 'hidden md:block' : 'block'}`}>
-          <div className="flex items-center justify-between px-2">
-            <h2 className="font-bold text-white text-sm flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-blue-500" />
-              <span>{isIt ? 'In Preparazione' : 'En Préparation'}</span>
-            </h2>
-            <span className="text-xs font-mono font-bold bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">
-              {preparingOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {preparingOrders.length === 0 ? (
-              <div className="h-40 rounded-2xl border border-dashed border-slate-800 flex items-center justify-center text-slate-500 text-xs text-center p-4">
-                {isIt ? 'Nessuna bevanda in preparazione.' : 'Aucune préparation en cours.'}
-              </div>
-            ) : (
-              preparingOrders.map(order => renderOrderCard(order, 'preparing'))
-            )}
-          </div>
-        </div>
-
-        {/* Col 3: Ready to serve (Pronti al banco) */}
-        <div className={`space-y-3 ${mobileKdsTab !== 'all' && mobileKdsTab !== 'ready' ? 'hidden md:block' : 'block'}`}>
-          <div className="flex items-center justify-between px-2">
-            <h2 className="font-bold text-white text-sm flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span>{isIt ? 'Pronti al Banco' : 'Prêts au Comptoir'}</span>
-            </h2>
-            <span className="text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">
-              {readyOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {readyOrders.length === 0 ? (
-              <div className="h-40 rounded-2xl border border-dashed border-slate-800 flex items-center justify-center text-slate-500 text-xs text-center p-4">
-                {isIt ? 'Nessun ordine pronto da ritirare.' : 'Aucune commande prête.'}
-              </div>
-            ) : (
-              readyOrders.map(order => renderOrderCard(order, 'ready'))
-            )}
-          </div>
-        </div>
 
       </div>
-
     </div>
   );
 }

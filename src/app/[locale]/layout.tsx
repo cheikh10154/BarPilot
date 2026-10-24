@@ -30,12 +30,13 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
-        <AppHeader locale={locale as 'it' | 'fr'} />
-        <NetworkStatus locale={locale as 'it' | 'fr'} />
-        <div className="flex flex-1 overflow-hidden">
-          <AppNavigation locale={locale as 'it' | 'fr'} />
-          <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 pb-32 md:pb-8 bg-slate-900/50">
+      {/* Full-height dark sidebar on the left, header + content on the right (as in the mockup) */}
+      <div className="flex h-screen overflow-hidden bg-[#f4f6fa] text-slate-900 antialiased">
+        <AppNavigation locale={locale as 'it' | 'fr'} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <AppHeader locale={locale as 'it' | 'fr'} />
+          <NetworkStatus locale={locale as 'it' | 'fr'} />
+          <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-10">
             {children}
           </main>
         </div>

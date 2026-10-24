@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "BarPilot — Smart Bar Management Platform",
@@ -17,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -30,12 +38,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it" className="h-full bg-slate-950 text-slate-100 antialiased">
+    <html lang="it" className={`${jakarta.variable} h-full antialiased`}>
       <head>
         <link rel="icon" href="/logo.png" />
         <link rel="apple-touch-icon" href="/logo.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-950 select-none touch-manipulation">
+      <body className="min-h-full flex flex-col bg-[#f4f6fa] text-slate-900 touch-manipulation">
         {children}
       </body>
     </html>

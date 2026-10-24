@@ -1,21 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useBarPilotStore } from '@/lib/store';
 import { UserRole } from '@/types/database';
-import { 
-  Bell, 
-  Search,
-  Calendar,
-  ChevronDown,
-  Sparkles,
-  ShieldAlert,
-  UserCheck,
-  X
-} from 'lucide-react';
+import { Bell, Search, CalendarDays, ChevronDown, X, Check } from 'lucide-react';
 
 interface Props {
   locale: 'it' | 'fr';
@@ -25,20 +16,29 @@ export function AppHeader({ locale }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const { currentRole, setRole, orders } = useBarPilotStore();
-  const [mobileRoleModal, setMobileRoleModal] = useState(false);
+  const [roleModal, setRoleModal] = useState(false);
+  const [today, setToday] = useState('');
 
+  const isIt = locale === 'it';
   const pendingCount = orders.filter(o => o.status === 'sent' || o.status === 'preparing').length;
+
+  // Computed client-side to avoid hydration mismatches
+  useEffect(() => {
+    const d = new Date().toLocaleDateString(isIt ? 'it-IT' : 'fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    setToday(d.charAt(0).toUpperCase() + d.slice(1));
+  }, [isIt]);
 
   const handleRoleChange = (role: UserRole) => {
     setRole(role);
-    setMobileRoleModal(false);
-    if (role === 'bartender') {
-      router.push(`/${locale}/kitchen`);
-    } else if (role === 'server') {
-      router.push(`/${locale}/orders`);
-    } else if (role === 'owner') {
-      router.push(`/${locale}/dashboard`);
-    }
+    setRoleModal(false);
+    if (role === 'bartender') router.push(`/${locale}/kitchen`);
+    else if (role === 'server') router.push(`/${locale}/orders`);
+    else router.push(`/${locale}/dashboard`);
   };
 
   const handleLocaleChange = (newLocale: 'it' | 'fr') => {
@@ -47,134 +47,136 @@ export function AppHeader({ locale }: Props) {
     router.push(segments.join('/'));
   };
 
-  const roleLabels: Record<UserRole, { it: string; fr: string; icon: string }> = {
-    owner: { it: 'Proprietario', fr: 'Propriétaire', icon: '👑' },
-    manager: { it: 'Manager', fr: 'Manager', icon: '💼' },
-    server: { it: 'Cameriere', fr: 'Serveur', icon: '📋' },
-    bartender: { it: 'Barista (KDS)', fr: 'Barman (KDS)', icon: '🍸' },
+  const roleLabels: Record<UserRole, { it: string; fr: string; icon: string; desc_it: string; desc_fr: string }> = {
+    owner: { it: 'Proprietario', fr: 'Propriétaire', icon: '👑', desc_it: 'Accesso completo', desc_fr: 'Accès complet' },
+    manager: { it: 'Manager', fr: 'Manager', icon: '💼', desc_it: 'Sala, scorte, rapporti', desc_fr: 'Salle, stocks, rapports' },
+    server: { it: 'Cameriere', fr: 'Serveur', icon: '📋', desc_it: 'Presa comande e tavoli', desc_fr: 'Commandes et tables' },
+    bartender: { it: 'Barista (KDS)', fr: 'Barman (KDS)', icon: '🍸', desc_it: 'Schermo preparazione', desc_fr: 'Écran de préparation' },
   };
 
   return (
     <>
-      <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white text-slate-800 shadow-xs">
-        <div className="flex h-16 items-center justify-between px-4 md:px-8">
-          
-          {/* Mobile brand (hidden on desktop where sidebar has logo) */}
-          <div className="lg:hidden flex items-center gap-2">
-            <Link href={`/${locale}/dashboard`} className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 p-0.5 flex items-center justify-center shadow-md">
-                <Image src="/logo.png" alt="BarPilot" width={32} height={32} className="rounded-lg object-contain" />
-              </div>
-              <span className="font-extrabold text-base text-slate-900 tracking-tight">BarPilot</span>
-            </Link>
-          </div>
+      <header className="sticky top-0 z-30 w-full bg-[#f4f6fa]/85 backdrop-blur-md border-b border-slate-200/70">
+        <div className="flex h-16 items-center justify-between gap-3 px-3 sm:px-6 lg:px-8">
+          {/* Mobile brand */}
+          <Link href={`/${locale}/dashboard`} className="lg:hidden flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 p-[2px] shadow-md shadow-orange-500/30">
+              <Image src="/logo.png" alt="BarPilot" width={32} height={32} className="w-full h-full rounded-[9px] object-contain bg-[#0f172a]" />
+            </span>
+            <span className="font-extrabold text-base text-slate-900 tracking-tight">
+              Bar<span className="text-orange-500">Pilot</span>
+            </span>
+          </Link>
 
-          {/* Desktop Left Search input */}
-          <div className="hidden lg:flex items-center relative w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          {/* Search */}
+          <div className="hidden lg:flex items-center relative w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5" />
             <input
               type="text"
-              placeholder={locale === 'it' ? 'Cerca comanda, tavolo, bevanda...' : 'Rechercher commande, table, boisson...'}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition"
+              placeholder={isIt ? 'Cerca comanda, tavolo, prodotto…' : 'Rechercher commande, table, produit…'}
+              className="w-full h-10 pl-10 pr-14 bg-white border border-slate-200 rounded-xl text-[13px] text-slate-800 placeholder-slate-400 shadow-[0_1px_2px_rgba(15,23,42,0.04)] focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 transition"
             />
+            <kbd className="absolute right-3 text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5">
+              Ctrl K
+            </kbd>
           </div>
 
-          {/* Right Controls matching the image top bar */}
-          <div className="flex items-center gap-3">
-            
-            {/* Date pill */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
-              <Calendar className="w-3.5 h-3.5 text-slate-500" />
-              <span>Martedì 20 Ottobre 2025</span>
+          {/* Right controls */}
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2 h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-[13px] font-medium text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <CalendarDays className="w-4 h-4 text-slate-400" />
+              <span suppressHydrationWarning>{today || '—'}</span>
             </div>
 
-            {/* Period dropdown ("Oggi") */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-200 transition">
-              <span>{locale === 'it' ? 'Oggi' : 'Aujourd\'hui'}</span>
-              <ChevronDown className="w-3 h-3 text-slate-500" />
-            </div>
-
-            {/* Simulated role switcher button */}
-            <button
-              onClick={() => setMobileRoleModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-xs font-bold transition shadow-xs"
-              title="Cambia ruolo"
-            >
-              <span>{roleLabels[currentRole].icon}</span>
-              <span className="hidden sm:inline">{roleLabels[currentRole][locale]}</span>
+            <button className="hidden sm:flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition">
+              <span>{isIt ? 'Oggi' : "Aujourd'hui"}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
-            {/* Notifications Bell with badge */}
+            <button
+              onClick={() => setRoleModal(true)}
+              className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-orange-700 text-[13px] font-semibold transition"
+              title={isIt ? 'Cambia ruolo' : 'Changer de rôle'}
+            >
+              <span>{roleLabels[currentRole].icon}</span>
+              <span className="hidden xl:inline">{roleLabels[currentRole][locale]}</span>
+            </button>
+
             <Link
               href={`/${locale}/kitchen`}
-              className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
-              title="Notifiche comande"
+              className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition"
+              title={isIt ? 'Notifiche' : 'Notifications'}
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-[18px] h-[18px]" />
               {pendingCount > 0 && (
-                <span className="absolute 1 right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white px-1 ring-2 ring-[#f4f6fa]">
+                  {pendingCount}
+                </span>
               )}
             </Link>
 
-            {/* Language switch IT / FR */}
-            <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 text-xs font-extrabold">
-              <button
-                onClick={() => handleLocaleChange('it')}
-                className={`px-2 py-1 rounded-lg transition ${
-                  locale === 'it' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-400 hover:text-slate-700'
-                }`}
-              >
-                IT
-              </button>
-              <button
-                onClick={() => handleLocaleChange('fr')}
-                className={`px-2 py-1 rounded-lg transition ${
-                  locale === 'fr' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-400 hover:text-slate-700'
-                }`}
-              >
-                FR
-              </button>
-            </div>
-
-            {/* User avatar */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white font-extrabold text-xs flex items-center justify-center border-2 border-white shadow-xs">
-              MR
+            <div className="flex items-center h-10 bg-white rounded-xl p-1 border border-slate-200 text-[11px] font-bold shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              {(['it', 'fr'] as const).map(l => (
+                <button
+                  key={l}
+                  onClick={() => handleLocaleChange(l)}
+                  className={`h-full px-2.5 rounded-lg uppercase transition ${
+                    locale === l ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Role Switcher Modal */}
-      {mobileRoleModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl border border-slate-200 text-slate-900">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-extrabold text-base">
-                {locale === 'it' ? 'Cambia Ruolo di Lavoro' : 'Changer de Rôle'}
-              </h3>
-              <button onClick={() => setMobileRoleModal(false)} className="text-slate-400 hover:text-slate-800 p-1">
-                <X className="w-5 h-5" />
+      {/* Role switcher */}
+      {roleModal && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setRoleModal(false)}
+        >
+          <div
+            className="bp-card w-full max-w-sm p-5 space-y-4 shadow-2xl bp-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-slate-900">{isIt ? 'Cambia ruolo' : 'Changer de rôle'}</h3>
+                <p className="text-xs text-slate-500">{isIt ? "Simula l'interfaccia per ogni membro del team" : "Simulez l'interface de chaque membre"}</p>
+              </div>
+              <button onClick={() => setRoleModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-2">
-              {(['owner', 'server', 'bartender', 'manager'] as UserRole[]).map((role) => {
+              {(['owner', 'manager', 'server', 'bartender'] as UserRole[]).map(role => {
                 const isSelected = currentRole === role;
                 const data = roleLabels[role];
                 return (
                   <button
                     key={role}
                     onClick={() => handleRoleChange(role)}
-                    className={`w-full p-3 rounded-2xl flex items-center justify-between transition border ${
+                    className={`w-full p-3 rounded-2xl flex items-center justify-between text-left transition border ${
                       isSelected
-                        ? 'bg-orange-500 text-white font-bold border-orange-500 shadow-md shadow-orange-500/20'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-orange-50 border-orange-300 ring-4 ring-orange-500/10'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{data.icon}</span>
-                      <span className="text-xs font-semibold">{data[locale]}</span>
-                    </div>
-                    {isSelected && <span className="text-xs font-bold">✓</span>}
+                    <span className="flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg">{data.icon}</span>
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-900">{data[locale]}</span>
+                        <span className="block text-[11px] text-slate-500">{isIt ? data.desc_it : data.desc_fr}</span>
+                      </span>
+                    </span>
+                    {isSelected && (
+                      <span className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </button>
                 );
               })}

@@ -3,6 +3,7 @@
 import React, { useState, use } from 'react';
 import { useBarPilotStore, ProductItem } from '@/lib/store';
 import { formatCents } from '@/lib/utils';
+import { ProductThumb } from '@/components/ui/ProductThumb';
 import {
   Wine,
   Plus,
@@ -15,8 +16,7 @@ import {
   GlassWater,
   ChefHat,
   ChevronRight,
-  X,
-  SlidersHorizontal
+  X
 } from 'lucide-react';
 
 interface PageProps {
@@ -98,30 +98,13 @@ export default function ProductsPage({ params }: PageProps) {
     { id: 'snack', label_it: 'Snack', label_fr: 'Snacks' },
   ];
 
-  const getProductIcon = (category: string) => {
-    switch (category) {
-      case 'coffee':
-        return <Coffee className="w-5 h-5 text-amber-600" />;
-      case 'beer':
-        return <Beer className="w-5 h-5 text-yellow-600" />;
-      case 'cocktails':
-      case 'wine':
-      case 'spirits':
-        return <Wine className="w-5 h-5 text-orange-600" />;
-      case 'food':
-        return <UtensilsCrossed className="w-5 h-5 text-emerald-600" />;
-      default:
-        return <GlassWater className="w-5 h-5 text-blue-600" />;
-    }
-  };
-
   return (
-    <div className="space-y-5 max-w-7xl mx-auto pb-12">
+    <div className="space-y-5 max-w-[1400px] mx-auto pb-12 bp-fade-up">
       {/* Top Header Card */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bp-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               {isIt ? 'Prodotti' : 'Produits'}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
@@ -138,16 +121,16 @@ export default function ProductsPage({ params }: PageProps) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs shadow-sm hover:shadow transition active:scale-95"
+            className="h-10 px-4 bp-btn-primary text-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>{isIt ? '+ Nuovo prodotto' : '+ Nouveau produit'}</span>
+            <span>{isIt ? 'Nuovo prodotto' : 'Nouveau produit'}</span>
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bp-card p-3">
         {/* Search */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -166,9 +149,9 @@ export default function ProductsPage({ params }: PageProps) {
             <button
               key={c.id}
               onClick={() => setSelectedCategory(c.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${
                 selectedCategory === c.id
-                  ? 'bg-slate-900 text-white shadow-xs'
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -178,55 +161,52 @@ export default function ProductsPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Products Table (exact mockup layout) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* Products Table (exact mockup layout with real photos) */}
+      <div className="bp-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-4">{isIt ? 'Prodotto' : 'Produit'}</th>
-                <th className="py-3 px-4">{isIt ? 'Categoria' : 'Catégorie'}</th>
-                <th className="py-3 px-4">{isIt ? 'Prezzo' : 'Prix'}</th>
-                <th className="py-3 px-4">{isIt ? 'Stato' : 'Statut'}</th>
-                <th className="py-3 px-4 text-right">{isIt ? 'Azioni' : 'Actions'}</th>
+                <th className="py-3.5 px-5">{isIt ? 'Prodotto' : 'Produit'}</th>
+                <th className="py-3.5 px-4">{isIt ? 'Categoria' : 'Catégorie'}</th>
+                <th className="py-3.5 px-4">{isIt ? 'Prezzo' : 'Prix'}</th>
+                <th className="py-3.5 px-4">{isIt ? 'Stato' : 'Statut'}</th>
+                <th className="py-3.5 px-5 text-right">{isIt ? 'Azioni' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredProducts.map(product => {
                 const name = isIt ? product.name_it : product.name_fr;
                 const desc = isIt ? product.description_it : product.description_fr;
-                const hasRecipe = product.recipe && product.recipe.length > 0;
 
                 return (
                   <tr key={product.id} className="hover:bg-slate-50/80 transition group">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                          {getProductIcon(product.category)}
-                        </div>
+                    <td className="py-3 px-5">
+                      <div className="flex items-center gap-3.5">
+                        <ProductThumb name={name} size={42} rounded="rounded-xl" />
                         <div>
-                          <div className="font-bold text-slate-900">{name}</div>
-                          <div className="text-[11px] text-slate-500 truncate max-w-xs">{desc}</div>
+                          <div className="font-bold text-slate-900 text-sm">{name}</div>
+                          <div className="text-[11px] text-slate-400 truncate max-w-xs">{desc}</div>
                         </div>
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-4">
                       <span className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 capitalize">
                         {product.category}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">
-                      <span className="font-bold text-slate-900 text-sm">
+                    <td className="py-3 px-4">
+                      <span className="font-black text-slate-900 text-sm">
                         {formatCents(product.price_cents, isIt ? 'it-IT' : 'fr-FR')}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-4">
                       <button
                         onClick={() => toggleProductAvailability(product.id)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition ${
                           product.is_available
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
                             : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
@@ -237,7 +217,7 @@ export default function ProductsPage({ params }: PageProps) {
                       </button>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3 px-5 text-right">
                       <button 
                         onClick={() => toggleProductAvailability(product.id)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
@@ -256,7 +236,7 @@ export default function ProductsPage({ params }: PageProps) {
       {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 text-slate-900 max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 text-slate-900 max-h-[90vh] overflow-y-auto shadow-2xl bp-fade-up">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-orange-600" />
@@ -401,7 +381,7 @@ export default function ProductsPage({ params }: PageProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold shadow-sm"
+                  className="px-4 py-2 bp-btn-primary"
                 >
                   {isIt ? 'Salva Prodotto' : 'Enregistrer le Produit'}
                 </button>

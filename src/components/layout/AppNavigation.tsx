@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useBarPilotStore } from '@/lib/store';
 import {
   LayoutDashboard,
-  UtensilsCrossed,
-  Grid,
+  ClipboardList,
+  LayoutGrid,
   ChefHat,
   Wine,
   Boxes,
@@ -16,273 +16,286 @@ import {
   ShoppingCart,
   Users2,
   BarChart3,
-  Users,
+  Contact,
   Settings,
   ChevronDown,
-  Building,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   MoreHorizontal,
   X,
-  RotateCcw
 } from 'lucide-react';
 
 interface Props {
   locale: 'it' | 'fr';
 }
 
+const COLLAPSE_KEY = 'barpilot-sidebar-collapsed';
+
 export function AppNavigation({ locale }: Props) {
   const pathname = usePathname();
-  const { currentRole, orders, resetToDemo } = useBarPilotStore();
+  const { orders } = useBarPilotStore();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
+  // Restore the collapsed preference
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      localStorage.setItem(COLLAPSE_KEY, prev ? '0' : '1');
+      return !prev;
+    });
+  };
+
+  const isIt = locale === 'it';
   const pendingOrdersCount = orders.filter(o => o.status === 'sent' || o.status === 'preparing').length;
 
   const navItems = [
-    {
-      href: `/${locale}/dashboard`,
-      icon: LayoutDashboard,
-      label_it: 'Dashboard',
-      label_fr: 'Tableau de bord',
-    },
-    {
-      href: `/${locale}/orders`,
-      icon: UtensilsCrossed,
-      label_it: 'Comande',
-      label_fr: 'Commandes',
-    },
-    {
-      href: `/${locale}/tables`,
-      icon: Grid,
-      label_it: 'Plan de salle',
-      label_fr: 'Plan de salle',
-    },
-    {
-      href: `/${locale}/kitchen`,
-      icon: ChefHat,
-      label_it: 'Préparation',
-      label_fr: 'Préparation',
-      count: pendingOrdersCount,
-    },
-    {
-      href: `/${locale}/products`,
-      icon: Wine,
-      label_it: 'Prodotti',
-      label_fr: 'Produits',
-    },
-    {
-      href: `/${locale}/inventory`,
-      icon: Boxes,
-      label_it: 'Inventario',
-      label_fr: 'Inventaire',
-    },
-    {
-      href: `/${locale}/suppliers`,
-      icon: Truck,
-      label_it: 'Fornitori',
-      label_fr: 'Fournisseurs',
-    },
-    {
-      href: `/${locale}/suppliers`,
-      icon: ShoppingCart,
-      label_it: 'Acquisti',
-      label_fr: 'Achats',
-    },
-    {
-      href: `/${locale}/staff`,
-      icon: Users2,
-      label_it: 'Personale',
-      label_fr: 'Personnel',
-    },
-    {
-      href: `/${locale}/reports`,
-      icon: BarChart3,
-      label_it: 'Rapporti',
-      label_fr: 'Rapports',
-    },
-    {
-      href: `/${locale}/settings`,
-      icon: Users,
-      label_it: 'Clienti',
-      label_fr: 'Clients',
-      pro: true,
-    },
-    {
-      href: `/${locale}/settings`,
-      icon: Settings,
-      label_it: 'Impostazioni',
-      label_fr: 'Paramètres',
-    },
+    { href: `/${locale}/dashboard`, icon: LayoutDashboard, label_it: 'Dashboard', label_fr: 'Tableau de bord' },
+    { href: `/${locale}/orders`, icon: ClipboardList, label_it: 'Comande', label_fr: 'Commandes', chevron: true },
+    { href: `/${locale}/tables`, icon: LayoutGrid, label_it: 'Plan de salle', label_fr: 'Plan de salle', chevron: true },
+    { href: `/${locale}/kitchen`, icon: ChefHat, label_it: 'Preparazione', label_fr: 'Préparation', count: pendingOrdersCount, chevron: true },
+    { href: `/${locale}/products`, icon: Wine, label_it: 'Prodotti', label_fr: 'Produits', chevron: true },
+    { href: `/${locale}/inventory`, icon: Boxes, label_it: 'Inventario', label_fr: 'Inventaire', chevron: true },
+    { href: `/${locale}/suppliers`, icon: Truck, label_it: 'Fornitori', label_fr: 'Fournisseurs', chevron: true },
+    { href: `/${locale}/suppliers#acquisti`, icon: ShoppingCart, label_it: 'Acquisti', label_fr: 'Achats', chevron: true },
+    { href: `/${locale}/staff`, icon: Users2, label_it: 'Personale', label_fr: 'Personnel', chevron: true },
+    { href: `/${locale}/reports`, icon: BarChart3, label_it: 'Rapporti', label_fr: 'Rapports', chevron: true },
+    { href: `/${locale}/settings#clienti`, icon: Contact, label_it: 'Clienti', label_fr: 'Clients', pro: true },
+    { href: `/${locale}/settings`, icon: Settings, label_it: 'Impostazioni', label_fr: 'Paramètres' },
   ];
+
+  // Only the first matching entry is highlighted (some entries share a page)
+  const activeIdx = navItems.findIndex(item => pathname.startsWith(item.href.split('#')[0]));
 
   return (
     <>
-      {/* Desktop Sidebar (matching photo left sidebar) */}
-      <aside className="hidden lg:flex flex-col w-60 bg-[#0f172a] text-slate-300 border-r border-slate-800 shrink-0 min-h-screen select-none">
-        
-        {/* Brand Header */}
-        <div className="p-4 pb-2">
-          <Link href={`/${locale}/dashboard`} className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 p-0.5 flex items-center justify-center shadow-md shadow-orange-500/20">
-              <Image src="/logo.png" alt="BarPilot" width={32} height={32} className="rounded-lg object-contain" />
+      {/* ================= Desktop sidebar ================= */}
+      <aside
+        className={`hidden lg:flex flex-col h-screen shrink-0 bg-[#0f172a] text-slate-300 select-none transition-[width] duration-300 ease-out ${
+          collapsed ? 'w-[76px]' : 'w-[248px]'
+        }`}
+      >
+        {/* Brand */}
+        <div className={`pt-5 pb-3 ${collapsed ? 'px-3' : 'px-5'}`}>
+          <Link href={`/${locale}/dashboard`} className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 p-[2px] shadow-lg shadow-orange-500/30 shrink-0">
+              <Image src="/logo.png" alt="BarPilot" width={36} height={36} className="w-full h-full rounded-[10px] object-contain bg-[#0f172a]" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-white">
-              BarPilot
-            </span>
+            {!collapsed && (
+              <span className="font-extrabold text-[19px] tracking-tight text-white">
+                Bar<span className="text-orange-500">Pilot</span>
+              </span>
+            )}
           </Link>
 
-          {/* Bar selector pill */}
-          <div className="mt-4 flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 border border-slate-800/80 text-xs text-slate-300 hover:border-slate-700 transition cursor-pointer">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">🍸</span>
-              <span className="font-semibold text-white">Bar Centrale</span>
+          {/* Venue selector */}
+          {!collapsed ? (
+            <button className="mt-5 w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] text-xs transition">
+              <span className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-[11px]">🍸</span>
+                <span className="font-semibold text-white">Bar Centrale</span>
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+          ) : (
+            <div className="mt-5 mx-auto w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.06] flex items-center justify-center text-sm" title="Bar Centrale">
+              🍸
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-          </div>
+          )}
         </div>
 
-        {/* Navigation links */}
-        <div className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        {/* Links */}
+        <nav className={`flex-1 overflow-y-auto py-2 space-y-0.5 ${collapsed ? 'px-3' : 'px-3.5'}`}>
           {navItems.map((item, idx) => {
-            const isActive = pathname === item.href;
+            const isActive = idx === activeIdx;
             const Icon = item.icon;
-            const label = locale === 'it' ? item.label_it : item.label_fr;
+            const label = isIt ? item.label_it : item.label_fr;
 
             return (
               <Link
                 key={idx}
                 href={item.href}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl font-medium text-xs transition-all ${
+                title={collapsed ? label : undefined}
+                className={`group relative flex items-center rounded-xl text-[13px] transition-all duration-150 ${
+                  collapsed ? 'justify-center h-11' : 'justify-between px-3 h-10'
+                } ${
                   isActive
-                    ? 'bg-[#ea580c] text-white font-bold shadow-md shadow-orange-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/25'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.05] font-medium'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{label}</span>
-                </div>
+                <span className="flex items-center gap-3">
+                  <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-200'}`} />
+                  {!collapsed && <span>{label}</span>}
+                </span>
 
-                <div className="flex items-center gap-1.5">
-                  {item.pro && (
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-orange-500 text-white uppercase tracking-wider">
-                      PRO
-                    </span>
-                  )}
-                  {typeof item.count === 'number' && item.count > 0 && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white px-1 animate-pulse">
-                      {item.count}
-                    </span>
-                  )}
-                </div>
+                {!collapsed && (
+                  <span className="flex items-center gap-1.5">
+                    {item.pro && (
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-orange-500/90 text-white tracking-wider">PRO</span>
+                    )}
+                    {typeof item.count === 'number' && item.count > 0 && (
+                      <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white px-1">
+                        {item.count}
+                      </span>
+                    )}
+                    {item.chevron && (
+                      <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white/80' : 'text-slate-600 group-hover:text-slate-400'}`} />
+                    )}
+                  </span>
+                )}
+
+                {collapsed && typeof item.count === 'number' && item.count > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0f172a]" />
+                )}
               </Link>
             );
           })}
+        </nav>
+
+        {/* Collapse toggle */}
+        <div className={`${collapsed ? 'px-3' : 'px-3.5'} pb-2`}>
+          <button
+            onClick={toggleCollapsed}
+            className={`w-full flex items-center gap-2 h-9 rounded-xl text-xs font-medium text-slate-500 hover:text-white hover:bg-white/[0.05] transition ${
+              collapsed ? 'justify-center' : 'px-3'
+            }`}
+            title={collapsed ? (isIt ? 'Espandi menu' : 'Déplier le menu') : undefined}
+          >
+            {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+            {!collapsed && <span>{isIt ? 'Riduci menu' : 'Réduire le menu'}</span>}
+          </button>
         </div>
 
-        {/* User Profile Card at bottom (Marco Rossi / Proprietario) */}
-        <div className="p-3 border-t border-slate-800/80">
-          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 transition cursor-pointer">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 font-black text-xs flex items-center justify-center border border-white/20">
-                MR
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white leading-tight">Marco Rossi</p>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  {locale === 'it' ? 'Proprietario' : 'Propriétaire'}
-                </p>
-              </div>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+        {/* Profile */}
+        <div className={`border-t border-white/[0.06] ${collapsed ? 'p-3' : 'p-3.5'}`}>
+          <div
+            className={`flex items-center rounded-xl hover:bg-white/[0.05] transition cursor-pointer ${
+              collapsed ? 'justify-center p-1' : 'justify-between p-2'
+            }`}
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="relative">
+                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-white font-bold text-xs flex items-center justify-center ring-2 ring-white/10">
+                  MR
+                </span>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#0f172a]" />
+              </span>
+              {!collapsed && (
+                <span>
+                  <span className="block text-[13px] font-semibold text-white leading-tight">Marco Rossi</span>
+                  <span className="block text-[11px] text-slate-500 leading-tight">{isIt ? 'Proprietario' : 'Propriétaire'}</span>
+                </span>
+              )}
+            </span>
+            {!collapsed && <ChevronRight className="w-4 h-4 text-slate-600" />}
           </div>
         </div>
-
       </aside>
 
-      {/* Mobile Bottom Dock (Matching center phone mockup) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around px-2 py-1.5 shadow-2xl">
-        <Link
-          href={`/${locale}/dashboard`}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
-            pathname.includes('/dashboard') ? 'text-orange-500 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">Dashboard</span>
+      {/* ================= Mobile bottom dock ================= */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f172a]/95 backdrop-blur-md border-t border-white/[0.06] flex items-center justify-around px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <DockLink href={`/${locale}/dashboard`} active={pathname.includes('/dashboard')} icon={LayoutDashboard} label="Home" />
+        <DockLink href={`/${locale}/tables`} active={pathname.includes('/tables')} icon={LayoutGrid} label={isIt ? 'Tavoli' : 'Tables'} />
+
+        {/* Raised POS button */}
+        <Link href={`/${locale}/orders`} className="relative -top-4 flex flex-col items-center active:scale-95 transition">
+          <span className="w-14 h-14 rounded-2xl bp-btn-primary border-4 border-[#0f172a]">
+            <ClipboardList className="w-6 h-6" />
+          </span>
+          <span className="text-[10px] font-bold text-orange-400 mt-0.5">{isIt ? 'Comanda' : 'Commande'}</span>
         </Link>
 
-        {/* Central highlighted POS Order button */}
-        <Link
-          href={`/${locale}/orders`}
-          className="relative -top-3 flex flex-col items-center group active:scale-95 transition"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-[#ea580c] text-white flex items-center justify-center shadow-lg shadow-orange-500/30 font-bold border-2 border-[#0f172a]">
-            <UtensilsCrossed className="w-6 h-6 stroke-[2.5]" />
-          </div>
-          <span className="text-[10px] font-bold text-orange-400 mt-0.5">Comande</span>
-        </Link>
-
-        <Link
-          href={`/${locale}/tables`}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
-            pathname.includes('/tables') ? 'text-orange-500 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Grid className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">Tavoli</span>
-        </Link>
-
-        <Link
+        <DockLink
           href={`/${locale}/kitchen`}
-          className={`relative flex flex-col items-center py-1 px-3 rounded-xl transition ${
-            pathname.includes('/kitchen') ? 'text-orange-500 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <ChefHat className="w-5 h-5 mb-0.5" />
-          {pendingOrdersCount > 0 && (
-            <span className="absolute 0 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white px-1">
-              {pendingOrdersCount}
-            </span>
-          )}
-          <span className="text-[10px]">KDS</span>
-        </Link>
+          active={pathname.includes('/kitchen')}
+          icon={ChefHat}
+          label="KDS"
+          badge={pendingOrdersCount}
+        />
 
         <button
           onClick={() => setMobileDrawerOpen(true)}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${
-            mobileDrawerOpen ? 'text-orange-500 font-bold' : 'text-slate-400'
-          }`}
+          className={`flex flex-col items-center py-1 px-3 rounded-xl transition ${mobileDrawerOpen ? 'text-orange-500' : 'text-slate-400'}`}
         >
           <MoreHorizontal className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px]">Menu</span>
+          <span className="text-[10px] font-medium">Menu</span>
         </button>
       </nav>
 
-      {/* Mobile Drawer */}
+      {/* ================= Mobile drawer ================= */}
       {mobileDrawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
-          <div className="bg-[#0f172a] border-t border-slate-800 rounded-t-3xl max-h-[85vh] overflow-y-auto p-5 pb-10 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="font-extrabold text-white text-base">Tutti i Moduli</span>
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex flex-col justify-end"
+          onClick={() => setMobileDrawerOpen(false)}
+        >
+          <div
+            className="bg-[#0f172a] border-t border-white/[0.08] rounded-t-3xl max-h-[85vh] overflow-y-auto p-5 pb-10 space-y-4 shadow-2xl bp-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mx-auto w-10 h-1 rounded-full bg-white/20" />
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white text-base">{isIt ? 'Tutti i moduli' : 'Tous les modules'}</span>
               <button onClick={() => setMobileDrawerOpen(false)} className="text-slate-400 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {navItems.map((item, idx) => (
-                <Link
-                  key={idx}
-                  href={item.href}
-                  onClick={() => setMobileDrawerOpen(false)}
-                  className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 flex items-center gap-2.5 text-xs font-medium"
-                >
-                  <item.icon className="w-4 h-4 text-orange-400" />
-                  <span>{locale === 'it' ? item.label_it : item.label_fr}</span>
-                </Link>
-              ))}
+            <div className="grid grid-cols-3 gap-2">
+              {navItems.map((item, idx) => {
+                const isActive = idx === activeIdx;
+                return (
+                  <Link
+                    key={idx}
+                    href={item.href}
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className={`p-3 rounded-2xl flex flex-col items-center gap-2 text-[11px] font-semibold text-center transition ${
+                      isActive
+                        ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white'
+                        : 'bg-white/[0.04] border border-white/[0.06] text-slate-300'
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-orange-400'}`} />
+                    <span className="leading-tight">{isIt ? item.label_it : item.label_fr}</span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+function DockLink({
+  href,
+  active,
+  icon: Icon,
+  label,
+  badge,
+}: {
+  href: string;
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  badge?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`relative flex flex-col items-center py-1 px-3 rounded-xl transition ${active ? 'text-orange-500' : 'text-slate-400'}`}
+    >
+      <Icon className="w-5 h-5 mb-0.5" />
+      {!!badge && badge > 0 && (
+        <span className="absolute top-0 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white px-1">
+          {badge}
+        </span>
+      )}
+      <span className={`text-[10px] ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+    </Link>
   );
 }
