@@ -1888,8 +1888,15 @@ function handleSocialLogin(provider) {
 function handleAuthSubmit(e) {
   e.preventDefault();
   hideAuthError();
-  const email = (document.getElementById("authEmail")?.value || "marco@barcentrale.it").trim().toLowerCase();
+  const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
   const password = (document.getElementById("authPassword")?.value || "").trim();
+
+  if (!email || !password) {
+    showAuthError(window.i18n.currentLang === 'it' 
+      ? "Inserisci email e password." 
+      : "Veuillez entrer votre email et mot de passe.");
+    return;
+  }
 
   if (currentAuthTab === 'register') {
     const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
