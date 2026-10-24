@@ -18,6 +18,29 @@ const initialData = {
     { id: "bar_02", name: "Milano Lounge & Cocktail", city: "Milano", address: "Corso Como, 8" },
     { id: "bar_03", name: "Café de Paris", city: "Nice", address: "Promenade des Anglais, 22" }
   ],
+  users: [
+    {
+      id: "usr_01",
+      type: "email",
+      email: "marco@barcentrale.it",
+      password: "password123",
+      name: "Marco Rossi",
+      barName: "Bar Centrale",
+      city: "Roma",
+      role: "Proprietario"
+    },
+    {
+      id: "usr_02",
+      type: "phone",
+      phone: "+39 333 987 6543",
+      rawPhone: "3339876543",
+      countryCode: "+39",
+      name: "Marco Rossi",
+      barName: "Bar Centrale",
+      city: "Roma",
+      role: "Proprietario"
+    }
+  ],
   metrics: {
     revenue: 1248.00,
     revenueChange: "+12%",
@@ -360,6 +383,10 @@ class BarPilotStorage {
     if (saved) {
       try {
         this.data = JSON.parse(saved);
+        if (!Array.isArray(this.data.users)) {
+          this.data.users = initialData.users;
+          this.persist();
+        }
       } catch (e) {
         this.data = initialData;
       }

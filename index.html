@@ -264,6 +264,12 @@
         <button class="method-pill" id="methodPhoneBtn" onclick="switchAuthMethod('phone')">📱 <span data-i18n="methodPhone">Numero di cellulare</span></button>
       </div>
 
+      <!-- Red Error Alert Box for invalid credentials -->
+      <div id="authAlertError" class="auth-error-alert" style="display:none;" role="alert">
+        <span class="auth-error-icon">⚠️</span>
+        <span id="authAlertErrorText" class="auth-error-text" data-i18n="invalidCredentials">Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.</span>
+      </div>
+
       <!-- Login Form (Email Mode) -->
       <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
         <!-- Register extra fields -->
@@ -284,7 +290,7 @@
 
         <div class="form-group">
           <label class="form-label" data-i18n="emailLabel">Email</label>
-          <input type="email" class="form-input" id="authEmail" value="marco@barcentrale.it" required>
+          <input type="email" class="form-input" id="authEmail" value="marco@barcentrale.it" oninput="hideAuthError()" required>
         </div>
 
         <div class="form-group">
@@ -292,7 +298,7 @@
             <label class="form-label" data-i18n="passwordLabel">Password</label>
             <a href="#" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
           </div>
-          <input type="password" class="form-input" id="authPassword" value="password123" required>
+          <input type="password" class="form-input" id="authPassword" value="password123" oninput="hideAuthError()" required>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
@@ -326,7 +332,7 @@
         <div class="form-group">
           <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
           <div class="phone-input-row">
-            <select class="country-code-select" id="phoneCountryCode">
+            <select class="country-code-select" id="phoneCountryCode" onchange="hideAuthError()">
               <option value="+39" selected>🇮🇹 +39</option>
               <option value="+33">🇫🇷 +33</option>
               <option value="+41">🇨🇭 +41</option>
@@ -334,7 +340,7 @@
               <option value="+49">🇩🇪 +49</option>
               <option value="+44">🇬🇧 +44</option>
             </select>
-            <input type="tel" class="form-input" id="authPhoneNumber" placeholder="333 123 4567" value="333 987 6543" style="flex:1;" required>
+            <input type="tel" class="form-input" id="authPhoneNumber" placeholder="333 123 4567" value="333 987 6543" style="flex:1;" oninput="hideAuthError()" required>
             <button type="button" class="btn-send-sms" onclick="sendSmsCode()" id="btnSendSms" data-i18n="sendSmsCode">Invia SMS</button>
           </div>
         </div>
@@ -345,7 +351,7 @@
             <label class="form-label" data-i18n="smsCodeLabel">Codice di verifica SMS (6 cifre)</label>
             <span id="smsCountdown" style="font-size:11px; color:#10B981; font-weight:600;"></span>
           </div>
-          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="123456" value="123456" style="letter-spacing:4px; font-weight:800; text-align:center;">
+          <input type="text" maxlength="6" class="form-input" id="authSmsCode" placeholder="123456" value="123456" style="letter-spacing:4px; font-weight:800; text-align:center;" oninput="hideAuthError()">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
             <span style="font-size:11px; color:#10B981;" id="smsSentNoticeText" data-i18n="smsSentNotice">Codice inviato via SMS: usa 123456</span>
             <a href="#" onclick="sendSmsCode(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="resendCode">Reinvia SMS</a>

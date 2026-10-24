@@ -2469,6 +2469,39 @@ html.user-authenticated #authOverlay {
   color: var(--primary);
 }
 
+/* Auth Error Alert */
+.auth-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #EF4444;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 14px 0 16px;
+  animation: shakeAlert 0.35s ease-in-out;
+}
+
+.auth-error-alert .auth-error-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.auth-error-alert .auth-error-text {
+  color: #EF4444;
+  flex: 1;
+}
+
+@keyframes shakeAlert {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
 /* Phone input group */
 .phone-input-row {
   display: flex;
