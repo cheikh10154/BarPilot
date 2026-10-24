@@ -1181,6 +1181,16 @@ function goToStory(index) {
   currentStory = index;
   storyElapsed = 0;
 
+  // Mostra "Salta" solo a partire dalla seconda pagina delle storie (Story 2+)
+  const skipBtn = document.getElementById("btnSkipStories");
+  if (skipBtn) {
+    if (currentStory === 0) {
+      skipBtn.style.display = "none";
+    } else {
+      skipBtn.style.display = "inline-flex";
+    }
+  }
+
   // Move slide track
   const track = document.getElementById("storiesTrack");
   if (track) {
