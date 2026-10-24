@@ -209,6 +209,7 @@
   <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL, PHONE) -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-card">
+      <button onclick="closeAuthScreen()" style="position:absolute; top:18px; right:18px; background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;" title="Chiudi">✕</button>
       <div class="auth-top-brand">
         <span class="auth-trial-pill" data-i18n="authBadgeTrial">14 GIORNI DI PROVA GRATUITA INCLUSI</span>
         <img src="assets/images/logo.png" alt="BarPilot" class="auth-logo-badge">
@@ -354,6 +355,7 @@
         <div class="brand-title-wrap">
           <span class="brand-title">Bar<span>Pilot</span></span>
         </div>
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Chiudi menu">✕</button>
       </div>
 
       <!-- Bar Switcher Pill -->
@@ -458,6 +460,9 @@
       </div>
 
     </aside>
+
+    <!-- Mobile Sidebar Backdrop (Click outside to close) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- Main Content Wrapper -->
     <div class="main-wrapper">

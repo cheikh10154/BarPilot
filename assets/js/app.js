@@ -66,14 +66,57 @@ function setupNavigation() {
     });
   });
 
-  // Mobile menu button
+  // Mobile menu button & drawer controls
   const menuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("appSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  const closeBtn = document.getElementById("sidebarCloseBtn");
+
   if (menuBtn && sidebar) {
-    menuBtn.addEventListener("click", () => {
-      sidebar.classList.toggle("mobile-open");
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = sidebar.classList.contains("mobile-open");
+      if (isOpen) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
     });
   }
+
+  // Click on close button inside sidebar
+  if (closeBtn) {
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeMobileSidebar();
+    });
+  }
+
+  // Click on backdrop outside sidebar closes it
+  if (backdrop) {
+    backdrop.addEventListener("click", () => {
+      closeMobileSidebar();
+    });
+  }
+
+  // Click anywhere outside sidebar on document closes it
+  document.addEventListener("click", (e) => {
+    if (sidebar && sidebar.classList.contains("mobile-open")) {
+      if (!sidebar.contains(e.target) && (!menuBtn || !menuBtn.contains(e.target))) {
+        closeMobileSidebar();
+      }
+    }
+  });
+
+  // ESC key closes mobile sidebar and modals
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeMobileSidebar();
+      const modal = document.getElementById("barModalOverlay");
+      if (modal) modal.classList.remove("active");
+      closeAuthScreen();
+    }
+  });
 }
 
 function switchView(viewName) {
@@ -92,9 +135,18 @@ function switchView(viewName) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function openMobileSidebar() {
+  const sidebar = document.getElementById("appSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  if (sidebar) sidebar.classList.add("mobile-open");
+  if (backdrop) backdrop.classList.add("active");
+}
+
 function closeMobileSidebar() {
   const sidebar = document.getElementById("appSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
   if (sidebar) sidebar.classList.remove("mobile-open");
+  if (backdrop) backdrop.classList.remove("active");
 }
 
 // --------------------------------------------------------------------------
@@ -762,6 +814,25 @@ function setupModals() {
   if (closeModalBtn && modal) {
     closeModalBtn.addEventListener("click", () => {
       modal.classList.remove("active");
+    });
+  }
+
+  // Click outside modal box on backdrop closes the modal
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.remove("active");
+      }
+    });
+  }
+
+  // Click outside auth card on auth backdrop closes it
+  const authOverlay = document.getElementById("authOverlay");
+  if (authOverlay) {
+    authOverlay.addEventListener("click", (e) => {
+      if (e.target === authOverlay) {
+        closeAuthScreen();
+      }
     });
   }
 
