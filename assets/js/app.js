@@ -52,12 +52,20 @@ function renderApp() {
   renderReports();
   renderPlans();
   renderGoogleSetting();
+  renderFacebookSetting();
 }
 
 function renderGoogleSetting() {
   const googleClientInput = document.getElementById("settingGoogleClientId");
   if (googleClientInput && window.googleAuth) {
     googleClientInput.value = window.googleAuth.clientId || "";
+  }
+}
+
+function renderFacebookSetting() {
+  const fbAppInput = document.getElementById("settingFacebookAppId");
+  if (fbAppInput && window.facebookAuth) {
+    fbAppInput.value = window.facebookAuth.appId || "";
   }
 }
 
@@ -1426,6 +1434,13 @@ function saveGoogleClientIdSetting() {
   const input = document.getElementById("settingGoogleClientId");
   if (input && window.googleAuth) {
     window.googleAuth.saveClientId(input.value);
+  }
+}
+
+function saveFacebookAppIdSetting() {
+  const input = document.getElementById("settingFacebookAppId");
+  if (input && window.facebookAuth) {
+    window.facebookAuth.saveAppId(input.value);
   }
 }
 

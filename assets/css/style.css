@@ -1533,7 +1533,7 @@ body {
   display: flex;
 }
 
-#googlePickerModal {
+#googlePickerModal, #facebookPickerModal {
   position: fixed !important;
   inset: 0 !important;
   z-index: 1000001 !important;
@@ -1545,7 +1545,7 @@ body {
   padding: 16px;
 }
 
-#googlePickerModal.active {
+#googlePickerModal.active, #facebookPickerModal.active {
   display: flex !important;
 }
 
