@@ -389,3 +389,8 @@ class BarPilotStorage {
 }
 
 window.db = new BarPilotStorage();
+
+// Ensure active session is kept in cache on load
+if (localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true")) {
+  document.documentElement.classList.add("user-authenticated");
+}

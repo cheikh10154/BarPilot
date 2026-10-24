@@ -951,17 +951,21 @@ function showToast(msg) {
 let splashTimer = null;
 
 function isUserLoggedIn() {
-  return localStorage.getItem("barpilot_is_logged_in") === "true";
+  return localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true");
 }
 
 function setUserLoggedIn(status, userMeta = null) {
   if (status) {
     localStorage.setItem("barpilot_is_logged_in", "true");
+    document.cookie = "barpilot_auth=true; path=/; max-age=31536000; SameSite=Lax";
+    document.documentElement.classList.add("user-authenticated");
     if (userMeta) {
       localStorage.setItem("barpilot_logged_user", JSON.stringify(userMeta));
     }
   } else {
     localStorage.setItem("barpilot_is_logged_in", "false");
+    document.cookie = "barpilot_auth=false; path=/; max-age=0; SameSite=Lax";
+    document.documentElement.classList.remove("user-authenticated");
     localStorage.removeItem("barpilot_logged_user");
   }
 }
