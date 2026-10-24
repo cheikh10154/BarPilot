@@ -431,13 +431,15 @@
       <div class="sidebar-footer">
         
         <!-- User Profile Card & Quick Actions -->
-        <div class="user-profile-card" onclick="openAuthScreen()" style="cursor:pointer;" title="Clicca per cambiare account o registrare un bar">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" alt="Marco Rossi">
-          <div class="user-info">
+        <div class="user-profile-card">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" alt="Gestore">
+          <div class="user-info" onclick="openAuthScreen()" style="cursor:pointer;" title="Clicca per visualizzare o cambiare bar">
             <span class="user-name">Marco Rossi</span>
             <span class="user-role" data-i18n="roleOwner">Proprietario</span>
           </div>
-          <button style="margin-left:auto; background:transparent; border:none; color:var(--primary); font-size:14px;" title="Accedi / Cambia bar">🔑</button>
+          <button type="button" class="btn-sidebar-logout" onclick="logoutUser()" title="Disconnettiti dal gestionale">
+            🚪 <span data-i18n="logout">Esci</span>
+          </button>
         </div>
 
         <button class="ctrl-btn" onclick="initStoriesOnboarding()" style="width:100%; justify-content:center; gap:6px;">
@@ -1340,6 +1342,21 @@
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:16px;">
+                  <!-- Active Session & Logout Card -->
+                  <div style="background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                        <span>🔐</span> Sessione di Accesso Attiva
+                      </h4>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        L'accesso al tuo bar rimane memorizzato su questo dispositivo finché non ti disconnetti manualmente.
+                      </p>
+                    </div>
+                    <button type="button" onclick="logoutUser()" class="btn-secondary" style="padding:8px 14px; font-size:12px; font-weight:700; color:#EF4444; border-color:rgba(239,68,68,0.3); display:inline-flex; align-items:center; gap:6px;">
+                      🚪 <span data-i18n="logout">Disconnetti</span>
+                    </button>
+                  </div>
+
                   <!-- Google OAuth 2.0 Credentials Card -->
                   <div style="background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">

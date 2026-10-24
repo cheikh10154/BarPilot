@@ -946,16 +946,79 @@ function showToast(msg) {
 }
 
 // ==========================================================================
-// 1. ANIMATED SPLASH SCREEN (3 SECONDS DURATION)
+// 1. AUTH PERSISTENCE & ANIMATED SPLASH SCREEN
 // ==========================================================================
 let splashTimer = null;
+
+function isUserLoggedIn() {
+  return localStorage.getItem("barpilot_is_logged_in") === "true";
+}
+
+function setUserLoggedIn(status, userMeta = null) {
+  if (status) {
+    localStorage.setItem("barpilot_is_logged_in", "true");
+    if (userMeta) {
+      localStorage.setItem("barpilot_logged_user", JSON.stringify(userMeta));
+    }
+  } else {
+    localStorage.setItem("barpilot_is_logged_in", "false");
+    localStorage.removeItem("barpilot_logged_user");
+  }
+}
+
+function logoutUser() {
+  const isIt = !window.i18n || window.i18n.currentLang === "it";
+  const confirmMsg = isIt
+    ? "Sei sicuro di voler effettuare la disconnessione dal tuo locale?"
+    : "Êtes-vous sûr de vouloir vous déconnecter de votre établissement ?";
+
+  if (confirm(confirmMsg)) {
+    setUserLoggedIn(false);
+    
+    // Close sidebar if open
+    closeSidebar();
+    
+    // Open authentication screen
+    openAuthScreen();
+
+    showToast(isIt
+      ? "Disconnessione effettuata. Per rientrare, effettua nuovamente l'accesso."
+      : "Déconnexion réussie. Pour vous reconnecter, veuillez vous identifier.");
+  }
+}
 
 function initSplashScreen() {
   const splash = document.getElementById("splashScreen");
   const skipBtn = document.getElementById("btnSkipSplash");
+  const storiesOverlay = document.getElementById("storiesOverlay");
+  const authOverlay = document.getElementById("authOverlay");
 
   if (!splash) return;
 
+  // CHECK PERSISTENT SESSION:
+  // If the user is already authenticated, keep stories and auth screen HIDDEN!
+  if (isUserLoggedIn()) {
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
+
+    const dismissSplash = () => {
+      if (splashTimer) clearTimeout(splashTimer);
+      splash.classList.add("hidden");
+    };
+
+    if (skipBtn) {
+      skipBtn.addEventListener("click", dismissSplash);
+    }
+
+    // Smooth 1.2s transition directly to dashboard
+    splashTimer = setTimeout(() => {
+      dismissSplash();
+    }, 1200);
+    return;
+  }
+
+  // FIRST-TIME OR LOGGED OUT USER:
+  // Launch standard onboarding: Splash (3s) -> Stories -> Auth Screen
   const dismissSplash = () => {
     if (splashTimer) clearTimeout(splashTimer);
     splash.classList.add("hidden");
@@ -1234,8 +1297,10 @@ function handlePhoneAuthSubmit(e) {
   e.preventDefault();
   const smsInput = document.getElementById("authSmsCode");
   const code = smsInput ? smsInput.value.trim() : "";
+  const phone = document.getElementById("authPhone")?.value || "";
 
   if (code === "123456" || code.length >= 4) {
+    setUserLoggedIn(true, { phone: phone, provider: "phone" });
     closeAuthScreen();
     showToast(window.i18n.currentLang === 'it' 
       ? "Numero verificato con successo! Benvenuto in BarPilot." 
@@ -1252,6 +1317,7 @@ function handleAuthSubmit(e) {
     const barName = document.getElementById("regBarName")?.value || "Il Mio Nuovo Bar";
     const ownerName = document.getElementById("regOwnerName")?.value || "Marco";
     const city = document.getElementById("regCity")?.value || "Roma";
+    const email = document.getElementById("authEmail")?.value || "proprietario@barpilot.it";
 
     const activeBar = {
       id: "bar_" + Date.now(),
@@ -1261,6 +1327,7 @@ function handleAuthSubmit(e) {
       currency: "€",
       role: "Proprietario",
       managerName: ownerName,
+      managerEmail: email,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
       trialDaysRemaining: 14,
@@ -1276,11 +1343,14 @@ function handleAuthSubmit(e) {
     renderActiveBar();
     renderApp();
 
+    setUserLoggedIn(true, { name: ownerName, email: email, barName: barName, provider: "email" });
     closeAuthScreen();
     showToast(window.i18n.currentLang === 'it'
       ? `Bar "${barName}" registrato! 14 giorni di prova gratuita attivati.`
       : `Bar "${barName}" enregistré ! 14 jours d'essai gratuit activés.`);
   } else {
+    const email = document.getElementById("authEmail")?.value || "marco@barcentrale.it";
+    setUserLoggedIn(true, { email: email, provider: "email" });
     closeAuthScreen();
     showToast(window.i18n.currentLang === 'it'
       ? "Accesso effettuato al tuo bar!"
@@ -1289,6 +1359,7 @@ function handleAuthSubmit(e) {
 }
 
 function quickLoginDemo() {
+  setUserLoggedIn(true, { name: "Marco Rossi", email: "marco@barcentrale.it", provider: "demo" });
   closeAuthScreen();
   showToast(window.i18n.currentLang === 'it'
     ? "Benvenuto in Bar Centrale (Demo 14 giorni attiva)!"

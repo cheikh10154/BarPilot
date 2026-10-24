@@ -122,6 +122,16 @@ class FacebookAuthManager {
     if (userNameEl) userNameEl.textContent = profile.name;
 
     if (typeof renderActiveBar === "function") renderActiveBar();
+    if (typeof setUserLoggedIn === "function") {
+      setUserLoggedIn(true, {
+        name: profile.name,
+        email: profile.email,
+        avatar: profile.picture,
+        provider: "facebook"
+      });
+    } else {
+      localStorage.setItem("barpilot_is_logged_in", "true");
+    }
     if (typeof closeAuthScreen === "function") closeAuthScreen();
     this.hideFacebookModal();
 

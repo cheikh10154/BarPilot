@@ -260,6 +260,28 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.btn-sidebar-logout {
+  margin-left: auto;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #EF4444;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-sidebar-logout:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
 .user-avatar {
   width: 36px;
   height: 36px;

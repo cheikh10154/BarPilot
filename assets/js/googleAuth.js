@@ -148,6 +148,16 @@ class GoogleAuthManager {
     if (userNameEl) userNameEl.textContent = profile.name;
 
     if (typeof renderActiveBar === "function") renderActiveBar();
+    if (typeof setUserLoggedIn === "function") {
+      setUserLoggedIn(true, {
+        name: profile.name,
+        email: profile.email,
+        avatar: profile.picture,
+        provider: "google"
+      });
+    } else {
+      localStorage.setItem("barpilot_is_logged_in", "true");
+    }
     if (typeof closeAuthScreen === "function") closeAuthScreen();
     this.hideGoogleModal();
 
