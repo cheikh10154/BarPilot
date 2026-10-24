@@ -475,11 +475,14 @@
         
         <!-- User Profile Card & Quick Actions -->
         <div class="user-profile-card">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" alt="Gestore">
-          <div class="user-info" onclick="openAuthScreen()" style="cursor:pointer;" title="Clicca per visualizzare o cambiare bar">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" id="sidebarUserAvatar" alt="Operatore" onclick="openStaffPinModal()" style="cursor:pointer;" title="Cambia dipendente (PIN)">
+          <div class="user-info" onclick="openStaffPinModal()" style="cursor:pointer;" title="Clicca per cambiare operatore col PIN">
             <span class="user-name" id="sidebarUserName">Marco Rossi</span>
-            <span class="user-role" data-i18n="roleOwner">Proprietario</span>
+            <span class="user-role" id="sidebarUserRole" data-i18n="roleOwner">Proprietario</span>
           </div>
+          <button type="button" class="btn-sidebar-switch-pin" onclick="openStaffPinModal()" title="Cambio dipendente veloce (PIN)">
+            🔢
+          </button>
           <button type="button" class="btn-sidebar-logout" onclick="logoutUser()" title="Disconnettiti dal gestionale">
             🚪 <span data-i18n="logout">Esci</span>
           </button>
@@ -893,7 +896,7 @@
                 <h3 class="card-title" data-i18n="navProducts">Prodotti</h3>
                 <p style="font-size:12px; color:var(--text-muted);">Catalogo bar, prezzi di vendita e margini</p>
               </div>
-              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Aggiungi nuovo prodotto')" data-i18n="addProduct">+ Nuovo prodotto</button>
+              <button class="btn-primary" id="btnAddNewProduct" style="padding:8px 16px; font-size:13px;" onclick="openAddProductModal()" data-i18n="addProduct">+ Nuovo prodotto</button>
             </div>
             <div style="overflow-x:auto;">
               <table class="custom-table">
@@ -967,14 +970,15 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title" data-i18n="navStaff">Personale</h3>
-              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Invita dipendente')" data-i18n="inviteStaff">+ Invita dipendente</button>
+              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="openAddStaffModal()" data-i18n="inviteStaff">+ Invita dipendente</button>
             </div>
             <div style="overflow-x:auto;">
               <table class="custom-table">
                 <thead>
                   <tr>
-                    <th>Nome</th>
+                    <th>Dipendente</th>
                     <th>Ruolo</th>
+                    <th>PIN Accesso</th>
                     <th data-i18n="status">Stato</th>
                     <th data-i18n="actions">Azioni</th>
                   </tr>
@@ -1553,6 +1557,165 @@
       <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:14px;" data-i18n="demoCredentials">
         Credenziali demo precompilate per test rapido
       </p>
+    </div>
+  </div>
+
+  <!-- Staff Quick PIN Switcher Modal -->
+  <div class="modal-overlay" id="staffPinModal">
+    <div class="modal-box staff-pin-modal-box">
+      <div class="staff-pin-header">
+        <div>
+          <h3 class="staff-pin-title">🔢 Cambio Operatore Rapido</h3>
+          <p class="staff-pin-subtitle">Seleziona il profilo e digita il tuo PIN a 4 cifre</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeStaffPinModal()" aria-label="Chiudi finestra" title="Chiudi finestra">✕</button>
+      </div>
+
+      <!-- Staff List Selector Row -->
+      <div class="staff-pills-row" id="staffPinSelectorRow">
+        <!-- Rendered via app.js -->
+      </div>
+
+      <!-- Selected Staff Profile Card -->
+      <div class="staff-pin-active-card" id="staffPinActiveCard">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" id="staffPinActiveAvatar" class="staff-pin-avatar" alt="Dipendente">
+        <div style="flex:1;">
+          <div class="staff-pin-active-name" id="staffPinActiveName">Marco Rossi</div>
+          <div class="staff-pin-active-role" id="staffPinActiveRole">Proprietario</div>
+        </div>
+        <span class="staff-pin-hint-badge" id="staffPinDemoHint">PIN: 1234</span>
+      </div>
+
+      <!-- PIN Dots Display -->
+      <div class="pin-dots-wrap" id="pinDotsWrap">
+        <span class="pin-dot" id="pinDot0"></span>
+        <span class="pin-dot" id="pinDot1"></span>
+        <span class="pin-dot" id="pinDot2"></span>
+        <span class="pin-dot" id="pinDot3"></span>
+      </div>
+      <div id="pinErrorMsg" class="pin-error-text" style="display:none;">⚠️ PIN errato. Riprova.</div>
+
+      <!-- Touch Numpad Grid -->
+      <div class="numpad-grid">
+        <button type="button" class="numpad-key" onclick="enterPinDigit('1')">1</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('2')">2</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('3')">3</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('4')">4</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('5')">5</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('6')">6</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('7')">7</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('8')">8</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('9')">9</button>
+        <button type="button" class="numpad-key numpad-action" onclick="clearPin()">✕</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('0')">0</button>
+        <button type="button" class="numpad-key numpad-action" onclick="deletePinDigit()">⌫</button>
+      </div>
+
+      <div class="staff-pin-footer-info">
+        <span>💡 Oppure digita i numeri da tastiera fisica</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal (Exclusive to Proprietario) -->
+  <div class="modal-overlay" id="addProductModal">
+    <div class="modal-box" style="max-width:480px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">☕ Nuovo Prodotto Bar</h3>
+          <p style="font-size:12px; color:var(--text-muted);">Aggiungi una nuova bevanda o cocktail al catalogo</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddProductModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addProductForm" onsubmit="handleAddProductSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Nome Prodotto</label>
+          <input type="text" class="form-input" id="newProdName" placeholder="Es: Spritz Hugo, Caffè Macchiato" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="newProdCategory">
+              <option value="cocktails">Cocktails</option>
+              <option value="coffee">Caffè & Colazione</option>
+              <option value="drinks">Bevande & Birre</option>
+              <option value="food">Snack & Food</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prezzo di vendita (€)</label>
+            <input type="number" step="0.10" class="form-input" id="newProdPrice" placeholder="5.50" required>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Costo ingredienti (€)</label>
+            <input type="number" step="0.10" class="form-input" id="newProdCost" placeholder="1.20" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dose / Ricetta base</label>
+            <input type="text" class="form-input" id="newProdRecipe" placeholder="Es: 6cl Prosecco, 4cl Sambuco">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">URL Foto Prodotto</label>
+          <input type="url" class="form-input" id="newProdImage" placeholder="https://..." value="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-secondary" onclick="closeAddProductModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">+ Salva nel Catalogo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add / Invite Staff Member Modal -->
+  <div class="modal-overlay" id="addStaffModal">
+    <div class="modal-box" style="max-width:460px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">👥 Aggiungi Membro Personale</h3>
+          <p style="font-size:12px; color:var(--text-muted);">Assegna un ruolo e un PIN di accesso rapido a 4 cifre</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddStaffModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addStaffForm" onsubmit="handleAddStaffSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Nome e Cognome</label>
+          <input type="text" class="form-input" id="newStaffName" placeholder="Es: Matteo Verdi" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ruolo operativo</label>
+          <select class="form-input" id="newStaffRole">
+            <option value="Cameriere">Cameriere (Tavoli, Comande, Consegne)</option>
+            <option value="Barman">Barman (KDS Banco, Preparazione, Ricette)</option>
+            <option value="Manager">Manager (Supervisione bar)</option>
+            <option value="Proprietario">Proprietario (Amministratore completo)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email aziendale</label>
+          <input type="email" class="form-input" id="newStaffEmail" placeholder="matteo@barcentrale.it" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">PIN a 4 cifre (per accesso rapido tablet)</label>
+          <input type="text" pattern="\d{4}" maxlength="4" class="form-input" id="newStaffPin" placeholder="Es: 5555" style="letter-spacing:6px; font-weight:800; font-size:18px; text-align:center;" required>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-secondary" onclick="closeAddStaffModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">+ Salva Dipendente</button>
+        </div>
+      </form>
     </div>
   </div>
 

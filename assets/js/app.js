@@ -24,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Render Initial State
   renderApp();
 
+  // Initialize Active Staff Member
+  initActiveStaff();
+
   // 4. Setup Event Listeners
   setupNavigation();
   setupThemeToggle();
@@ -90,6 +93,13 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
+      if (currentStaff) {
+        const perms = ROLE_PERMISSIONS[currentStaff.role] || ROLE_PERMISSIONS.Proprietario;
+        if (!perms.views.includes(view)) {
+          showToast(`⚠️ Il ruolo ${currentStaff.role} non ha accesso a questa sezione.`);
+          return;
+        }
+      }
       switchView(view);
       // Close sidebar only on mobile
       if (window.innerWidth <= 1024) {
@@ -787,34 +797,444 @@ function renderSuppliers() {
   `).join("");
 }
 
+// ==========================================================================
+// ROLE-BASED ACCESS CONTROL (PROPRIETARIO, CAMERIERE, BARMAN, MANAGER)
+// ==========================================================================
+const ROLE_PERMISSIONS = {
+  Proprietario: {
+    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports", "subscriptions", "settings"],
+    canAddProducts: true,
+    canEditStaff: true,
+    defaultView: "dashboard",
+    badgeClass: "badge-role-owner"
+  },
+  Manager: {
+    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports"],
+    canAddProducts: true,
+    canEditStaff: false,
+    defaultView: "dashboard",
+    badgeClass: "badge-role-manager"
+  },
+  Cameriere: {
+    views: ["orders", "floor", "kds"],
+    canAddProducts: false,
+    canEditStaff: false,
+    defaultView: "orders",
+    badgeClass: "badge-role-waiter"
+  },
+  Barman: {
+    views: ["kds", "products", "orders"],
+    canAddProducts: false,
+    canEditStaff: false,
+    defaultView: "kds",
+    badgeClass: "badge-role-barman"
+  },
+  Cassa: {
+    views: ["orders", "floor", "dashboard"],
+    canAddProducts: false,
+    canEditStaff: false,
+    defaultView: "orders",
+    badgeClass: "badge-role-cashier"
+  }
+};
+
+let currentStaff = null;
+let enteredPin = "";
+let selectedPinStaff = null;
+
+function initActiveStaff() {
+  const staffList = (window.db ? window.db.get("staff") : []) || [];
+  if (staffList.length === 0) return;
+
+  const savedStaff = localStorage.getItem("barpilot_active_staff");
+  if (savedStaff) {
+    try {
+      const parsed = JSON.parse(savedStaff);
+      const found = staffList.find(s => s.id === parsed.id || s.name === parsed.name);
+      if (found) {
+        applyActiveStaff(found, false);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // Default to first Proprietario in staff list
+  const ownerStaff = staffList.find(s => s.role === "Proprietario") || staffList[0];
+  if (ownerStaff) {
+    applyActiveStaff(ownerStaff, false);
+  }
+}
+
+function applyActiveStaff(staff, doSwitchView = true) {
+  currentStaff = staff;
+  try {
+    localStorage.setItem("barpilot_active_staff", JSON.stringify(staff));
+  } catch (e) {}
+
+  const role = staff.role || "Proprietario";
+  const perms = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.Proprietario;
+
+  // 1. Update Sidebar Profile Card
+  const avatarEl = document.getElementById("sidebarUserAvatar");
+  const nameEl = document.getElementById("sidebarUserName");
+  const roleEl = document.getElementById("sidebarUserRole");
+
+  if (avatarEl && staff.avatar) avatarEl.src = staff.avatar;
+  if (nameEl) nameEl.textContent = staff.name;
+  if (roleEl) {
+    roleEl.textContent = staff.role;
+    roleEl.className = `user-role ${perms.badgeClass}`;
+  }
+
+  // 2. Update Greeting with staff name
+  updateGreeting(staff.name);
+
+  // 3. Filter Sidebar Navigation Items by Role
+  document.querySelectorAll(".nav-item[data-view]").forEach(navItem => {
+    const viewName = navItem.getAttribute("data-view");
+    if (perms.views.includes(viewName)) {
+      navItem.style.display = "flex";
+    } else {
+      navItem.style.display = "none";
+    }
+  });
+
+  // 4. Product Add Permission (Solo il proprietario può aggiungere prodotti)
+  const addProdBtn = document.getElementById("btnAddNewProduct");
+  if (addProdBtn) {
+    addProdBtn.style.display = perms.canAddProducts ? "inline-flex" : "none";
+  }
+
+  // 5. If current view is not allowed for this role, automatically switch
+  if (doSwitchView && !perms.views.includes(appState.activeView)) {
+    switchView(perms.defaultView);
+  }
+
+  // Re-render staff table so active badge reflects current staff
+  renderStaff();
+}
+
 function renderStaff() {
-  const staff = window.db.get("staff");
+  const staff = (window.db ? window.db.get("staff") : []) || [];
   const tbody = document.getElementById("staffTableBody");
   if (!tbody) return;
 
-  tbody.innerHTML = staff.map(s => `
-    <tr>
+  tbody.innerHTML = staff.map(s => {
+    const isCurrentActive = currentStaff && currentStaff.id === s.id;
+    let roleBadgeClass = "badge-role-waiter";
+    if (s.role === "Proprietario") roleBadgeClass = "badge-role-owner";
+    else if (s.role === "Manager") roleBadgeClass = "badge-role-manager";
+    else if (s.role === "Barman") roleBadgeClass = "badge-role-barman";
+    else if (s.role === "Cassa") roleBadgeClass = "badge-role-cashier";
+
+    return `
+    <tr style="${isCurrentActive ? 'background: rgba(255, 122, 0, 0.08);' : ''}">
       <td>
         <div class="product-row-flex">
           <img src="${s.avatar}" class="product-thumb-sm" style="border-radius:50%;" alt="${s.name}">
           <div>
-            <div style="font-weight:700;">${s.name}</div>
+            <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>${s.name}</span>
+              ${isCurrentActive ? '<span style="font-size:10px; background:var(--primary); color:#FFF; padding:1px 6px; border-radius:4px;">ATTIVO</span>' : ''}
+            </div>
             <div style="font-size:11px; color:var(--text-muted);">${s.email}</div>
           </div>
         </div>
       </td>
-      <td style="font-weight:600;">${s.role}</td>
+      <td>
+        <span class="staff-pill-role ${roleBadgeClass}">${s.role}</span>
+      </td>
+      <td>
+        <code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px;">${s.pin || '1234'}</code>
+      </td>
       <td>
         <span class="table-badge ${s.status === 'active' ? 'badge-served' : 'badge-alert'}">
           ${s.status === 'active' ? window.i18n.t("statusActive") : window.i18n.t("statusInactive")}
         </span>
       </td>
       <td>
-        <button class="ctrl-btn" onclick="alert('Modifica permessi di ${s.name}')">${window.i18n.t("edit")}</button>
+        <button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo dipendente">
+          🔑 Accedi con PIN
+        </button>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 }
+
+// --------------------------------------------------------------------------
+// PIN Modal Controller (Rapid Numpad & Staff Switch)
+// --------------------------------------------------------------------------
+function openStaffPinModal(staffId = null) {
+  const modal = document.getElementById("staffPinModal");
+  if (!modal) return;
+
+  const staffList = (window.db ? window.db.get("staff") : []) || [];
+  if (staffList.length === 0) return;
+
+  if (staffId) {
+    selectedPinStaff = staffList.find(s => s.id === staffId) || staffList[0];
+  } else if (currentStaff) {
+    selectedPinStaff = staffList.find(s => s.id === currentStaff.id) || staffList[0];
+  } else {
+    selectedPinStaff = staffList[0];
+  }
+
+  enteredPin = "";
+  renderStaffPinSelector();
+  updateSelectedPinStaffCard();
+  updatePinDots();
+  hidePinError();
+
+  modal.classList.add("active");
+}
+
+function closeStaffPinModal() {
+  const modal = document.getElementById("staffPinModal");
+  if (modal) modal.classList.remove("active");
+  enteredPin = "";
+  hidePinError();
+}
+
+function renderStaffPinSelector() {
+  const row = document.getElementById("staffPinSelectorRow");
+  if (!row) return;
+
+  const staffList = (window.db ? window.db.get("staff") : []) || [];
+  row.innerHTML = staffList.map(s => {
+    const isSelected = selectedPinStaff && selectedPinStaff.id === s.id;
+    const isCurrentActive = currentStaff && currentStaff.id === s.id;
+    let badgeClass = "badge-role-waiter";
+    if (s.role === "Proprietario") badgeClass = "badge-role-owner";
+    else if (s.role === "Manager") badgeClass = "badge-role-manager";
+    else if (s.role === "Barman") badgeClass = "badge-role-barman";
+    else if (s.role === "Cassa") badgeClass = "badge-role-cashier";
+
+    return `
+      <div class="staff-pill-chip ${isSelected ? 'active' : ''}" onclick="selectStaffForPin(${s.id})">
+        <img src="${s.avatar}" class="staff-pill-avatar" alt="${s.name}">
+        <span class="staff-pill-name">${s.name.split(" ")[0]}</span>
+        <span class="staff-pill-role ${badgeClass}">${s.role}</span>
+        ${isCurrentActive ? '<span style="font-size:9px; color:var(--primary);">●</span>' : ''}
+      </div>
+    `;
+  }).join("");
+}
+
+function selectStaffForPin(staffId) {
+  const staffList = (window.db ? window.db.get("staff") : []) || [];
+  const found = staffList.find(s => s.id === staffId);
+  if (found) {
+    selectedPinStaff = found;
+    enteredPin = "";
+    renderStaffPinSelector();
+    updateSelectedPinStaffCard();
+    updatePinDots();
+    hidePinError();
+  }
+}
+
+function updateSelectedPinStaffCard() {
+  if (!selectedPinStaff) return;
+  const avatar = document.getElementById("staffPinActiveAvatar");
+  const name = document.getElementById("staffPinActiveName");
+  const role = document.getElementById("staffPinActiveRole");
+  const demoHint = document.getElementById("staffPinDemoHint");
+
+  if (avatar) avatar.src = selectedPinStaff.avatar;
+  if (name) name.textContent = selectedPinStaff.name;
+  if (role) role.textContent = selectedPinStaff.role;
+  if (demoHint) demoHint.textContent = `PIN: ${selectedPinStaff.pin || '1234'}`;
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pinDot${i}`);
+    if (dot) {
+      dot.classList.toggle("filled", i < enteredPin.length);
+    }
+  }
+}
+
+function enterPinDigit(digit) {
+  if (enteredPin.length >= 4) return;
+  hidePinError();
+  enteredPin += digit;
+  updatePinDots();
+
+  if (enteredPin.length === 4) {
+    setTimeout(verifyEnteredPin, 120);
+  }
+}
+
+function deletePinDigit() {
+  if (enteredPin.length > 0) {
+    enteredPin = enteredPin.slice(0, -1);
+    updatePinDots();
+    hidePinError();
+  }
+}
+
+function clearPin() {
+  enteredPin = "";
+  updatePinDots();
+  hidePinError();
+}
+
+function showPinError() {
+  const err = document.getElementById("pinErrorMsg");
+  const dots = document.getElementById("pinDotsWrap");
+  if (err) err.style.display = "block";
+  if (dots) {
+    dots.classList.add("shake-error");
+    setTimeout(() => dots.classList.remove("shake-error"), 400);
+  }
+}
+
+function hidePinError() {
+  const err = document.getElementById("pinErrorMsg");
+  if (err) err.style.display = "none";
+}
+
+function verifyEnteredPin() {
+  if (!selectedPinStaff) return;
+  const correctPin = selectedPinStaff.pin || "1234";
+
+  if (enteredPin === correctPin) {
+    applyActiveStaff(selectedPinStaff, true);
+    closeStaffPinModal();
+    showToast(`🔑 Accesso operatore: ${selectedPinStaff.name} (${selectedPinStaff.role})`);
+  } else {
+    showPinError();
+    setTimeout(() => {
+      enteredPin = "";
+      updatePinDots();
+    }, 450);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Products & Staff Creation Modals
+// --------------------------------------------------------------------------
+function openAddProductModal() {
+  if (currentStaff && currentStaff.role !== "Proprietario" && currentStaff.role !== "Manager") {
+    showToast("⚠️ Solo il Proprietario può aggiungere nuovi prodotti al bar.");
+    return;
+  }
+  const modal = document.getElementById("addProductModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeAddProductModal() {
+  const modal = document.getElementById("addProductModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddProductSubmit(e) {
+  e.preventDefault();
+  if (currentStaff && currentStaff.role !== "Proprietario" && currentStaff.role !== "Manager") {
+    showToast("⚠️ Solo il Proprietario può aggiungere nuovi prodotti al bar.");
+    return;
+  }
+
+  const name = document.getElementById("newProdName")?.value.trim();
+  const category = document.getElementById("newProdCategory")?.value || "cocktails";
+  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 5.00;
+  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 1.20;
+  const image = document.getElementById("newProdImage")?.value || "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop";
+
+  if (!name) return;
+
+  const products = window.db.get("products") || [];
+  const newProduct = {
+    id: Date.now(),
+    name: name,
+    category: category,
+    price: price,
+    cost: cost,
+    image: image
+  };
+
+  products.push(newProduct);
+  window.db.set("products", products);
+
+  renderProducts();
+  renderOrderCatalog();
+  closeAddProductModal();
+
+  document.getElementById("addProductForm")?.reset();
+  showToast(`✨ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
+}
+
+function openAddStaffModal() {
+  if (currentStaff && currentStaff.role !== "Proprietario") {
+    showToast("⚠️ Solo il Proprietario può invitare nuovi membri del personale.");
+    return;
+  }
+  const modal = document.getElementById("addStaffModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeAddStaffModal() {
+  const modal = document.getElementById("addStaffModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddStaffSubmit(e) {
+  e.preventDefault();
+  if (currentStaff && currentStaff.role !== "Proprietario") {
+    showToast("⚠️ Solo il Proprietario può invitare nuovi membri del personale.");
+    return;
+  }
+
+  const name = document.getElementById("newStaffName")?.value.trim();
+  const role = document.getElementById("newStaffRole")?.value || "Cameriere";
+  const email = document.getElementById("newStaffEmail")?.value.trim();
+  const pin = document.getElementById("newStaffPin")?.value.trim() || "1234";
+
+  if (!name || !email) return;
+
+  const defaultAvatars = {
+    Proprietario: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop",
+    Manager: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop",
+    Cameriere: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&h=80&fit=crop",
+    Barman: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop"
+  };
+
+  const staff = window.db.get("staff") || [];
+  const newMember = {
+    id: Date.now(),
+    name: name,
+    role: role,
+    email: email,
+    pin: pin,
+    status: "active",
+    avatar: defaultAvatars[role] || defaultAvatars.Cameriere
+  };
+
+  staff.push(newMember);
+  window.db.set("staff", staff);
+
+  renderStaff();
+  closeAddStaffModal();
+  document.getElementById("addStaffForm")?.reset();
+  showToast(`👥 ${name} aggiunto al personale come ${role} (PIN: ${pin})!`);
+}
+
+// Global Exports
+window.openStaffPinModal = openStaffPinModal;
+window.closeStaffPinModal = closeStaffPinModal;
+window.selectStaffForPin = selectStaffForPin;
+window.enterPinDigit = enterPinDigit;
+window.deletePinDigit = deletePinDigit;
+window.clearPin = clearPin;
+window.verifyEnteredPin = verifyEnteredPin;
+window.openAddProductModal = openAddProductModal;
+window.closeAddProductModal = closeAddProductModal;
+window.handleAddProductSubmit = handleAddProductSubmit;
+window.openAddStaffModal = openAddStaffModal;
+window.closeAddStaffModal = closeAddStaffModal;
+window.handleAddStaffSubmit = handleAddStaffSubmit;
 
 // --------------------------------------------------------------------------
 // Reports & Analytics
@@ -963,6 +1383,42 @@ function setupModals() {
       }
     });
   }
+
+  // Backdrop clicks for Staff PIN, Add Product, Add Staff modals
+  const pinModal = document.getElementById("staffPinModal");
+  if (pinModal) {
+    pinModal.addEventListener("click", (e) => {
+      if (e.target === pinModal) closeStaffPinModal();
+    });
+  }
+
+  const addProdModal = document.getElementById("addProductModal");
+  if (addProdModal) {
+    addProdModal.addEventListener("click", (e) => {
+      if (e.target === addProdModal) closeAddProductModal();
+    });
+  }
+
+  const addStaffModal = document.getElementById("addStaffModal");
+  if (addStaffModal) {
+    addStaffModal.addEventListener("click", (e) => {
+      if (e.target === addStaffModal) closeAddStaffModal();
+    });
+  }
+
+  // Global Keyboard listener for Staff PIN keypad
+  document.addEventListener("keydown", (e) => {
+    const activePinModal = document.getElementById("staffPinModal");
+    if (activePinModal && activePinModal.classList.contains("active")) {
+      if (e.key >= '0' && e.key <= '9') {
+        enterPinDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        deletePinDigit();
+      } else if (e.key === 'Escape') {
+        closeStaffPinModal();
+      }
+    }
+  });
 
   if (confirmBarBtn && barSelect && modal) {
     confirmBarBtn.addEventListener("click", () => {
