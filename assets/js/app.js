@@ -1,3 +1,15 @@
+// Safe HTML escaping helper
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+window.escapeHtml = escapeHtml;
+
 // BarPilot Core Application Logic
 document.addEventListener("DOMContentLoaded", () => {
   // 1. Theme Initialization
