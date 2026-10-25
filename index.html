@@ -790,23 +790,30 @@
                 <button class="cat-pill floor-pill" data-area="vip" data-i18n="floorVIP">VIP</button>
               </div>
 
-              <div class="floor-legend">
-                <div class="legend-badge">
-                  <span class="legend-dot free"></span>
-                  <span data-i18n="statusFree">Libero</span>
+              <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <div class="floor-legend">
+                  <div class="legend-badge">
+                    <span class="legend-dot free"></span>
+                    <span data-i18n="statusFree">Libero</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot occupied"></span>
+                    <span data-i18n="statusOccupied">Occupata</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot topay"></span>
+                    <span data-i18n="statusToPay">Da pagare</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot reserved"></span>
+                    <span data-i18n="statusReserved">Prenotata</span>
+                  </div>
                 </div>
-                <div class="legend-badge">
-                  <span class="legend-dot occupied"></span>
-                  <span data-i18n="statusOccupied">Occupata</span>
-                </div>
-                <div class="legend-badge">
-                  <span class="legend-dot topay"></span>
-                  <span data-i18n="statusToPay">Da pagare</span>
-                </div>
-                <div class="legend-badge">
-                  <span class="legend-dot reserved"></span>
-                  <span data-i18n="statusReserved">Prenotata</span>
-                </div>
+
+                <!-- Owner Only Add Table Button -->
+                <button type="button" class="btn-primary" id="btnAddFloorTable" onclick="openAddTableModal()" style="display:none; font-size:12px; padding:7px 14px; align-items:center; gap:6px;">
+                  <span>+</span> <span data-i18n="addTable">Aggiungi Tavolo</span>
+                </button>
               </div>
             </div>
 
@@ -1929,6 +1936,83 @@
     </div>
   </div>
 
+  <!-- Add Table Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="addTableModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+            <span>🪑</span> <span data-i18n="addTableModalTitle">Aggiungi Nuovo Tavolo</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" data-i18n="addTableModalSubtitle">Configura un nuovo tavolo nella piantina di sala (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddTableModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addTableForm" onsubmit="handleAddTableSubmit(event)">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" data-i18n="tableIdLabel">Identificativo / Sigla Tavolo</label>
+          <input type="text" id="newTableId" class="form-input" placeholder="es. T10 o T11" required maxlength="15" autocomplete="off">
+          <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Inserisci una sigla univoca (es. T10, T11, Bancone 2).</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" data-i18n="tableAreaLabel">Area / Sala</label>
+          <select id="newTableArea" class="form-input" style="background:var(--bg-card); cursor:pointer;">
+            <option value="interno">Interno (Sala Principale)</option>
+            <option value="terrazza">Terrazza / Dehors</option>
+            <option value="comptoir">Comptoir / Bancone</option>
+            <option value="vip">Spazio VIP / Privé</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label" data-i18n="tableCapacityLabel">Posti a sedere (Capienza)</label>
+          <input type="number" id="newTableCapacity" class="form-input" min="1" max="50" value="4" required>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddTableModal()" style="flex:1; padding:11px;" data-i18n="btnCancel">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">💾 <span data-i18n="btnAddTableConfirm">Crea Tavolo</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Table Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteTableModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span data-i18n="deleteTableTitle">Elimina Tavolo</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" data-i18n="deleteTableSubtitle">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteTableModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color);">
+        <p style="font-size:13.5px; line-height:1.5; margin-bottom:8px;">
+          Sei sicuro di voler rimuovere il tavolo <strong id="deleteTableTargetId" style="color:var(--text-main); font-weight:800; font-size:15px;"></strong> dalla piantina?
+        </p>
+        <div id="deleteTableWarning" style="display:none; margin-top:8px; padding:8px 12px; border-radius:6px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#EF4444; font-size:12px; font-weight:700;">
+          ⚠️ Attenzione: questo tavolo ha un conto o una comanda attiva!
+        </div>
+        <p style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">
+          L'operazione rimuoverà il tavolo dal Plan de salle e dalla selezione comande.
+        </p>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteTableModal()" style="flex:1; padding:11px;" data-i18n="btnCancel">Annulla</button>
+        <button type="button" class="btn-danger" id="btnConfirmDeleteTable" onclick="confirmDeleteTableAction()" style="flex:1; padding:11px;">
+          🗑️ <span data-i18n="btnConfirmDelete">Elimina Definitivamente</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/data.js"></script>

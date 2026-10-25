@@ -197,6 +197,15 @@ const i18nData = {
     occupants: "pers.",
     tableOccupiedSince: "Occupato da {min} min",
     tableAmount: "Consumato: {val}",
+    addTableModalTitle: "Aggiungi Nuovo Tavolo",
+    addTableModalSubtitle: "Configura un nuovo tavolo nella piantina di sala (Solo Proprietario)",
+    tableIdLabel: "Identificativo / Sigla Tavolo",
+    tableAreaLabel: "Area / Sala",
+    tableCapacityLabel: "Posti a sedere (Capienza)",
+    btnAddTableConfirm: "Crea Tavolo",
+    deleteTableTitle: "Elimina Tavolo",
+    deleteTableSubtitle: "Azione riservata esclusivamente al proprietario",
+    btnConfirmDelete: "Elimina Definitivamente",
 
     // KDS / Barman
     kdsTitle: "Preparazione · Comptoir",
@@ -511,6 +520,15 @@ const i18nData = {
     occupants: "pers.",
     tableOccupiedSince: "Occupée depuis {min} min",
     tableAmount: "Consommé : {val}",
+    addTableModalTitle: "Ajouter une Nouvelle Table",
+    addTableModalSubtitle: "Configurer une nouvelle table sur le plan de salle (Propriétaire uniquement)",
+    tableIdLabel: "Identifiant / Numéro de table",
+    tableAreaLabel: "Zone / Salle",
+    tableCapacityLabel: "Nombre de couverts (Capacité)",
+    btnAddTableConfirm: "Créer la Table",
+    deleteTableTitle: "Supprimer la Table",
+    deleteTableSubtitle: "Action réservée exclusivement au propriétaire",
+    btnConfirmDelete: "Supprimer définitivement",
 
     // KDS / Barman
     kdsTitle: "Préparation · Comptoir",

@@ -13,7 +13,10 @@ import {
   CalendarClock,
   Printer,
   ChevronRight,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { useBarPilotStore } from '@/lib/store';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -45,7 +48,7 @@ const STATUS_THEME: Record<Status, { fill: string; border: string; chair: string
   reserved: { fill: '#ede9fe', border: '#c4b5fd', chair: '#ddd6fe', dot: '#8b5cf6', it: 'Prenotato', fr: 'Réservé' },
 };
 
-const FLOOR: FloorTable[] = [
+const INITIAL_FLOOR: FloorTable[] = [
   { id: 'T01', seats: 4, status: 'free', area: 'indoor', x: 6, y: 10, w: 92, h: 72 },
   { id: 'T02', seats: 2, status: 'occupied', area: 'indoor', x: 30, y: 8, w: 78, h: 78, total: '12,50 €', minutes: 14, items: ['2× Spritz'] },
   { id: 'T03', seats: 4, status: 'free', area: 'indoor', x: 52, y: 10, w: 92, h: 72 },
@@ -61,9 +64,20 @@ export default function TablesPlanPage({ params }: PageProps) {
   const { locale } = use(params);
   const isIt = locale === 'it';
 
+  const { currentRole } = useBarPilotStore();
+  const isOwner = currentRole === 'owner';
+
+  const [tables, setTables] = useState<FloorTable[]>(INITIAL_FLOOR);
   const [area, setArea] = useState<'all' | Area>('indoor');
   const [selectedId, setSelectedId] = useState<string>('T04');
   const [qrTable, setQrTable] = useState<FloorTable | null>(null);
+
+  // Modal States
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [tableToDelete, setTableToDelete] = useState<FloorTable | null>(null);
+  const [newTableNumber, setNewTableNumber] = useState('');
+  const [newTableArea, setNewTableArea] = useState<Area>('indoor');
+  const [newTableSeats, setNewTableSeats] = useState(4);
 
   const areas: { id: 'all' | Area; label: string }[] = [
     { id: 'all', label: isIt ? 'Tutti' : 'Tous' },
@@ -73,11 +87,66 @@ export default function TablesPlanPage({ params }: PageProps) {
     { id: 'vip', label: 'VIP' },
   ];
 
-  const selected = FLOOR.find(t => t.id === selectedId) ?? null;
-  const counts = FLOOR.reduce<Record<Status, number>>(
-    (acc, t) => ({ ...acc, [t.status]: acc[t.status] + 1 }),
+  const selected = tables.find(t => t.id === selectedId) ?? null;
+  const counts = tables.reduce<Record<Status, number>>(
+    (acc, t) => ({ ...acc, [t.status]: (acc[t.status] || 0) + 1 }),
     { free: 0, occupied: 0, bill: 0, reserved: 0 }
   );
+
+  const openAddModal = () => {
+    if (!isOwner) return;
+    const nums = tables.map(t => parseInt(t.id.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    setNewTableNumber(`T${next < 10 ? '0' + next : next}`);
+    setNewTableSeats(4);
+    setNewTableArea(area === 'all' ? 'indoor' : area);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddTable = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner) return;
+
+    const id = newTableNumber.trim().toUpperCase();
+    if (!id) return;
+
+    if (tables.some(t => t.id.toUpperCase() === id)) {
+      alert(isIt ? `Esiste già un tavolo con sigla ${id}` : `Une table avec l'identifiant ${id} existe déjà`);
+      return;
+    }
+
+    const countInArea = tables.filter(t => t.area === newTableArea).length;
+    const col = countInArea % 3;
+    const row = Math.floor(countInArea / 3);
+    const x = Math.min(6 + col * 26, 78);
+    const y = Math.min(10 + row * 34, 76);
+
+    const newTable: FloorTable = {
+      id,
+      seats: newTableSeats,
+      status: 'free',
+      area: newTableArea,
+      x,
+      y,
+      w: newTableSeats <= 2 ? 78 : newTableSeats >= 6 ? 120 : 92,
+      h: 76,
+    };
+
+    setTables(prev => [...prev, newTable]);
+    setSelectedId(id);
+    setIsAddModalOpen(false);
+    setNewTableNumber('');
+  };
+
+  const confirmDeleteTable = () => {
+    if (!isOwner || !tableToDelete) return;
+    setTables(prev => prev.filter(t => t.id !== tableToDelete.id));
+    if (selectedId === tableToDelete.id) {
+      const remaining = tables.filter(t => t.id !== tableToDelete.id);
+      setSelectedId(remaining.length > 0 ? remaining[0].id : '');
+    }
+    setTableToDelete(null);
+  };
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-4 bp-fade-up">
@@ -90,13 +159,17 @@ export default function TablesPlanPage({ params }: PageProps) {
             {counts.reserved} {isIt ? 'prenotati' : 'réservées'}
           </p>
         </div>
-        <button
-          onClick={() => alert(isIt ? 'Configurazione nuovo tavolo' : 'Ajout de table')}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white border border-slate-200 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition self-start"
-        >
-          <Plus className="w-4 h-4 text-orange-500" />
-          {isIt ? 'Aggiungi tavolo' : 'Ajouter une table'}
-        </button>
+
+        {/* Solo il proprietario può aggiungere tavoli */}
+        {isOwner && (
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-orange-500 text-white hover:bg-orange-600 text-[13px] font-semibold shadow-md shadow-orange-500/25 transition self-start"
+          >
+            <Plus className="w-4 h-4" />
+            {isIt ? 'Aggiungi tavolo' : 'Ajouter une table'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 sm:gap-5">
@@ -144,7 +217,7 @@ export default function TablesPlanPage({ params }: PageProps) {
               ))}
 
               {/* Tables */}
-              {FLOOR.map(t => {
+              {tables.map(t => {
                 const theme = STATUS_THEME[t.status];
                 const dimmed = area !== 'all' && t.area !== area;
                 const isSel = selectedId === t.id;
@@ -152,20 +225,22 @@ export default function TablesPlanPage({ params }: PageProps) {
                 const bottom = Math.floor(t.seats / 2);
 
                 return (
-                  <button
+                  <div
                     key={t.id}
-                    onClick={() => setSelectedId(t.id)}
                     className={`absolute group transition-all duration-300 ${dimmed ? 'opacity-30 grayscale' : 'opacity-100'}`}
                     style={{ left: `${t.x}%`, top: `${t.y}%`, width: t.w, height: t.h + 28 }}
                   >
                     {/* chairs top */}
-                    <div className="absolute left-0 right-0 top-0 flex justify-center gap-2">
+                    <div className="absolute left-0 right-0 top-0 flex justify-center gap-2 pointer-events-none">
                       {Array.from({ length: top }).map((_, i) => (
                         <span key={i} className="w-6 h-3 rounded-t-lg shadow-sm" style={{ background: theme.chair, border: `1px solid ${theme.border}` }} />
                       ))}
                     </div>
+
                     {/* table top */}
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(t.id)}
                       className={`absolute left-0 right-0 top-[14px] flex flex-col items-center justify-center text-center transition-all ${
                         t.round ? 'rounded-full' : 'rounded-2xl'
                       } ${isSel ? 'scale-[1.06]' : 'group-hover:scale-[1.03]'}`}
@@ -185,9 +260,25 @@ export default function TablesPlanPage({ params }: PageProps) {
                       <span className="text-[11px] font-bold text-slate-800 mt-0.5">
                         {t.total ?? (t.status === 'reserved' ? `${isIt ? 'Prenot.' : 'Réserv.'} ${t.reservation}` : isIt ? 'Libero' : 'Libre')}
                       </span>
-                    </div>
+                    </button>
+
+                    {/* Owner only delete badge */}
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTableToDelete(t);
+                        }}
+                        title={isIt ? `Elimina tavolo ${t.id}` : `Supprimer table ${t.id}`}
+                        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center shadow-md transition z-20 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+
                     {/* chairs bottom */}
-                    <div className="absolute left-0 right-0 bottom-0 flex justify-center gap-2">
+                    <div className="absolute left-0 right-0 bottom-0 flex justify-center gap-2 pointer-events-none">
                       {Array.from({ length: bottom }).map((_, i) => (
                         <span key={i} className="w-6 h-3 rounded-b-lg shadow-sm" style={{ background: theme.chair, border: `1px solid ${theme.border}` }} />
                       ))}
@@ -195,12 +286,12 @@ export default function TablesPlanPage({ params }: PageProps) {
 
                     {/* timer badge */}
                     {t.minutes && t.minutes > 20 && (
-                      <span className="absolute -top-1 -right-3 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-md bp-ring-urgent flex items-center gap-0.5">
+                      <span className="absolute -top-1 -right-3 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow-md bp-ring-urgent flex items-center gap-0.5 pointer-events-none">
                         <Clock className="w-2.5 h-2.5" />
                         {t.minutes} min
                       </span>
                     )}
-                  </button>
+                  </div>
                 );
               })}
 
@@ -220,12 +311,169 @@ export default function TablesPlanPage({ params }: PageProps) {
         {/* ============ Detail panel ============ */}
         <aside className="bp-card p-5 h-fit xl:sticky xl:top-4">
           {selected ? (
-            <TableDetail table={selected} isIt={isIt} locale={locale} onQr={() => setQrTable(selected)} />
+            <TableDetail
+              table={selected}
+              isIt={isIt}
+              locale={locale}
+              isOwner={isOwner}
+              onQr={() => setQrTable(selected)}
+              onDelete={(tbl) => setTableToDelete(tbl)}
+            />
           ) : (
             <p className="text-sm text-slate-400">{isIt ? 'Seleziona un tavolo' : 'Sélectionnez une table'}</p>
           )}
         </aside>
       </div>
+
+      {/* Owner Add Table Modal */}
+      {isAddModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setIsAddModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative bp-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-extrabold text-lg text-slate-900 mb-1">
+              🪑 {isIt ? 'Aggiungi tavolo' : 'Ajouter une table'}
+            </h3>
+            <p className="text-[12px] text-slate-500 mb-4">
+              {isIt ? 'Configura il tavolo nella piantina (Solo proprietario)' : 'Configurer la table sur le plan (Propriétaire uniquement)'}
+            </p>
+
+            <form onSubmit={handleAddTable} className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                  {isIt ? 'Identificativo / Sigla tavolo' : 'Numéro / Identifiant'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTableNumber}
+                  onChange={e => setNewTableNumber(e.target.value)}
+                  placeholder="es. T10"
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                  {isIt ? 'Area / Sala' : 'Zone'}
+                </label>
+                <select
+                  value={newTableArea}
+                  onChange={e => setNewTableArea(e.target.value as Area)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                >
+                  <option value="indoor">{isIt ? 'Interno (Sala Principale)' : 'Intérieur'}</option>
+                  <option value="outdoor">{isIt ? 'Terrazza / Dehors' : 'Terrasse'}</option>
+                  <option value="bar">Comptoir / Bancone</option>
+                  <option value="vip">Spazio VIP / Privé</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                  {isIt ? 'Posti a sedere (Capiènza)' : 'Places assises'}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  required
+                  value={newTableSeats}
+                  onChange={e => setNewTableSeats(parseInt(e.target.value, 10) || 2)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 h-11 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  {isIt ? 'Annulla' : 'Annuler'}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-11 bp-btn-primary text-[13px]"
+                >
+                  {isIt ? 'Crea tavolo' : 'Créer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Owner Delete Table Modal */}
+      {tableToDelete && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setTableToDelete(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative bp-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setTableToDelete(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-extrabold text-lg text-slate-900 text-center mb-1">
+              {isIt ? `Eliminare il tavolo ${tableToDelete.id}?` : `Supprimer la table ${tableToDelete.id} ?`}
+            </h3>
+            <p className="text-[12px] text-slate-500 text-center mb-4">
+              {isIt
+                ? 'Questa operazione è riservata esclusivamente al proprietario.'
+                : 'Cette opération est réservée exclusivement au propriétaire.'}
+            </p>
+
+            {(tableToDelete.status === 'occupied' || tableToDelete.status === 'bill' || tableToDelete.total) && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[12px] flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  {isIt
+                    ? 'Attenzione: questo tavolo ha un conto o comande aperte in sospeso!'
+                    : 'Attention : cette table a des consommations ou une addition en cours !'}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTableToDelete(null)}
+                className="flex-1 h-11 rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                {isIt ? 'Annulla' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTable}
+                className="flex-1 h-11 rounded-xl bg-rose-600 text-white font-semibold text-[13px] hover:bg-rose-700 transition"
+              >
+                {isIt ? 'Elimina' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR modal */}
       {qrTable && (
@@ -255,7 +503,21 @@ export default function TablesPlanPage({ params }: PageProps) {
   );
 }
 
-function TableDetail({ table, isIt, locale, onQr }: { table: FloorTable; isIt: boolean; locale: string; onQr: () => void }) {
+function TableDetail({
+  table,
+  isIt,
+  locale,
+  isOwner,
+  onQr,
+  onDelete,
+}: {
+  table: FloorTable;
+  isIt: boolean;
+  locale: string;
+  isOwner: boolean;
+  onQr: () => void;
+  onDelete: (table: FloorTable) => void;
+}) {
   const theme = STATUS_THEME[table.status];
   return (
     <div className="space-y-5">
@@ -316,6 +578,18 @@ function TableDetail({ table, isIt, locale, onQr }: { table: FloorTable; isIt: b
             <QrCode className="w-4 h-4" /> QR menu
           </button>
         </div>
+
+        {/* Solo il proprietario può eliminare il tavolo */}
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => onDelete(table)}
+            className="w-full h-10 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isIt ? 'Elimina tavolo' : 'Supprimer la table'}
+          </button>
+        )}
       </div>
     </div>
   );

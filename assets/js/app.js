@@ -654,9 +654,17 @@ function deductStockForOrder(order) {
 // Plan de salle / Floor Plan
 // --------------------------------------------------------------------------
 function renderFloorPlan() {
-  const tables = window.db.get("tables");
+  const tables = (window.db ? window.db.get("tables") : []) || [];
   const roomCanvas = document.getElementById("floorRoomCanvas");
   if (!roomCanvas) return;
+
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+
+  // Show/Hide Add Table Button only for Owner
+  const addTableBtn = document.getElementById("btnAddFloorTable");
+  if (addTableBtn) {
+    addTableBtn.style.display = isCurrentViewerOwner ? "inline-flex" : "none";
+  }
 
   const filtered = appState.floorFilter === "all"
     ? tables
@@ -670,8 +678,16 @@ function renderFloorPlan() {
     else if (t.status === "to_pay") statusText = window.i18n.t("statusToPay");
     else if (t.status === "reserved") statusText = window.i18n.t("statusReserved");
 
+    // Only Owner can see and use table deletion button
+    const deleteBtn = isCurrentViewerOwner ? `
+      <button type="button" class="table-node-delete-btn" onclick="event.stopPropagation(); openDeleteTableModal('${t.id}')" title="Elimina tavolo ${t.id}" aria-label="Elimina tavolo ${t.id}">
+        ✕
+      </button>
+    ` : "";
+
     return `
       <div class="table-node ${statusClass}" onclick="handleTableClick('${t.id}')">
+        ${deleteBtn}
         ${t.alert ? `<span class="table-node-alert">${t.alert}</span>` : ""}
         <span class="table-node-number">${t.id}</span>
         <span class="table-node-info">${t.capacity} ${window.i18n.t("occupants")} · ${statusText}</span>
@@ -696,6 +712,164 @@ function handleTableClick(tableId) {
   const selectEl = document.getElementById("orderTableSelect");
   if (selectEl) selectEl.value = appState.selectedTable;
   switchView("orders");
+}
+
+
+// --------------------------------------------------------------------------
+// Table Management (Solo Proprietario: Aggiunta e Cancellazione Tavoli)
+// --------------------------------------------------------------------------
+let tableIdPendingDelete = null;
+
+function openAddTableModal() {
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isCurrentViewerOwner) {
+    showToast("⚠️ Solo il proprietario può aggiungere nuovi tavoli.");
+    return;
+  }
+  const modal = document.getElementById("addTableModal");
+  if (!modal) return;
+  const inputId = document.getElementById("newTableId");
+  if (inputId) {
+    const tables = (window.db ? window.db.get("tables") : []) || [];
+    const tNums = tables
+      .map(t => parseInt(String(t.id).replace(/\D/g, ""), 10))
+      .filter(n => !isNaN(n));
+    const nextNum = tNums.length > 0 ? Math.max(...tNums) + 1 : 1;
+    inputId.value = `T${nextNum < 10 ? "0" + nextNum : nextNum}`;
+  }
+  modal.classList.add("active");
+}
+
+function closeAddTableModal() {
+  const modal = document.getElementById("addTableModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddTableSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isCurrentViewerOwner) {
+    showToast("⚠️ Azione negata: solo il proprietario può aggiungere tavoli.");
+    closeAddTableModal();
+    return;
+  }
+
+  const idInput = document.getElementById("newTableId");
+  const areaInput = document.getElementById("newTableArea");
+  const capacityInput = document.getElementById("newTableCapacity");
+
+  const rawId = (idInput ? idInput.value : "").trim();
+  if (!rawId) {
+    showToast("⚠️ Inserisci una sigla per il tavolo.");
+    return;
+  }
+
+  const tableId = rawId.toUpperCase();
+  const area = areaInput ? areaInput.value : "interno";
+  const capacity = capacityInput ? parseInt(capacityInput.value, 10) || 4 : 4;
+
+  const tables = (window.db ? window.db.get("tables") : []) || [];
+  if (tables.some(t => String(t.id).toUpperCase() === tableId)) {
+    showToast(`⚠️ Esiste già un tavolo con sigla ${tableId}.`);
+    return;
+  }
+
+  const newTable = {
+    id: tableId,
+    area: area,
+    capacity: capacity,
+    status: "free",
+    amount: 0,
+    time: 0,
+    orderId: null
+  };
+
+  tables.push(newTable);
+  window.db.set("tables", tables);
+
+  syncOrderTableSelect();
+  renderFloorPlan();
+  closeAddTableModal();
+  showToast(`✅ Tavolo ${tableId} aggiunto con successo!`);
+}
+
+function openDeleteTableModal(tableId) {
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isCurrentViewerOwner) {
+    showToast("⚠️ Solo il proprietario può eliminare i tavoli.");
+    return;
+  }
+
+  const tables = (window.db ? window.db.get("tables") : []) || [];
+  const target = tables.find(t => t.id === tableId);
+  if (!target) {
+    showToast("⚠️ Tavolo non trovato.");
+    return;
+  }
+
+  tableIdPendingDelete = tableId;
+
+  const targetIdEl = document.getElementById("deleteTableTargetId");
+  if (targetIdEl) {
+    targetIdEl.textContent = `${target.id} (${target.area}, ${target.capacity} pers.)`;
+  }
+
+  const warnEl = document.getElementById("deleteTableWarning");
+  if (warnEl) {
+    const hasActiveOrder = target.status === "occupied" || target.status === "to_pay" || (target.amount && target.amount > 0);
+    warnEl.style.display = hasActiveOrder ? "block" : "none";
+  }
+
+  const modal = document.getElementById("deleteTableModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeDeleteTableModal() {
+  tableIdPendingDelete = null;
+  const modal = document.getElementById("deleteTableModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteTableAction() {
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isCurrentViewerOwner) {
+    showToast("⚠️ Azione negata: solo il proprietario può eliminare tavoli.");
+    closeDeleteTableModal();
+    return;
+  }
+
+  if (!tableIdPendingDelete) {
+    closeDeleteTableModal();
+    return;
+  }
+
+  const tables = (window.db ? window.db.get("tables") : []) || [];
+  const updatedTables = tables.filter(t => t.id !== tableIdPendingDelete);
+  window.db.set("tables", updatedTables);
+
+  const deletedId = tableIdPendingDelete;
+  closeDeleteTableModal();
+  syncOrderTableSelect();
+  renderFloorPlan();
+  showToast(`🗑️ Tavolo ${deletedId} eliminato dalla sala.`);
+}
+
+function syncOrderTableSelect() {
+  const selectEl = document.getElementById("orderTableSelect");
+  if (!selectEl) return;
+  const tables = (window.db ? window.db.get("tables") : []) || [];
+  const currentVal = selectEl.value;
+
+  selectEl.innerHTML = tables.map(t => {
+    const cleanNum = String(t.id).replace(/^T0?/, "");
+    const label = `Tavolo ${cleanNum} (${t.area} · ${t.capacity} pers.)`;
+    const val = `Tavolo ${cleanNum.length === 1 ? '0' + cleanNum : cleanNum}`;
+    return `<option value="${val}">${label}</option>`;
+  }).join("");
+
+  if (currentVal && Array.from(selectEl.options).some(o => o.value === currentVal)) {
+    selectEl.value = currentVal;
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -861,6 +1035,7 @@ const ROLE_PERMISSIONS = {
     views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports", "subscriptions", "settings"],
     canAddProducts: true,
     canEditStaff: true,
+    canManageTables: true,
     defaultView: "dashboard",
     badgeClass: "badge-role-owner"
   },
@@ -868,6 +1043,7 @@ const ROLE_PERMISSIONS = {
     views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports"],
     canAddProducts: true,
     canEditStaff: false,
+    canManageTables: false,
     defaultView: "dashboard",
     badgeClass: "badge-role-manager"
   },
@@ -875,6 +1051,7 @@ const ROLE_PERMISSIONS = {
     views: ["orders", "floor", "kds"],
     canAddProducts: false,
     canEditStaff: false,
+    canManageTables: false,
     defaultView: "orders",
     badgeClass: "badge-role-waiter"
   },
@@ -882,6 +1059,7 @@ const ROLE_PERMISSIONS = {
     views: ["kds", "products", "orders"],
     canAddProducts: false,
     canEditStaff: false,
+    canManageTables: false,
     defaultView: "kds",
     badgeClass: "badge-role-barman"
   },
@@ -889,6 +1067,7 @@ const ROLE_PERMISSIONS = {
     views: ["orders", "floor", "dashboard"],
     canAddProducts: false,
     canEditStaff: false,
+    canManageTables: false,
     defaultView: "orders",
     badgeClass: "badge-role-cashier"
   }
@@ -971,6 +1150,12 @@ function applyActiveStaff(staff, doSwitchView = true) {
   const addProdBtn = document.getElementById("btnAddNewProduct");
   if (addProdBtn) {
     addProdBtn.style.display = perms.canAddProducts ? "inline-flex" : "none";
+  }
+
+  // 4b. Table Add & Delete Permission (Solo il proprietario può aggiungere o cancellare tavoli)
+  const addTableBtn = document.getElementById("btnAddFloorTable");
+  if (addTableBtn) {
+    addTableBtn.style.display = perms.canManageTables ? "inline-flex" : "none";
   }
 
   // 5. If doSwitchView is true or current view is not allowed for this role, automatically switch
@@ -2052,6 +2237,20 @@ function setupModals() {
     });
   }
 
+  const addTableModal = document.getElementById("addTableModal");
+  if (addTableModal) {
+    addTableModal.addEventListener("click", (e) => {
+      if (e.target === addTableModal) closeAddTableModal();
+    });
+  }
+
+  const deleteTableModal = document.getElementById("deleteTableModal");
+  if (deleteTableModal) {
+    deleteTableModal.addEventListener("click", (e) => {
+      if (e.target === deleteTableModal) closeDeleteTableModal();
+    });
+  }
+
   // Global Keyboard listener for Staff PIN keypad
   document.addEventListener("keydown", (e) => {
     const activePinModal = document.getElementById("staffPinModal");
@@ -3057,3 +3256,11 @@ function saveFacebookAppIdSetting() {
 }
 
 
+
+window.openAddTableModal = openAddTableModal;
+window.closeAddTableModal = closeAddTableModal;
+window.handleAddTableSubmit = handleAddTableSubmit;
+window.openDeleteTableModal = openDeleteTableModal;
+window.closeDeleteTableModal = closeDeleteTableModal;
+window.confirmDeleteTableAction = confirmDeleteTableAction;
+window.syncOrderTableSelect = syncOrderTableSelect;
