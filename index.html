@@ -1607,60 +1607,198 @@
     </div>
   </div>
 
-  <!-- Add Product Modal (Exclusive to Proprietario) -->
+  <!-- Add / Edit Product Modal (Exclusive to Proprietario) -->
   <div class="modal-overlay" id="addProductModal">
-    <div class="modal-box" style="max-width:480px; width:92%;">
+    <div class="modal-box" style="max-width:560px; width:92%; max-height:92vh; overflow-y:auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <div>
-          <h3 style="font-size:18px; font-weight:800;">☕ Nuovo Prodotto Bar</h3>
-          <p style="font-size:12px; color:var(--text-muted);">Aggiungi una nuova bevanda o cocktail al catalogo</p>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;" id="productModalTitle">
+            <span>☕</span> <span>Nuovo Prodotto Bar</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="productModalSubtitle">Aggiungi una nuova bevanda o cocktail con foto e opzioni (Solo Proprietario)</p>
         </div>
         <button class="modal-close-icon-btn" onclick="closeAddProductModal()" aria-label="Chiudi finestra">✕</button>
       </div>
 
       <form id="addProductForm" onsubmit="handleAddProductSubmit(event)">
-        <div class="form-group">
-          <label class="form-label">Nome Prodotto</label>
-          <input type="text" class="form-input" id="newProdName" placeholder="Es: Spritz Hugo, Caffè Macchiato" required>
+        <input type="hidden" id="editProductId" value="">
+
+        <!-- Product Photo Uploader Section -->
+        <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px; margin-bottom:16px;">
+          <label class="form-label" style="margin-bottom:8px; font-weight:800; display:flex; align-items:center; gap:6px;">
+            <span>📸</span> <span>Foto del Prodotto</span>
+          </label>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="position:relative; width:84px; height:84px; border-radius:14px; overflow:hidden; border:2px solid var(--primary); background:var(--bg-card); flex-shrink:0; box-shadow:0 4px 12px rgba(255,122,0,0.2);">
+              <img id="productImagePreview" src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" style="width:100%; height:100%; object-fit:cover;" alt="Anteprima Prodotto">
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <label class="btn-primary" style="font-size:11.5px; padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                  📷 Carica dal dispositivo
+                  <input type="file" id="productFileInput" accept="image/*" style="display:none;" onchange="handleProductFileUpload(event)">
+                </label>
+                <button type="button" class="btn-secondary" style="font-size:11.5px; padding:7px 12px;" onclick="toggleProductPresets()">
+                  🖼️ Preset foto
+                </button>
+              </div>
+              <input type="url" class="form-input" id="newProdImage" placeholder="Oppure incolla URL foto (https://...)" value="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" oninput="updateProductImagePreview(this.value)" style="font-size:11px; padding:6px 10px;">
+            </div>
+          </div>
+
+          <!-- Collapsible Photo Preset Grid -->
+          <div id="productPresetContainer" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-color);">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">Scegli una foto rapida dal catalogo bar:</div>
+            <div class="product-preset-grid" id="productPresetGrid">
+              <!-- Dynamically populated presets -->
+            </div>
+          </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <!-- Main Product Information -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Nome Prodotto</label>
+          <input type="text" class="form-input" id="newProdName" placeholder="Es: Spritz Hugo, Caffè Macchiato, Birra IPA" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
           <div class="form-group">
             <label class="form-label">Categoria</label>
-            <select class="form-input" id="newProdCategory">
-              <option value="cocktails">Cocktails</option>
-              <option value="coffee">Caffè & Colazione</option>
-              <option value="drinks">Bevande & Birre</option>
-              <option value="food">Snack & Food</option>
+            <select class="form-input" id="newProdCategory" style="background:var(--bg-card); cursor:pointer;">
+              <option value="coffee">☕ Caffè & Colazione</option>
+              <option value="cocktails">🍹 Cocktails & Long Drinks</option>
+              <option value="drinks">🍺 Bevande & Birre</option>
+              <option value="food">🥪 Snack & Food</option>
+              <option value="wine">🍷 Vini & Bollicine</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Prezzo di vendita (€)</label>
-            <input type="number" step="0.10" class="form-input" id="newProdPrice" placeholder="5.50" required>
+            <input type="number" step="0.10" min="0.10" class="form-input" id="newProdPrice" placeholder="5.50" required oninput="recalcProductMargin()">
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
           <div class="form-group">
-            <label class="form-label">Costo ingredienti (€)</label>
-            <input type="number" step="0.10" class="form-input" id="newProdCost" placeholder="1.20" required>
+            <label class="form-label">Costo stimato / Ingredienti (€)</label>
+            <input type="number" step="0.10" min="0" class="form-input" id="newProdCost" placeholder="1.20" required oninput="recalcProductMargin()">
           </div>
           <div class="form-group">
-            <label class="form-label">Dose / Ricetta base</label>
-            <input type="text" class="form-input" id="newProdRecipe" placeholder="Es: 6cl Prosecco, 4cl Sambuco">
+            <label class="form-label">Margine stimato</label>
+            <div style="height:38px; display:flex; align-items:center;">
+              <span id="newProdMarginBadge" style="background:rgba(34,197,94,0.15); color:#22C55E; border:1px solid rgba(34,197,94,0.3); font-weight:800; padding:5px 12px; border-radius:8px; font-size:13px;">
+                Margine: 78%
+              </span>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">URL Foto Prodotto</label>
-          <input type="url" class="form-input" id="newProdImage" placeholder="https://..." value="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop">
+        <!-- Altre Opzioni: Fiscale, KDS, Disponibilità -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group">
+            <label class="form-label">Aliquota IVA</label>
+            <select class="form-input" id="newProdVat" style="background:var(--bg-card); cursor:pointer;">
+              <option value="10">10% (Bar standard)</option>
+              <option value="22">22% (Alcolici/Asporto)</option>
+              <option value="4">4% (Prima necessità)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Postazione KDS</label>
+            <select class="form-input" id="newProdStation" style="background:var(--bg-card); cursor:pointer;">
+              <option value="comptoir">🍸 Comptoir / Bar</option>
+              <option value="coffee">☕ Macchina Caffè</option>
+              <option value="kitchen">🍳 Cucina / Snack</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stato Iniziale</label>
+            <select class="form-input" id="newProdStatus" style="background:var(--bg-card); cursor:pointer;">
+              <option value="active">🟢 Disponibile</option>
+              <option value="out_of_stock">🔴 Esaurito</option>
+            </select>
+          </div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:20px;">
+        <!-- Allergeni & Tag nutrizionali -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" style="margin-bottom:6px;">Allergeni & Opzioni dietetiche</label>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <label class="allergen-pill-checkbox" id="lblAllergenGluten">
+              <input type="checkbox" name="productAllergens" value="glutine" onchange="toggleAllergenClass(this)">
+              <span>🌾 Glutine</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenLactose">
+              <input type="checkbox" name="productAllergens" value="lattosio" onchange="toggleAllergenClass(this)">
+              <span>🥛 Lattosio</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenNuts">
+              <input type="checkbox" name="productAllergens" value="frutta_guscio" onchange="toggleAllergenClass(this)">
+              <span>🥜 Frutta guscio</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenAlcohol">
+              <input type="checkbox" name="productAllergens" value="alcol" onchange="toggleAllergenClass(this)">
+              <span>🍷 Alcolico</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenVegan">
+              <input type="checkbox" name="productAllergens" value="vegano" onchange="toggleAllergenClass(this)">
+              <span>🌱 Vegano</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenBio">
+              <input type="checkbox" name="productAllergens" value="bio" onchange="toggleAllergenClass(this)">
+              <span>🌿 Bio</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Descrizione & Ricetta -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Descrizione / Note per il Menu</label>
+          <input type="text" class="form-input" id="newProdDesc" placeholder="Es: Miscela artigianale, servito con fetta d'arancia o decorazione">
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Dose / Ricetta base (per il Barman)</label>
+          <input type="text" class="form-input" id="newProdRecipe" placeholder="Es: 6cl Prosecco, 4cl Aperol, 2cl Soda, ghiaccio">
+        </div>
+
+        <div style="display:flex; gap:10px;">
           <button type="button" class="btn-secondary" onclick="closeAddProductModal()" style="flex:1; padding:11px;">Annulla</button>
-          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">+ Salva nel Catalogo</button>
+          <button type="submit" class="btn-primary" id="productModalSubmitBtn" style="flex:1; padding:11px;">+ Salva nel Catalogo</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Delete Product Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteProductModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span>Elimina Prodotto</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteProductModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color); display:flex; align-items:center; gap:14px;">
+        <img id="deleteProductThumb" src="" style="width:52px; height:52px; border-radius:10px; object-fit:cover; border:1px solid var(--border-color);" alt="Prodotto">
+        <div>
+          <div style="font-size:14px; font-weight:800; color:var(--text-main);" id="deleteProductName">Nome Prodotto</div>
+          <div style="font-size:12px; color:var(--text-muted);" id="deleteProductInfo">Categoria · 0.00 €</div>
+        </div>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px; line-height:1.45;">
+        Sei sicuro di voler eliminare questo prodotto dal catalogo del bar? Non sarà più visibile nel catalogo comande del personale.
+      </p>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteProductModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-danger" onclick="confirmDeleteProductAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
+      </div>
     </div>
   </div>
 

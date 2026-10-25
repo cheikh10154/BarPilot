@@ -27,15 +27,17 @@ export function getProductVisual(name: string) {
 
 interface Props {
   name: string;
+  image?: string;
   size?: number; // px
   rounded?: string; // tailwind radius class
   className?: string;
 }
 
-export function ProductThumb({ name, size = 40, rounded = 'rounded-xl', className = '' }: Props) {
+export function ProductThumb({ name, image, size = 40, rounded = 'rounded-xl', className = '' }: Props) {
   const visual = getProductVisual(name);
   const [failed, setFailed] = useState(false);
-  const showPhoto = visual.src && !failed;
+  const photoSrc = image || visual.src;
+  const showPhoto = photoSrc && !failed;
 
   return (
     <div
@@ -45,7 +47,7 @@ export function ProductThumb({ name, size = 40, rounded = 'rounded-xl', classNam
       {showPhoto ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={visual.src}
+          src={photoSrc}
           alt={name}
           loading="lazy"
           onError={() => setFailed(true)}

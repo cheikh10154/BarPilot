@@ -941,30 +941,73 @@ function changeOrderStatus(orderId, newStatus) {
 // Products & Inventory Catalog
 // --------------------------------------------------------------------------
 function renderProducts() {
-  const products = window.db.get("products");
+  const products = (window.db ? window.db.get("products") : []) || [];
   const tbody = document.getElementById("productsTableBody");
   if (!tbody) return;
 
-  tbody.innerHTML = products.map(p => `
-    <tr>
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+
+  tbody.innerHTML = products.map(p => {
+    const costVal = (p.cost !== undefined && p.cost !== null) ? Number(p.cost) : 0;
+    const priceVal = (p.price !== undefined && p.price !== null) ? Number(p.price) : 0;
+    const marginPct = priceVal > 0 ? Math.round((1 - (costVal / priceVal)) * 100) : 0;
+    const isOutOfStock = p.status === "out_of_stock";
+    const statusText = isOutOfStock ? "Esaurito" : (window.i18n ? window.i18n.t("statusActive") : "Attivo");
+    const statusBadgeClass = isOutOfStock ? "badge-alert" : "badge-served";
+
+    // Format allergens pills
+    const allergens = Array.isArray(p.allergens) ? p.allergens : [];
+    const allergenIcons = [];
+    if (allergens.includes("glutine")) allergenIcons.push("🌾 Glutine");
+    if (allergens.includes("lattosio")) allergenIcons.push("🥛 Lattosio");
+    if (allergens.includes("alcol")) allergenIcons.push("🍷 Alcol");
+    if (allergens.includes("vegano")) allergenIcons.push("🌱 Vegan");
+
+    const vatBadge = p.vat ? `<span style="font-size:9.5px; background:var(--bg-card-secondary); padding:1px 5px; border-radius:4px; color:var(--text-muted); border:1px solid var(--border-color);">IVA ${p.vat}%</span>` : "";
+    const stationBadge = p.station === "kitchen" ? "🍳 Cucina" : p.station === "coffee" ? "☕ Caffè" : "🍸 Bar";
+
+    return `
+    <tr style="${isOutOfStock ? 'opacity:0.75;' : ''}">
       <td>
         <div class="product-row-flex">
-          <img src="${p.image}" class="product-thumb-sm" alt="${p.name}">
+          <img src="${p.image || ''}" class="product-thumb-sm" style="width:40px; height:40px; border-radius:10px; object-fit:cover;" alt="${p.name}">
           <div>
-            <div style="font-weight:700;">${p.name}</div>
-            <div style="font-size:11px; color:var(--text-muted); text-transform:capitalize;">${p.category}</div>
+            <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>${p.name}</span>
+              ${vatBadge}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+              <span style="text-transform:capitalize;">${p.category}</span>
+              <span>·</span>
+              <span>${stationBadge}</span>
+              ${allergenIcons.length > 0 ? `<span style="color:var(--primary); font-size:10px;">(${allergenIcons.join(', ')})</span>` : ''}
+            </div>
           </div>
         </div>
       </td>
-      <td style="font-weight:700;">${p.price.toFixed(2)} €</td>
-      <td style="color:var(--text-muted);">${p.cost.toFixed(2)} €</td>
-      <td style="font-weight:700; color:var(--status-free);">${((1 - (p.cost / p.price)) * 100).toFixed(0)}%</td>
-      <td><span class="table-badge badge-served">${window.i18n.t("statusActive")}</span></td>
+      <td style="font-weight:800; font-size:13.5px;">${priceVal.toFixed(2)} €</td>
+      <td style="color:var(--text-muted); font-size:12px;">${costVal.toFixed(2)} €</td>
+      <td style="font-weight:800; color:${marginPct >= 65 ? 'var(--status-free)' : 'var(--primary)'}; font-size:12.5px;">
+        ${marginPct}%
+      </td>
       <td>
-        <button class="ctrl-btn" onclick="alert('Modifica ${p.name}')">${window.i18n.t("edit")}</button>
+        ${isCurrentViewerOwner
+          ? `<button type="button" class="table-badge ${statusBadgeClass}" onclick="toggleProductAvailabilityStatus(${p.id})" style="cursor:pointer; border:none;" title="Clicca per cambiare disponibilità">${statusText}</button>`
+          : `<span class="table-badge ${statusBadgeClass}">${statusText}</span>`
+        }
+      </td>
+      <td>
+        ${isCurrentViewerOwner
+          ? `<div style="display:flex; align-items:center; gap:6px;">
+               <button class="ctrl-btn" onclick="openEditProductModal(${p.id})" title="Modifica dati, foto e opzioni del prodotto">✏️ Modifica</button>
+               <button class="ctrl-btn ctrl-btn-danger" onclick="openDeleteProductModal(${p.id})" title="Elimina definitivamente dal bar">🗑️ Elimina</button>
+             </div>`
+          : `<span style="font-size:11px; color:var(--text-muted);">Solo visualizzazione</span>`
+        }
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderInventory() {
@@ -1041,7 +1084,7 @@ const ROLE_PERMISSIONS = {
   },
   Manager: {
     views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports"],
-    canAddProducts: true,
+    canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
     defaultView: "dashboard",
@@ -1405,13 +1448,232 @@ function verifyEnteredPin() {
 // --------------------------------------------------------------------------
 // Products & Staff Creation Modals
 // --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// Product Management (Solo Proprietario: Foto, Opzioni, Modifica, Cancellazione)
+// --------------------------------------------------------------------------
+const PRODUCT_PHOTO_PRESETS = [
+  { name: "Espresso", url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" },
+  { name: "Cappuccino", url: "https://images.unsplash.com/photo-1534778101976-62847782c213?w=300&h=300&fit=crop" },
+  { name: "Spritz Aperol", url: "https://images.unsplash.com/photo-1560512823-829485b8bf24?w=300&h=300&fit=crop" },
+  { name: "Birra Bionda", url: "https://images.unsplash.com/photo-1608270118029-79a613620e23?w=300&h=300&fit=crop" },
+  { name: "Calice Vino", url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=300&fit=crop" },
+  { name: "Gin Tonic", url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop" },
+  { name: "Croissant", url: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&h=300&fit=crop" },
+  { name: "Toast / Panino", url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=300&h=300&fit=crop" },
+  { name: "Succo / Bibita", url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=300&h=300&fit=crop" },
+  { name: "Tè Freddo", url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&h=300&fit=crop" }
+];
+
+let productIdPendingDelete = null;
+
+function renderProductPresetGrid() {
+  const grid = document.getElementById("productPresetGrid");
+  if (!grid) return;
+  const currentImg = document.getElementById("newProdImage")?.value;
+  grid.innerHTML = PRODUCT_PHOTO_PRESETS.map(preset => `
+    <img src="${preset.url}" 
+         class="product-preset-thumb ${currentImg === preset.url ? 'selected' : ''}" 
+         title="${preset.name}" 
+         alt="${preset.name}" 
+         onclick="selectProductPreset('${preset.url}', this)">
+  `).join("");
+}
+
+function toggleProductPresets() {
+  const container = document.getElementById("productPresetContainer");
+  if (!container) return;
+  const isHidden = container.style.display === "none";
+  container.style.display = isHidden ? "block" : "none";
+  if (isHidden) renderProductPresetGrid();
+}
+
+function selectProductPreset(url, element) {
+  const preview = document.getElementById("productImagePreview");
+  const input = document.getElementById("newProdImage");
+  if (preview) preview.src = url;
+  if (input) input.value = url;
+  document.querySelectorAll(".product-preset-thumb").forEach(t => t.classList.remove("selected"));
+  if (element) element.classList.add("selected");
+}
+
+function updateProductImagePreview(url) {
+  const preview = document.getElementById("productImagePreview");
+  if (preview && url) {
+    preview.src = url;
+  }
+}
+
+function handleProductFileUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const preview = document.getElementById("productImagePreview");
+    const input = document.getElementById("newProdImage");
+    if (preview) preview.src = dataUrl;
+    if (input) input.value = dataUrl;
+    document.querySelectorAll(".product-preset-thumb").forEach(t => t.classList.remove("selected"));
+  };
+  reader.readAsDataURL(file);
+}
+
+function recalcProductMargin() {
+  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 0;
+  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 0;
+  const badge = document.getElementById("newProdMarginBadge");
+  if (!badge) return;
+
+  if (price > 0) {
+    const margin = Math.round((1 - (cost / price)) * 100);
+    badge.textContent = `Margine: ${margin}%`;
+    if (margin >= 65) {
+      badge.style.background = "rgba(34,197,94,0.15)";
+      badge.style.color = "#22C55E";
+      badge.style.borderColor = "rgba(34,197,94,0.3)";
+    } else if (margin >= 40) {
+      badge.style.background = "rgba(255,122,0,0.15)";
+      badge.style.color = "var(--primary)";
+      badge.style.borderColor = "rgba(255,122,0,0.3)";
+    } else {
+      badge.style.background = "rgba(239,68,68,0.15)";
+      badge.style.color = "#EF4444";
+      badge.style.borderColor = "rgba(239,68,68,0.3)";
+    }
+  } else {
+    badge.textContent = "Margine: 0%";
+  }
+}
+
+function toggleAllergenClass(checkbox) {
+  const label = checkbox.closest(".allergen-pill-checkbox");
+  if (label) {
+    label.classList.toggle("active", checkbox.checked);
+  }
+}
+
 function openAddProductModal() {
-  if (currentStaff && currentStaff.role !== "Proprietario" && currentStaff.role !== "Manager") {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
     showToast("⚠️ Solo il Proprietario può aggiungere nuovi prodotti al bar.");
     return;
   }
+
   const modal = document.getElementById("addProductModal");
-  if (modal) modal.classList.add("active");
+  if (!modal) return;
+
+  // Set mode to ADD
+  const editIdEl = document.getElementById("editProductId");
+  if (editIdEl) editIdEl.value = "";
+  const titleEl = document.getElementById("productModalTitle");
+  if (titleEl) titleEl.innerHTML = "<span>☕</span> <span>Nuovo Prodotto Bar</span>";
+  const subEl = document.getElementById("productModalSubtitle");
+  if (subEl) subEl.textContent = "Aggiungi una nuova bevanda o cocktail con foto e opzioni (Solo Proprietario)";
+  const btnEl = document.getElementById("productModalSubmitBtn");
+  if (btnEl) btnEl.textContent = "+ Salva nel Catalogo";
+
+  // Reset inputs
+  const nameEl = document.getElementById("newProdName");
+  if (nameEl) nameEl.value = "";
+  const catEl = document.getElementById("newProdCategory");
+  if (catEl) catEl.value = "coffee";
+  const priceEl = document.getElementById("newProdPrice");
+  if (priceEl) priceEl.value = "";
+  const costEl = document.getElementById("newProdCost");
+  if (costEl) costEl.value = "";
+  const vatEl = document.getElementById("newProdVat");
+  if (vatEl) vatEl.value = "10";
+  const stationEl = document.getElementById("newProdStation");
+  if (stationEl) stationEl.value = "comptoir";
+  const statusEl = document.getElementById("newProdStatus");
+  if (statusEl) statusEl.value = "active";
+  const descEl = document.getElementById("newProdDesc");
+  if (descEl) descEl.value = "";
+  const recipeEl = document.getElementById("newProdRecipe");
+  if (recipeEl) recipeEl.value = "";
+
+  const defaultImg = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
+  const prevEl = document.getElementById("productImagePreview");
+  if (prevEl) prevEl.src = defaultImg;
+  const imgInput = document.getElementById("newProdImage");
+  if (imgInput) imgInput.value = defaultImg;
+
+  document.querySelectorAll('input[name="productAllergens"]').forEach(cb => {
+    cb.checked = false;
+    toggleAllergenClass(cb);
+  });
+
+  const presetContainer = document.getElementById("productPresetContainer");
+  if (presetContainer) presetContainer.style.display = "none";
+
+  recalcProductMargin();
+  modal.classList.add("active");
+}
+
+function openEditProductModal(productId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può modificare i prodotti.");
+    return;
+  }
+
+  const products = (window.db ? window.db.get("products") : []) || [];
+  const p = products.find(item => item.id == productId);
+  if (!p) {
+    showToast("⚠️ Prodotto non trovato.");
+    return;
+  }
+
+  const modal = document.getElementById("addProductModal");
+  if (!modal) return;
+
+  // Set mode to EDIT
+  const editIdEl = document.getElementById("editProductId");
+  if (editIdEl) editIdEl.value = p.id;
+  const titleEl = document.getElementById("productModalTitle");
+  if (titleEl) titleEl.innerHTML = `<span>✏️</span> <span>Modifica ${p.name}</span>`;
+  const subEl = document.getElementById("productModalSubtitle");
+  if (subEl) subEl.textContent = "Aggiorna foto, prezzi, ricetta e opzioni di questo prodotto";
+  const btnEl = document.getElementById("productModalSubmitBtn");
+  if (btnEl) btnEl.textContent = "💾 Salva Modifiche";
+
+  // Fill inputs
+  const nameEl = document.getElementById("newProdName");
+  if (nameEl) nameEl.value = p.name || "";
+  const catEl = document.getElementById("newProdCategory");
+  if (catEl) catEl.value = p.category || "coffee";
+  const priceEl = document.getElementById("newProdPrice");
+  if (priceEl) priceEl.value = p.price !== undefined ? p.price : "";
+  const costEl = document.getElementById("newProdCost");
+  if (costEl) costEl.value = p.cost !== undefined ? p.cost : "";
+  const vatEl = document.getElementById("newProdVat");
+  if (vatEl) vatEl.value = p.vat || "10";
+  const stationEl = document.getElementById("newProdStation");
+  if (stationEl) stationEl.value = p.station || "comptoir";
+  const statusEl = document.getElementById("newProdStatus");
+  if (statusEl) statusEl.value = p.status || "active";
+  const descEl = document.getElementById("newProdDesc");
+  if (descEl) descEl.value = p.description || "";
+  const recipeEl = document.getElementById("newProdRecipe");
+  if (recipeEl) recipeEl.value = p.recipeText || "";
+
+  const img = p.image || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
+  const prevEl = document.getElementById("productImagePreview");
+  if (prevEl) prevEl.src = img;
+  const imgInput = document.getElementById("newProdImage");
+  if (imgInput) imgInput.value = img;
+
+  const allergens = Array.isArray(p.allergens) ? p.allergens : [];
+  document.querySelectorAll('input[name="productAllergens"]').forEach(cb => {
+    cb.checked = allergens.includes(cb.value);
+    toggleAllergenClass(cb);
+  });
+
+  const presetContainer = document.getElementById("productPresetContainer");
+  if (presetContainer) presetContainer.style.display = "none";
+
+  recalcProductMargin();
+  modal.classList.add("active");
 }
 
 function closeAddProductModal() {
@@ -1420,39 +1682,162 @@ function closeAddProductModal() {
 }
 
 function handleAddProductSubmit(e) {
-  e.preventDefault();
-  if (currentStaff && currentStaff.role !== "Proprietario" && currentStaff.role !== "Manager") {
-    showToast("⚠️ Solo il Proprietario può aggiungere nuovi prodotti al bar.");
+  if (e && e.preventDefault) e.preventDefault();
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può gestire i prodotti.");
+    closeAddProductModal();
     return;
   }
 
+  const editId = document.getElementById("editProductId")?.value;
   const name = document.getElementById("newProdName")?.value.trim();
-  const category = document.getElementById("newProdCategory")?.value || "cocktails";
-  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 5.00;
-  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 1.20;
-  const image = document.getElementById("newProdImage")?.value || "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop";
+  const category = document.getElementById("newProdCategory")?.value || "coffee";
+  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 0;
+  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 0;
+  const vat = document.getElementById("newProdVat")?.value || "10";
+  const station = document.getElementById("newProdStation")?.value || "comptoir";
+  const status = document.getElementById("newProdStatus")?.value || "active";
+  const image = document.getElementById("newProdImage")?.value || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
+  const description = document.getElementById("newProdDesc")?.value.trim() || "";
+  const recipeText = document.getElementById("newProdRecipe")?.value.trim() || "";
 
-  if (!name) return;
+  // Collect checked allergens
+  const allergens = [];
+  document.querySelectorAll('input[name="productAllergens"]:checked').forEach(cb => {
+    allergens.push(cb.value);
+  });
 
-  const products = window.db.get("products") || [];
-  const newProduct = {
-    id: Date.now(),
-    name: name,
-    category: category,
-    price: price,
-    cost: cost,
-    image: image
-  };
+  if (!name) {
+    showToast("⚠️ Inserisci il nome del prodotto.");
+    return;
+  }
+  if (price <= 0) {
+    showToast("⚠️ Inserisci un prezzo di vendita valido.");
+    return;
+  }
 
-  products.push(newProduct);
-  window.db.set("products", products);
+  const products = (window.db ? window.db.get("products") : []) || [];
+
+  if (editId) {
+    // Update existing product
+    const idx = products.findIndex(p => p.id == editId);
+    if (idx !== -1) {
+      products[idx] = {
+        ...products[idx],
+        name,
+        category,
+        price,
+        cost,
+        vat,
+        station,
+        status,
+        image,
+        description,
+        recipeText,
+        allergens
+      };
+      window.db.set("products", products);
+      showToast(`✅ Prodotto "${name}" aggiornato con successo!`);
+    }
+  } else {
+    // Create new product
+    const newProduct = {
+      id: Date.now(),
+      name,
+      category,
+      price,
+      cost,
+      vat,
+      station,
+      status,
+      image,
+      description,
+      recipeText,
+      allergens,
+      salesCount: 0
+    };
+    products.push(newProduct);
+    window.db.set("products", products);
+    showToast(`✅ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
+  }
 
   renderProducts();
   renderOrderCatalog();
   closeAddProductModal();
+}
 
-  document.getElementById("addProductForm")?.reset();
-  showToast(`✨ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
+function openDeleteProductModal(productId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può eliminare prodotti.");
+    return;
+  }
+
+  const products = (window.db ? window.db.get("products") : []) || [];
+  const p = products.find(item => item.id == productId);
+  if (!p) return;
+
+  productIdPendingDelete = productId;
+  const nameEl = document.getElementById("deleteProductName");
+  if (nameEl) nameEl.textContent = p.name;
+  const infoEl = document.getElementById("deleteProductInfo");
+  if (infoEl) infoEl.textContent = `${p.category} · ${p.price.toFixed(2)} €`;
+  const thumbEl = document.getElementById("deleteProductThumb");
+  if (thumbEl) thumbEl.src = p.image || "";
+
+  const modal = document.getElementById("deleteProductModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeDeleteProductModal() {
+  productIdPendingDelete = null;
+  const modal = document.getElementById("deleteProductModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteProductAction() {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Azione negata: solo il Proprietario può eliminare prodotti.");
+    closeDeleteProductModal();
+    return;
+  }
+
+  if (!productIdPendingDelete) {
+    closeDeleteProductModal();
+    return;
+  }
+
+  const products = (window.db ? window.db.get("products") : []) || [];
+  const target = products.find(p => p.id == productIdPendingDelete);
+  const updated = products.filter(p => p.id != productIdPendingDelete);
+  window.db.set("products", updated);
+
+  const deletedName = target ? target.name : "Prodotto";
+  closeDeleteProductModal();
+  renderProducts();
+  renderOrderCatalog();
+  showToast(`🗑️ Prodotto "${deletedName}" eliminato dal catalogo.`);
+}
+
+function toggleProductAvailabilityStatus(productId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può modificare la disponibilità del prodotto.");
+    return;
+  }
+
+  const products = (window.db ? window.db.get("products") : []) || [];
+  const p = products.find(item => item.id == productId);
+  if (!p) return;
+
+  p.status = p.status === "out_of_stock" ? "active" : "out_of_stock";
+  window.db.set("products", products);
+
+  renderProducts();
+  renderOrderCatalog();
+  showToast(`${p.status === "active" ? '🟢' : '🔴'} "${p.name}" impostato come ${p.status === "active" ? 'Disponibile' : 'Esaurito'}.`);
 }
 
 function openAddStaffModal() {
@@ -2244,6 +2629,12 @@ function setupModals() {
     });
   }
 
+  const deleteProdModal = document.getElementById("deleteProductModal");
+  if (deleteProdModal) {
+    deleteProdModal.addEventListener("click", (e) => {
+      if (e.target === deleteProdModal) closeDeleteProductModal();
+    });
+  }
   const deleteTableModal = document.getElementById("deleteTableModal");
   if (deleteTableModal) {
     deleteTableModal.addEventListener("click", (e) => {
@@ -3264,3 +3655,18 @@ window.openDeleteTableModal = openDeleteTableModal;
 window.closeDeleteTableModal = closeDeleteTableModal;
 window.confirmDeleteTableAction = confirmDeleteTableAction;
 window.syncOrderTableSelect = syncOrderTableSelect;
+
+window.openAddProductModal = openAddProductModal;
+window.openEditProductModal = openEditProductModal;
+window.closeAddProductModal = closeAddProductModal;
+window.handleAddProductSubmit = handleAddProductSubmit;
+window.openDeleteProductModal = openDeleteProductModal;
+window.closeDeleteProductModal = closeDeleteProductModal;
+window.confirmDeleteProductAction = confirmDeleteProductAction;
+window.toggleProductAvailabilityStatus = toggleProductAvailabilityStatus;
+window.handleProductFileUpload = handleProductFileUpload;
+window.toggleProductPresets = toggleProductPresets;
+window.selectProductPreset = selectProductPreset;
+window.updateProductImagePreview = updateProductImagePreview;
+window.recalcProductMargin = recalcProductMargin;
+window.toggleAllergenClass = toggleAllergenClass;

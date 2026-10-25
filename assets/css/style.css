@@ -3405,3 +3405,58 @@ input:checked + .toggle-slider:before {
 
 
 
+
+/* Product Photo Presets and Allergen Pills */
+.product-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.product-preset-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.product-preset-thumb:hover {
+  transform: scale(1.08);
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px rgba(255, 122, 0, 0.3);
+}
+
+.product-preset-thumb.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.allergen-pill-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  font-size: 11.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.allergen-pill-checkbox input {
+  display: none;
+}
+
+.allergen-pill-checkbox.active {
+  background: rgba(255, 122, 0, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+}
