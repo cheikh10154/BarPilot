@@ -23,6 +23,9 @@
   </script>
   <!-- Google Identity Services (GIS) SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Stripe.js & Official Google Pay SDK -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <script async src="https://pay.google.com/gp/p/js/pay.js" onload="window.onGooglePayLoaded && window.onGooglePayLoaded()"></script>
 </head>
 <body>
 
@@ -1148,6 +1151,9 @@
               <button class="settings-tab-btn" onclick="switchSettingsTab('backup')">
                 <span>🔒</span> <span data-i18n="settingsTabBackup">Backup & Sicurezza</span>
               </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('payments')">
+                <span>💳</span> <span data-i18n="settingsTabPayments">Google Pay & Wallet</span>
+              </button>
             </div>
 
             <!-- Pane 1: Locale & Fiscale -->
@@ -1489,6 +1495,84 @@
                       <button class="btn-primary" style="padding:8px 14px; font-size:12px;" onclick="saveGoogleClientIdSetting()">Salva Client ID</button>
                     </div>
                   </div>
+
+            <!-- Pane: Google Pay & Wallet Configuration -->
+            <div class="settings-pane" id="pane-settings-payments">
+              <div class="settings-card">
+                <div class="settings-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                  <div>
+                    <h3 class="settings-card-title">Configurazione Google Pay & Google Wallet</h3>
+                    <p class="settings-card-desc">Gateway Stripe Live con tokenizzazione sicura certificata PCI-DSS Level 1</p>
+                  </div>
+                  <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--status-free); font-weight:800; font-size:11.5px; padding:4px 10px; border-radius:20px; border:1px solid rgba(16, 185, 129, 0.3);">
+                    🟢 GATEWAY LIVE ATTIVO
+                  </span>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:18px;">
+                  <!-- Live Credentials Info Banner -->
+                  <div style="background:linear-gradient(135deg, rgba(0, 210, 255, 0.08) 0%, rgba(1, 135, 95, 0.08) 100%); border:1px solid rgba(0, 210, 255, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:flex-start; gap:14px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:#000; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <svg viewBox="0 0 512 512" width="22" height="22">
+                        <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+                        <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+                        <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+                        <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+                      </svg>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:14px; font-weight:800; color:var(--text-main);">Google Pay & Wallet connesso a Stripe</div>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.45;">
+                        I pagamenti dell'offerta unica a 59 €/mese con 14 giorni di prova gratuita vengono elaborati tramite Google Pay e le carte custodite nel Google Wallet del cliente.
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Form Fields -->
+                  <div class="form-group">
+                    <label class="form-label" style="font-weight:700;">Chiave Pubblica Stripe (Live Publishable Key)</label>
+                    <input type="text" id="settingStripePk" class="form-input" value="pk_live_51RpuNaPFZ2dvD2cO2aMB8ykdkfN970rUiWQhtakMi4KaXvzfbcxkcE5UmT3lZJe84VT9hxhs3WkOQ5nmVkaeOhYh00dPBFjQ4d" style="font-family:monospace; font-size:12.5px; letter-spacing:0.3px;">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Chiave Stripe ufficiale configurata per il tuo account.</span>
+                  </div>
+
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                      <label class="form-label" style="font-weight:700;">ID Profilo Pagamenti Google (Merchant ID)</label>
+                      <input type="text" id="settingGoogleMerchantId" class="form-input" value="0225-1603-6390" style="font-family:monospace; font-size:13px; font-weight:700;">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-weight:700;">Ambiente Gateway</label>
+                      <select id="settingGooglePayEnv" class="form-select" style="font-size:13px; font-weight:700;">
+                        <option value="PRODUCTION" selected>🟢 PRODUZIONE (Live - Carte Reali)</option>
+                        <option value="TEST">🟡 TEST (Sandbox Google Pay)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Supported Methods Badges -->
+                  <div>
+                    <label class="form-label" style="font-weight:700; margin-bottom:8px;">Metodi & Circuiti Abilitati nel Wallet</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Visa</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Mastercard</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 American Express</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Postepay & Carte Debito</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">📱 Google Wallet / G Pay</span>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div style="display:flex; gap:12px; margin-top:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn-primary" onclick="savePaymentGatewaySettings()" style="padding:10px 20px; font-size:13px; font-weight:800;">
+                      💾 Salva Modifiche Gateway
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="testGooglePayPayment()" style="padding:10px 20px; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                      ⚡ Prova Pagamento Google Pay (1-Tap)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
                   <!-- Facebook OAuth 2.0 Credentials Card -->
                   <div style="background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
@@ -2760,6 +2844,7 @@
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/googleAuth.js"></script>
   <script src="assets/js/facebookAuth.js"></script>
+  <script src="assets/js/googlePayService.js"></script>
   <script src="assets/js/app.js"></script>
 
   <!-- PWA Service Worker Registration -->

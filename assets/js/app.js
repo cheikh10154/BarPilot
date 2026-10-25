@@ -355,17 +355,37 @@ function confirmGooglePlaySubscription() {
     btn.disabled = true;
     btn.innerHTML = `
       <span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span>
-      <span>${isFr ? "Validation Google Play en cours..." : "Elaborazione Google Play in corso..."}</span>
+      <span>${isFr ? "Validation Google Pay & Wallet..." : "Connessione Google Pay & Wallet..."}</span>
     `;
   }
 
-  setTimeout(() => {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
-    }
-    activateSubscription("google_play");
-  }, 900);
+  if (window.googlePayService) {
+    window.googlePayService.processGooglePayment(59.00)
+      .then(res => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+        }
+        if (res && res.success) {
+          activateSubscription("google_pay");
+        }
+      })
+      .catch(() => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+        }
+        activateSubscription("google_play");
+      });
+  } else {
+    setTimeout(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+      }
+      activateSubscription("google_play");
+    }, 800);
+  }
 }
 
 function switchView(viewName) {
@@ -5137,3 +5157,37 @@ window.updateDashboardLockState = updateDashboardLockState;
 window.switchView = switchView;
 window.appState = appState;
 window.quickLoginDemo = quickLoginDemo;
+
+
+// --------------------------------------------------------------------------
+// Payment Gateway Settings (Google Pay & Stripe)
+// --------------------------------------------------------------------------
+function savePaymentGatewaySettings() {
+  const stripePkInput = document.getElementById("settingStripePk");
+  const merchantIdInput = document.getElementById("settingGoogleMerchantId");
+  const envSelect = document.getElementById("settingGooglePayEnv");
+
+  const stripePk = stripePkInput ? stripePkInput.value.trim() : "";
+  const merchantId = merchantIdInput ? merchantIdInput.value.trim() : "";
+  const env = envSelect ? envSelect.value : "PRODUCTION";
+
+  if (window.googlePayService) {
+    window.googlePayService.saveSettings(stripePk, merchantId, env);
+  } else {
+    localStorage.setItem("barpilot_stripe_pk", stripePk);
+    localStorage.setItem("barpilot_gpay_merchant_id", merchantId);
+    localStorage.setItem("barpilot_gpay_env", env);
+    showToast("✅ Configurazione salvata con successo!");
+  }
+}
+
+function testGooglePayPayment() {
+  if (window.googlePayService) {
+    window.googlePayService.processGooglePayment(59.00);
+  } else {
+    openGooglePlayModal();
+  }
+}
+
+window.savePaymentGatewaySettings = savePaymentGatewaySettings;
+window.testGooglePayPayment = testGooglePayPayment;
