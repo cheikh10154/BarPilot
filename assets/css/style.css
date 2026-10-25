@@ -462,31 +462,13 @@ html.user-authenticated #authOverlay {
   gap: 8px;
   background: var(--bg-card-secondary);
   border: 1px solid var(--border-color);
-  padding: 6px 14px;
+  padding: 7px 14px;
   border-radius: var(--radius-md);
   font-size: 13px;
   color: var(--text-main);
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.date-pill-sep {
-  color: var(--text-muted);
-  opacity: 0.5;
-}
-
-.date-pill-clock {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(255, 122, 0, 0.12);
-  color: var(--primary);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
 }
 
 .icon-btn {
@@ -1679,13 +1661,9 @@ html.user-authenticated #authOverlay {
     gap: 10px;
   }
   .date-pill {
-    padding: 5px 9px;
+    padding: 5px 10px;
     font-size: 11.5px;
-    gap: 5px;
-  }
-  .date-pill-clock {
-    padding: 2px 6px;
-    font-size: 11px;
+    gap: 6px;
   }
   .sidebar {
     position: fixed;

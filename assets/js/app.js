@@ -288,9 +288,9 @@ function setupLanguageToggle() {
 }
 
 // --------------------------------------------------------------------------
-// Real-Time Clock & Date Controller (Always updated: giorno, mese, anno, ora)
+// Real-Time Date Controller (Always updated: giorno, mese, anno)
 // --------------------------------------------------------------------------
-let liveClockTimer = null;
+let liveDateTimer = null;
 
 function updateLiveDateTime() {
   const now = new Date();
@@ -298,7 +298,6 @@ function updateLiveDateTime() {
   const locale = lang === 'fr' ? 'fr-FR' : 'it-IT';
 
   const dateEl = document.getElementById("liveDateText");
-  const timeEl = document.getElementById("liveTimeText");
 
   if (dateEl) {
     const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(now);
@@ -311,19 +310,13 @@ function updateLiveDateTime() {
 
     dateEl.textContent = `${capWeekday} ${day} ${capMonth} ${year}`;
   }
-
-  if (timeEl) {
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    timeEl.textContent = `${hours}:${minutes}:${seconds}`;
-  }
 }
 
 function initLiveDateTime() {
   updateLiveDateTime();
-  if (liveClockTimer) clearInterval(liveClockTimer);
-  liveClockTimer = setInterval(updateLiveDateTime, 1000);
+  if (liveDateTimer) clearInterval(liveDateTimer);
+  // Update periodically to keep date accurate across midnight
+  liveDateTimer = setInterval(updateLiveDateTime, 60000);
 
   window.addEventListener("languageChanged", () => {
     updateLiveDateTime();
