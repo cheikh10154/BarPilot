@@ -490,9 +490,14 @@
         </div>
 
         <div class="topbar-right">
-          <div class="date-pill">
+          <div class="date-pill" id="liveDatePill">
             <span>📅</span>
-            <span>Martedì 20 Ottobre 2025 · <strong data-i18n="today">Oggi</strong></span>
+            <span id="liveDateText">--</span>
+            <span class="date-pill-sep">·</span>
+            <span class="date-pill-clock">
+              <span class="clock-icon">🕒</span>
+              <span id="liveTimeText">--:--:--</span>
+            </span>
           </div>
           <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
             🔔
@@ -954,7 +959,7 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title" data-i18n="navReports">Rapporti</h3>
-                <span style="font-size:12px; color:var(--text-muted);" data-i18n="last30Days">01/10/2025 - 20/10/2025 · Ultimi 30 giorni</span>
+                <span style="font-size:12px; color:var(--text-muted);" id="reportsDateRangeText">--</span>
               </div>
             </div>
 

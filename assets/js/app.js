@@ -24,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Render Initial State
   renderApp();
 
+  // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno, ora)
+  initLiveDateTime();
+
   // Initialize Active Staff Member
   initActiveStaff();
 
@@ -55,6 +58,7 @@ let appState = {
 
 // Render whole app components
 function renderApp() {
+  if (typeof updateLiveDateTime === "function") updateLiveDateTime();
   renderActiveBar();
   renderDashboard();
   renderOrderCatalog();
@@ -282,6 +286,51 @@ function setupLanguageToggle() {
     });
   });
 }
+
+// --------------------------------------------------------------------------
+// Real-Time Clock & Date Controller (Always updated: giorno, mese, anno, ora)
+// --------------------------------------------------------------------------
+let liveClockTimer = null;
+
+function updateLiveDateTime() {
+  const now = new Date();
+  const lang = (window.i18n && window.i18n.currentLang) ? window.i18n.currentLang : 'it';
+  const locale = lang === 'fr' ? 'fr-FR' : 'it-IT';
+
+  const dateEl = document.getElementById("liveDateText");
+  const timeEl = document.getElementById("liveTimeText");
+
+  if (dateEl) {
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(now);
+    const day = now.getDate();
+    const month = new Intl.DateTimeFormat(locale, { month: 'long' }).format(now);
+    const year = now.getFullYear();
+
+    const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+    const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+
+    dateEl.textContent = `${capWeekday} ${day} ${capMonth} ${year}`;
+  }
+
+  if (timeEl) {
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+  }
+}
+
+function initLiveDateTime() {
+  updateLiveDateTime();
+  if (liveClockTimer) clearInterval(liveClockTimer);
+  liveClockTimer = setInterval(updateLiveDateTime, 1000);
+
+  window.addEventListener("languageChanged", () => {
+    updateLiveDateTime();
+  });
+}
+window.updateLiveDateTime = updateLiveDateTime;
+window.initLiveDateTime = initLiveDateTime;
 
 // --------------------------------------------------------------------------
 // Active Bar & Multi-tenant Profile
@@ -1252,6 +1301,18 @@ window.handleAddStaffSubmit = handleAddStaffSubmit;
 // Reports & Analytics
 // --------------------------------------------------------------------------
 function renderReports() {
+  // Dynamic 30-day date range (Current Date - 30 days)
+  const reportsDateEl = document.getElementById("reportsDateRangeText");
+  if (reportsDateEl) {
+    const now = new Date();
+    const past = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const pad = n => String(n).padStart(2, '0');
+    const dNow = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+    const dPast = `${pad(past.getDate())}/${pad(past.getMonth() + 1)}/${past.getFullYear()}`;
+    const label = window.i18n ? window.i18n.t("last30Days") : "Ultimi 30 giorni";
+    reportsDateEl.textContent = `${dPast} - ${dNow} · ${label}`;
+  }
+
   // SVG Area / Line Chart
   const svgCurve = document.getElementById("reportsCurveSvg");
   if (svgCurve) {
