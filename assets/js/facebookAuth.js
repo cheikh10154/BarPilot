@@ -144,6 +144,7 @@ class FacebookAuthManager {
 
     const isIt = !window.i18n || window.i18n.currentLang === "it";
 
+    localStorage.removeItem("barpilot_is_demo");
     // Subscription check for Facebook login
     const hasSub = typeof isUserSubscribed === "function" && isUserSubscribed();
     if (hasSub) {

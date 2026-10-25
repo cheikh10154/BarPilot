@@ -214,15 +214,31 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 // Subscription State & Google Play In-App Purchase Controller
 // --------------------------------------------------------------------------
-function isUserSubscribed() {
+function isDemoMode() {
   try {
+    if (localStorage.getItem("barpilot_is_demo") === "true") return true;
     let loggedUser = null;
     try {
       loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
     } catch (e) {}
-
-    // Demo mode: completely exempt from subscription requirement
     if (loggedUser && (loggedUser.provider === "demo" || loggedUser.isDemo === true || loggedUser.email === "marco@barcentrale.it")) {
+      return true;
+    }
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    if (bar && (bar.isDemo === true || bar.id === "bar_01" || bar.managerEmail === "marco@barcentrale.it")) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+window.isDemoMode = isDemoMode;
+
+function isUserSubscribed() {
+  try {
+    // Demo mode: completely exempt from subscription requirement
+    if (isDemoMode()) {
       return true;
     }
 
@@ -312,6 +328,12 @@ function activateSubscription(method = "google_pay") {
 }
 
 function openGooglePlayModal() {
+  // If in demo mode, never open the payment window
+  if (isDemoMode()) {
+    closeCheckoutModal(true);
+    closeGooglePlayModal(true);
+    return;
+  }
   const modal = document.getElementById("googlePlayModal");
   if (!modal) return;
 
@@ -3825,6 +3847,12 @@ function selectPlan(planName) {
 }
 
 function openCheckoutModal(isForcedMandatory = false) {
+  // If in demo mode, never open the payment window
+  if (isDemoMode()) {
+    closeCheckoutModal(true);
+    closeGooglePlayModal(true);
+    return;
+  }
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
@@ -4214,6 +4242,9 @@ function setUserLoggedIn(status, userMeta = null) {
     localStorage.removeItem("barpilot_logged_user");
     localStorage.removeItem("barpilot_active_staff");
     localStorage.removeItem("barpilot_session_token");
+    localStorage.removeItem("barpilot_is_demo");
+    closeCheckoutModal(true);
+    closeGooglePlayModal(true);
     document.cookie = "barpilot_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
     document.documentElement.classList.remove("user-authenticated");
   }
@@ -4993,6 +5024,9 @@ function handleAuthSubmit(e) {
 
 function quickLoginDemo() {
   hideAuthError();
+  localStorage.setItem("barpilot_is_demo", "true");
+  closeCheckoutModal(true);
+  closeGooglePlayModal(true);
   const staffList = (window.db ? window.db.get("staff") : []) || [];
   const ownerStaff = staffList.find(s => s.role === "Proprietario") || {
     id: 1,

@@ -168,6 +168,7 @@ class GoogleAuthManager {
 
     if (typeof renderApp === "function") renderApp();
 
+    localStorage.removeItem("barpilot_is_demo");
     const isIt = !window.i18n || window.i18n.currentLang === "it";
 
     // Subscription check for Google login
@@ -195,6 +196,7 @@ class GoogleAuthManager {
 
   showGooglePopupActiveModal() {
     let modal = document.getElementById("googlePickerModal");
+    localStorage.removeItem("barpilot_is_demo");
     const isIt = !window.i18n || window.i18n.currentLang === "it";
 
     const titleText = isIt ? "Accesso Google in corso..." : "Connexion Google en cours...";
