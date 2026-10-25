@@ -54,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSplashScreen();
   if (isUserLoggedIn() && !isUserSubscribed()) {
     switchView("subscriptions");
+    setTimeout(() => openCheckoutModal(true), 350);
   }
 });
 
@@ -118,7 +119,7 @@ function setupNavigation() {
           ? "🔒 Abonnement requis pour accéder au Tableau de Bord. Payez avec Google Play Pay !"
           : "🔒 È necessario abbonarsi per accedere alla Dashboard. Paga subito con Google Play Pay!");
         switchView("subscriptions");
-        setTimeout(() => openGooglePlayModal(), 350);
+        setTimeout(() => openCheckoutModal(true), 350);
         if (window.innerWidth <= 1024) closeSidebar();
         return;
       }
@@ -271,7 +272,7 @@ function updateDashboardLockState() {
   }
 }
 
-function activateSubscription(method = "google_play") {
+function activateSubscription(method = "google_pay") {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
   bar.plan = "BarPilot Pro 59€";
@@ -285,25 +286,29 @@ function activateSubscription(method = "google_play") {
   }
   localStorage.setItem("barpilot_is_subscribed", "true");
 
-  closeGooglePlayModal();
-  closeCheckoutModal();
+  // Force close checkout modals now that payment is confirmed
+  closeGooglePlayModal(true);
+  closeCheckoutModal(true);
+
   renderPlans();
   renderDashboard();
   renderActiveBar();
   updateDashboardLockState();
 
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
+  const userName = (loggedUser && loggedUser.name) || bar.managerName || "Gestore";
+
+  // Redirect to dashboard and give warm welcome!
+  switchView("dashboard");
+
   showToast(
     isFr
-      ? (method === "google_play"
-          ? "🎉 Félicitations ! Votre abonnement Google Play Pay (59 €/mois) est activé. Accès complet au Tableau de Bord débloqué !"
-          : "🎉 Félicitations ! Votre abonnement BarPilot Pro (59 €/mois) est activé. Accès au Tableau de Bord débloqué !")
-      : (method === "google_play"
-          ? "🎉 Congratulazioni! Il tuo abbonamento Google Play Pay (59 €/mese) è attivo. Accesso alla Dashboard sbloccato!"
-          : "🎉 Congratulazioni! Il tuo abbonamento BarPilot Pro (59 €/mese) è attivo. Accesso alla Dashboard sbloccato!")
+      ? `👑 Bienvenue sur BarPilot, ${userName} ! Votre abonnement est activé avec succès. Accès au Tableau de Bord débloqué !`
+      : `👑 Benvenuto in BarPilot, ${userName}! Il tuo abbonamento è attivo. Accesso alla Dashboard sbloccato!`
   );
-
-  // Directly bring them to the dashboard now that they are subscribed!
-  switchView("dashboard");
 }
 
 function openGooglePlayModal() {
@@ -343,9 +348,19 @@ function openGooglePlayModal() {
   modal.classList.add("active");
 }
 
-function closeGooglePlayModal() {
+function closeGooglePlayModal(force = false) {
   const modal = document.getElementById("googlePlayModal");
-  if (modal) modal.classList.remove("active");
+  if (!modal) return;
+
+  if (!force && !isUserSubscribed()) {
+    showToast(window.i18n && window.i18n.currentLang === "fr"
+      ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
+      : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
+    return;
+  }
+
+  modal.classList.remove("active");
+  modal.removeAttribute("data-mandatory");
 }
 
 function confirmGooglePlaySubscription() {
@@ -396,7 +411,7 @@ function switchView(viewName) {
       : "🔒 È necessario abbonarsi a BarPilot Pro per accedere alla Dashboard. Paga subito con Google Play Pay!");
     viewName = "subscriptions";
     setTimeout(() => {
-      openGooglePlayModal();
+      openCheckoutModal(true);
     }, 350);
   }
 
@@ -3809,12 +3824,17 @@ function selectPlan(planName) {
   openCheckoutModal();
 }
 
-function openCheckoutModal() {
+function openCheckoutModal(isForcedMandatory = false) {
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
-  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
 
   const nextDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
   const nextDateStr = nextDate.toLocaleDateString(isFr ? "fr-FR" : "it-IT", {
@@ -3830,14 +3850,41 @@ function openCheckoutModal() {
   if (barNameEl && bar.name) barNameEl.value = bar.name;
 
   const cardHolderEl = document.getElementById("checkoutCardHolder");
-  if (cardHolderEl && bar.managerName) cardHolderEl.value = bar.managerName;
+  const userName = (loggedUser && loggedUser.name) || bar.managerName || "";
+  if (cardHolderEl && !cardHolderEl.value && userName) cardHolderEl.value = userName;
+
+  // The checkout window cannot be closed if user is unsubscribed or isForcedMandatory
+  const subscribed = isUserSubscribed();
+  const isMandatory = isForcedMandatory || !subscribed;
+
+  modal.setAttribute("data-mandatory", isMandatory ? "true" : "false");
+
+  const closeIconBtn = modal.querySelector(".modal-close-icon-btn");
+  if (closeIconBtn) closeIconBtn.style.display = isMandatory ? "none" : "flex";
+
+  const cancelBtn = document.getElementById("btnCheckoutCancel");
+  if (cancelBtn) cancelBtn.style.display = isMandatory ? "none" : "block";
+
+  const mandatoryNotice = document.getElementById("checkoutMandatoryNotice");
+  if (mandatoryNotice) mandatoryNotice.style.display = isMandatory ? "flex" : "none";
 
   modal.classList.add("active");
 }
 
-function closeCheckoutModal() {
+function closeCheckoutModal(force = false) {
   const modal = document.getElementById("subscriptionCheckoutModal");
-  if (modal) modal.classList.remove("active");
+  if (!modal) return;
+
+  // Non-closable rule: cannot close if user is not subscribed
+  if (!force && !isUserSubscribed()) {
+    showToast(window.i18n && window.i18n.currentLang === "fr"
+      ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
+      : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
+    return;
+  }
+
+  modal.classList.remove("active");
+  modal.removeAttribute("data-mandatory");
 }
 
 function handleConfirmCheckout(e) {
@@ -4026,14 +4073,30 @@ function setupModals() {
   const checkoutModal = document.getElementById("subscriptionCheckoutModal");
   if (checkoutModal) {
     checkoutModal.addEventListener("click", (e) => {
-      if (e.target === checkoutModal) closeCheckoutModal();
+      if (e.target === checkoutModal) {
+        if (!isUserSubscribed()) {
+          showToast(window.i18n && window.i18n.currentLang === "fr"
+            ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
+            : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
+          return;
+        }
+        closeCheckoutModal();
+      }
     });
   }
 
   const gplayModal = document.getElementById("googlePlayModal");
   if (gplayModal) {
     gplayModal.addEventListener("click", (e) => {
-      if (e.target === gplayModal) closeGooglePlayModal();
+      if (e.target === gplayModal) {
+        if (!isUserSubscribed()) {
+          showToast(window.i18n && window.i18n.currentLang === "fr"
+            ? "🔒 La fenêtre de paiement ne può essere chiusa. Completa l'attivazione con Google Pay o Carta."
+            : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
+          return;
+        }
+        closeGooglePlayModal();
+      }
     });
   }
 
@@ -4254,6 +4317,7 @@ function initSplashScreen() {
       splash.classList.add("hidden");
       if (isUserLoggedIn() && !isUserSubscribed()) {
         switchView("subscriptions");
+        setTimeout(() => openCheckoutModal(true), 350);
       }
     };
 
@@ -4660,12 +4724,12 @@ function handleSocialLogin(provider) {
   } else {
     // Unsubscribed: redirect to subscriptions with Google Play Pay
     switchView("subscriptions");
-    setTimeout(() => {
-      openGooglePlayModal();
-    }, 400);
-    showToast(window.i18n.currentLang === 'it'
-      ? `⚠️ Abbonamento richiesto per accedere alla Dashboard (${provider}). Paga subito con Google Play Pay (59€/mese)!`
-      : `⚠️ Abonnement requis pour accéder au Tableau de Bord (${provider}). Payez avec Google Play Pay (59€/mois) !`);
+      setTimeout(() => {
+        openCheckoutModal(true);
+      }, 350);
+      showToast(window.i18n.currentLang === 'it'
+        ? "⚠️ Completa l'attivazione con Google Pay o Carta per accedere alla Dashboard."
+        : "⚠️ Complétez l'activation avec Google Pay ou Carte pour accéder au Tableau de Bord.");
   }
 }
 
@@ -4764,13 +4828,13 @@ function handleAuthSubmit(e) {
     } else {
       // Unsubscribed: redirect immediately to subscriptions with Google Play Pay
       switchView("subscriptions");
-      setTimeout(() => {
-        openGooglePlayModal();
-      }, 400);
-      showToast(window.i18n.currentLang === 'it'
-        ? "⚠️ Abbonamento richiesto per accedere alla Dashboard. Paga subito con Google Play Pay (59€/mese)!"
-        : "⚠️ Abonnement requis pour accéder au Tableau de Bord. Payez avec Google Play Pay (59€/mois) !");
-    }
+    setTimeout(() => {
+      openCheckoutModal(true);
+    }, 350);
+    showToast(window.i18n.currentLang === 'it'
+      ? "⚠️ Completa l'attivazione con Google Pay & Wallet per accedere alla Dashboard."
+      : "⚠️ Complétez l'activation avec Google Pay & Wallet pour accéder au Tableau de Bord.");
+  }
   } else {
     // Handle Email Login: Check credentials depending on choice (Password vs PIN)
     if (currentCredMode === 'pin' && credential.length > 4) {

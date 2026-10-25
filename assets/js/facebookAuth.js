@@ -157,7 +157,7 @@ class FacebookAuthManager {
       // Direct unsubscribed Facebook user to subscription page with Google Play Pay
       if (typeof switchView === "function") switchView("subscriptions");
       setTimeout(() => {
-        if (typeof openGooglePlayModal === "function") openGooglePlayModal();
+        if (typeof openCheckoutModal === "function") openCheckoutModal(true);
       }, 400);
       if (typeof showToast === "function") {
         showToast(isIt

@@ -3824,3 +3824,19 @@ input:checked + .toggle-slider:before {
   gap: 12px;
 }
 
+
+
+/* ========================================================
+   Non-closable Mandatory Checkout Modal
+   ======================================================== */
+#subscriptionCheckoutModal[data-mandatory="true"] .modal-close-icon-btn,
+#subscriptionCheckoutModal[data-mandatory="true"] #btnCheckoutCancel,
+#googlePlayModal[data-mandatory="true"] .modal-close-icon-btn,
+#googlePlayModal[data-mandatory="true"] .btn-secondary {
+  display: none !important;
+}
+
+#subscriptionCheckoutModal[data-mandatory="true"] #btnConfirmCheckout {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+}
