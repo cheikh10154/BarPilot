@@ -961,14 +961,29 @@ function renderStaff() {
   const tbody = document.getElementById("staffTableBody");
   if (!tbody) return;
 
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+
   tbody.innerHTML = staff.map(s => {
     const isCurrentActive = currentStaff && currentStaff.id === s.id;
-    const isOwner = s.role === "Proprietario";
+    const isOwnerRow = s.role === "Proprietario";
     let roleBadgeClass = "badge-role-waiter";
-    if (isOwner) roleBadgeClass = "badge-role-owner";
+    if (isOwnerRow) roleBadgeClass = "badge-role-owner";
     else if (s.role === "Manager") roleBadgeClass = "badge-role-manager";
     else if (s.role === "Barman") roleBadgeClass = "badge-role-barman";
     else if (s.role === "Cassa") roleBadgeClass = "badge-role-cashier";
+
+    // Solo il proprietario può vedere il PIN degli altri.
+    // I dipendenti possono vedere unicamente il proprio PIN; per gli altri il PIN è oscurato.
+    let pinCellContent = "";
+    if (isOwnerRow) {
+      pinCellContent = '<span style="color:var(--text-muted); font-size:12px; font-weight:600;">🔒 Solo Password (Nessun PIN)</span>';
+    } else if (isCurrentViewerOwner) {
+      pinCellContent = `<code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px; color:var(--text-main);">${s.pin || '1234'}</code>`;
+    } else if (isCurrentActive) {
+      pinCellContent = `<code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px; color:var(--text-main);">${s.pin || '1234'}</code> <span style="font-size:10px; color:var(--text-muted); font-weight:500;">(Tuo PIN)</span>`;
+    } else {
+      pinCellContent = `<span style="color:var(--text-muted); font-size:13px; font-weight:700; letter-spacing:3px;" title="Solo il proprietario può vedere il PIN degli altri">•••• <span style="font-size:10px; font-weight:500; letter-spacing:normal; opacity:0.75;">(🔒 Nascosto)</span></span>`;
+    }
 
     return `
     <tr style="${isCurrentActive ? 'background: rgba(255, 122, 0, 0.08);' : ''}">
@@ -988,10 +1003,7 @@ function renderStaff() {
         <span class="staff-pill-role ${roleBadgeClass}">${s.role}</span>
       </td>
       <td>
-        ${isOwner 
-          ? '<span style="color:var(--text-muted); font-size:12px; font-weight:600;">🔒 Solo Password (Nessun PIN)</span>' 
-          : `<code style="background:var(--bg-card-secondary); padding:3px 8px; border-radius:6px; font-weight:700; letter-spacing:2px; font-size:12px;">${s.pin || '1234'}</code>`
-        }
+        ${pinCellContent}
       </td>
       <td>
         <span class="table-badge ${s.status === 'active' ? 'badge-served' : 'badge-alert'}">
@@ -999,9 +1011,9 @@ function renderStaff() {
         </span>
       </td>
       <td>
-        ${isOwner
+        ${isOwnerRow
           ? '<span style="color:var(--primary); font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">👑 Amministratore</span>'
-          : `<button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo dipendente">🔑 Accedi con PIN</button>`
+          : `<button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo profilo">🔑 Accedi con PIN</button>`
         }
       </td>
     </tr>
@@ -1096,7 +1108,18 @@ function updateSelectedPinStaffCard() {
   if (avatar) avatar.src = selectedPinStaff.avatar;
   if (name) name.textContent = selectedPinStaff.name;
   if (role) role.textContent = selectedPinStaff.role;
-  if (demoHint) demoHint.textContent = `PIN: ${selectedPinStaff.pin || '1234'}`;
+
+  // Solo il proprietario può vedere il PIN degli altri
+  if (demoHint) {
+    const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+    const isSelf = currentStaff && currentStaff.id === selectedPinStaff.id;
+    if (isCurrentViewerOwner || isSelf) {
+      demoHint.style.display = "inline-block";
+      demoHint.textContent = `PIN: ${selectedPinStaff.pin || '1234'}`;
+    } else {
+      demoHint.style.display = "none";
+    }
+  }
 }
 
 function updatePinDots() {
