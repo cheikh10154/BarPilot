@@ -352,7 +352,7 @@ function closeGooglePlayModal(force = false) {
   const modal = document.getElementById("googlePlayModal");
   if (!modal) return;
 
-  if (!force && !isUserSubscribed()) {
+  if (!force && (modal.getAttribute("data-mandatory") === "true" || !isUserSubscribed())) {
     showToast(window.i18n && window.i18n.currentLang === "fr"
       ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
       : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
@@ -3875,8 +3875,8 @@ function closeCheckoutModal(force = false) {
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
-  // Non-closable rule: cannot close if user is not subscribed
-  if (!force && !isUserSubscribed()) {
+  // Non-closable rule: cannot close if mandatory or user is not subscribed
+  if (!force && (modal.getAttribute("data-mandatory") === "true" || !isUserSubscribed())) {
     showToast(window.i18n && window.i18n.currentLang === "fr"
       ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
       : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
@@ -4074,13 +4074,22 @@ function setupModals() {
   if (checkoutModal) {
     checkoutModal.addEventListener("click", (e) => {
       if (e.target === checkoutModal) {
-        if (!isUserSubscribed()) {
-          showToast(window.i18n && window.i18n.currentLang === "fr"
-            ? "🔒 La fenêtre de paiement ne peut pas être fermée. Veuillez finaliser votre abonnement."
-            : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
-          return;
+        // Window MUST NEVER close by clicking on the empty backdrop area
+        e.preventDefault();
+        e.stopPropagation();
+
+        const box = checkoutModal.querySelector(".modal-box");
+        if (box) {
+          box.classList.remove("modal-shake");
+          void box.offsetWidth;
+          box.classList.add("modal-shake");
+          setTimeout(() => box.classList.remove("modal-shake"), 400);
         }
-        closeCheckoutModal();
+
+        showToast(window.i18n && window.i18n.currentLang === "fr"
+          ? "🔒 La fenêtre de paiement ne peut pas être fermée en cliquant à l'extérieur."
+          : "🔒 La finestra di pagamento non si chiude cliccando all'esterno. Completa l'attivazione.");
+        return false;
       }
     });
   }
@@ -4089,13 +4098,22 @@ function setupModals() {
   if (gplayModal) {
     gplayModal.addEventListener("click", (e) => {
       if (e.target === gplayModal) {
-        if (!isUserSubscribed()) {
-          showToast(window.i18n && window.i18n.currentLang === "fr"
-            ? "🔒 La fenêtre de paiement ne può essere chiusa. Completa l'attivazione con Google Pay o Carta."
-            : "🔒 La finestra di check-out non può essere chiusa. Completa l'attivazione con Google Pay o Carta.");
-          return;
+        // Window MUST NEVER close by clicking on the empty backdrop area
+        e.preventDefault();
+        e.stopPropagation();
+
+        const box = gplayModal.querySelector(".modal-box");
+        if (box) {
+          box.classList.remove("modal-shake");
+          void box.offsetWidth;
+          box.classList.add("modal-shake");
+          setTimeout(() => box.classList.remove("modal-shake"), 400);
         }
-        closeGooglePlayModal();
+
+        showToast(window.i18n && window.i18n.currentLang === "fr"
+          ? "🔒 La fenêtre de paiement ne peut pas être fermée en cliquant à l'extérieur."
+          : "🔒 La finestra di pagamento non si chiude cliccando all'esterno. Completa l'attivazione.");
+        return false;
       }
     });
   }
