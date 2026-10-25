@@ -3128,47 +3128,294 @@ window.closeAddStaffModal = closeAddStaffModal;
 window.handleAddStaffSubmit = handleAddStaffSubmit;
 
 // --------------------------------------------------------------------------
-// Reports & Analytics
+// Reports & Analytics (Giornaliero, Settimanale, Mensile con Asse X Date & Asse Y Valori)
 // --------------------------------------------------------------------------
-function renderReports() {
-  // Dynamic 30-day date range (Current Date - 30 days)
-  const reportsDateEl = document.getElementById("reportsDateRangeText");
-  if (reportsDateEl) {
-    const now = new Date();
-    const past = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const pad = n => String(n).padStart(2, '0');
-    const dNow = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
-    const dPast = `${pad(past.getDate())}/${pad(past.getMonth() + 1)}/${past.getFullYear()}`;
-    const label = window.i18n ? window.i18n.t("last30Days") : "Ultimi 30 giorni";
-    reportsDateEl.textContent = `${dPast} - ${dNow} · ${label}`;
+let currentReportsPeriod = "week";
+let selectedReportPointIndex = null;
+
+const REPORTS_DATASETS = {
+  day: {
+    id: "day",
+    title: "Andamento Orario Vendite (Oggi)",
+    subtitle: "Ascisse (X): Fasce orarie del turno · Bississe (Y): Incasso orario in Euro (€)",
+    dateRangeText: "Oggi · " + new Date().toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+    kpi: {
+      revenue: "1.550 €",
+      growth: "+14.2% vs ieri",
+      orders: "278",
+      ordersSub: "Media di 35 all'ora",
+      avgTicket: "5,58 €",
+      peak: "18:00 - 20:00",
+      peakSub: "Rush Aperitivo (700 €)"
+    },
+    maxVal: 400,
+    yLabels: [400, 300, 200, 100, 0],
+    points: [
+      { label: "08:00", value: 65, orders: 24, note: "Colazioni: espresso & cornetti" },
+      { label: "10:00", value: 140, orders: 42, note: "Break metà mattina" },
+      { label: "12:00", value: 210, orders: 35, note: "Pranzo veloce & toast" },
+      { label: "14:00", value: 160, orders: 30, note: "Caffè dopo pranzo" },
+      { label: "16:00", value: 95, orders: 18, note: "Pausa pomeridiana" },
+      { label: "18:00", value: 380, orders: 58, note: "Picco Spritz & cocktail" },
+      { label: "20:00", value: 320, orders: 45, note: "Taglieri & apericena" },
+      { label: "22:00", value: 180, orders: 26, note: "Drink serali & amari" }
+    ]
+  },
+  week: {
+    id: "week",
+    title: "Andamento Giornaliero della Settimana",
+    subtitle: "Ascisse (X): Giorni e Date · Bississe (Y): Fatturato giornaliero in Euro (€)",
+    dateRangeText: "Ultimi 7 Giorni · Lun 19 - Dom 25 Ottobre",
+    kpi: {
+      revenue: "11.220 €",
+      growth: "+9.4% vs sett. prec.",
+      orders: "1.540",
+      ordersSub: "Media di 220 al giorno",
+      avgTicket: "7,29 €",
+      peak: "Sabato 24 Ott",
+      peakSub: "Serata Aperitivi & DJ (2.450 €)"
+    },
+    maxVal: 2500,
+    yLabels: [2500, 2000, 1500, 1000, 500, 0],
+    points: [
+      { label: "Lun 19", value: 980, orders: 145, note: "Avvio settimana lavorativa" },
+      { label: "Mar 20", value: 1150, orders: 168, note: "Business lunch & pause" },
+      { label: "Mer 21", value: 1280, orders: 182, note: "Aperitivo infrasettimanale" },
+      { label: "Gio 22", value: 1420, orders: 195, note: "Pre-weekend cocktail" },
+      { label: "Ven 23", value: 2180, orders: 290, note: "Venerdì sera & musica" },
+      { label: "Sab 24", value: 2450, orders: 320, note: "Picco del weekend" },
+      { label: "Dom 25", value: 1760, orders: 240, note: "Brunch & aperitivo domenicale" }
+    ]
+  },
+  month: {
+    id: "month",
+    title: "Andamento Progressivo del Mese",
+    subtitle: "Ascisse (X): Date del Mese · Bississe (Y): Fatturato aggregato in Euro (€)",
+    dateRangeText: "Mese Corrente · 1 - 31 Ottobre",
+    kpi: {
+      revenue: "42.850 €",
+      growth: "+12.8% vs mese prec.",
+      orders: "5.860",
+      ordersSub: "Media di 189 comande/die",
+      avgTicket: "7,31 €",
+      peak: "25 Ottobre",
+      peakSub: "Record mensile (2.150 €)"
+    },
+    maxVal: 2500,
+    yLabels: [2500, 2000, 1500, 1000, 500, 0],
+    points: [
+      { label: "01 Ott", value: 1120, orders: 160, note: "Inizio mese" },
+      { label: "05 Ott", value: 1350, orders: 185, note: "Prima domenica" },
+      { label: "10 Ott", value: 1280, orders: 175, note: "Venerdì lavorativo" },
+      { label: "15 Ott", value: 1640, orders: 215, note: "Metà mese & forniture" },
+      { label: "20 Ott", value: 1520, orders: 200, note: "Lunedì dinamico" },
+      { label: "25 Ott", value: 2150, orders: 280, note: "Festa della birra" },
+      { label: "31 Ott", value: 1840, orders: 245, note: "Serata evento speciale" }
+    ]
   }
+};
 
-  // SVG Area / Line Chart
-  const svgCurve = document.getElementById("reportsCurveSvg");
-  if (svgCurve) {
-    const points = [
-      { x: 50, y: 150 },
-      { x: 120, y: 110 },
-      { x: 190, y: 130 },
-      { x: 260, y: 60 },
-      { x: 330, y: 90 },
-      { x: 400, y: 40 },
-      { x: 470, y: 20 }
-    ];
+function switchReportsPeriod(period) {
+  if (!REPORTS_DATASETS[period]) return;
+  currentReportsPeriod = period;
+  selectedReportPointIndex = null;
 
-    const dPath = `M ${points.map(p => `${p.x},${p.y}`).join(" L ")}`;
-    svgCurve.innerHTML = `
+  const btnDay = document.getElementById("btnReportDay");
+  const btnWeek = document.getElementById("btnReportWeek");
+  const btnMonth = document.getElementById("btnReportMonth");
+
+  if (btnDay) btnDay.classList.toggle("active", period === "day");
+  if (btnWeek) btnWeek.classList.toggle("active", period === "week");
+  if (btnMonth) btnMonth.classList.toggle("active", period === "month");
+
+  renderReports();
+}
+
+function selectReportPoint(idx) {
+  const data = REPORTS_DATASETS[currentReportsPeriod];
+  if (!data || !data.points[idx]) return;
+
+  selectedReportPointIndex = idx;
+  const pt = data.points[idx];
+  const avg = (pt.value / Math.max(1, pt.orders)).toFixed(2);
+
+  const bar = document.getElementById("reportsPointDetailBar");
+  const text = document.getElementById("reportsPointDetailText");
+  if (text) {
+    text.innerHTML = `
+      <strong>📅 ${escapeHtml(pt.label)}:</strong>
+      <span style="color:var(--primary); font-weight:800; margin-left:6px;">${pt.value.toLocaleString()} €</span>
+      <span style="color:var(--text-muted); margin-left:8px;">· ${pt.orders} comande</span>
+      <span style="color:var(--text-muted); margin-left:8px;">· Scontrino medio: ${avg} €</span>
+      <span style="color:var(--text-main); margin-left:12px; font-style:italic;">(${escapeHtml(pt.note)})</span>
+    `;
+  }
+}
+
+function renderReports() {
+  const data = REPORTS_DATASETS[currentReportsPeriod] || REPORTS_DATASETS.week;
+
+  // 1. Update Date Range & Titles
+  const rangeEl = document.getElementById("reportsDateRangeText");
+  if (rangeEl) rangeEl.textContent = data.dateRangeText;
+
+  const titleEl = document.getElementById("reportsChartTitle");
+  if (titleEl) titleEl.textContent = data.title;
+
+  const subEl = document.getElementById("reportsChartSubtitle");
+  if (subEl) subEl.textContent = data.subtitle;
+
+  // 2. Update KPIs
+  const revEl = document.getElementById("reportsKpiRevenue");
+  if (revEl) revEl.textContent = data.kpi.revenue;
+
+  const growthEl = document.getElementById("reportsKpiGrowth");
+  if (growthEl) growthEl.textContent = data.kpi.growth;
+
+  const ordEl = document.getElementById("reportsKpiOrders");
+  if (ordEl) ordEl.textContent = data.kpi.orders;
+
+  const ordSubEl = document.getElementById("reportsKpiOrdersSub");
+  if (ordSubEl) ordSubEl.textContent = data.kpi.ordersSub;
+
+  const avgEl = document.getElementById("reportsKpiAvgTicket");
+  if (avgEl) avgEl.textContent = data.kpi.avgTicket;
+
+  const peakEl = document.getElementById("reportsKpiPeak");
+  if (peakEl) peakEl.textContent = data.kpi.peak;
+
+  const peakSubEl = document.getElementById("reportsKpiPeakSub");
+  if (peakSubEl) peakSubEl.textContent = data.kpi.peakSub;
+
+  // 3. Render SVG Chart with X & Y Axes
+  const svg = document.getElementById("reportsCurveSvg");
+  if (svg) {
+    const leftMargin = 65;
+    const rightMargin = 25;
+    const topMargin = 25;
+    const bottomMargin = 45;
+    const plotWidth = 640 - leftMargin - rightMargin; // 550
+    const plotHeight = 260 - topMargin - bottomMargin; // 190
+    const bottomY = topMargin + plotHeight; // 215
+
+    const points = data.points;
+    const numPoints = points.length;
+
+    // Calculate (x, y) for each data point
+    const coords = points.map((p, i) => {
+      const x = leftMargin + (i / (numPoints - 1)) * plotWidth;
+      const ratio = Math.min(1, Math.max(0, p.value / data.maxVal));
+      const y = bottomY - ratio * plotHeight;
+      return { x, y, raw: p };
+    });
+
+    const dLine = `M ${coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" L ")}`;
+    const dArea = `M ${leftMargin},${bottomY} L ${coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" L ")} L ${leftMargin + plotWidth},${bottomY} Z`;
+
+    // Horizontal Y Grid Lines and Y-Axis Labels (Bississe)
+    let yAxisHtml = "";
+    data.yLabels.forEach(val => {
+      const ratio = val / data.maxVal;
+      const y = bottomY - ratio * plotHeight;
+      yAxisHtml += `
+        <line x1="${leftMargin}" y1="${y.toFixed(1)}" x2="${leftMargin + plotWidth}" y2="${y.toFixed(1)}" stroke="var(--border-color)" stroke-dasharray="3 3" stroke-width="1" />
+        <text x="${leftMargin - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="var(--text-muted)">${val.toLocaleString()} €</text>
+      `;
+    });
+
+    // Vertical X Grid Ticks and X-Axis Labels (Ascisse / Date)
+    let xAxisHtml = "";
+    xAxisHtml += `<line x1="${leftMargin}" y1="${bottomY}" x2="${leftMargin + plotWidth}" y2="${bottomY}" stroke="var(--border-color)" stroke-width="1.5" />`;
+    coords.forEach((c, idx) => {
+      xAxisHtml += `
+        <line x1="${c.x.toFixed(1)}" y1="${bottomY}" x2="${c.x.toFixed(1)}" y2="${bottomY + 6}" stroke="var(--border-color)" stroke-width="1.5" />
+        <text x="${c.x.toFixed(1)}" y="${bottomY + 22}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-main)">${escapeHtml(c.raw.label)}</text>
+      `;
+    });
+
+    // Dots and value badges above points
+    let dotsHtml = "";
+    coords.forEach((c, idx) => {
+      dotsHtml += `
+        <g style="cursor:pointer;" onclick="selectReportPoint(${idx})">
+          <text x="${c.x.toFixed(1)}" y="${(c.y - 10).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#FF7A00">${c.raw.value.toLocaleString()} €</text>
+          <circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="7" fill="#FF7A00" opacity="0.2"/>
+          <circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4.5" fill="#FF7A00" stroke="#FFFFFF" stroke-width="2.5"/>
+        </g>
+      `;
+    });
+
+    svg.innerHTML = `
       <defs>
-        <linearGradient id="gradCurve" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#FF7A00" stop-opacity="0.3"/>
+        <linearGradient id="reportsGradArea" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FF7A00" stop-opacity="0.32"/>
           <stop offset="100%" stop-color="#FF7A00" stop-opacity="0.0"/>
         </linearGradient>
       </defs>
-      <path d="${dPath} L 470,180 L 50,180 Z" fill="url(#gradCurve)" />
-      <path d="${dPath}" fill="none" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"/>
-      ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#FF7A00" stroke="#FFFFFF" stroke-width="2"/>`).join("")}
+      ${yAxisHtml}
+      ${xAxisHtml}
+      <path d="${dArea}" fill="url(#reportsGradArea)" />
+      <path d="${dLine}" fill="none" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dotsHtml}
     `;
   }
+
+  // 4. Populate Breakdown Table
+  const tbody = document.getElementById("reportsTableBody");
+  if (tbody) {
+    const totalRev = data.points.reduce((acc, p) => acc + p.value, 0);
+    tbody.innerHTML = data.points.map(p => {
+      const share = totalRev > 0 ? ((p.value / totalRev) * 100).toFixed(1) : "0";
+      const avg = (p.value / Math.max(1, p.orders)).toFixed(2);
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:700; color:var(--text-main);">${escapeHtml(p.label)}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(p.note)}</div>
+          </td>
+          <td>
+            <span style="font-weight:800; color:var(--primary); font-size:13.5px;">${p.value.toLocaleString()} €</span>
+          </td>
+          <td>
+            <span style="font-weight:600;">${p.orders}</span> comande
+          </td>
+          <td>
+            <span style="font-weight:600;">${avg} €</span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="flex:1; max-width:80px; height:6px; background:var(--border-color); border-radius:3px; overflow:hidden;">
+                <div style="width:${share}%; height:100%; background:var(--primary); border-radius:3px;"></div>
+              </div>
+              <span style="font-size:11px; font-weight:700; color:var(--text-muted);">${share}%</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+}
+
+function exportReportsCsv() {
+  const data = REPORTS_DATASETS[currentReportsPeriod] || REPORTS_DATASETS.week;
+  let csv = "Periodo,Data_Orario,Fatturato_EUR,Comande,Scontrino_Medio_EUR,Note\n";
+
+  data.points.forEach(p => {
+    const avg = (p.value / Math.max(1, p.orders)).toFixed(2);
+    csv += `"${data.id}","${p.label}",${p.value},${p.orders},${avg},"${p.note}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `barpilot_rapporto_${data.id}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("📥 Rapporto CSV scaricato con successo!");
 }
 
 // --------------------------------------------------------------------------
@@ -4440,3 +4687,6 @@ window.openSupplierOrderModal = openSupplierOrderModal;
 window.addOrderRow = addOrderRow;
 window.closeSupplierOrderModal = closeSupplierOrderModal;
 window.handleSendSupplierOrder = handleSendSupplierOrder;
+window.switchReportsPeriod = switchReportsPeriod;
+window.selectReportPoint = selectReportPoint;
+window.exportReportsCsv = exportReportsCsv;

@@ -960,19 +960,107 @@
              9. RAPPORTI / ANALYTICS VIEW
              ======================================================== -->
         <section class="view-panel" id="view-reports">
-          <div class="card" style="margin-bottom:20px;">
-            <div class="card-header">
+          <!-- Top Bar with Title, Date Range and Period Filter Switcher -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; margin:0;" data-i18n="navReports">Rapporti & Statistiche</h2>
+              <span style="font-size:12.5px; color:var(--text-muted);" id="reportsDateRangeText">Caricamento periodo...</span>
+            </div>
+
+            <!-- Period Switcher: Giornaliero, Settimanale, Mensile -->
+            <div style="display:flex; background:var(--bg-card-secondary); padding:4px; border-radius:var(--radius-md); border:1px solid var(--border-color); gap:4px;">
+              <button type="button" class="btn-period-tab" id="btnReportDay" onclick="switchReportsPeriod('day')">
+                📅 Giornaliero
+              </button>
+              <button type="button" class="btn-period-tab active" id="btnReportWeek" onclick="switchReportsPeriod('week')">
+                📊 Settimanale
+              </button>
+              <button type="button" class="btn-period-tab" id="btnReportMonth" onclick="switchReportsPeriod('month')">
+                🗓️ Mensile
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:20px;">
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Incasso Totale</div>
+              <div style="font-size:26px; font-weight:900; color:var(--primary); margin:6px 0 2px;" id="reportsKpiRevenue">-- €</div>
+              <div style="font-size:11.5px; color:var(--status-free); font-weight:600;" id="reportsKpiGrowth">+12% vs periodo prec.</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Comande Servite</div>
+              <div style="font-size:26px; font-weight:900; color:var(--text-main); margin:6px 0 2px;" id="reportsKpiOrders">--</div>
+              <div style="font-size:11.5px; color:var(--text-muted);" id="reportsKpiOrdersSub">-- al giorno</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Scontrino Medio</div>
+              <div style="font-size:26px; font-weight:900; color:var(--text-main); margin:6px 0 2px;" id="reportsKpiAvgTicket">-- €</div>
+              <div style="font-size:11.5px; color:var(--status-free); font-weight:600;">+5.2% fidelizzazione</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Picco di Vendita</div>
+              <div style="font-size:20px; font-weight:900; color:var(--text-main); margin:8px 0 2px;" id="reportsKpiPeak">--</div>
+              <div style="font-size:11.5px; color:var(--text-muted);" id="reportsKpiPeakSub">Momento di massimo afflusso</div>
+            </div>
+          </div>
+
+          <!-- Main Chart Card with X and Y Axes -->
+          <div class="card" style="margin-bottom:20px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
               <div>
-                <h3 class="card-title" data-i18n="navReports">Rapporti</h3>
-                <span style="font-size:12px; color:var(--text-muted);" id="reportsDateRangeText">--</span>
+                <h3 style="font-size:16px; font-weight:800; margin:0;" id="reportsChartTitle">Andamento Fatturato</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin:3px 0 0;" id="reportsChartSubtitle">Grafico cronologico con asse valori (€) e asse date</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-muted);">
+                  <span style="width:10px; height:10px; border-radius:50%; background:var(--primary); display:inline-block;"></span>
+                  <span>Fatturato (€)</span>
+                </div>
+                <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="exportReportsCsv()">
+                  📥 Esporta CSV
+                </button>
               </div>
             </div>
 
-            <!-- Revenue Trend SVG Chart -->
-            <div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center;">
-              <svg id="reportsCurveSvg" width="520" height="190" viewBox="0 0 520 190" style="width:100%; max-width:600px; overflow:visible;">
-                <!-- Generated by app.js -->
-              </svg>
+            <!-- Interactive SVG Chart with X and Y axes -->
+            <div style="width:100%; overflow-x:auto;">
+              <div style="min-width:540px; position:relative;">
+                <svg id="reportsCurveSvg" width="100%" height="280" viewBox="0 0 640 260" preserveAspectRatio="none" style="overflow:visible; display:block;">
+                  <!-- Rendered dynamically by renderReportsChart() -->
+                </svg>
+              </div>
+            </div>
+
+            <!-- Selected point tooltip / details bar -->
+            <div id="reportsPointDetailBar" style="margin-top:14px; padding:10px 14px; background:var(--bg-card-secondary); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+              <span id="reportsPointDetailText">💡 Clicca o passa con il mouse sui punti della curva per visualizzare i dettagli orari o giornalieri.</span>
+            </div>
+          </div>
+
+          <!-- Breakdown Details Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" style="font-size:15px; font-weight:800;">Dettaglio Vendite del Periodo</h3>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Data / Intervallo</th>
+                    <th>Fatturato (€)</th>
+                    <th>Comande</th>
+                    <th>Scontrino Medio</th>
+                    <th>Incidenza %</th>
+                  </tr>
+                </thead>
+                <tbody id="reportsTableBody">
+                  <!-- Rendered dynamically by app.js -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

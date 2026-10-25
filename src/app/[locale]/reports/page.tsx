@@ -24,23 +24,71 @@ export default function ReportsPage({ params }: PageProps) {
   const isIt = locale === 'it';
 
   const [activeReportTab, setActiveReportTab] = useState<'sales' | 'products' | 'categories' | 'staff' | 'margins'>('sales');
-  const [dateRange, setDateRange] = useState('01/10/2025 - 20/10/2025');
-  const [periodPreset, setPeriodPreset] = useState('30days');
+  const [periodPreset, setPeriodPreset] = useState<'today' | '7days' | '30days'>('7days');
+  const [selectedPointIdx, setSelectedPointIdx] = useState<number | null>(null);
 
-  // Trend data matching the mockup line chart
-  const salesTrend = [
-    { date: '1 ott', revenue: 620 },
-    { date: '3 ott', revenue: 950 },
-    { date: '5 ott', revenue: 1100 },
-    { date: '7 ott', revenue: 840 },
-    { date: '10 ott', revenue: 1350 },
-    { date: '12 ott', revenue: 1020 },
-    { date: '15 ott', revenue: 1180 },
-    { date: '18 ott', revenue: 960 },
-    { date: '20 ott', revenue: 1480 },
-  ];
+  // Dynamic datasets for Giornaliero, Settimanale, Mensile
+  const datasets = {
+    today: {
+      range: isIt ? 'Oggi · ' + new Date().toLocaleDateString('it-IT') : "Aujourd'hui",
+      kpiRevenue: '1.550 €',
+      kpiOrders: '278',
+      kpiAvg: '5,58 €',
+      kpiGrowth: '+14.2%',
+      maxRevenue: 400,
+      yLabels: ['400 €', '300 €', '200 €', '100 €', '0 €'],
+      trend: [
+        { date: '08:00', revenue: 65, orders: 24 },
+        { date: '10:00', revenue: 140, orders: 42 },
+        { date: '12:00', revenue: 210, orders: 35 },
+        { date: '14:00', revenue: 160, orders: 30 },
+        { date: '16:00', revenue: 95, orders: 18 },
+        { date: '18:00', revenue: 380, orders: 58 },
+        { date: '20:00', revenue: 320, orders: 45 },
+        { date: '22:00', revenue: 180, orders: 26 },
+      ],
+    },
+    '7days': {
+      range: isIt ? 'Ultimi 7 giorni (Lun 19 - Dom 25 Ottobre)' : '7 derniers jours',
+      kpiRevenue: '11.220 €',
+      kpiOrders: '1.540',
+      kpiAvg: '7,29 €',
+      kpiGrowth: '+9.4%',
+      maxRevenue: 2500,
+      yLabels: ['2.500 €', '2.000 €', '1.500 €', '1.000 €', '500 €', '0 €'],
+      trend: [
+        { date: 'Lun 19', revenue: 980, orders: 145 },
+        { date: 'Mar 20', revenue: 1150, orders: 168 },
+        { date: 'Mer 21', revenue: 1280, orders: 182 },
+        { date: 'Gio 22', revenue: 1420, orders: 195 },
+        { date: 'Ven 23', revenue: 2180, orders: 290 },
+        { date: 'Sab 24', revenue: 2450, orders: 320 },
+        { date: 'Dom 25', revenue: 1760, orders: 240 },
+      ],
+    },
+    '30days': {
+      range: isIt ? 'Mese Corrente (1 - 31 Ottobre)' : '30 derniers jours',
+      kpiRevenue: '42.850 €',
+      kpiOrders: '5.860',
+      kpiAvg: '7,31 €',
+      kpiGrowth: '+12.8%',
+      maxRevenue: 2500,
+      yLabels: ['2.500 €', '2.000 €', '1.500 €', '1.000 €', '500 €', '0 €'],
+      trend: [
+        { date: '01 Ott', revenue: 1120, orders: 160 },
+        { date: '05 Ott', revenue: 1350, orders: 185 },
+        { date: '10 Ott', revenue: 1280, orders: 175 },
+        { date: '15 Ott', revenue: 1640, orders: 215 },
+        { date: '20 Ott', revenue: 1520, orders: 200 },
+        { date: '25 Ott', revenue: 2150, orders: 280 },
+        { date: '31 Ott', revenue: 1840, orders: 245 },
+      ],
+    },
+  };
 
-  const maxRevenue = 1500;
+  const currentData = datasets[periodPreset];
+  const salesTrend = currentData.trend;
+  const maxRevenue = currentData.maxRevenue;
 
   // Top products performance matching mockup
   const topProducts = [
@@ -62,12 +110,12 @@ export default function ReportsPage({ params }: PageProps) {
   const handleExportCSV = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      'Data,Fatturato_EUR\n' +
-      salesTrend.map(e => `${e.date},${e.revenue}`).join('\n');
+      'Data_Orario,Fatturato_EUR,Comande\n' +
+      salesTrend.map(e => `${e.date},${e.revenue},${e.orders}`).join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `barpilot_rapporto_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `barpilot_rapporto_${periodPreset}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -80,7 +128,7 @@ export default function ReportsPage({ params }: PageProps) {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {isIt ? 'Rapporti' : 'Rapports'}
+              {isIt ? 'Rapporti & Statistiche' : 'Rapports & Statistiques'}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               {isIt ? 'Dati consolidati' : 'Données consolidées'}
@@ -93,33 +141,51 @@ export default function ReportsPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Date Filter & Actions matching mockup */}
+        {/* Date Filter & Period Selector Tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <span>{dateRange}</span>
-          </div>
-
-          <div className="relative">
-            <select
-              value={periodPreset}
-              onChange={e => setPeriodPreset(e.target.value)}
-              className="appearance-none px-3.5 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer"
+          {/* Period Tabs: Giornaliero, Settimanale, Mensile */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setPeriodPreset('today')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                periodPreset === 'today'
+                  ? 'bg-white text-orange-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <option value="today">{isIt ? 'Oggi' : 'Aujourd\'hui'}</option>
-              <option value="7days">{isIt ? 'Ultimi 7 giorni' : '7 derniers jours'}</option>
-              <option value="30days">{isIt ? 'Ultimi 30 giorni' : '30 derniers jours'}</option>
-              <option value="month">{isIt ? 'Questo mese' : 'Ce mois-ci'}</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              📅 {isIt ? 'Giornaliero' : 'Jour'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodPreset('7days')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                periodPreset === '7days'
+                  ? 'bg-white text-orange-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              📊 {isIt ? 'Settimanale' : 'Semaine'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodPreset('30days')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                periodPreset === '30days'
+                  ? 'bg-white text-orange-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🗓️ {isIt ? 'Mensile' : 'Mois'}
+            </button>
           </div>
 
           <button
             onClick={handleExportCSV}
-            className="h-9 px-3.5 bp-btn-primary text-xs"
+            className="h-9 px-3.5 bp-btn-primary text-xs flex items-center gap-1.5"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isIt ? 'Esporta' : 'Exporter'}</span>
+            <span>{isIt ? 'Esporta CSV' : 'Exporter CSV'}</span>
           </button>
         </div>
       </div>
@@ -158,24 +224,24 @@ export default function ReportsPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* 3 Top Stat Cards matching mockup numbers: 24.850 €, 3.692, 6,73 € */}
+      {/* 3 Top Stat Cards matching dynamic timeframe */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Card 1: Fatturato */}
         <div className="bp-card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              {isIt ? 'Fatturato' : 'Chiffre d\'affaires'}
+              {isIt ? 'Fatturato Totale' : "Chiffre d'affaires"}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <TrendingUp className="w-3 h-3" />
-              +12%
+              {currentData.kpiGrowth}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 tracking-tight">24.850 €</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">{currentData.kpiRevenue}</span>
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            {isIt ? 'vs 22.180 € periodo prec.' : 'vs 22 180 € période préc.'}
+            {currentData.range}
           </span>
         </div>
 
@@ -183,7 +249,7 @@ export default function ReportsPage({ params }: PageProps) {
         <div className="bp-card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              {isIt ? 'Comande' : 'Commandes'}
+              {isIt ? 'Comande Servite' : 'Commandes'}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <TrendingUp className="w-3 h-3" />
@@ -191,10 +257,10 @@ export default function ReportsPage({ params }: PageProps) {
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 tracking-tight">3.692</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">{currentData.kpiOrders}</span>
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            {isIt ? 'Media di 184 al giorno' : 'Moyenne de 184 par jour'}
+            {isIt ? 'Media transazioni periodo' : 'Moyenne période'}
           </span>
         </div>
 
@@ -210,68 +276,81 @@ export default function ReportsPage({ params }: PageProps) {
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 tracking-tight">6,73 €</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">{currentData.kpiAvg}</span>
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            {isIt ? 'Rush aperitivo a 14,20 €' : 'Pic apéritif à 14,20 €'}
+            {isIt ? 'Picco serale a 14,20 €' : 'Pic apéritif à 14,20 €'}
           </span>
         </div>
       </div>
 
-      {/* Big SVG Line Trend Chart matching mockup */}
+      {/* Big SVG Line Trend Chart with X-Axis (Date) and Y-Axis (Valori) */}
       <div className="bp-card p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              {isIt ? 'Andamento Fatturato' : 'Évolution du Chiffre d\'Affaires'}
+              {isIt ? 'Andamento Incassi' : "Évolution du Chiffre d'Affaires"}
             </h3>
             <p className="text-xs text-slate-400">
-              {isIt ? 'Ottobre 2025 · Curva giornaliera' : 'Octobre 2025 · Tendance journalière'}
+              {currentData.range} · {isIt ? 'Ascisse (X): Date / Orari · Bississe (Y): Valori in Euro (€)' : 'Axes X & Y'}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-orange-500" />
-            <span className="text-xs font-semibold text-slate-600">{isIt ? 'Fatturato giornaliero' : 'Ventes'}</span>
+            <span className="text-xs font-semibold text-slate-600">
+              {isIt ? 'Fatturato (€)' : 'Ventes (€)'}
+            </span>
           </div>
         </div>
 
-        {/* SVG Chart */}
-        <div className="relative w-full h-64">
-          <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[11px] font-semibold text-slate-400 w-12">
-            <span>€1.500</span>
-            <span>€1.000</span>
-            <span>€500</span>
-            <span>0</span>
+        {/* SVG Chart with real X and Y axes */}
+        <div className="relative w-full h-72">
+          {/* Y Axis Labels (Bississe) */}
+          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[11px] font-bold text-slate-400 w-16 text-right pr-2">
+            {currentData.yLabels.map((lbl, idx) => (
+              <span key={idx}>{lbl}</span>
+            ))}
           </div>
 
-          <div className="ml-14 h-52 relative">
-            <svg className="w-full h-full overflow-visible" viewBox="0 0 800 180" preserveAspectRatio="none">
+          {/* SVG Canvas */}
+          <div className="ml-16 h-56 relative">
+            <svg className="w-full h-full overflow-visible" viewBox="0 0 800 200" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.25" />
+                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.3" />
                   <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
                 </linearGradient>
               </defs>
 
-              {/* Guide lines */}
-              <line x1="0" y1="10" x2="800" y2="10" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-              <line x1="0" y1="65" x2="800" y2="65" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-              <line x1="0" y1="120" x2="800" y2="120" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-              <line x1="0" y1="175" x2="800" y2="175" stroke="#e2e8f0" strokeWidth="1" />
+              {/* Horizontal Y Guide lines */}
+              {[10, 55, 100, 145, 190].map((y, idx) => (
+                <line
+                  key={idx}
+                  x1="0"
+                  y1={y}
+                  x2="800"
+                  y2={y}
+                  stroke="#f1f5f9"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+              ))}
+              <line x1="0" y1="190" x2="800" y2="190" stroke="#cbd5e1" strokeWidth="1.5" />
 
               {/* Area */}
               <polygon
                 fill="url(#chartGradient)"
                 points={`
+                  0,190
                   ${salesTrend
                     .map((d, i) => {
                       const x = (i / (salesTrend.length - 1)) * 800;
-                      const y = 175 - (d.revenue / maxRevenue) * 165;
+                      const y = 190 - (d.revenue / maxRevenue) * 180;
                       return `${x},${y}`;
                     })
                     .join(' ')}
-                  800,175 0,175
+                  800,190
                 `}
               />
 
@@ -285,133 +364,112 @@ export default function ReportsPage({ params }: PageProps) {
                 points={salesTrend
                   .map((d, i) => {
                     const x = (i / (salesTrend.length - 1)) * 800;
-                    const y = 175 - (d.revenue / maxRevenue) * 165;
+                    const y = 190 - (d.revenue / maxRevenue) * 180;
                     return `${x},${y}`;
                   })
                   .join(' ')}
               />
 
-              {/* Dots */}
+              {/* Dots and Labels */}
               {salesTrend.map((d, i) => {
                 const x = (i / (salesTrend.length - 1)) * 800;
-                const y = 175 - (d.revenue / maxRevenue) * 165;
+                const y = 190 - (d.revenue / maxRevenue) * 180;
+                const isSelected = selectedPointIdx === i;
+
                 return (
-                  <circle
-                    key={i}
-                    cx={x}
-                    cy={y}
-                    r="5"
-                    fill="#ffffff"
-                    stroke="#f97316"
-                    strokeWidth="3"
-                  />
+                  <g key={i} className="cursor-pointer" onClick={() => setSelectedPointIdx(i)}>
+                    <text
+                      x={x}
+                      y={y - 10}
+                      textAnchor="middle"
+                      className="text-[11px] font-extrabold fill-orange-600"
+                    >
+                      {d.revenue} €
+                    </text>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={isSelected ? '7' : '5'}
+                      className="fill-white stroke-orange-500 stroke-[3] transition-all hover:stroke-[4]"
+                    />
+                  </g>
                 );
               })}
             </svg>
 
-            {/* X Labels matching mockup: 1 ott, 5 ott, 10 ott, 15 ott, 20 ott */}
-            <div className="flex justify-between text-[11px] font-semibold text-slate-400 pt-3">
-              <span>1 ott</span>
-              <span>5 ott</span>
-              <span>10 ott</span>
-              <span>15 ott</span>
-              <span>20 ott</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Grid: Top Products with Photos & Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 bp-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h4 className="font-bold text-slate-900 text-sm">
-                {isIt ? 'Classifica Prodotti per Fatturato' : 'Classement Produits'}
-              </h4>
-              <p className="text-xs text-slate-400">
-                {isIt ? 'Volumi venduti e margine lordo stimato' : 'Volumes et marges théoriques'}
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
-                  <th className="py-2.5 px-3">{isIt ? 'Prodotto' : 'Produit'}</th>
-                  <th className="py-2.5 px-3">{isIt ? 'Quantità' : 'Quantité'}</th>
-                  <th className="py-2.5 px-3">{isIt ? 'Ricavo' : 'Revenu'}</th>
-                  <th className="py-2.5 px-3 text-right">{isIt ? 'Margine' : 'Marge'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {topProducts.map((p, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80">
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-3">
-                        <ProductThumb name={p.name_it} size={36} rounded="rounded-lg" />
-                        <div>
-                          <div className="font-bold text-slate-900">{isIt ? p.name_it : p.name_fr}</div>
-                          <div className="text-[10px] text-slate-400">{p.category}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 font-semibold text-slate-700">{p.qty} pz</td>
-                    <td className="py-3 px-3 font-black text-slate-900">{p.revenue}</td>
-                    <td className="py-3 px-3 text-right">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {p.margin}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Categories Breakdown */}
-        <div className="space-y-4">
-          <div className="bp-card p-5">
-            <h4 className="font-bold text-slate-900 text-sm mb-3">
-              {isIt ? 'Ripartizione per Categoria' : 'Répartition par Catégorie'}
-            </h4>
-
-            <div className="space-y-3">
-              {categoryBreakdown.map((cat, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-700">{isIt ? cat.name_it : cat.name_fr}</span>
-                    <span className="font-bold text-slate-900">{cat.amount} ({cat.percent}%)</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${cat.color}`} style={{ width: `${cat.percent}%` }} />
-                  </div>
-                </div>
+            {/* X Labels (Ascisse: Date / Ore) directly aligned under each point */}
+            <div className="flex justify-between text-[11px] font-bold text-slate-700 pt-3">
+              {salesTrend.map((d, idx) => (
+                <span
+                  key={idx}
+                  className={`cursor-pointer transition-colors ${
+                    selectedPointIdx === idx ? 'text-orange-600 underline font-black' : 'hover:text-orange-500'
+                  }`}
+                  onClick={() => setSelectedPointIdx(idx)}
+                >
+                  {d.date}
+                </span>
               ))}
             </div>
-
-            <div className="pt-4 mt-4 border-t border-slate-100 text-center">
-              <span className="text-xs text-slate-500">
-                {isIt ? 'Margine lordo stimato:' : 'Marge brute estimée :'} {' '}
-                <span className="font-black text-emerald-600">73,5%</span>
-              </span>
-            </div>
           </div>
+        </div>
 
-          <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        {/* Selected point interactive bar */}
+        {selectedPointIdx !== null && (
+          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between text-xs text-orange-950 animate-in fade-in">
             <div>
-              <span className="font-bold block mb-0.5">
-                {isIt ? 'Conformità Registratore Telematico' : 'Conformité Caisse RT'}
-              </span>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
-                {isIt
-                  ? 'I dati registrati su BarPilot sono operativi. Per la chiusura contabile, effettua la riconciliazione con il tuo RT.'
-                  : 'BarPilot est opérationnel. Pour la clôture comptable, effectuez le rapprochement RT.'}
-              </p>
+              <span className="font-bold">📅 {salesTrend[selectedPointIdx].date}:</span>
+              <span className="ml-2 font-black text-orange-600 text-sm">{salesTrend[selectedPointIdx].revenue} €</span>
+              <span className="ml-3 text-slate-500">· {salesTrend[selectedPointIdx].orders} comande</span>
             </div>
+            <button
+              onClick={() => setSelectedPointIdx(null)}
+              className="text-xs text-orange-700 font-bold hover:underline"
+            >
+              Chiudi
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Top Products & Categories tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bp-card p-5">
+          <h3 className="font-bold text-slate-900 text-sm mb-4">
+            {isIt ? 'Top Prodotti per Fatturato' : 'Top Produits'}
+          </h3>
+          <div className="space-y-3">
+            {topProducts.map((p, idx) => (
+              <div key={idx} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-3">
+                  <ProductThumb name={p.name_it} size={36} rounded="rounded-xl" />
+                  <div>
+                    <div className="font-bold text-slate-900">{isIt ? p.name_it : p.name_fr}</div>
+                    <div className="text-[10px] text-slate-400">{p.qty} venduti · Margine {p.margin}</div>
+                  </div>
+                </div>
+                <span className="font-black text-slate-900">{p.revenue}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bp-card p-5">
+          <h3 className="font-bold text-slate-900 text-sm mb-4">
+            {isIt ? 'Ripartizione per Categorie' : 'Répartition Catégories'}
+          </h3>
+          <div className="space-y-3.5">
+            {categoryBreakdown.map((c, idx) => (
+              <div key={idx} className="text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-slate-800">{isIt ? c.name_it : c.name_fr}</span>
+                  <span className="font-bold text-slate-900">{c.amount} ({c.percent}%)</span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${c.color} rounded-full`} style={{ width: `${c.percent}%` }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
