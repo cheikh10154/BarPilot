@@ -1015,7 +1015,7 @@ function renderStaff() {
     <tr style="${isCurrentActive ? 'background: rgba(255, 122, 0, 0.08);' : ''}">
       <td>
         <div class="product-row-flex">
-          <img src="${s.avatar}" class="product-thumb-sm" style="border-radius:50%;" alt="${s.name}">
+          <img src="${s.avatar}" class="product-thumb-sm" style="border-radius:50%; cursor:pointer;" onclick="openChangeAvatarModal(${s.id})" title="Clicca per cambiare foto profilo di ${s.name}" alt="${s.name}">
           <div>
             <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
               <span>${s.name}</span>
@@ -1305,10 +1305,12 @@ function handleAddStaffSubmit(e) {
 
   const staff = window.db.get("staff") || [];
   const existing = staff.find(s => s.email && s.email.toLowerCase() === email);
+  let savedMember = null;
   if (existing) {
     existing.name = name;
     existing.role = role;
     existing.pin = pin;
+    savedMember = existing;
   } else {
     const newMember = {
       id: Date.now(),
@@ -1320,6 +1322,7 @@ function handleAddStaffSubmit(e) {
       avatar: defaultAvatars[role] || defaultAvatars.Cameriere
     };
     staff.push(newMember);
+    savedMember = newMember;
   }
   window.db.set("staff", staff);
 
@@ -1343,9 +1346,311 @@ function handleAddStaffSubmit(e) {
   showToast(role === "Proprietario" 
     ? `👥 ${name} aggiunto come Proprietario (accesso esclusivo con Password, nessun PIN).` 
     : `👥 ${name} aggiunto al personale come ${role} (PIN: ${pin})!`);
+
+  // Apertura email benvenuto con logo, credenziali e personalizzazione foto
+  openStaffWelcomeEmailModal(savedMember);
+}
+
+
+// --------------------------------------------------------------------------
+// Staff Welcome Email Notification & Avatar Customization
+// --------------------------------------------------------------------------
+let currentWelcomeStaffMember = null;
+let currentAvatarTargetStaffId = null;
+let pendingSelectedAvatarUrl = "";
+
+const AVATAR_PRESETS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop"
+];
+
+function openStaffWelcomeEmailModal(member) {
+  if (!member) return;
+  currentWelcomeStaffMember = member;
+
+  const modal = document.getElementById("staffWelcomeEmailModal");
+  if (!modal) return;
+
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", city: "Roma" };
+  const origin = window.location.origin && window.location.origin !== "null" ? window.location.origin : "https://cheikh10154.github.io";
+  const pathname = window.location.pathname || "/BarPilot/";
+  const accessUrl = origin.includes("http") ? `${origin}${pathname}` : "https://cheikh10154.github.io/BarPilot/";
+
+  const toEl = document.getElementById("welcomeEmailTo");
+  if (toEl) toEl.textContent = `${member.name} <${member.email}>`;
+
+  const badgeEl = document.getElementById("welcomeEmailRoleBadge");
+  if (badgeEl) badgeEl.textContent = member.role;
+
+  const greetingEl = document.getElementById("welcomeEmailGreeting");
+  if (greetingEl) greetingEl.textContent = `Ciao ${member.name}, benvenuto nel team! 👋`;
+
+  const introEl = document.getElementById("welcomeEmailIntro");
+  if (introEl) {
+    introEl.innerHTML = `Sei stato aggiunto ufficialmente come membro del personale per <strong>${activeBar.name}</strong> con il ruolo di <strong>${member.role}</strong>.`;
+  }
+
+  const emailCredEl = document.getElementById("welcomeEmailCredEmail");
+  if (emailCredEl) emailCredEl.textContent = member.email;
+
+  const pinCredEl = document.getElementById("welcomeEmailCredPin");
+  if (pinCredEl) {
+    if (member.role === "Proprietario" || !member.pin) {
+      pinCredEl.textContent = "NESSUNO";
+      pinCredEl.title = "Accesso tramite Password account";
+    } else {
+      pinCredEl.textContent = member.pin;
+      pinCredEl.title = "PIN numerico a 4 cifre";
+    }
+  }
+
+  const accessLinkBtn = document.getElementById("welcomeEmailAccessLink");
+  if (accessLinkBtn) accessLinkBtn.href = accessUrl;
+
+  const urlTextEl = document.getElementById("welcomeEmailUrlText");
+  if (urlTextEl) urlTextEl.textContent = `Link di accesso rapido: ${accessUrl}`;
+
+  const avatarPreview = document.getElementById("welcomeEmailAvatarPreview");
+  if (avatarPreview) {
+    avatarPreview.src = member.avatar || AVATAR_PRESETS[0];
+    avatarPreview.alt = member.name;
+  }
+
+  const barCityEl = document.getElementById("welcomeEmailBarCity");
+  if (barCityEl) barCityEl.textContent = `${activeBar.name} (${activeBar.city || 'Italia'})`;
+
+  const mailtoBtn = document.getElementById("welcomeEmailMailtoBtn");
+  if (mailtoBtn) {
+    const subject = encodeURIComponent(`🎉 Benvenuto nel team di ${activeBar.name}! Le tue credenziali BarPilot`);
+    const body = encodeURIComponent(
+`Ciao ${member.name},
+
+Benvenuto nel team di ${activeBar.name}!
+Sei stato configurato nel gestionale BarPilot con il ruolo di: ${member.role}
+
+🔐 LE TUE CREDENZIALI DI ACCESSO:
+• Email di login: ${member.email}
+• PIN Veloce tablet: ${member.pin ? member.pin : "Nessun PIN (Accesso con Password)"}
+• Link di accesso rapido: ${accessUrl}
+
+Sul tablet del locale seleziona "PIN veloce", digita il tuo codice a 4 cifre e accedi direttamente alla tua postazione operativa.
+Puoi anche personalizzare la tua foto profilo direttamente dall'app.
+
+Buon lavoro!
+Il Team di ${activeBar.name}`
+    );
+    mailtoBtn.href = `mailto:${member.email}?subject=${subject}&body=${body}`;
+  }
+
+  modal.classList.add("active");
+}
+
+function closeStaffWelcomeEmailModal() {
+  const modal = document.getElementById("staffWelcomeEmailModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function copyWelcomeEmailDetails() {
+  if (!currentWelcomeStaffMember) return;
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", city: "Roma" };
+  const origin = window.location.origin && window.location.origin !== "null" ? window.location.origin : "https://cheikh10154.github.io";
+  const pathname = window.location.pathname || "/BarPilot/";
+  const accessUrl = origin.includes("http") ? `${origin}${pathname}` : "https://cheikh10154.github.io/BarPilot/";
+
+  const text = `🎉 Benvenuto nel team di ${activeBar.name}!
+Ruolo: ${currentWelcomeStaffMember.role}
+Email: ${currentWelcomeStaffMember.email}
+PIN Veloce: ${currentWelcomeStaffMember.pin || 'Nessun PIN (Accesso con Password)'}
+Link di accesso: ${accessUrl}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("📋 Credenziali e testo email copiati negli appunti!");
+    }).catch(() => {
+      prompt("Copia il testo di seguito:", text);
+    });
+  } else {
+    prompt("Copia il testo di seguito:", text);
+  }
+}
+
+function openAvatarModalFromWelcome() {
+  if (currentWelcomeStaffMember) {
+    openChangeAvatarModal(currentWelcomeStaffMember.id);
+  }
+}
+
+function openChangeAvatarModal(staffId) {
+  const modal = document.getElementById("changeAvatarModal");
+  if (!modal) return;
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+  let targetMember = null;
+
+  if (staffId !== undefined && staffId !== null) {
+    targetMember = staff.find(s => s.id === Number(staffId) || s.id === staffId);
+    currentAvatarTargetStaffId = targetMember ? targetMember.id : null;
+  } else if (currentStaff) {
+    targetMember = currentStaff;
+    currentAvatarTargetStaffId = currentStaff.id;
+  } else if (currentWelcomeStaffMember) {
+    targetMember = currentWelcomeStaffMember;
+    currentAvatarTargetStaffId = currentWelcomeStaffMember.id;
+  } else if (staff.length > 0) {
+    targetMember = staff[0];
+    currentAvatarTargetStaffId = targetMember.id;
+  }
+
+  const nameEl = document.getElementById("changeAvatarTargetName");
+  const roleEl = document.getElementById("changeAvatarTargetRole");
+  const previewEl = document.getElementById("avatarCurrentPreview");
+  const fileInput = document.getElementById("avatarFileInput");
+  const urlInput = document.getElementById("avatarUrlInput");
+
+  const currentAvatar = targetMember?.avatar || AVATAR_PRESETS[0];
+  pendingSelectedAvatarUrl = currentAvatar;
+
+  if (nameEl) nameEl.textContent = targetMember ? targetMember.name : "Utente";
+  if (roleEl) roleEl.textContent = targetMember ? targetMember.role : "";
+  if (previewEl) previewEl.src = currentAvatar;
+  if (fileInput) fileInput.value = "";
+  if (urlInput) urlInput.value = "";
+
+  renderAvatarPresets();
+  modal.classList.add("active");
+}
+
+function closeChangeAvatarModal() {
+  const modal = document.getElementById("changeAvatarModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function renderAvatarPresets() {
+  const container = document.getElementById("avatarPresetGrid");
+  if (!container) return;
+
+  container.innerHTML = AVATAR_PRESETS.map((url, idx) => {
+    const isSelected = pendingSelectedAvatarUrl === url;
+    return `
+      <img src="${url}" 
+           class="avatar-preset-item ${isSelected ? 'active' : ''}" 
+           onclick="selectPresetAvatar('${url}')" 
+           alt="Preset ${idx + 1}" 
+           title="Seleziona questo avatar">
+    `;
+  }).join("");
+}
+
+function selectPresetAvatar(url) {
+  pendingSelectedAvatarUrl = url;
+  const previewEl = document.getElementById("avatarCurrentPreview");
+  if (previewEl) previewEl.src = url;
+  renderAvatarPresets();
+}
+
+function handleAvatarUrlInput(url) {
+  const trimmed = (url || "").trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+    pendingSelectedAvatarUrl = trimmed;
+    const previewEl = document.getElementById("avatarCurrentPreview");
+    if (previewEl) previewEl.src = trimmed;
+    renderAvatarPresets();
+  }
+}
+
+function handleAvatarFileUpload(event) {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("⚠️ Seleziona un file immagine valido (JPG, PNG, WebP).");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("⚠️ L'immagine è troppo grande. Dimensione massima 5MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    pendingSelectedAvatarUrl = base64;
+    const previewEl = document.getElementById("avatarCurrentPreview");
+    if (previewEl) previewEl.src = base64;
+    renderAvatarPresets();
+    showToast("✓ Foto caricata con successo! Clicca su Salva per applicarla.");
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveSelectedAvatar() {
+  if (!pendingSelectedAvatarUrl) {
+    showToast("⚠️ Seleziona o carica una foto prima di salvare.");
+    return;
+  }
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+
+  if (currentAvatarTargetStaffId !== null && currentAvatarTargetStaffId !== undefined) {
+    const target = staff.find(s => s.id === currentAvatarTargetStaffId);
+    if (target) {
+      target.avatar = pendingSelectedAvatarUrl;
+    }
+  }
+
+  if (currentStaff && (currentAvatarTargetStaffId === null || currentStaff.id === currentAvatarTargetStaffId)) {
+    currentStaff.avatar = pendingSelectedAvatarUrl;
+    try {
+      const sessionUser = JSON.parse(localStorage.getItem("barpilot_auth_session") || "null");
+      if (sessionUser) {
+        sessionUser.avatar = pendingSelectedAvatarUrl;
+        localStorage.setItem("barpilot_auth_session", JSON.stringify(sessionUser));
+      }
+    } catch(err) {
+      console.warn("Session update error:", err);
+    }
+  }
+
+  if (currentWelcomeStaffMember && (currentAvatarTargetStaffId === currentWelcomeStaffMember.id || currentAvatarTargetStaffId === null)) {
+    currentWelcomeStaffMember.avatar = pendingSelectedAvatarUrl;
+    const welcomePreview = document.getElementById("welcomeEmailAvatarPreview");
+    if (welcomePreview) welcomePreview.src = pendingSelectedAvatarUrl;
+  }
+
+  window.db.set("staff", staff);
+
+  const sidebarAvatar = document.getElementById("sidebarUserAvatar");
+  if (sidebarAvatar && currentStaff && currentStaff.avatar) {
+    sidebarAvatar.src = currentStaff.avatar;
+  }
+  const topbarAvatar = document.getElementById("topbarUserAvatar");
+  if (topbarAvatar && currentStaff && currentStaff.avatar) {
+    topbarAvatar.src = currentStaff.avatar;
+  }
+
+  renderStaff();
+  closeChangeAvatarModal();
+  showToast("🖼️ Foto profilo salvata e aggiornata con successo!");
 }
 
 // Global Exports
+window.openStaffWelcomeEmailModal = openStaffWelcomeEmailModal;
+window.closeStaffWelcomeEmailModal = closeStaffWelcomeEmailModal;
+window.copyWelcomeEmailDetails = copyWelcomeEmailDetails;
+window.openAvatarModalFromWelcome = openAvatarModalFromWelcome;
+window.openChangeAvatarModal = openChangeAvatarModal;
+window.closeChangeAvatarModal = closeChangeAvatarModal;
+window.selectPresetAvatar = selectPresetAvatar;
+window.handleAvatarUrlInput = handleAvatarUrlInput;
+window.handleAvatarFileUpload = handleAvatarFileUpload;
+window.saveSelectedAvatar = saveSelectedAvatar;
 window.openStaffPinModal = openStaffPinModal;
 window.closeStaffPinModal = closeStaffPinModal;
 window.selectStaffForPin = selectStaffForPin;
@@ -1539,6 +1844,20 @@ function setupModals() {
   if (addStaffModal) {
     addStaffModal.addEventListener("click", (e) => {
       if (e.target === addStaffModal) closeAddStaffModal();
+    });
+  }
+
+  const welcomeModal = document.getElementById("staffWelcomeEmailModal");
+  if (welcomeModal) {
+    welcomeModal.addEventListener("click", (e) => {
+      if (e.target === welcomeModal) closeStaffWelcomeEmailModal();
+    });
+  }
+
+  const avatarModal = document.getElementById("changeAvatarModal");
+  if (avatarModal) {
+    avatarModal.addEventListener("click", (e) => {
+      if (e.target === avatarModal) closeChangeAvatarModal();
     });
   }
 

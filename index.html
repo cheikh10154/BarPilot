@@ -432,7 +432,7 @@
         
         <!-- User Profile Card & Quick Actions -->
         <div class="user-profile-card">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" id="sidebarUserAvatar" alt="Operatore" onclick="openStaffPinModal()" style="cursor:pointer;" title="Cambia dipendente (PIN)">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" id="sidebarUserAvatar" alt="Operatore" onclick="openChangeAvatarModal()" style="cursor:pointer;" title="Clicca per cambiare foto profilo">
           <div class="user-info" onclick="openStaffPinModal()" style="cursor:pointer;" title="Clicca per cambiare operatore col PIN">
             <span class="user-name" id="sidebarUserName">Marco Rossi</span>
             <span class="user-role" id="sidebarUserRole" data-i18n="roleOwner">Proprietario</span>
@@ -499,7 +499,7 @@
           <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
             🔔
           </button>
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" onclick="switchView('settings')" alt="Profilo">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" id="topbarUserAvatar" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" onclick="openChangeAvatarModal()" alt="Profilo" title="Clicca per cambiare foto profilo">
         </div>
       </header>
 
@@ -1676,6 +1676,203 @@
     </div>
   </div>
 
+  <!-- Staff Welcome Onboarding Email Modal -->
+  <div class="modal-overlay" id="staffWelcomeEmailModal">
+    <div class="modal-box email-preview-modal-box">
+      <!-- Simulated Email Client Header Bar -->
+      <div class="email-envelope-header">
+        <div class="email-envelope-title-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="email-status-badge">✉️ Email Inviata con Successo</span>
+            <span style="font-size:11px; color:var(--text-muted);">Inbox Delivery · OK</span>
+          </div>
+          <button class="modal-close-icon-btn" onclick="closeStaffWelcomeEmailModal()" aria-label="Chiudi finestra">✕</button>
+        </div>
+        <div class="email-meta-grid">
+          <div class="email-meta-item">
+            <span class="email-meta-label">A:</span>
+            <span class="email-meta-value" id="welcomeEmailTo">--</span>
+          </div>
+          <div class="email-meta-item">
+            <span class="email-meta-label">Da:</span>
+            <span class="email-meta-value" id="welcomeEmailFrom">BarPilot &lt;noreply@barpilot.app&gt;</span>
+          </div>
+          <div class="email-meta-item">
+            <span class="email-meta-label">Oggetto:</span>
+            <span class="email-meta-value" id="welcomeEmailSubject" style="font-weight:700; color:var(--primary);">🎉 Benvenuto nel team! Le tue credenziali BarPilot</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stylized HTML Email Card Template -->
+      <div class="email-body-scroll-container">
+        <div class="email-card-paper">
+          <!-- Logo & Brand Header -->
+          <div class="email-brand-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="assets/images/logo.png" alt="BarPilot Logo" class="email-brand-logo">
+              <div>
+                <h2 class="email-brand-name">Bar<span>Pilot</span></h2>
+                <p class="email-brand-tagline">Il tuo bar. Il tuo controllo. La tua crescita.</p>
+              </div>
+            </div>
+            <span class="email-role-badge" id="welcomeEmailRoleBadge">Cameriere</span>
+          </div>
+
+          <!-- Greeting & Role Message -->
+          <div class="email-content-block">
+            <h3 class="email-greeting-title" id="welcomeEmailGreeting">Ciao Matteo, benvenuto nel team! 👋</h3>
+            <p class="email-greeting-desc" id="welcomeEmailIntro">
+              Sei stato aggiunto ufficialmente come membro del personale per <strong id="welcomeEmailBarName">Bar Centrale</strong> con il ruolo di <strong id="welcomeEmailRoleName">Cameriere</strong>.
+            </p>
+          </div>
+
+          <!-- Credentials Glow Box -->
+          <div class="email-credentials-box">
+            <div class="email-cred-header">
+              <span>🔐 LE TUE CREDENZIALI DI ACCESSO</span>
+              <span style="font-size:10px; background:rgba(255,122,0,0.15); padding:2px 6px; border-radius:4px;">Strettamente Personali</span>
+            </div>
+            <div class="email-cred-row">
+              <span class="email-cred-label">✉️ Email di accesso:</span>
+              <code class="email-cred-code" id="welcomeEmailCredEmail">--</code>
+            </div>
+            <div class="email-cred-row">
+              <span class="email-cred-label">🔑 PIN veloce tablet:</span>
+              <div class="email-pin-display-wrap">
+                <span class="email-pin-big" id="welcomeEmailCredPin">1234</span>
+                <span class="email-pin-tag">4 cifre</span>
+              </div>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-top:10px; line-height:1.45;">
+              💡 Sul tablet del bar seleziona <strong>"PIN veloce"</strong>, inserisci il tuo codice a 4 cifre e accederai direttamente alla schermata operativa del tuo ruolo.
+            </p>
+          </div>
+
+          <!-- Access Link Button -->
+          <div style="text-align:center; margin: 22px 0;">
+            <a href="#" id="welcomeEmailAccessLink" class="email-cta-btn" target="_blank">
+              🚀 Accedi a BarPilot
+            </a>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:8px; word-break:break-all;" id="welcomeEmailUrlText">
+              Link di accesso rapido: https://cheikh10154.github.io/BarPilot/
+            </div>
+          </div>
+
+          <!-- Profile Photo Personalization Section -->
+          <div class="email-avatar-section">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="" id="welcomeEmailAvatarPreview" class="email-avatar-img" alt="Foto Profilo">
+              <div>
+                <h4 style="font-size:13px; font-weight:800; margin-bottom:2px;">La tua foto profilo</h4>
+                <p style="font-size:11px; color:var(--text-muted);">Personalizza il tuo avatar per farti riconoscere subito nei tavoli e nelle comande</p>
+              </div>
+            </div>
+            <button type="button" class="btn-email-change-avatar" onclick="openAvatarModalFromWelcome()">
+              📷 Cambia foto profilo
+            </button>
+          </div>
+
+          <!-- Onboarding 3-Steps Guide -->
+          <div class="email-steps-guide">
+            <div class="email-step-item">
+              <div class="email-step-num">1</div>
+              <div>
+                <strong style="font-size:12px;">Apri il link</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Da smartphone o tablet</p>
+              </div>
+            </div>
+            <div class="email-step-item">
+              <div class="email-step-num">2</div>
+              <div>
+                <strong style="font-size:12px;">Digita il PIN</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Sblocca il tuo profilo</p>
+              </div>
+            </div>
+            <div class="email-step-item">
+              <div class="email-step-num">3</div>
+              <div>
+                <strong style="font-size:12px;">Sei pronto!</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Inizia il tuo turno</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Footer -->
+          <div class="email-footer-brand">
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">
+              Questa notifica è stata generata automaticamente dal gestionale di <strong style="color:var(--text-main);">BarPilot</strong>.
+            </p>
+            <p style="font-size:10px; color:var(--text-muted); opacity:0.7;">
+              © BarPilot POS · Locale: <span id="welcomeEmailBarCity">Bar Centrale</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer for Owner -->
+      <div class="email-actions-footer">
+        <button type="button" class="btn-secondary" onclick="copyWelcomeEmailDetails()" style="font-size:12px; padding:9px 14px;">
+          📋 Copia Testo & PIN
+        </button>
+        <a id="welcomeEmailMailtoBtn" href="#" class="btn-secondary" style="font-size:12px; padding:9px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          ✉️ Invia con Client Email
+        </a>
+        <button type="button" class="btn-primary" onclick="closeStaffWelcomeEmailModal()" style="font-size:12px; padding:9px 18px; margin-left:auto;">
+          ✓ Fatto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Profile Picture Modal -->
+  <div class="modal-overlay" id="changeAvatarModal">
+    <div class="modal-box" style="max-width:480px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">🖼️ Personalizza Foto Profilo</h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="changeAvatarModalSubtitle">Carica una foto dal dispositivo, inserisci un URL o scegli dalla galleria</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeChangeAvatarModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <!-- Live Avatar Preview -->
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="position:relative; display:inline-block;">
+          <img src="" id="avatarCurrentPreview" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--primary); box-shadow:0 4px 15px rgba(255,122,0,0.25);" alt="Anteprima">
+          <span style="position:absolute; bottom:0; right:0; background:var(--primary); color:#FFF; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; border:2px solid var(--bg-card);">📷</span>
+        </div>
+        <div style="font-weight:700; font-size:15px; margin-top:8px;" id="changeAvatarTargetName">Nome Dipendente</div>
+        <div style="font-size:12px; color:var(--text-muted);" id="changeAvatarTargetRole">Ruolo</div>
+      </div>
+
+      <!-- Option 1: File Upload from Device -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Carica dal dispositivo (Telefono o PC)</label>
+        <input type="file" id="avatarFileInput" accept="image/*" class="form-input" style="padding:8px;" onchange="handleAvatarFileUpload(event)">
+      </div>
+
+      <!-- Option 2: Image URL -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Oppure incolla URL immagine web</label>
+        <input type="url" id="avatarUrlInput" class="form-input" placeholder="https://images.unsplash.com/..." oninput="handleAvatarUrlInput(this.value)">
+      </div>
+
+      <!-- Option 3: Presets -->
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Oppure scegli un avatar predefinito:</label>
+        <div class="avatar-preset-grid" id="avatarPresetGrid">
+          <!-- Dynamically populated presets -->
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeChangeAvatarModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-primary" onclick="saveSelectedAvatar()" style="flex:1; padding:11px;">💾 Salva Foto Profilo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/data.js"></script>
