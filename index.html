@@ -15,6 +15,8 @@
         const isAuth = localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true");
         if (isAuth) {
           document.documentElement.classList.add("user-authenticated");
+        } else {
+          document.documentElement.classList.remove("user-authenticated");
         }
       } catch (e) {}
     })();

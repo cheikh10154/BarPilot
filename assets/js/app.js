@@ -1634,12 +1634,81 @@ function setUserLoggedIn(status, userMeta = null) {
       localStorage.setItem("barpilot_logged_user", JSON.stringify(userMeta));
     }
   } else {
-    localStorage.setItem("barpilot_is_logged_in", "false");
-    document.cookie = "barpilot_auth=false; path=/; max-age=0; SameSite=Lax";
-    document.documentElement.classList.remove("user-authenticated");
+    localStorage.removeItem("barpilot_is_logged_in");
     localStorage.removeItem("barpilot_logged_user");
+    localStorage.removeItem("barpilot_active_staff");
+    localStorage.removeItem("barpilot_session_token");
+    document.cookie = "barpilot_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
+    document.documentElement.classList.remove("user-authenticated");
   }
 }
+
+function clearConnectionCache() {
+  // 1. Cancellazione completa cache localStorage (auth, token, sessioni)
+  try {
+    localStorage.removeItem("barpilot_is_logged_in");
+    localStorage.removeItem("barpilot_logged_user");
+    localStorage.removeItem("barpilot_active_staff");
+    localStorage.removeItem("barpilot_session_token");
+
+    // Rimuove token di autenticazione esterni (Supabase / OAuth)
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith("sb-") || key.includes("supabase") || key.includes("token")) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {}
+
+  // 2. Cancellazione completa sessionStorage
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
+
+  // 3. Scadenza e rimozione cookie di sessione
+  try {
+    document.cookie = "barpilot_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
+  } catch (e) {}
+
+  // 4. Reset dello stato in memoria dell'applicazione
+  currentStaff = null;
+  selectedPinStaff = null;
+  enteredPin = "";
+  if (appState) {
+    appState.cart = [];
+  }
+
+  // 5. Pulizia dei campi compilati e rimozione cache dai form di login
+  try {
+    const authForm = document.getElementById("authForm");
+    if (authForm) authForm.reset();
+    const addStaffForm = document.getElementById("addStaffForm");
+    if (addStaffForm) addStaffForm.reset();
+
+    const authEmail = document.getElementById("authEmail");
+    if (authEmail) authEmail.value = "";
+    const authPassword = document.getElementById("authPassword");
+    if (authPassword) authPassword.value = "";
+    const regPin = document.getElementById("regPin");
+    if (regPin) regPin.value = "";
+
+    hideAuthError();
+    if (typeof setAuthCredentialMode === "function") {
+      setAuthCredentialMode("password");
+    }
+  } catch (e) {}
+
+  // 6. Cancellazione cache di rete e connessione da CacheStorage
+  if (window.caches) {
+    caches.keys().then(keys => {
+      keys.forEach(k => {
+        if (k.includes("data") || k.includes("api") || k.includes("session") || k.includes("auth")) {
+          caches.delete(k);
+        }
+      });
+    }).catch(() => {});
+  }
+}
+window.clearConnectionCache = clearConnectionCache;
 
 function logoutUser() {
   const modal = document.getElementById("logoutConfirmModal");
@@ -1657,20 +1726,21 @@ function closeLogoutModal() {
 
 function confirmLogoutAction() {
   closeLogoutModal();
+
+  // Cancellazione immediata e completa della cache di connessione
+  clearConnectionCache();
   setUserLoggedIn(false);
-  localStorage.removeItem("barpilot_active_staff");
-  currentStaff = null;
-  
-  // Close sidebar if open
+
+  // Chiude la sidebar se aperta
   closeSidebar();
-  
-  // Open authentication screen
+
+  // Mostra la schermata di login pulita
   openAuthScreen();
 
   const isIt = !window.i18n || window.i18n.currentLang === "it";
   showToast(isIt
-    ? "Disconnessione effettuata. A presto!"
-    : "Déconnexion réussie. À bientôt !");
+    ? "Disconnessione effettuata. Cache di connessione eliminata!"
+    : "Déconnexion réussie. Cache de connexion effacé !");
 }
 
 function initSplashScreen() {
