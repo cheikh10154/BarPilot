@@ -215,7 +215,21 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isUserSubscribed() {
   try {
+    // Demo mode: completely unrestricted access, never ask for subscription
+    let loggedUser = null;
+    try {
+      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+    } catch (e) {}
+
+    if (loggedUser && (loggedUser.provider === "demo" || loggedUser.isDemo || loggedUser.email === "marco@barcentrale.it")) {
+      return true;
+    }
+
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    if (bar && (bar.isDemo === true || bar.id === "bar_01")) {
+      return true;
+    }
+
     const stored = localStorage.getItem("barpilot_is_subscribed");
     return stored === "true" || bar.isSubscribed === true || bar.subscriptionStatus === "active";
   } catch (e) {
@@ -4701,7 +4715,8 @@ function handleAuthSubmit(e) {
     }
 
     // Check if user has an active subscription
-    if (isUserSubscribed()) {
+    const isDemoAccount = email === "marco@barcentrale.it" || (activeBar && (activeBar.isDemo || activeBar.id === "bar_01"));
+    if (isDemoAccount || isUserSubscribed()) {
       switchView("dashboard");
       showToast(window.i18n.currentLang === 'it'
         ? (isOwner 
@@ -4870,19 +4885,30 @@ function quickLoginDemo() {
     status: "active",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop"
   };
+
+  const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+  activeBar.isDemo = true;
+  activeBar.isSubscribed = true;
+  if (window.db) window.db.set("activeBar", activeBar);
+
   applyActiveStaff(ownerStaff, true);
-  setUserLoggedIn(true, { name: "Marco Rossi", email: "marco@barcentrale.it", role: "Proprietario", provider: "demo" });
+  setUserLoggedIn(true, {
+    name: "Marco Rossi",
+    email: "marco@barcentrale.it",
+    role: "Proprietario",
+    provider: "demo",
+    isDemo: true
+  });
+
   closeAuthScreen();
   renderApp();
-  if (isUserSubscribed()) {
-    switchView("dashboard");
-  } else {
-    switchView("subscriptions");
-    setTimeout(() => openGooglePlayModal(), 400);
-  }
+
+  // In demo mode: take user straight to dashboard, no subscription requested!
+  switchView("dashboard");
+
   showToast(window.i18n.currentLang === 'it'
-    ? "Benvenuto in Bar Centrale (Accesso Proprietario Demo)!"
-    : "Bienvenue sur Bar Centrale (Accès Propriétaire Démo) !");
+    ? "⚡ Benvenuto in Bar Centrale (Accesso Proprietario Demo)!"
+    : "⚡ Bienvenue sur Bar Centrale (Accès Propriétaire Démo) !");
 }
 
 // ==========================================================================
@@ -5094,3 +5120,4 @@ window.activateSubscription = activateSubscription;
 window.updateDashboardLockState = updateDashboardLockState;
 window.switchView = switchView;
 window.appState = appState;
+window.quickLoginDemo = quickLoginDemo;
