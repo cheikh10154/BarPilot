@@ -941,71 +941,30 @@ function changeOrderStatus(orderId, newStatus) {
 // Products & Inventory Catalog
 // --------------------------------------------------------------------------
 function renderProducts() {
-  const products = (window.db ? window.db.get("products") : []) || [];
+  const products = window.db.get("products");
   const tbody = document.getElementById("productsTableBody");
   if (!tbody) return;
 
-  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
-
-  tbody.innerHTML = products.map(p => {
-    const marginPct = p.price > 0 ? Math.round((1 - (p.cost / p.price)) * 100) : 0;
-    const isOutOfStock = p.status === "out_of_stock";
-    const statusText = isOutOfStock ? "Esaurito" : window.i18n.t("statusActive");
-    const statusBadgeClass = isOutOfStock ? "badge-alert" : "badge-served";
-
-    // Format allergens pills
-    const allergens = Array.isArray(p.allergens) ? p.allergens : [];
-    const allergenIcons = [];
-    if (allergens.includes("glutine")) allergenIcons.push("🌾 Glutine");
-    if (allergens.includes("lattosio")) allergenIcons.push("🥛 Lattosio");
-    if (allergens.includes("alcol")) allergenIcons.push("🍷 Alcol");
-    if (allergens.includes("vegano")) allergenIcons.push("🌱 Vegan");
-
-    const vatBadge = p.vat ? `<span style="font-size:9.5px; background:var(--bg-card-secondary); padding:1px 5px; border-radius:4px; color:var(--text-muted); border:1px solid var(--border-color);">IVA ${p.vat}%</span>` : "";
-    const stationBadge = p.station === "kitchen" ? "🍳 Cucina" : p.station === "coffee" ? "☕ Caffè" : "🍸 Bar";
-
-    return `
-    <tr style="${isOutOfStock ? 'opacity:0.75;' : ''}">
+  tbody.innerHTML = products.map(p => `
+    <tr>
       <td>
         <div class="product-row-flex">
-          <img src="${p.image}" class="product-thumb-sm" style="width:40px; height:40px; border-radius:10px; object-fit:cover;" alt="${p.name}">
+          <img src="${p.image}" class="product-thumb-sm" alt="${p.name}">
           <div>
-            <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
-              <span>${p.name}</span>
-              ${vatBadge}
-            </div>
-            <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
-              <span style="text-transform:capitalize;">${p.category}</span>
-              <span>·</span>
-              <span>${stationBadge}</span>
-              ${allergenIcons.length > 0 ? `<span style="color:var(--primary); font-size:10px;">(${allergenIcons.join(', ')})</span>` : ''}
-            </div>
+            <div style="font-weight:700;">${p.name}</div>
+            <div style="font-size:11px; color:var(--text-muted); text-transform:capitalize;">${p.category}</div>
           </div>
         </div>
       </td>
-      <td style="font-weight:800; font-size:13.5px;">${p.price.toFixed(2)} €</td>
-      <td style="color:var(--text-muted); font-size:12px;">${p.cost.toFixed(2)} €</td>
-      <td style="font-weight:800; color:${marginPct >= 65 ? 'var(--status-free)' : 'var(--primary)'}; font-size:12.5px;">
-        ${marginPct}%
-      </td>
+      <td style="font-weight:700;">${p.price.toFixed(2)} €</td>
+      <td style="color:var(--text-muted);">${p.cost.toFixed(2)} €</td>
+      <td style="font-weight:700; color:var(--status-free);">${((1 - (p.cost / p.price)) * 100).toFixed(0)}%</td>
+      <td><span class="table-badge badge-served">${window.i18n.t("statusActive")}</span></td>
       <td>
-        ${isCurrentViewerOwner
-          ? `<button type="button" class="table-badge ${statusBadgeClass}" onclick="toggleProductAvailabilityStatus(${p.id})" style="cursor:pointer; border:none;" title="Clicca per cambiare disponibilità">${statusText}</button>`
-          : `<span class="table-badge ${statusBadgeClass}">${statusText}</span>`
-        }
-      </td>
-      <td>
-        ${isCurrentViewerOwner
-          ? `<div style="display:flex; align-items:center; gap:6px;">
-               <button class="ctrl-btn" onclick="openEditProductModal(${p.id})" title="Modifica dati, foto e opzioni del prodotto">✏️ Modifica</button>
-               <button class="ctrl-btn ctrl-btn-danger" onclick="openDeleteProductModal(${p.id})" title="Elimina definitivamente dal bar">🗑️ Elimina</button>
-             </div>`
-          : `<span style="font-size:11px; color:var(--text-muted);">Solo visualizzazione</span>`
-        }
+        <button class="ctrl-btn" onclick="alert('Modifica ${p.name}')">${window.i18n.t("edit")}</button>
       </td>
     </tr>
-  `;
-  }).join("");
+  `).join("");
 }
 
 function renderInventory() {
@@ -1082,7 +1041,7 @@ const ROLE_PERMISSIONS = {
   },
   Manager: {
     views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports"],
-    canAddProducts: false,
+    canAddProducts: true,
     canEditStaff: false,
     canManageTables: false,
     defaultView: "dashboard",
@@ -1460,364 +1419,609 @@ function closeAddProductModal() {
   if (modal) modal.classList.remove("active");
 }
 
-// --------------------------------------------------------------------------
-// Product Management (Solo Proprietario: Foto, Opzioni, Modifica, Cancellazione)
-// --------------------------------------------------------------------------
-const PRODUCT_PHOTO_PRESETS = [
-  { name: "Espresso", url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" },
-  { name: "Cappuccino", url: "https://images.unsplash.com/photo-1534778101976-62847782c213?w=300&h=300&fit=crop" },
-  { name: "Spritz Aperol", url: "https://images.unsplash.com/photo-1560512823-829485b8bf24?w=300&h=300&fit=crop" },
-  { name: "Birra Bionda", url: "https://images.unsplash.com/photo-1608270118029-79a613620e23?w=300&h=300&fit=crop" },
-  { name: "Calice Vino", url: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=300&h=300&fit=crop" },
-  { name: "Gin Tonic", url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop" },
-  { name: "Croissant", url: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&h=300&fit=crop" },
-  { name: "Toast / Panino", url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=300&h=300&fit=crop" },
-  { name: "Succo / Bibita", url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=300&h=300&fit=crop" },
-  { name: "Tè Freddo", url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&h=300&fit=crop" }
-];
-
-let productIdPendingDelete = null;
-
-function renderProductPresetGrid() {
-  const grid = document.getElementById("productPresetGrid");
-  if (!grid) return;
-  const currentImg = document.getElementById("newProdImage")?.value;
-  grid.innerHTML = PRODUCT_PHOTO_PRESETS.map(preset => `
-    <img src="${preset.url}" 
-         class="product-preset-thumb ${currentImg === preset.url ? 'selected' : ''}" 
-         title="${preset.name}" 
-         alt="${preset.name}" 
-         onclick="selectProductPreset('${preset.url}', this)">
-  `).join("");
-}
-
-function toggleProductPresets() {
-  const container = document.getElementById("productPresetContainer");
-  if (!container) return;
-  const isHidden = container.style.display === "none";
-  container.style.display = isHidden ? "block" : "none";
-  if (isHidden) renderProductPresetGrid();
-}
-
-function selectProductPreset(url, element) {
-  const preview = document.getElementById("productImagePreview");
-  const input = document.getElementById("newProdImage");
-  if (preview) preview.src = url;
-  if (input) input.value = url;
-  document.querySelectorAll(".product-preset-thumb").forEach(t => t.classList.remove("selected"));
-  if (element) element.classList.add("selected");
-}
-
-function updateProductImagePreview(url) {
-  const preview = document.getElementById("productImagePreview");
-  if (preview && url) {
-    preview.src = url;
-  }
-}
-
-function handleProductFileUpload(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const dataUrl = e.target.result;
-    const preview = document.getElementById("productImagePreview");
-    const input = document.getElementById("newProdImage");
-    if (preview) preview.src = dataUrl;
-    if (input) input.value = dataUrl;
-    document.querySelectorAll(".product-preset-thumb").forEach(t => t.classList.remove("selected"));
-  };
-  reader.readAsDataURL(file);
-}
-
-function recalcProductMargin() {
-  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 0;
-  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 0;
-  const badge = document.getElementById("newProdMarginBadge");
-  if (!badge) return;
-
-  if (price > 0) {
-    const margin = Math.round((1 - (cost / price)) * 100);
-    badge.textContent = `Margine: ${margin}%`;
-    if (margin >= 65) {
-      badge.style.background = "rgba(34,197,94,0.15)";
-      badge.style.color = "#22C55E";
-      badge.style.borderColor = "rgba(34,197,94,0.3)";
-    } else if (margin >= 40) {
-      badge.style.background = "rgba(255,122,0,0.15)";
-      badge.style.color = "var(--primary)";
-      badge.style.borderColor = "rgba(255,122,0,0.3)";
-    } else {
-      badge.style.background = "rgba(239,68,68,0.15)";
-      badge.style.color = "#EF4444";
-      badge.style.borderColor = "rgba(239,68,68,0.3)";
-    }
-  } else {
-    badge.textContent = "Margine: 0%";
-  }
-}
-
-function toggleAllergenClass(checkbox) {
-  const label = checkbox.closest(".allergen-pill-checkbox");
-  if (label) {
-    label.classList.toggle("active", checkbox.checked);
-  }
-}
-
-function openAddProductModal() {
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
+function handleAddProductSubmit(e) {
+  e.preventDefault();
+  if (currentStaff && currentStaff.role !== "Proprietario" && currentStaff.role !== "Manager") {
     showToast("⚠️ Solo il Proprietario può aggiungere nuovi prodotti al bar.");
     return;
   }
 
-  const modal = document.getElementById("addProductModal");
-  if (!modal) return;
-
-  // Set mode to ADD
-  document.getElementById("editProductId").value = "";
-  document.getElementById("productModalTitle").innerHTML = "<span>☕</span> <span>Nuovo Prodotto Bar</span>";
-  document.getElementById("productModalSubtitle").textContent = "Aggiungi una nuova bevanda o cocktail con foto e opzioni (Solo Proprietario)";
-  document.getElementById("productModalSubmitBtn").textContent = "+ Salva nel Catalogo";
-
-  // Reset inputs
-  document.getElementById("newProdName").value = "";
-  document.getElementById("newProdCategory").value = "coffee";
-  document.getElementById("newProdPrice").value = "";
-  document.getElementById("newProdCost").value = "";
-  document.getElementById("newProdVat").value = "10";
-  document.getElementById("newProdStation").value = "comptoir";
-  document.getElementById("newProdStatus").value = "active";
-  document.getElementById("newProdDesc").value = "";
-  document.getElementById("newProdRecipe").value = "";
-
-  const defaultImg = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
-  document.getElementById("productImagePreview").src = defaultImg;
-  document.getElementById("newProdImage").value = defaultImg;
-
-  document.querySelectorAll('input[name="productAllergens"]').forEach(cb => {
-    cb.checked = false;
-    toggleAllergenClass(cb);
-  });
-
-  const presetContainer = document.getElementById("productPresetContainer");
-  if (presetContainer) presetContainer.style.display = "none";
-
-  recalcProductMargin();
-  modal.classList.add("active");
-}
-
-function openEditProductModal(productId) {
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
-    showToast("⚠️ Solo il Proprietario può modificare i prodotti.");
-    return;
-  }
-
-  const products = (window.db ? window.db.get("products") : []) || [];
-  const p = products.find(item => item.id == productId);
-  if (!p) {
-    showToast("⚠️ Prodotto non trovato.");
-    return;
-  }
-
-  const modal = document.getElementById("addProductModal");
-  if (!modal) return;
-
-  // Set mode to EDIT
-  document.getElementById("editProductId").value = p.id;
-  document.getElementById("productModalTitle").innerHTML = `<span>✏️</span> <span>Modifica ${p.name}</span>`;
-  document.getElementById("productModalSubtitle").textContent = "Aggiorna foto, prezzi, ricetta e opzioni di questo prodotto";
-  document.getElementById("productModalSubmitBtn").textContent = "💾 Salva Modifiche";
-
-  // Fill inputs
-  document.getElementById("newProdName").value = p.name || "";
-  document.getElementById("newProdCategory").value = p.category || "coffee";
-  document.getElementById("newProdPrice").value = p.price || "";
-  document.getElementById("newProdCost").value = p.cost !== undefined ? p.cost : "";
-  document.getElementById("newProdVat").value = p.vat || "10";
-  document.getElementById("newProdStation").value = p.station || "comptoir";
-  document.getElementById("newProdStatus").value = p.status || "active";
-  document.getElementById("newProdDesc").value = p.description || "";
-  document.getElementById("newProdRecipe").value = p.recipeText || "";
-
-  const img = p.image || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
-  document.getElementById("productImagePreview").src = img;
-  document.getElementById("newProdImage").value = img;
-
-  const allergens = Array.isArray(p.allergens) ? p.allergens : [];
-  document.querySelectorAll('input[name="productAllergens"]').forEach(cb => {
-    cb.checked = allergens.includes(cb.value);
-    toggleAllergenClass(cb);
-  });
-
-  const presetContainer = document.getElementById("productPresetContainer");
-  if (presetContainer) presetContainer.style.display = "none";
-
-  recalcProductMargin();
-  modal.classList.add("active");
-}
-
-function closeAddProductModal() {
-  const modal = document.getElementById("addProductModal");
-  if (modal) modal.classList.remove("active");
-}
-
-function handleAddProductSubmit(e) {
-  if (e && e.preventDefault) e.preventDefault();
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
-    showToast("⚠️ Solo il Proprietario può gestire i prodotti.");
-    closeAddProductModal();
-    return;
-  }
-
-  const editId = document.getElementById("editProductId")?.value;
   const name = document.getElementById("newProdName")?.value.trim();
-  const category = document.getElementById("newProdCategory")?.value || "coffee";
-  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 0;
-  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 0;
-  const vat = document.getElementById("newProdVat")?.value || "10";
-  const station = document.getElementById("newProdStation")?.value || "comptoir";
-  const status = document.getElementById("newProdStatus")?.value || "active";
-  const image = document.getElementById("newProdImage")?.value || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop";
-  const description = document.getElementById("newProdDesc")?.value.trim() || "";
-  const recipeText = document.getElementById("newProdRecipe")?.value.trim() || "";
+  const category = document.getElementById("newProdCategory")?.value || "cocktails";
+  const price = parseFloat(document.getElementById("newProdPrice")?.value) || 5.00;
+  const cost = parseFloat(document.getElementById("newProdCost")?.value) || 1.20;
+  const image = document.getElementById("newProdImage")?.value || "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&h=300&fit=crop";
 
-  // Collect checked allergens
-  const allergens = [];
-  document.querySelectorAll('input[name="productAllergens"]:checked').forEach(cb => {
-    allergens.push(cb.value);
-  });
+  if (!name) return;
 
-  if (!name) {
-    showToast("⚠️ Inserisci il nome del prodotto.");
-    return;
-  }
-  if (price <= 0) {
-    showToast("⚠️ Inserisci un prezzo di vendita valido.");
-    return;
-  }
+  const products = window.db.get("products") || [];
+  const newProduct = {
+    id: Date.now(),
+    name: name,
+    category: category,
+    price: price,
+    cost: cost,
+    image: image
+  };
 
-  const products = (window.db ? window.db.get("products") : []) || [];
-
-  if (editId) {
-    // Update existing product
-    const idx = products.findIndex(p => p.id == editId);
-    if (idx !== -1) {
-      products[idx] = {
-        ...products[idx],
-        name,
-        category,
-        price,
-        cost,
-        vat,
-        station,
-        status,
-        image,
-        description,
-        recipeText,
-        allergens
-      };
-      window.db.set("products", products);
-      showToast(`✅ Prodotto "${name}" aggiornato con successo!`);
-    }
-  } else {
-    // Create new product
-    const newProduct = {
-      id: Date.now(),
-      name,
-      category,
-      price,
-      cost,
-      vat,
-      station,
-      status,
-      image,
-      description,
-      recipeText,
-      allergens,
-      salesCount: 0
-    };
-    products.push(newProduct);
-    window.db.set("products", products);
-    showToast(`✅ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
-  }
-
-  renderProducts();
-  renderOrderCatalog();
-  closeAddProductModal();
-}
-
-function openDeleteProductModal(productId) {
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
-    showToast("⚠️ Solo il Proprietario può eliminare prodotti.");
-    return;
-  }
-
-  const products = (window.db ? window.db.get("products") : []) || [];
-  const p = products.find(item => item.id == productId);
-  if (!p) return;
-
-  productIdPendingDelete = productId;
-  document.getElementById("deleteProductName").textContent = p.name;
-  document.getElementById("deleteProductInfo").textContent = `${p.category} · ${p.price.toFixed(2)} €`;
-  document.getElementById("deleteProductThumb").src = p.image || "";
-
-  const modal = document.getElementById("deleteProductModal");
-  if (modal) modal.classList.add("active");
-}
-
-function closeDeleteProductModal() {
-  productIdPendingDelete = null;
-  const modal = document.getElementById("deleteProductModal");
-  if (modal) modal.classList.remove("active");
-}
-
-function confirmDeleteProductAction() {
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
-    showToast("⚠️ Azione negata: solo il Proprietario può eliminare prodotti.");
-    closeDeleteProductModal();
-    return;
-  }
-
-  if (!productIdPendingDelete) {
-    closeDeleteProductModal();
-    return;
-  }
-
-  const products = (window.db ? window.db.get("products") : []) || [];
-  const target = products.find(p => p.id == productIdPendingDelete);
-  const updated = products.filter(p => p.id != productIdPendingDelete);
-  window.db.set("products", updated);
-
-  const deletedName = target ? target.name : "Prodotto";
-  closeDeleteProductModal();
-  renderProducts();
-  renderOrderCatalog();
-  showToast(`🗑️ Prodotto "${deletedName}" eliminato dal catalogo.`);
-}
-
-function toggleProductAvailabilityStatus(productId) {
-  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
-  if (!isOwner) {
-    showToast("⚠️ Solo il Proprietario può modificare la disponibilità del prodotto.");
-    return;
-  }
-
-  const products = (window.db ? window.db.get("products") : []) || [];
-  const p = products.find(item => item.id == productId);
-  if (!p) return;
-
-  p.status = p.status === "out_of_stock" ? "active" : "out_of_stock";
+  products.push(newProduct);
   window.db.set("products", products);
 
   renderProducts();
   renderOrderCatalog();
-  showToast(`${p.status === "active" ? '🟢' : '🔴'} "${p.name}" impostato come ${p.status === "active" ? 'Disponibile' : 'Esaurito'}.`);
+  closeAddProductModal();
+
+  document.getElementById("addProductForm")?.reset();
+  showToast(`✨ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
 }
+
+function openAddStaffModal() {
+  if (currentStaff && currentStaff.role !== "Proprietario") {
+    showToast("⚠️ Solo il Proprietario può aggiungere nuovi membri del personale.");
+    return;
+  }
+  const modal = document.getElementById("addStaffModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeAddStaffModal() {
+  const modal = document.getElementById("addStaffModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddStaffSubmit(e) {
+  e.preventDefault();
+  if (currentStaff && currentStaff.role !== "Proprietario") {
+    showToast("⚠️ Solo il Proprietario può aggiungere nuovi membri del personale.");
+    return;
+  }
+
+  const name = document.getElementById("newStaffName")?.value.trim();
+  const role = document.getElementById("newStaffRole")?.value || "Cameriere";
+  const email = (document.getElementById("newStaffEmail")?.value || "").trim().toLowerCase();
+  const pin = role === "Proprietario" ? null : ((document.getElementById("newStaffPin")?.value.trim() || "1234").slice(0, 4));
+
+  if (!name || !email) return;
+
+  const defaultAvatars = {
+    Proprietario: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop",
+    Manager: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop",
+    Cameriere: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&h=80&fit=crop",
+    Barman: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop",
+    Cassa: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop"
+  };
+
+  const staff = window.db.get("staff") || [];
+  const existing = staff.find(s => s.email && s.email.toLowerCase() === email);
+  let savedMember = null;
+  if (existing) {
+    existing.name = name;
+    existing.role = role;
+    existing.pin = pin;
+    savedMember = existing;
+  } else {
+    const newMember = {
+      id: Date.now(),
+      name: name,
+      role: role,
+      email: email,
+      pin: pin,
+      status: "active",
+      avatar: defaultAvatars[role] || defaultAvatars.Cameriere
+    };
+    staff.push(newMember);
+    savedMember = newMember;
+  }
+  window.db.set("staff", staff);
+
+  // Salva anche nelle credenziali di accesso così il dipendente può accedere via Email e PIN
+  saveUserToDatabase({
+    id: "usr_" + Date.now(),
+    type: "email",
+    email: email,
+    name: name,
+    role: role,
+    pin: pin,
+    password: pin ? `pin${pin}` : "password123",
+    barName: window.db.get("activeBar")?.name || "Bar Centrale",
+    city: window.db.get("activeBar")?.city || "Roma",
+    date: new Date().toISOString()
+  });
+
+  renderStaff();
+  closeAddStaffModal();
+  document.getElementById("addStaffForm")?.reset();
+  showToast(role === "Proprietario" 
+    ? `👥 ${name} aggiunto come Proprietario (accesso esclusivo con Password, nessun PIN).` 
+    : `👥 ${name} aggiunto al personale come ${role} (PIN: ${pin})!`);
+
+  // Apertura email benvenuto con logo, credenziali e personalizzazione foto
+  openStaffWelcomeEmailModal(savedMember);
+}
+
+
+// --------------------------------------------------------------------------
+// Staff Welcome Email Notification & Avatar Customization
+// --------------------------------------------------------------------------
+let currentWelcomeStaffMember = null;
+let currentAvatarTargetStaffId = null;
+let pendingSelectedAvatarUrl = "";
+
+const AVATAR_PRESETS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=160&h=160&fit=crop",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop"
+];
+
+function openStaffWelcomeEmailModal(member) {
+  if (!member) return;
+  currentWelcomeStaffMember = member;
+
+  const modal = document.getElementById("staffWelcomeEmailModal");
+  if (!modal) return;
+
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", city: "Roma" };
+  const origin = window.location.origin && window.location.origin !== "null" ? window.location.origin : "https://cheikh10154.github.io";
+  const pathname = window.location.pathname || "/BarPilot/";
+  const accessUrl = origin.includes("http") ? `${origin}${pathname}` : "https://cheikh10154.github.io/BarPilot/";
+
+  const toEl = document.getElementById("welcomeEmailTo");
+  if (toEl) toEl.textContent = `${member.name} <${member.email}>`;
+
+  const badgeEl = document.getElementById("welcomeEmailRoleBadge");
+  if (badgeEl) badgeEl.textContent = member.role;
+
+  const greetingEl = document.getElementById("welcomeEmailGreeting");
+  if (greetingEl) greetingEl.textContent = `Ciao ${member.name}, benvenuto nel team! 👋`;
+
+  const introEl = document.getElementById("welcomeEmailIntro");
+  if (introEl) {
+    introEl.innerHTML = `Sei stato aggiunto ufficialmente come membro del personale per <strong>${activeBar.name}</strong> con il ruolo di <strong>${member.role}</strong>.`;
+  }
+
+  const emailCredEl = document.getElementById("welcomeEmailCredEmail");
+  if (emailCredEl) emailCredEl.textContent = member.email;
+
+  const pinCredEl = document.getElementById("welcomeEmailCredPin");
+  if (pinCredEl) {
+    if (member.role === "Proprietario" || !member.pin) {
+      pinCredEl.textContent = "NESSUNO";
+      pinCredEl.title = "Accesso tramite Password account";
+    } else {
+      pinCredEl.textContent = member.pin;
+      pinCredEl.title = "PIN numerico a 4 cifre";
+    }
+  }
+
+  const accessLinkBtn = document.getElementById("welcomeEmailAccessLink");
+  if (accessLinkBtn) accessLinkBtn.href = accessUrl;
+
+  const urlTextEl = document.getElementById("welcomeEmailUrlText");
+  if (urlTextEl) urlTextEl.textContent = `Link di accesso rapido: ${accessUrl}`;
+
+  const avatarPreview = document.getElementById("welcomeEmailAvatarPreview");
+  if (avatarPreview) {
+    avatarPreview.src = member.avatar || AVATAR_PRESETS[0];
+    avatarPreview.alt = member.name;
+  }
+
+  const barCityEl = document.getElementById("welcomeEmailBarCity");
+  if (barCityEl) barCityEl.textContent = `${activeBar.name} (${activeBar.city || 'Italia'})`;
+
+  const mailtoBtn = document.getElementById("welcomeEmailMailtoBtn");
+  if (mailtoBtn) {
+    const subject = encodeURIComponent(`🎉 Benvenuto nel team di ${activeBar.name}! Le tue credenziali BarPilot`);
+    const body = encodeURIComponent(
+`Ciao ${member.name},
+
+Benvenuto nel team di ${activeBar.name}!
+Sei stato configurato nel gestionale BarPilot con il ruolo di: ${member.role}
+
+🔐 LE TUE CREDENZIALI DI ACCESSO:
+• Email di login: ${member.email}
+• PIN Veloce tablet: ${member.pin ? member.pin : "Nessun PIN (Accesso con Password)"}
+• Link di accesso rapido: ${accessUrl}
+
+Sul tablet del locale seleziona "PIN veloce", digita il tuo codice a 4 cifre e accedi direttamente alla tua postazione operativa.
+Puoi anche personalizzare la tua foto profilo direttamente dall'app.
+
+Buon lavoro!
+Il Team di ${activeBar.name}`
+    );
+    mailtoBtn.href = `mailto:${member.email}?subject=${subject}&body=${body}`;
+  }
+
+  modal.classList.add("active");
+}
+
+function closeStaffWelcomeEmailModal() {
+  const modal = document.getElementById("staffWelcomeEmailModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function copyWelcomeEmailDetails() {
+  if (!currentWelcomeStaffMember) return;
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", city: "Roma" };
+  const origin = window.location.origin && window.location.origin !== "null" ? window.location.origin : "https://cheikh10154.github.io";
+  const pathname = window.location.pathname || "/BarPilot/";
+  const accessUrl = origin.includes("http") ? `${origin}${pathname}` : "https://cheikh10154.github.io/BarPilot/";
+
+  const text = `🎉 Benvenuto nel team di ${activeBar.name}!
+Ruolo: ${currentWelcomeStaffMember.role}
+Email: ${currentWelcomeStaffMember.email}
+PIN Veloce: ${currentWelcomeStaffMember.pin || 'Nessun PIN (Accesso con Password)'}
+Link di accesso: ${accessUrl}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("📋 Credenziali e testo email copiati negli appunti!");
+    }).catch(() => {
+      prompt("Copia il testo di seguito:", text);
+    });
+  } else {
+    prompt("Copia il testo di seguito:", text);
+  }
+}
+
+function openAvatarModalFromWelcome() {
+  if (currentWelcomeStaffMember) {
+    openChangeAvatarModal(currentWelcomeStaffMember.id);
+  }
+}
+
+function openChangeAvatarModal(staffId) {
+  const modal = document.getElementById("changeAvatarModal");
+  if (!modal) return;
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+  let targetMember = null;
+
+  if (staffId !== undefined && staffId !== null) {
+    targetMember = staff.find(s => s.id === Number(staffId) || s.id === staffId);
+    currentAvatarTargetStaffId = targetMember ? targetMember.id : null;
+  } else if (currentStaff) {
+    targetMember = currentStaff;
+    currentAvatarTargetStaffId = currentStaff.id;
+  } else if (currentWelcomeStaffMember) {
+    targetMember = currentWelcomeStaffMember;
+    currentAvatarTargetStaffId = currentWelcomeStaffMember.id;
+  } else if (staff.length > 0) {
+    targetMember = staff[0];
+    currentAvatarTargetStaffId = targetMember.id;
+  }
+
+  const nameEl = document.getElementById("changeAvatarTargetName");
+  const roleEl = document.getElementById("changeAvatarTargetRole");
+  const previewEl = document.getElementById("avatarCurrentPreview");
+  const fileInput = document.getElementById("avatarFileInput");
+  const urlInput = document.getElementById("avatarUrlInput");
+
+  const currentAvatar = targetMember?.avatar || AVATAR_PRESETS[0];
+  pendingSelectedAvatarUrl = currentAvatar;
+
+  if (nameEl) nameEl.textContent = targetMember ? targetMember.name : "Utente";
+  if (roleEl) roleEl.textContent = targetMember ? targetMember.role : "";
+  if (previewEl) previewEl.src = currentAvatar;
+  if (fileInput) fileInput.value = "";
+  if (urlInput) urlInput.value = "";
+
+  renderAvatarPresets();
+  modal.classList.add("active");
+}
+
+function closeChangeAvatarModal() {
+  const modal = document.getElementById("changeAvatarModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function renderAvatarPresets() {
+  const container = document.getElementById("avatarPresetGrid");
+  if (!container) return;
+
+  container.innerHTML = AVATAR_PRESETS.map((url, idx) => {
+    const isSelected = pendingSelectedAvatarUrl === url;
+    return `
+      <img src="${url}" 
+           class="avatar-preset-item ${isSelected ? 'active' : ''}" 
+           onclick="selectPresetAvatar('${url}')" 
+           alt="Preset ${idx + 1}" 
+           title="Seleziona questo avatar">
+    `;
+  }).join("");
+}
+
+function selectPresetAvatar(url) {
+  pendingSelectedAvatarUrl = url;
+  const previewEl = document.getElementById("avatarCurrentPreview");
+  if (previewEl) previewEl.src = url;
+  renderAvatarPresets();
+}
+
+function handleAvatarUrlInput(url) {
+  const trimmed = (url || "").trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+    pendingSelectedAvatarUrl = trimmed;
+    const previewEl = document.getElementById("avatarCurrentPreview");
+    if (previewEl) previewEl.src = trimmed;
+    renderAvatarPresets();
+  }
+}
+
+function handleAvatarFileUpload(event) {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToast("⚠️ Seleziona un file immagine valido (JPG, PNG, WebP).");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("⚠️ L'immagine è troppo grande. Dimensione massima 5MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    pendingSelectedAvatarUrl = base64;
+    const previewEl = document.getElementById("avatarCurrentPreview");
+    if (previewEl) previewEl.src = base64;
+    renderAvatarPresets();
+    showToast("✓ Foto caricata con successo! Clicca su Salva per applicarla.");
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveSelectedAvatar() {
+  if (!pendingSelectedAvatarUrl) {
+    showToast("⚠️ Seleziona o carica una foto prima di salvare.");
+    return;
+  }
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+
+  if (currentAvatarTargetStaffId !== null && currentAvatarTargetStaffId !== undefined) {
+    const target = staff.find(s => s.id === currentAvatarTargetStaffId);
+    if (target) {
+      target.avatar = pendingSelectedAvatarUrl;
+    }
+  }
+
+  if (currentStaff && (currentAvatarTargetStaffId === null || currentStaff.id === currentAvatarTargetStaffId)) {
+    currentStaff.avatar = pendingSelectedAvatarUrl;
+    try {
+      const sessionUser = JSON.parse(localStorage.getItem("barpilot_auth_session") || "null");
+      if (sessionUser) {
+        sessionUser.avatar = pendingSelectedAvatarUrl;
+        localStorage.setItem("barpilot_auth_session", JSON.stringify(sessionUser));
+      }
+    } catch(err) {
+      console.warn("Session update error:", err);
+    }
+  }
+
+  if (currentWelcomeStaffMember && (currentAvatarTargetStaffId === currentWelcomeStaffMember.id || currentAvatarTargetStaffId === null)) {
+    currentWelcomeStaffMember.avatar = pendingSelectedAvatarUrl;
+    const welcomePreview = document.getElementById("welcomeEmailAvatarPreview");
+    if (welcomePreview) welcomePreview.src = pendingSelectedAvatarUrl;
+  }
+
+  window.db.set("staff", staff);
+
+  const sidebarAvatar = document.getElementById("sidebarUserAvatar");
+  if (sidebarAvatar && currentStaff && currentStaff.avatar) {
+    sidebarAvatar.src = currentStaff.avatar;
+  }
+  const topbarAvatar = document.getElementById("topbarUserAvatar");
+  if (topbarAvatar && currentStaff && currentStaff.avatar) {
+    topbarAvatar.src = currentStaff.avatar;
+  }
+
+  renderStaff();
+  closeChangeAvatarModal();
+  showToast("🖼️ Foto profilo salvata e aggiornata con successo!");
+}
+
+
+// --------------------------------------------------------------------------
+// Delete Staff Member (Exclusive to Owner)
+// --------------------------------------------------------------------------
+let pendingDeleteStaffId = null;
+
+function openDeleteStaffModal(staffId) {
+  // Controllo di sicurezza rigoroso: solo ed esclusivamente il Proprietario può eliminare dipendenti
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario ha i permessi per eliminare i dipendenti.");
+    return;
+  }
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+  const target = staff.find(s => s.id === Number(staffId) || s.id === staffId);
+  if (!target) return;
+
+  if (target.role === "Proprietario") {
+    showToast("⚠️ Non è possibile eliminare il profilo Proprietario.");
+    return;
+  }
+
+  pendingDeleteStaffId = target.id;
+  const nameEl = document.getElementById("deleteStaffTargetName");
+  const roleEl = document.getElementById("deleteStaffTargetRole");
+  if (nameEl) nameEl.textContent = target.name;
+  if (roleEl) roleEl.textContent = target.role;
+
+  const modal = document.getElementById("deleteStaffConfirmModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeDeleteStaffModal() {
+  pendingDeleteStaffId = null;
+  const modal = document.getElementById("deleteStaffConfirmModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteStaffAction() {
+  // Controllo di sicurezza rigoroso: solo ed esclusivamente il Proprietario può eliminare dipendenti
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Accesso negato: solo il Proprietario può eliminare i dipendenti.");
+    closeDeleteStaffModal();
+    return;
+  }
+
+  if (!pendingDeleteStaffId) {
+    closeDeleteStaffModal();
+    return;
+  }
+
+  let staff = (window.db ? window.db.get("staff") : []) || [];
+  const targetIndex = staff.findIndex(s => s.id === pendingDeleteStaffId);
+  if (targetIndex === -1) {
+    closeDeleteStaffModal();
+    return;
+  }
+
+  const target = staff[targetIndex];
+  if (target.role === "Proprietario") {
+    showToast("⚠️ Non è possibile eliminare il profilo Proprietario.");
+    closeDeleteStaffModal();
+    return;
+  }
+
+  const deletedName = target.name;
+  const deletedEmail = (target.email || "").toLowerCase().trim();
+
+  // 1. Rimuovi dall'elenco del personale
+  staff.splice(targetIndex, 1);
+  window.db.set("staff", staff);
+
+  // 2. Rimuovi dalle credenziali di accesso nel db utenti
+  try {
+    let dbUsers = window.db.get("users") || [];
+    if (Array.isArray(dbUsers)) {
+      dbUsers = dbUsers.filter(u => !(u.email && u.email.toLowerCase().trim() === deletedEmail));
+      window.db.set("users", dbUsers);
+    }
+  } catch (err) {
+    console.warn("Errore filtro dbUsers:", err);
+  }
+
+  // 3. Rimuovi da localStorage registered users
+  try {
+    const rawUsers = localStorage.getItem("barpilot_registered_users");
+    if (rawUsers) {
+      let regUsers = JSON.parse(rawUsers);
+      if (Array.isArray(regUsers)) {
+        regUsers = regUsers.filter(u => !(u.email && u.email.toLowerCase().trim() === deletedEmail));
+        localStorage.setItem("barpilot_registered_users", JSON.stringify(regUsers));
+      }
+    }
+  } catch (err) {
+    console.warn("Errore filtro registered_users:", err);
+  }
+
+  // 4. Se il dipendente eliminato è attualmente impostato come sessione attiva
+  if (currentStaff && currentStaff.id === pendingDeleteStaffId) {
+    const ownerStaff = staff.find(s => s.role === "Proprietario");
+    currentStaff = ownerStaff || null;
+    try {
+      const session = JSON.parse(localStorage.getItem("barpilot_auth_session") || "null");
+      if (session && session.email && session.email.toLowerCase().trim() === deletedEmail) {
+        localStorage.removeItem("barpilot_auth_session");
+      }
+    } catch(e) {}
+  }
+
+  // 5. Se il dipendente era selezionato nel PIN selector
+  if (selectedPinStaff && selectedPinStaff.id === pendingDeleteStaffId) {
+    selectedPinStaff = staff.find(s => s.role !== "Proprietario") || staff[0] || null;
+  }
+
+  closeDeleteStaffModal();
+  renderStaff();
+  renderStaffPinSelector();
+  showToast(`🗑️ Dipendente "${deletedName}" eliminato con successo. Accesso e PIN revocati.`);
+}
+
+
+// --------------------------------------------------------------------------
+// Password Recovery Controller (Supabase Auth)
+// --------------------------------------------------------------------------
+function openPasswordRecoveryModal() {
+  const modal = document.getElementById("passwordRecoveryModal");
+  if (modal) {
+    const emailField = document.getElementById("authEmail");
+    const recInput = document.getElementById("recoveryEmailInput");
+    if (recInput && emailField && emailField.value) {
+      recInput.value = emailField.value;
+    }
+    modal.classList.add("active");
+  }
+}
+
+function closePasswordRecoveryModal() {
+  const modal = document.getElementById("passwordRecoveryModal");
+  if (modal) modal.classList.remove("active");
+}
+
+async function handlePasswordRecoverySubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById("recoveryEmailInput");
+  const email = input ? input.value.trim().toLowerCase() : "";
+  if (!email) return;
+
+  const btn = document.getElementById("recoverySubmitBtn");
+  if (btn) btn.disabled = true;
+
+  try {
+    if (window.supabase && window.supabase.auth) {
+      await window.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/reset-password"
+      });
+    }
+    closePasswordRecoveryModal();
+    showToast(`✉️ Link di recupero inviato con successo a ${email}! Controlla la tua posta.`);
+  } catch (err) {
+    showToast("⚠️ Impossibile inviare il link di recupero al momento. Riprova più tardi.");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Global Exports
+window.openPasswordRecoveryModal = openPasswordRecoveryModal;
+window.closePasswordRecoveryModal = closePasswordRecoveryModal;
+window.handlePasswordRecoverySubmit = handlePasswordRecoverySubmit;
+window.openDeleteStaffModal = openDeleteStaffModal;
+window.closeDeleteStaffModal = closeDeleteStaffModal;
+window.confirmDeleteStaffAction = confirmDeleteStaffAction;
+
+window.openStaffWelcomeEmailModal = openStaffWelcomeEmailModal;
+window.closeStaffWelcomeEmailModal = closeStaffWelcomeEmailModal;
+window.copyWelcomeEmailDetails = copyWelcomeEmailDetails;
+window.openAvatarModalFromWelcome = openAvatarModalFromWelcome;
+window.openChangeAvatarModal = openChangeAvatarModal;
+window.closeChangeAvatarModal = closeChangeAvatarModal;
+window.selectPresetAvatar = selectPresetAvatar;
+window.handleAvatarUrlInput = handleAvatarUrlInput;
+window.handleAvatarFileUpload = handleAvatarFileUpload;
+window.saveSelectedAvatar = saveSelectedAvatar;
+window.openStaffPinModal = openStaffPinModal;
+window.closeStaffPinModal = closeStaffPinModal;
+window.selectStaffForPin = selectStaffForPin;
+window.enterPinDigit = enterPinDigit;
+window.deletePinDigit = deletePinDigit;
+window.clearPin = clearPin;
+window.verifyEnteredPin = verifyEnteredPin;
+window.openAddProductModal = openAddProductModal;
+window.closeAddProductModal = closeAddProductModal;
 window.handleAddProductSubmit = handleAddProductSubmit;
 window.openAddStaffModal = openAddStaffModal;
 window.closeAddStaffModal = closeAddStaffModal;
@@ -2040,12 +2244,6 @@ function setupModals() {
     });
   }
 
-  const deleteProdModal = document.getElementById("deleteProductModal");
-  if (deleteProdModal) {
-    deleteProdModal.addEventListener("click", (e) => {
-      if (e.target === deleteProdModal) closeDeleteProductModal();
-    });
-  }
   const deleteTableModal = document.getElementById("deleteTableModal");
   if (deleteTableModal) {
     deleteTableModal.addEventListener("click", (e) => {
@@ -3066,18 +3264,3 @@ window.openDeleteTableModal = openDeleteTableModal;
 window.closeDeleteTableModal = closeDeleteTableModal;
 window.confirmDeleteTableAction = confirmDeleteTableAction;
 window.syncOrderTableSelect = syncOrderTableSelect;
-
-window.openAddProductModal = openAddProductModal;
-window.openEditProductModal = openEditProductModal;
-window.closeAddProductModal = closeAddProductModal;
-window.handleAddProductSubmit = handleAddProductSubmit;
-window.openDeleteProductModal = openDeleteProductModal;
-window.closeDeleteProductModal = closeDeleteProductModal;
-window.confirmDeleteProductAction = confirmDeleteProductAction;
-window.toggleProductAvailabilityStatus = toggleProductAvailabilityStatus;
-window.handleProductFileUpload = handleProductFileUpload;
-window.toggleProductPresets = toggleProductPresets;
-window.selectProductPreset = selectProductPreset;
-window.updateProductImagePreview = updateProductImagePreview;
-window.recalcProductMargin = recalcProductMargin;
-window.toggleAllergenClass = toggleAllergenClass;

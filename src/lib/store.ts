@@ -11,11 +11,6 @@ export interface ProductItem {
   description_it: string;
   description_fr: string;
   is_available: boolean;
-  cost_cents?: number;
-  vat_rate?: number;
-  image_url?: string;
-  station?: 'bar' | 'coffee' | 'kitchen';
-  allergens?: string[];
   recipe?: {
     inventory_item_id: string;
     quantity: number; // in unit
@@ -339,8 +334,6 @@ interface BarPilotState {
 
   // Products
   addProduct: (product: Omit<ProductItem, 'id'>) => void;
-  updateProduct: (productId: string, data: Partial<ProductItem>) => void;
-  deleteProduct: (productId: string) => void;
   toggleProductAvailability: (productId: string) => void;
 
   // Tables
@@ -591,20 +584,6 @@ export const useBarPilotStore = create<BarPilotState>()(
           id: `prod-${Date.now()}`,
         };
         set(state => ({ products: [...state.products, newProduct] }));
-      },
-
-      updateProduct: (productId, data) => {
-        set(state => ({
-          products: state.products.map(p =>
-            p.id === productId ? { ...p, ...data } : p
-          ),
-        }));
-      },
-
-      deleteProduct: (productId) => {
-        set(state => ({
-          products: state.products.filter(p => p.id !== productId),
-        }));
       },
 
       toggleProductAvailability: (productId) => {
