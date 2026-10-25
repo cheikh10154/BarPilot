@@ -4158,9 +4158,6 @@ function clearConnectionCache() {
     if (authEmail) authEmail.value = "";
     const authPassword = document.getElementById("authPassword");
     if (authPassword) authPassword.value = "";
-    const regPin = document.getElementById("regPin");
-    if (regPin) regPin.value = "";
-
     hideAuthError();
     if (typeof setAuthCredentialMode === "function") {
       setAuthCredentialMode("password");
@@ -4649,8 +4646,6 @@ function handleAuthSubmit(e) {
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
     const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
-    const regPin = (document.getElementById("regPin")?.value || "1234").trim().slice(0, 4);
-
     const activeBar = {
       id: "bar_" + Date.now(),
       name: barName,
