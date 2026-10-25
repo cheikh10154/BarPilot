@@ -224,7 +224,7 @@ const i18nData = {
 
     // Suppliers & Staff
     addSupplier: "Nuovo fornitore",
-    inviteStaff: "Invita dipendente",
+    inviteStaff: "Aggiungi dipendente",
     roleOwner: "Proprietario",
     roleManager: "Manager",
     roleWaiter: "Cameriere",
@@ -538,7 +538,7 @@ const i18nData = {
 
     // Suppliers & Staff
     addSupplier: "Nouveau fournisseur",
-    inviteStaff: "Inviter employé",
+    inviteStaff: "Ajouter un employé",
     roleOwner: "Propriétaire",
     roleManager: "Manager",
     roleWaiter: "Serveur",
