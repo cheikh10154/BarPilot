@@ -310,7 +310,7 @@
         <div class="form-group" id="authCredentialGroup">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <label class="form-label" id="authPasswordLabel" data-i18n="passwordOnlyLabel">Password</label>
-            <a href="#" id="authForgotPassLink" onclick="showToast('Link di recupero inviato')" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
+            <a href="#" id="authForgotPassLink" onclick="openPasswordRecoveryModal(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
           </div>
           <input type="password" class="form-input" id="authPassword" placeholder="••••••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="hideAuthError()" required>
         </div>
@@ -1449,6 +1449,32 @@
 
     </div>
 
+  </div>
+
+  <!-- Password Recovery Modal (Supabase Auth) -->
+  <div class="modal-overlay" id="passwordRecoveryModal">
+    <div class="modal-box" style="max-width: 420px; width: 92%; padding: 26px 24px; border-radius: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">🔑</span>
+          <h3 style="font-size:17px; font-weight:800; color:var(--text-main);">Recupero Password</h3>
+        </div>
+        <button type="button" class="modal-close-icon-btn" onclick="closePasswordRecoveryModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:16px;">
+        Inserisci l'indirizzo email del tuo account BarPilot. Ti invieremo un link sicuro tramite Supabase per reimpostare la tua password.
+      </p>
+      <form id="passwordRecoveryForm" onsubmit="handlePasswordRecoverySubmit(event)">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Email registrata</label>
+          <input type="email" id="recoveryEmailInput" class="form-input" placeholder="titolare@bar.it" required>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closePasswordRecoveryModal()" style="flex:1; padding:10px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="recoverySubmitBtn" style="flex:1; padding:10px;">Invia Link →</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Logout Confirmation Modal (In-App Custom Dialog) -->

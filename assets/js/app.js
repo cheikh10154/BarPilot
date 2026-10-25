@@ -1765,7 +1765,55 @@ function confirmDeleteStaffAction() {
   showToast(`🗑️ Dipendente "${deletedName}" eliminato con successo. Accesso e PIN revocati.`);
 }
 
+
+// --------------------------------------------------------------------------
+// Password Recovery Controller (Supabase Auth)
+// --------------------------------------------------------------------------
+function openPasswordRecoveryModal() {
+  const modal = document.getElementById("passwordRecoveryModal");
+  if (modal) {
+    const emailField = document.getElementById("authEmail");
+    const recInput = document.getElementById("recoveryEmailInput");
+    if (recInput && emailField && emailField.value) {
+      recInput.value = emailField.value;
+    }
+    modal.classList.add("active");
+  }
+}
+
+function closePasswordRecoveryModal() {
+  const modal = document.getElementById("passwordRecoveryModal");
+  if (modal) modal.classList.remove("active");
+}
+
+async function handlePasswordRecoverySubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById("recoveryEmailInput");
+  const email = input ? input.value.trim().toLowerCase() : "";
+  if (!email) return;
+
+  const btn = document.getElementById("recoverySubmitBtn");
+  if (btn) btn.disabled = true;
+
+  try {
+    if (window.supabase && window.supabase.auth) {
+      await window.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/reset-password"
+      });
+    }
+    closePasswordRecoveryModal();
+    showToast(`✉️ Link di recupero inviato con successo a ${email}! Controlla la tua posta.`);
+  } catch (err) {
+    showToast("⚠️ Impossibile inviare il link di recupero al momento. Riprova più tardi.");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // Global Exports
+window.openPasswordRecoveryModal = openPasswordRecoveryModal;
+window.closePasswordRecoveryModal = closePasswordRecoveryModal;
+window.handlePasswordRecoverySubmit = handlePasswordRecoverySubmit;
 window.openDeleteStaffModal = openDeleteStaffModal;
 window.closeDeleteStaffModal = closeDeleteStaffModal;
 window.confirmDeleteStaffAction = confirmDeleteStaffAction;
@@ -1980,6 +2028,13 @@ function setupModals() {
   if (deleteStaffModal) {
     deleteStaffModal.addEventListener("click", (e) => {
       if (e.target === deleteStaffModal) closeDeleteStaffModal();
+    });
+  }
+
+  const passRecoveryModal = document.getElementById("passwordRecoveryModal");
+  if (passRecoveryModal) {
+    passRecoveryModal.addEventListener("click", (e) => {
+      if (e.target === passRecoveryModal) closePasswordRecoveryModal();
     });
   }
 

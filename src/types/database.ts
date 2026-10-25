@@ -7,7 +7,7 @@
 // 1. ENUM TYPES
 // ============================================================================
 
-export type UserRole = 'owner' | 'manager' | 'server' | 'bartender';
+export type UserRole = 'owner' | 'manager' | 'server' | 'bartender' | 'cashier';
 export type MembershipStatus = 'active' | 'invited' | 'disabled';
 export type OrderStatus = 'draft' | 'sent' | 'preparing' | 'ready' | 'served' | 'closed' | 'cancelled';
 export type OrderItemStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -965,6 +965,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageStaff: false,
     canLimitedManageStaff: false,
     canViewReports: false,
+    canManageSettings: false,
+  },
+  cashier: {
+    canViewDashboard: true,
+    canViewFullDashboard: false,
+    canTakeOrders: true,
+    canPrepareOrders: false,
+    canModifyPrices: false,
+    canManageInventory: false,
+    canViewInventory: false,
+    canManageSuppliers: false,
+    canManageStaff: false,
+    canLimitedManageStaff: false,
+    canViewReports: true,
     canManageSettings: false,
   },
 } as const;

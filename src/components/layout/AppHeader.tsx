@@ -52,6 +52,7 @@ export function AppHeader({ locale }: Props) {
     manager: { it: 'Manager', fr: 'Manager', icon: '💼', desc_it: 'Sala, scorte, rapporti', desc_fr: 'Salle, stocks, rapports' },
     server: { it: 'Cameriere', fr: 'Serveur', icon: '📋', desc_it: 'Presa comande e tavoli', desc_fr: 'Commandes et tables' },
     bartender: { it: 'Barista (KDS)', fr: 'Barman (KDS)', icon: '🍸', desc_it: 'Schermo preparazione', desc_fr: 'Écran de préparation' },
+    cashier: { it: 'Cassiere', fr: 'Caissier', icon: '💳', desc_it: 'Cassa e pagamenti', desc_fr: 'Caisse et règlements' },
   };
 
   return (

@@ -51,6 +51,11 @@ export default function StaffPage({ params }: PageProps) {
       label_fr: 'Barman',
       color: 'text-emerald-600'
     },
+    cashier: {
+      label_it: 'Cassiere',
+      label_fr: 'Caissier',
+      color: 'text-indigo-600'
+    },
   };
 
   const activeCount = staff.filter(s => s.status === 'active').length;

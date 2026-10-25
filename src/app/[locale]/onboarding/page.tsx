@@ -3,6 +3,7 @@
 import React, { useState, use } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { useBarPilotStore } from '@/lib/store';
 import { formatCents } from '@/lib/utils';
 import {
@@ -31,6 +32,82 @@ export default function OnboardingPage({ params }: PageProps) {
   const router = useRouter();
 
   const { addProduct, createOrder, setRole } = useBarPilotStore();
+  const supabase = createClient();
+
+  const [pendingInvitation, setPendingInvitation] = useState<any>(null);
+  const [checkingUser, setCheckingUser] = useState(true);
+
+  // FASE 8: Check if user already has an organization or pending invitation
+  React.useEffect(() => {
+    async function checkAuthAndMemberships() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // 1. Check existing memberships
+          const { data: memberships } = await supabase
+            .from('memberships')
+            .select('id, organization_id, role')
+            .eq('profile_id', user.id)
+            .eq('status', 'active');
+
+          if (memberships && memberships.length > 0) {
+            // Already has an organization -> go directly to dashboard
+            router.push(`/${locale}/dashboard`);
+            return;
+          }
+
+          // 2. Check pending invitations matching user's email
+          if (user.email) {
+            const { data: invites } = await supabase
+              .from('invitations')
+              .select('*, organizations(name)')
+              .eq('email', user.email.toLowerCase().trim())
+              .is('accepted_at', null)
+              .gt('expires_at', new Date().toISOString())
+              .limit(1);
+
+            if (invites && invites.length > 0) {
+              setPendingInvitation(invites[0]);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Onboarding check note:', err);
+      } finally {
+        setCheckingUser(false);
+      }
+    }
+
+    checkAuthAndMemberships();
+  }, [locale, router]);
+
+  const handleAcceptInvitation = async () => {
+    if (!pendingInvitation) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Create membership
+        await supabase.from('memberships').insert({
+          organization_id: pendingInvitation.organization_id,
+          location_id: pendingInvitation.location_id,
+          profile_id: user.id,
+          role: pendingInvitation.role || 'server',
+          status: 'active'
+        });
+
+        // Mark invitation as accepted
+        await supabase
+          .from('invitations')
+          .update({ accepted_at: new Date().toISOString() })
+          .eq('id', pendingInvitation.id);
+
+        setRole(pendingInvitation.role || 'server');
+        router.push(`/${locale}/dashboard`);
+      }
+    } catch (e) {
+      console.error('Accept invite error:', e);
+    }
+  };
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -159,6 +236,24 @@ export default function OnboardingPage({ params }: PageProps) {
             : 'Configurez votre établissement sans assistance technique'}
         </p>
       </div>
+
+            {/* Pending Invitation Banner */}
+      {pendingInvitation && (
+        <div className="mb-6 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-bold text-amber-400">🎉 Invito Ricevuto!</div>
+            <div className="text-xs text-white mt-0.5">
+              Sei stato invitato a unirti a <strong>{pendingInvitation.organizations?.name || 'un locale'}</strong> con il ruolo di <strong className="capitalize">{pendingInvitation.role}</strong>.
+            </div>
+          </div>
+          <button
+            onClick={handleAcceptInvitation}
+            className="py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs whitespace-nowrap transition shadow-lg shadow-amber-500/20"
+          >
+            Accetta Invito ed Entra →
+          </button>
+        </div>
+      )}
 
       {/* Steps Indicator */}
       <div className="flex items-center justify-between mb-8 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
