@@ -1011,27 +1011,46 @@ function renderProducts() {
 }
 
 function renderInventory() {
-  const inv = window.db.get("inventory");
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
   const tbody = document.getElementById("inventoryTableBody");
   if (!tbody) return;
 
+  const isCurrentViewerOwner = !currentStaff || currentStaff.role === "Proprietario";
+
   tbody.innerHTML = inv.map(i => {
     const isAlert = i.qty <= i.reorderLevel;
+    const costVal = (i.cost !== undefined && i.cost !== null) ? Number(i.cost) : 0;
+    const catBadge = i.category ? `<span style="font-size:10px; background:var(--bg-card-secondary); color:var(--text-muted); padding:1px 5px; border-radius:4px; border:1px solid var(--border-color);">${i.category}</span>` : "";
+
     return `
       <tr>
-        <td style="font-weight:700;">${i.name}</td>
+        <td>
+          <div style="font-weight:700; display:flex; align-items:center; gap:6px;">
+            <span>${i.name}</span>
+            ${catBadge}
+          </div>
+          ${i.notes ? `<div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${i.notes}</div>` : ''}
+        </td>
         <td style="font-weight:800; font-size:14px; color:${isAlert ? 'var(--status-alert)' : 'var(--text-main)'};">
           ${i.qty} ${i.unit}
         </td>
-        <td style="color:var(--text-muted);">${i.reorderLevel} ${i.unit}</td>
+        <td style="color:var(--text-muted); font-size:12px;">${i.reorderLevel} ${i.unit}</td>
+        <td style="font-weight:700; font-size:12.5px; color:var(--text-main);">${costVal.toFixed(2)} €</td>
         <td>
           <span class="table-badge ${isAlert ? 'badge-alert' : 'badge-ok'}">
-            ${isAlert ? window.i18n.t("statusAlert") : window.i18n.t("statusOk")}
+            ${isAlert ? (window.i18n ? window.i18n.t("statusAlert") : "Allerta") : (window.i18n ? window.i18n.t("statusOk") : "OK")}
           </span>
         </td>
-        <td style="color:var(--text-muted); font-size:12px;">${i.supplier}</td>
+        <td style="color:var(--text-muted); font-size:12px;">${i.supplier || 'N/D'}</td>
         <td>
-          <button class="ctrl-btn" onclick="quickRestock(${i.id})">+ Rifornisci</button>
+          ${isCurrentViewerOwner
+            ? `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                 <button class="ctrl-btn" onclick="quickRestock(${i.id})" title="Rifornisci rapidamente scorta">+ Rifornisci</button>
+                 <button class="ctrl-btn" onclick="openEditIngredientModal(${i.id})" title="Modifica ingrediente e opzioni">✏️ Modifica</button>
+                 <button class="ctrl-btn ctrl-btn-danger" onclick="openDeleteIngredientModal(${i.id})" title="Elimina ingrediente">🗑️</button>
+               </div>`
+            : `<button class="ctrl-btn" onclick="quickRestock(${i.id})">+ Rifornisci</button>`
+          }
         </td>
       </tr>
     `;
@@ -1039,15 +1058,268 @@ function renderInventory() {
 }
 
 function quickRestock(ingId) {
-  const inv = window.db.get("inventory");
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
   const item = inv.find(i => i.id === ingId);
   if (item) {
-    item.qty = parseFloat((item.qty + (item.unit === 'bott.' || item.unit === 'pz' ? 5 : 2)).toFixed(2));
+    const delta = (item.unit === 'bott.' || item.unit === 'pz' || item.unit === 'lattina') ? 5 : 2;
+    item.qty = parseFloat((Number(item.qty) + delta).toFixed(2));
     if (item.qty > item.reorderLevel) item.status = "ok";
     window.db.set("inventory", inv);
     renderInventory();
-    showToast(`Giacenza aggiornata per ${item.name}!`);
+    showToast(`✅ Giacenza rifornita per ${item.name} (+${delta} ${item.unit})!`);
   }
+}
+
+// --------------------------------------------------------------------------
+// Ingredient Management (Solo Proprietario: Aggiunta, Modifica, Cancellazione)
+// --------------------------------------------------------------------------
+let ingredientIdPendingDelete = null;
+
+function populateSupplierSelect(selectedSupplier = "") {
+  const select = document.getElementById("newIngSupplierSelect");
+  if (!select) return;
+
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+  let html = suppliers.map(s => `<option value="${s.name}">${s.name} (${s.category})</option>`).join("");
+  html += '<option value="__custom__">+ Altro fornitore (scrivi a mano)...</option>';
+  select.innerHTML = html;
+
+  const customInput = document.getElementById("newIngSupplierCustom");
+  if (selectedSupplier && suppliers.some(s => s.name === selectedSupplier)) {
+    select.value = selectedSupplier;
+    if (customInput) customInput.style.display = "none";
+  } else if (selectedSupplier) {
+    select.value = "__custom__";
+    if (customInput) {
+      customInput.style.display = "inline-block";
+      customInput.value = selectedSupplier;
+    }
+  } else {
+    if (customInput) customInput.style.display = "none";
+  }
+}
+
+function handleSupplierSelectChange(val) {
+  const customInput = document.getElementById("newIngSupplierCustom");
+  if (customInput) {
+    customInput.style.display = val === "__custom__" ? "inline-block" : "none";
+    if (val === "__custom__") customInput.focus();
+  }
+}
+
+function openAddIngredientModal() {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può aggiungere materie prime all'inventario.");
+    return;
+  }
+
+  const modal = document.getElementById("addIngredientModal");
+  if (!modal) return;
+
+  const editIdEl = document.getElementById("editIngredientId");
+  if (editIdEl) editIdEl.value = "";
+  const titleEl = document.getElementById("ingredientModalTitle");
+  if (titleEl) titleEl.innerHTML = "<span>🌿</span> <span>Nuovo Ingrediente</span>";
+  const subEl = document.getElementById("ingredientModalSubtitle");
+  if (subEl) subEl.textContent = "Aggiungi una materia prima all'inventario con scorte e costi (Solo Proprietario)";
+  const btnEl = document.getElementById("ingredientModalSubmitBtn");
+  if (btnEl) btnEl.textContent = "+ Salva nell'Inventario";
+
+  // Reset fields
+  const nameEl = document.getElementById("newIngName");
+  if (nameEl) nameEl.value = "";
+  const catEl = document.getElementById("newIngCategory");
+  if (catEl) catEl.value = "Caffetteria";
+  const unitEl = document.getElementById("newIngUnit");
+  if (unitEl) unitEl.value = "kg";
+  const qtyEl = document.getElementById("newIngQty");
+  if (qtyEl) qtyEl.value = "5.0";
+  const reorderEl = document.getElementById("newIngReorder");
+  if (reorderEl) reorderEl.value = "2.0";
+  const costEl = document.getElementById("newIngCost");
+  if (costEl) costEl.value = "4.50";
+  const notesEl = document.getElementById("newIngNotes");
+  if (notesEl) notesEl.value = "";
+
+  populateSupplierSelect();
+  modal.classList.add("active");
+}
+
+function openEditIngredientModal(ingId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può modificare le materie prime.");
+    return;
+  }
+
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
+  const item = inv.find(i => i.id == ingId);
+  if (!item) {
+    showToast("⚠️ Ingrediente non trovato.");
+    return;
+  }
+
+  const modal = document.getElementById("addIngredientModal");
+  if (!modal) return;
+
+  const editIdEl = document.getElementById("editIngredientId");
+  if (editIdEl) editIdEl.value = item.id;
+  const titleEl = document.getElementById("ingredientModalTitle");
+  if (titleEl) titleEl.innerHTML = `<span>✏️</span> <span>Modifica ${item.name}</span>`;
+  const subEl = document.getElementById("ingredientModalSubtitle");
+  if (subEl) subEl.textContent = "Aggiorna scorte, unità, soglia di riordino e costi";
+  const btnEl = document.getElementById("ingredientModalSubmitBtn");
+  if (btnEl) btnEl.textContent = "💾 Salva Modifiche";
+
+  // Fill inputs
+  const nameEl = document.getElementById("newIngName");
+  if (nameEl) nameEl.value = item.name || "";
+  const catEl = document.getElementById("newIngCategory");
+  if (catEl) catEl.value = item.category || "Caffetteria";
+  const unitEl = document.getElementById("newIngUnit");
+  if (unitEl) unitEl.value = item.unit || "kg";
+  const qtyEl = document.getElementById("newIngQty");
+  if (qtyEl) qtyEl.value = item.qty !== undefined ? item.qty : "";
+  const reorderEl = document.getElementById("newIngReorder");
+  if (reorderEl) reorderEl.value = item.reorderLevel !== undefined ? item.reorderLevel : "";
+  const costEl = document.getElementById("newIngCost");
+  if (costEl) costEl.value = item.cost !== undefined ? item.cost : "";
+  const notesEl = document.getElementById("newIngNotes");
+  if (notesEl) notesEl.value = item.notes || "";
+
+  populateSupplierSelect(item.supplier);
+  modal.classList.add("active");
+}
+
+function closeAddIngredientModal() {
+  const modal = document.getElementById("addIngredientModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddIngredientSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può gestire le materie prime.");
+    closeAddIngredientModal();
+    return;
+  }
+
+  const editId = document.getElementById("editIngredientId")?.value;
+  const name = document.getElementById("newIngName")?.value.trim();
+  const category = document.getElementById("newIngCategory")?.value || "Caffetteria";
+  const unit = document.getElementById("newIngUnit")?.value || "kg";
+  const qty = parseFloat(document.getElementById("newIngQty")?.value) || 0;
+  const reorderLevel = parseFloat(document.getElementById("newIngReorder")?.value) || 0;
+  const cost = parseFloat(document.getElementById("newIngCost")?.value) || 0;
+  const notes = document.getElementById("newIngNotes")?.value.trim() || "";
+
+  let supplier = document.getElementById("newIngSupplierSelect")?.value || "";
+  if (supplier === "__custom__") {
+    supplier = document.getElementById("newIngSupplierCustom")?.value.trim() || "Fornitore Locale";
+  }
+
+  if (!name) {
+    showToast("⚠️ Inserisci il nome dell'ingrediente.");
+    return;
+  }
+
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
+  const status = qty <= reorderLevel ? "alert" : "ok";
+
+  if (editId) {
+    // Update existing item
+    const idx = inv.findIndex(i => i.id == editId);
+    if (idx !== -1) {
+      inv[idx] = {
+        ...inv[idx],
+        name,
+        category,
+        unit,
+        qty,
+        reorderLevel,
+        cost,
+        supplier,
+        notes,
+        status
+      };
+      window.db.set("inventory", inv);
+      showToast(`✅ Ingrediente "${name}" aggiornato con successo!`);
+    }
+  } else {
+    // Create new item
+    const nextId = inv.length > 0 ? Math.max(...inv.map(i => i.id || 0)) + 1 : 1;
+    const newItem = {
+      id: nextId,
+      name,
+      category,
+      unit,
+      qty,
+      reorderLevel,
+      cost,
+      supplier,
+      notes,
+      status
+    };
+    inv.push(newItem);
+    window.db.set("inventory", inv);
+    showToast(`✅ Ingrediente "${name}" aggiunto all'inventario!`);
+  }
+
+  renderInventory();
+  closeAddIngredientModal();
+}
+
+function openDeleteIngredientModal(ingId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può eliminare ingredienti.");
+    return;
+  }
+
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
+  const item = inv.find(i => i.id == ingId);
+  if (!item) return;
+
+  ingredientIdPendingDelete = ingId;
+  const nameEl = document.getElementById("deleteIngredientName");
+  if (nameEl) nameEl.textContent = item.name;
+  const infoEl = document.getElementById("deleteIngredientInfo");
+  if (infoEl) infoEl.textContent = `Giacenza attuale: ${item.qty} ${item.unit} · Fornitore: ${item.supplier || 'N/D'}`;
+
+  const modal = document.getElementById("deleteIngredientModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeDeleteIngredientModal() {
+  ingredientIdPendingDelete = null;
+  const modal = document.getElementById("deleteIngredientModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteIngredientAction() {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Azione negata: solo il Proprietario può eliminare ingredienti.");
+    closeDeleteIngredientModal();
+    return;
+  }
+
+  if (!ingredientIdPendingDelete) {
+    closeDeleteIngredientModal();
+    return;
+  }
+
+  const inv = (window.db ? window.db.get("inventory") : []) || [];
+  const target = inv.find(i => i.id == ingredientIdPendingDelete);
+  const updated = inv.filter(i => i.id != ingredientIdPendingDelete);
+  window.db.set("inventory", updated);
+
+  const deletedName = target ? target.name : "Ingrediente";
+  closeDeleteIngredientModal();
+  renderInventory();
+  showToast(`🗑️ Ingrediente "${deletedName}" eliminato dall'inventario.`);
 }
 
 // --------------------------------------------------------------------------
@@ -1079,6 +1351,7 @@ const ROLE_PERMISSIONS = {
     canAddProducts: true,
     canEditStaff: true,
     canManageTables: true,
+    canManageInventory: true,
     defaultView: "dashboard",
     badgeClass: "badge-role-owner"
   },
@@ -1199,6 +1472,12 @@ function applyActiveStaff(staff, doSwitchView = true) {
   const addTableBtn = document.getElementById("btnAddFloorTable");
   if (addTableBtn) {
     addTableBtn.style.display = perms.canManageTables ? "inline-flex" : "none";
+  }
+
+  // 4c. Inventory Add & Edit Permission (Solo il proprietario può aggiungere o modificare ingredienti)
+  const addIngBtn = document.getElementById("btnAddNewIngredient");
+  if (addIngBtn) {
+    addIngBtn.style.display = perms.canManageInventory ? "inline-flex" : "none";
   }
 
   // 5. If doSwitchView is true or current view is not allowed for this role, automatically switch
@@ -2629,6 +2908,19 @@ function setupModals() {
     });
   }
 
+  const addIngModal = document.getElementById("addIngredientModal");
+  if (addIngModal) {
+    addIngModal.addEventListener("click", (e) => {
+      if (e.target === addIngModal) closeAddIngredientModal();
+    });
+  }
+
+  const deleteIngModal = document.getElementById("deleteIngredientModal");
+  if (deleteIngModal) {
+    deleteIngModal.addEventListener("click", (e) => {
+      if (e.target === deleteIngModal) closeDeleteIngredientModal();
+    });
+  }
   const deleteProdModal = document.getElementById("deleteProductModal");
   if (deleteProdModal) {
     deleteProdModal.addEventListener("click", (e) => {
@@ -3670,3 +3962,13 @@ window.selectProductPreset = selectProductPreset;
 window.updateProductImagePreview = updateProductImagePreview;
 window.recalcProductMargin = recalcProductMargin;
 window.toggleAllergenClass = toggleAllergenClass;
+
+window.openAddIngredientModal = openAddIngredientModal;
+window.openEditIngredientModal = openEditIngredientModal;
+window.closeAddIngredientModal = closeAddIngredientModal;
+window.handleAddIngredientSubmit = handleAddIngredientSubmit;
+window.openDeleteIngredientModal = openDeleteIngredientModal;
+window.closeDeleteIngredientModal = closeDeleteIngredientModal;
+window.confirmDeleteIngredientAction = confirmDeleteIngredientAction;
+window.handleSupplierSelectChange = handleSupplierSelectChange;
+window.quickRestock = quickRestock;

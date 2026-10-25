@@ -15,6 +15,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   PackagePlus,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 interface PageProps {
@@ -25,7 +27,18 @@ export default function InventoryPage({ params }: PageProps) {
   const { locale } = use(params);
   const isIt = locale === 'it';
 
-  const { inventory, stockMovements, adjustInventory, addInventoryItem } = useBarPilotStore();
+  const {
+    inventory,
+    stockMovements,
+    adjustInventory,
+    addInventoryItem,
+    updateInventoryItem,
+    deleteInventoryItem,
+    currentRole,
+    suppliers,
+  } = useBarPilotStore();
+
+  const isOwner = currentRole === 'owner';
 
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'alert' | string>('all');
@@ -33,15 +46,19 @@ export default function InventoryPage({ params }: PageProps) {
   const [adjustDelta, setAdjustDelta] = useState<number>(5);
   const [adjustReason, setAdjustReason] = useState<'correction' | 'purchase' | 'waste'>('purchase');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 
-  // New item form state
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemCat, setNewItemCat] = useState('Spirits');
-  const [newItemUnit, setNewItemUnit] = useState<InventoryItem['base_unit']>('unit');
-  const [newItemQty, setNewItemQty] = useState(10);
-  const [newItemReorder, setNewItemReorder] = useState(4);
-  const [newItemCostCents, setNewItemCostCents] = useState(1200);
+  // Item form state
+  const [itemName, setItemName] = useState('');
+  const [itemCat, setItemCat] = useState('Spirits');
+  const [itemUnit, setItemUnit] = useState<InventoryItem['base_unit']>('unit');
+  const [itemQty, setItemQty] = useState(10);
+  const [itemReorder, setItemReorder] = useState(4);
+  const [itemCost, setItemCost] = useState(12.0);
+  const [itemSupplier, setItemSupplier] = useState('');
+  const [itemNotes, setItemNotes] = useState('');
 
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -73,23 +90,80 @@ export default function InventoryPage({ params }: PageProps) {
     setTimeout(() => setFeedback(null), 3500);
   };
 
-  const handleCreateItem = (e: React.FormEvent) => {
+  const handleOpenAddModal = () => {
+    setEditingItem(null);
+    setItemName('');
+    setItemCat('Spirits');
+    setItemUnit('unit');
+    setItemQty(10);
+    setItemReorder(4);
+    setItemCost(12.0);
+    setItemSupplier('');
+    setItemNotes('');
+    setShowItemModal(true);
+  };
+
+  const handleOpenEditModal = (item: InventoryItem) => {
+    setEditingItem(item);
+    setItemName(isIt ? item.name_it : item.name_fr);
+    setItemCat(item.category);
+    setItemUnit(item.base_unit);
+    setItemQty(item.current_quantity);
+    setItemReorder(item.reorder_level);
+    setItemCost(item.average_cost_cents ? Number((item.average_cost_cents / 100).toFixed(2)) : 0);
+    setItemSupplier(item.supplier || '');
+    setItemNotes(item.notes || '');
+    setShowItemModal(true);
+  };
+
+  const handleSaveItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
+    if (!itemName.trim()) return;
 
-    addInventoryItem({
-      name_it: newItemName,
-      name_fr: newItemName,
-      category: newItemCat,
-      base_unit: newItemUnit,
-      current_quantity: newItemQty,
-      reorder_level: newItemReorder,
-      average_cost_cents: newItemCostCents,
-    });
+    const costCents = Math.round(Number(itemCost || 0) * 100);
 
-    setShowAddItemModal(false);
-    setNewItemName('');
-    setFeedback(isIt ? 'Nuovo ingrediente registrato con successo!' : 'Nouvel ingrédient enregistré avec succès !');
+    if (editingItem) {
+      updateInventoryItem(editingItem.id, {
+        name_it: itemName.trim(),
+        name_fr: itemName.trim(),
+        category: itemCat,
+        base_unit: itemUnit,
+        current_quantity: Number(itemQty) || 0,
+        reorder_level: Number(itemReorder) || 0,
+        average_cost_cents: costCents,
+        supplier: itemSupplier.trim() || undefined,
+        notes: itemNotes.trim() || undefined,
+      });
+      setFeedback(isIt ? 'Ingrediente aggiornato con successo!' : 'Ingrédient mis à jour avec succès !');
+    } else {
+      addInventoryItem({
+        name_it: itemName.trim(),
+        name_fr: itemName.trim(),
+        category: itemCat,
+        base_unit: itemUnit,
+        current_quantity: Number(itemQty) || 0,
+        reorder_level: Number(itemReorder) || 0,
+        average_cost_cents: costCents,
+        supplier: itemSupplier.trim() || undefined,
+        notes: itemNotes.trim() || undefined,
+      });
+      setFeedback(isIt ? 'Nuovo ingrediente registrato con successo!' : 'Nouvel ingrédient enregistré avec succès !');
+    }
+
+    setShowItemModal(false);
+    setEditingItem(null);
+    setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const handleDeleteItem = () => {
+    if (!itemToDelete) return;
+    deleteInventoryItem(itemToDelete.id);
+    setFeedback(
+      isIt
+        ? `Ingrediente "${itemToDelete.name_it}" eliminato con successo`
+        : `Ingrédient "${itemToDelete.name_fr}" supprimé avec succès`
+    );
+    setItemToDelete(null);
     setTimeout(() => setFeedback(null), 3500);
   };
 
@@ -136,13 +210,15 @@ export default function InventoryPage({ params }: PageProps) {
             <span>{isIt ? 'Storico movimenti' : 'Historique'}</span>
           </button>
 
-          <button
-            onClick={() => setShowAddItemModal(true)}
-            className="h-10 px-4 bp-btn-primary text-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{isIt ? 'Nuovo ingrediente' : 'Nouvel ingrédient'}</span>
-          </button>
+          {isOwner && (
+            <button
+              onClick={handleOpenAddModal}
+              className="h-10 px-4 bp-btn-primary text-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{isIt ? 'Nuovo ingrediente' : 'Nouvel ingrédient'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -235,6 +311,7 @@ export default function InventoryPage({ params }: PageProps) {
                           <div className="font-bold text-slate-900 text-sm">{name}</div>
                           <div className="text-[11px] text-slate-400">
                             {formatCents(item.average_cost_cents, isIt ? 'it-IT' : 'fr-FR')} / {item.base_unit}
+                            {item.supplier && <span> • {item.supplier}</span>}
                           </div>
                         </div>
                       </div>
@@ -264,16 +341,38 @@ export default function InventoryPage({ params }: PageProps) {
                     </td>
 
                     <td className="py-3 px-5 text-right">
-                      <button
-                        onClick={() => {
-                          setAdjustItem(item);
-                          setAdjustDelta(5);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 border border-slate-200 text-slate-700 font-bold text-xs transition"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>{isIt ? 'Rettifica' : 'Ajuster'}</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setAdjustItem(item);
+                            setAdjustDelta(5);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 border border-slate-200 text-slate-700 font-bold text-xs transition"
+                          title={isIt ? 'Rettifica giacenza' : 'Ajuster stock'}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isIt ? 'Rettifica' : 'Ajuster'}</span>
+                        </button>
+
+                        {isOwner && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEditModal(item)}
+                              className="p-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 text-slate-600 transition"
+                              title={isIt ? 'Modifica ingrediente' : 'Modifier'}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setItemToDelete(item)}
+                              className="p-1.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-slate-200 text-slate-600 transition"
+                              title={isIt ? 'Elimina ingrediente' : 'Supprimer'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -443,31 +542,35 @@ export default function InventoryPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Add New Item Modal */}
-      {showAddItemModal && (
+      {/* Add / Edit Item Modal (Solo Proprietario) */}
+      {showItemModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl bp-fade-up">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 text-slate-900 shadow-2xl max-h-[90vh] overflow-y-auto bp-fade-up">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                <PackagePlus className="w-5 h-5 text-orange-600" />
-                <span>{isIt ? 'Nuovo Ingrediente Magazzino' : 'Nouvel Article Stock'}</span>
+                {editingItem ? <Pencil className="w-5 h-5 text-orange-600" /> : <PackagePlus className="w-5 h-5 text-orange-600" />}
+                <span>
+                  {editingItem
+                    ? (isIt ? 'Modifica Ingrediente Magazzino' : "Modifier l'Article de Stock")
+                    : (isIt ? 'Nuovo Ingrediente Magazzino' : 'Nouvel Article Stock')}
+                </span>
               </h3>
-              <button onClick={() => setShowAddItemModal(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => { setShowItemModal(false); setEditingItem(null); }} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateItem} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveItem} className="space-y-4 text-xs">
               <div>
                 <label className="text-slate-700 font-semibold block mb-1">
-                  {isIt ? 'Nome ingrediente:' : 'Nom ingrédient :'}
+                  {isIt ? 'Nome ingrediente / prodotto:' : 'Nom ingrédient / produit :'}
                 </label>
                 <input
                   type="text"
                   required
-                  value={newItemName}
-                  onChange={e => setNewItemName(e.target.value)}
-                  placeholder="Es. Prosecco Valdobbiadene, Gin Mare, Latte Avena..."
+                  value={itemName}
+                  onChange={e => setItemName(e.target.value)}
+                  placeholder="Es. Prosecco Valdobbiadene DOCG, Gin Mare, Latte Avena..."
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
                 />
               </div>
@@ -478,8 +581,8 @@ export default function InventoryPage({ params }: PageProps) {
                     {isIt ? 'Categoria:' : 'Catégorie :'}
                   </label>
                   <select
-                    value={newItemCat}
-                    onChange={e => setNewItemCat(e.target.value)}
+                    value={itemCat}
+                    onChange={e => setItemCat(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="Caffè">Caffè</option>
@@ -490,16 +593,19 @@ export default function InventoryPage({ params }: PageProps) {
                     <option value="Latticini">Latticini</option>
                     <option value="Soft Drinks">Soft Drinks</option>
                     <option value="Freschi">Freschi & Frutta</option>
+                    <option value="Drogheria">Drogheria</option>
+                    <option value="Packaging">Packaging</option>
+                    <option value="Food">Food & Snack</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-slate-700 font-semibold block mb-1">
-                    {isIt ? 'Unità base:' : 'Unité :'}
+                    {isIt ? 'Unità base:' : 'Unité de mesure :'}
                   </label>
                   <select
-                    value={newItemUnit}
-                    onChange={e => setNewItemUnit(e.target.value as any)}
+                    value={itemUnit}
+                    onChange={e => setItemUnit(e.target.value as any)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="unit">{isIt ? 'Pezzi / Bottiglie' : 'Unités / Bouteilles'}</option>
@@ -512,37 +618,85 @@ export default function InventoryPage({ params }: PageProps) {
 
                 <div>
                   <label className="text-slate-700 font-semibold block mb-1">
-                    {isIt ? 'Giacenza iniziale:' : 'Stock initial :'}
+                    {editingItem ? (isIt ? 'Giacenza attuale:' : 'Stock actuel :') : (isIt ? 'Giacenza iniziale:' : 'Stock initial :')}
                   </label>
                   <input
                     type="number"
                     step="0.1"
                     min="0"
-                    value={newItemQty}
-                    onChange={e => setNewItemQty(parseFloat(e.target.value) || 0)}
+                    value={itemQty}
+                    onChange={e => setItemQty(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
                 <div>
                   <label className="text-slate-700 font-semibold block mb-1">
-                    {isIt ? 'Soglia allerta riordino:' : 'Seuil d\'alerte :'}
+                    {isIt ? 'Soglia allerta riordino:' : "Seuil d'alerte :"}
                   </label>
                   <input
                     type="number"
                     step="0.1"
                     min="0"
-                    value={newItemReorder}
-                    onChange={e => setNewItemReorder(parseFloat(e.target.value) || 0)}
+                    value={itemReorder}
+                    onChange={e => setItemReorder(parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">
+                    {isIt ? 'Costo unitario (€):' : 'Coût unitaire estimé (€) :'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={itemCost}
+                    onChange={e => setItemCost(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">
+                    {isIt ? 'Fornitore predefinito:' : 'Fournisseur :'}
+                  </label>
+                  <input
+                    type="text"
+                    list="suppliersList"
+                    value={itemSupplier}
+                    onChange={e => setItemSupplier(e.target.value)}
+                    placeholder="Es. Metro Italia, Campari..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                  <datalist id="suppliersList">
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.name} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-700 font-semibold block mb-1">
+                  {isIt ? 'Note, allergeni o collocazione:' : 'Notes, allergènes ou emplacement :'}
+                </label>
+                <textarea
+                  rows={2}
+                  value={itemNotes}
+                  onChange={e => setItemNotes(e.target.value)}
+                  placeholder="Es. Scaffale A2 / Contiene solfiti..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500 resize-none"
+                />
+              </div>
+
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddItemModal(false)}
+                  onClick={() => { setShowItemModal(false); setEditingItem(null); }}
                   className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
                 >
                   {isIt ? 'Annulla' : 'Annuler'}
@@ -551,10 +705,52 @@ export default function InventoryPage({ params }: PageProps) {
                   type="submit"
                   className="px-4 py-2 bp-btn-primary"
                 >
-                  {isIt ? 'Salva Ingrediente' : 'Créer l\'Article'}
+                  {editingItem
+                    ? (isIt ? 'Salva Modifiche' : 'Enregistrer')
+                    : (isIt ? 'Salva Ingrediente' : "Créer l'Article")}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Item Confirmation Modal (Solo Proprietario) */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl bp-fade-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-bold text-base text-red-600 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <span>{isIt ? 'Elimina Ingrediente' : "Supprimer l'ingrédient"}</span>
+              </h3>
+              <button onClick={() => setItemToDelete(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-6">
+              {isIt
+                ? `Sei sicuro di voler eliminare "${itemToDelete.name_it}" dall'inventario? Questa azione non può essere annullata.`
+                : `Êtes-vous sûr de vouloir supprimer "${itemToDelete.name_fr}" de l'inventaire ? Cette action est irréversible.`}
+            </p>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs"
+              >
+                {isIt ? 'Annulla' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteItem}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition text-xs"
+              >
+                {isIt ? 'Conferma Eliminazione' : 'Supprimer'}
+              </button>
+            </div>
           </div>
         </div>
       )}

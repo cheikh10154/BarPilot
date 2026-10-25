@@ -31,6 +31,8 @@ export interface InventoryItem {
   current_quantity: number;
   reorder_level: number;
   average_cost_cents: number;
+  supplier?: string;
+  notes?: string;
 }
 
 export interface StockMovement {
@@ -336,6 +338,8 @@ interface BarPilotState {
   // Inventory & Recipes
   adjustInventory: (itemId: string, delta: number, reason: StockMovement['reason']) => void;
   addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
+  updateInventoryItem: (itemId: string, data: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (itemId: string) => void;
 
   // Products
   addProduct: (product: Omit<ProductItem, 'id'>) => void;
@@ -583,6 +587,20 @@ export const useBarPilotStore = create<BarPilotState>()(
           id: `inv-${Date.now()}`,
         };
         set(state => ({ inventory: [...state.inventory, newItem] }));
+      },
+
+      updateInventoryItem: (itemId, data) => {
+        set(state => ({
+          inventory: state.inventory.map(i =>
+            i.id === itemId ? { ...i, ...data } : i
+          ),
+        }));
+      },
+
+      deleteInventoryItem: (itemId) => {
+        set(state => ({
+          inventory: state.inventory.filter(i => i.id !== itemId),
+        }));
       },
 
       addProduct: (prod) => {
