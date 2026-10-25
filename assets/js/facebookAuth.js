@@ -102,12 +102,16 @@ class FacebookAuthManager {
       } catch (e) {}
     }
 
-    const bar = window.db.get("activeBar");
+    const bar = (window.db ? window.db.get("activeBar") : {}) || {};
     bar.managerName = profile.name;
     bar.managerEmail = profile.email;
     bar.avatar = profile.picture;
     bar.authProvider = "facebook";
-    window.db.set("activeBar", bar);
+    bar.isDemo = false;
+    const hasExistingSub = localStorage.getItem("barpilot_is_subscribed") === "true";
+    bar.isSubscribed = hasExistingSub;
+    bar.subscriptionStatus = hasExistingSub ? "active" : "unsubscribed";
+    if (window.db) window.db.set("activeBar", bar);
 
     // Update UI elements
     const userGreeting = document.getElementById("userGreetingName");
@@ -127,7 +131,8 @@ class FacebookAuthManager {
         name: profile.name,
         email: profile.email,
         avatar: profile.picture,
-        provider: "facebook"
+        provider: "facebook",
+        isDemo: false
       });
     } else {
       localStorage.setItem("barpilot_is_logged_in", "true");
@@ -135,11 +140,30 @@ class FacebookAuthManager {
     if (typeof closeAuthScreen === "function") closeAuthScreen();
     this.hideFacebookModal();
 
+    if (typeof renderApp === "function") renderApp();
+
     const isIt = !window.i18n || window.i18n.currentLang === "it";
-    if (typeof showToast === "function") {
-      showToast(isIt
-        ? `Benvenuto, ${profile.name}! Accesso Facebook completato.`
-        : `Bienvenue, ${profile.name} ! Connexion Facebook réussie.`);
+
+    // Subscription check for Facebook login
+    const hasSub = typeof isUserSubscribed === "function" && isUserSubscribed();
+    if (hasSub) {
+      if (typeof switchView === "function") switchView("dashboard");
+      if (typeof showToast === "function") {
+        showToast(isIt
+          ? `Benvenuto, ${profile.name}! Accesso Facebook completato.`
+          : `Bienvenue, ${profile.name} ! Connexion Facebook réussie.`);
+      }
+    } else {
+      // Direct unsubscribed Facebook user to subscription page with Google Play Pay
+      if (typeof switchView === "function") switchView("subscriptions");
+      setTimeout(() => {
+        if (typeof openGooglePlayModal === "function") openGooglePlayModal();
+      }, 400);
+      if (typeof showToast === "function") {
+        showToast(isIt
+          ? `⚠️ Benvenuto ${profile.name}! Abbonamento richiesto per la Dashboard. Paga subito con Google Play Pay (59€/mese).`
+          : `⚠️ Bienvenue ${profile.name} ! Abonnement requis pour le Tableau de Bord. Payez avec Google Play Pay (59€/mois).`);
+      }
     }
   }
 

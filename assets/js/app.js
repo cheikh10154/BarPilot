@@ -215,23 +215,28 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isUserSubscribed() {
   try {
-    // Demo mode: completely unrestricted access, never ask for subscription
     let loggedUser = null;
     try {
       loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
     } catch (e) {}
 
-    if (loggedUser && (loggedUser.provider === "demo" || loggedUser.isDemo || loggedUser.email === "marco@barcentrale.it")) {
+    // Demo mode: completely exempt from subscription requirement
+    if (loggedUser && (loggedUser.provider === "demo" || loggedUser.isDemo === true || loggedUser.email === "marco@barcentrale.it")) {
+      return true;
+    }
+
+    // Google, Facebook and Email accounts: require active subscription in localStorage or active bar
+    const stored = localStorage.getItem("barpilot_is_subscribed");
+    if (stored === "true") {
       return true;
     }
 
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (bar && (bar.isDemo === true || bar.id === "bar_01")) {
+    if (bar && bar.subscriptionStatus === "active" && bar.isSubscribed === true && bar.isDemo !== true) {
       return true;
     }
 
-    const stored = localStorage.getItem("barpilot_is_subscribed");
-    return stored === "true" || bar.isSubscribed === true || bar.subscriptionStatus === "active";
+    return false;
   } catch (e) {
     return false;
   }
@@ -4614,18 +4619,34 @@ function switchAuthTab(tab) {
 // Social Login Simulation (Google & Facebook)
 function handleSocialLogin(provider) {
   const userGreeting = document.getElementById("userGreetingName");
-  const bar = window.db.get("activeBar");
+  const bar = window.db.get("activeBar") || {};
   bar.managerName = `Marco Rossi (${provider})`;
+  bar.authProvider = provider;
+  bar.isDemo = false;
   window.db.set("activeBar", bar);
 
   if (userGreeting) userGreeting.textContent = "Marco";
   renderActiveBar();
 
-  setUserLoggedIn(true, { name: "Marco Rossi", provider: provider });
+  setUserLoggedIn(true, { name: `Marco Rossi (${provider})`, provider: provider, isDemo: false });
   closeAuthScreen();
-  showToast(window.i18n.currentLang === 'it' 
-    ? `Accesso effettuato con successo tramite ${provider}!` 
-    : `Connexion réussie via ${provider} !`);
+  renderApp();
+
+  if (isUserSubscribed()) {
+    switchView("dashboard");
+    showToast(window.i18n.currentLang === 'it' 
+      ? `Accesso effettuato con successo tramite ${provider}!` 
+      : `Connexion réussie via ${provider} !`);
+  } else {
+    // Unsubscribed: redirect to subscriptions with Google Play Pay
+    switchView("subscriptions");
+    setTimeout(() => {
+      openGooglePlayModal();
+    }, 400);
+    showToast(window.i18n.currentLang === 'it'
+      ? `⚠️ Abbonamento richiesto per accedere alla Dashboard (${provider}). Paga subito con Google Play Pay (59€/mese)!`
+      : `⚠️ Abonnement requis pour accéder au Tableau de Bord (${provider}). Payez avec Google Play Pay (59€/mois) !`);
+  }
 }
 
 function handleAuthSubmit(e) {
