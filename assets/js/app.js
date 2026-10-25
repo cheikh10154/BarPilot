@@ -1325,21 +1325,433 @@ function confirmDeleteIngredientAction() {
 // --------------------------------------------------------------------------
 // Suppliers & Staff
 // --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// Suppliers & Purchase Orders (Nuovo Fornitore riservato al Proprietario + Ordina da Fornitore)
+// --------------------------------------------------------------------------
+let supplierIdPendingDelete = null;
+let currentOrderSupplier = null;
+
 function renderSuppliers() {
-  const sup = window.db.get("suppliers");
+  const sup = (window.db ? window.db.get("suppliers") : []) || [];
   const list = document.getElementById("suppliersListWrap");
   if (!list) return;
 
-  list.innerHTML = sup.map(s => `
-    <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <h4 style="font-weight:800; font-size:15px;">${s.name}</h4>
-        <p style="font-size:12px; color:var(--text-muted);">${s.category}</p>
-        <p style="font-size:12px; color:var(--primary); margin-top:4px;">📞 ${s.phone} · ✉️ ${s.email}</p>
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+
+  if (sup.length === 0) {
+    list.innerHTML = `
+      <div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">
+        <p style="font-size:14px; font-weight:600;">Nessun fornitore registrato.</p>
+        ${isOwner ? '<p style="font-size:12px; margin-top:6px;">Clicca su <strong>+ Nuovo fornitore</strong> per aggiungere il tuo primo partner commerciale.</p>' : ''}
       </div>
-      <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="alert('Ordine inviato a ${s.name}')">Nuovo ordine</button>
-    </div>
-  `).join("");
+    `;
+    return;
+  }
+
+  list.innerHTML = sup.map(s => {
+    const productsText = (s.products_supplied && Array.isArray(s.products_supplied) && s.products_supplied.length > 0)
+      ? s.products_supplied.join(", ")
+      : (s.category || "Forniture varie");
+
+    const contactText = (s.contact_name || s.contact) ? ` · 👤 ${s.contact_name || s.contact}` : "";
+
+    return `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="flex:1; min-width:240px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h4 style="font-weight:800; font-size:15px; margin:0; color:var(--text-main);">${escapeHtml(s.name)}</h4>
+            <span class="badge" style="font-size:10px; padding:2px 8px; background:var(--bg-card-secondary); color:var(--text-muted); border:1px solid var(--border-color);">${escapeHtml(s.category || 'Generale')}</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); margin:4px 0 2px 0;">📦 <strong>Articoli:</strong> ${escapeHtml(productsText)}</p>
+          <p style="font-size:12px; color:var(--primary); margin:0;">📞 ${escapeHtml(s.phone || '-')} · ✉️ ${escapeHtml(s.email || '-')}${escapeHtml(contactText)}</p>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn-primary" style="padding:8px 14px; font-size:12px; display:inline-flex; align-items:center; gap:6px;" onclick="openSupplierOrderModal('${s.id}')">
+            <span>📦</span> <span>Nuovo ordine</span>
+          </button>
+          ${isOwner ? `
+            <button class="btn-secondary" style="padding:8px 12px; font-size:12px;" onclick="openEditSupplierModal('${s.id}')" title="Modifica Fornitore">
+              ✏️
+            </button>
+            <button class="btn-secondary" style="padding:8px 12px; font-size:12px; color:var(--status-alert);" onclick="openDeleteSupplierModal('${s.id}')" title="Elimina Fornitore">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openAddSupplierModal() {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può aggiungere nuovi fornitori.");
+    return;
+  }
+
+  const modal = document.getElementById("addSupplierModal");
+  if (!modal) return;
+
+  const form = document.getElementById("addSupplierForm");
+  if (form) form.reset();
+
+  const idEl = document.getElementById("editSupplierId");
+  if (idEl) idEl.value = "";
+
+  const titleEl = document.getElementById("supplierModalTitle");
+  if (titleEl) titleEl.innerHTML = `<span>🚚</span> <span>Nuovo Fornitore</span>`;
+
+  const subEl = document.getElementById("supplierModalSubtitle");
+  if (subEl) subEl.textContent = "Registra un fornitore con catalogo prodotti e contatti (Solo Proprietario)";
+
+  const submitBtn = document.getElementById("supplierModalSubmitBtn");
+  if (submitBtn) submitBtn.textContent = "+ Salva Fornitore";
+
+  modal.classList.add("active");
+}
+
+function openEditSupplierModal(supId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può modificare i fornitori.");
+    return;
+  }
+
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+  const s = suppliers.find(item => String(item.id) === String(supId));
+  if (!s) return;
+
+  const modal = document.getElementById("addSupplierModal");
+  if (!modal) return;
+
+  const idEl = document.getElementById("editSupplierId");
+  if (idEl) idEl.value = s.id;
+
+  const nameEl = document.getElementById("newSupName");
+  if (nameEl) nameEl.value = s.name || "";
+
+  const catEl = document.getElementById("newSupCategory");
+  if (catEl) catEl.value = s.category || "Caffetteria & Macchine";
+
+  const contactEl = document.getElementById("newSupContact");
+  if (contactEl) contactEl.value = s.contact_name || s.contact || "";
+
+  const phoneEl = document.getElementById("newSupPhone");
+  if (phoneEl) phoneEl.value = s.phone || "";
+
+  const emailEl = document.getElementById("newSupEmail");
+  if (emailEl) emailEl.value = s.email || "";
+
+  const prodEl = document.getElementById("newSupProducts");
+  if (prodEl) {
+    prodEl.value = (s.products_supplied && Array.isArray(s.products_supplied))
+      ? s.products_supplied.join(", ")
+      : "";
+  }
+
+  const notesEl = document.getElementById("newSupNotes");
+  if (notesEl) notesEl.value = s.notes || "";
+
+  const titleEl = document.getElementById("supplierModalTitle");
+  if (titleEl) titleEl.innerHTML = `<span>✏️</span> <span>Modifica Fornitore</span>`;
+
+  const subEl = document.getElementById("supplierModalSubtitle");
+  if (subEl) subEl.textContent = `Modifica anagrafica e contatti di ${s.name}`;
+
+  const submitBtn = document.getElementById("supplierModalSubmitBtn");
+  if (submitBtn) submitBtn.textContent = "Salva Modifiche";
+
+  modal.classList.add("active");
+}
+
+function closeAddSupplierModal() {
+  const modal = document.getElementById("addSupplierModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleAddSupplierSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può aggiungere o modificare fornitori.");
+    return;
+  }
+
+  const id = document.getElementById("editSupplierId").value;
+  const name = (document.getElementById("newSupName").value || "").trim();
+  const category = document.getElementById("newSupCategory").value;
+  const contact_name = (document.getElementById("newSupContact").value || "").trim();
+  const phone = (document.getElementById("newSupPhone").value || "").trim();
+  const email = (document.getElementById("newSupEmail").value || "").trim();
+  const rawProducts = (document.getElementById("newSupProducts").value || "").trim();
+  const notes = (document.getElementById("newSupNotes").value || "").trim();
+
+  if (!name) {
+    showToast("⚠️ Inserisci la ragione sociale del fornitore.");
+    return;
+  }
+
+  const products_supplied = rawProducts
+    ? rawProducts.split(",").map(p => p.trim()).filter(Boolean)
+    : [];
+
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+
+  if (id) {
+    const idx = suppliers.findIndex(s => String(s.id) === String(id));
+    if (idx !== -1) {
+      suppliers[idx] = {
+        ...suppliers[idx],
+        name,
+        category,
+        contact_name,
+        phone,
+        email,
+        products_supplied,
+        notes
+      };
+      window.db.set("suppliers", suppliers);
+      showToast(`✅ Fornitore "${name}" aggiornato con successo!`);
+    }
+  } else {
+    const newSupplier = {
+      id: Date.now(),
+      name,
+      category,
+      contact_name,
+      phone,
+      email,
+      products_supplied,
+      notes,
+      status: "active"
+    };
+    suppliers.push(newSupplier);
+    window.db.set("suppliers", suppliers);
+    showToast(`✅ Nuovo fornitore "${name}" aggiunto con successo!`);
+  }
+
+  closeAddSupplierModal();
+  renderSuppliers();
+  if (typeof populateSupplierSelect === "function") {
+    populateSupplierSelect();
+  }
+}
+
+function openDeleteSupplierModal(supId) {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può eliminare i fornitori.");
+    return;
+  }
+
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+  const s = suppliers.find(item => String(item.id) === String(supId));
+  if (!s) return;
+
+  supplierIdPendingDelete = s.id;
+
+  const modal = document.getElementById("deleteSupplierModal");
+  if (!modal) return;
+
+  const nameEl = document.getElementById("deleteSupplierName");
+  if (nameEl) nameEl.textContent = s.name;
+
+  const infoEl = document.getElementById("deleteSupplierInfo");
+  if (infoEl) infoEl.textContent = `Categoria: ${s.category} · 📞 ${s.phone}`;
+
+  modal.classList.add("active");
+}
+
+function closeDeleteSupplierModal() {
+  supplierIdPendingDelete = null;
+  const modal = document.getElementById("deleteSupplierModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteSupplierAction() {
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario può eliminare i fornitori.");
+    return;
+  }
+
+  if (!supplierIdPendingDelete) return;
+
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+  const target = suppliers.find(s => String(s.id) === String(supplierIdPendingDelete));
+  const newSuppliers = suppliers.filter(s => String(s.id) !== String(supplierIdPendingDelete));
+  window.db.set("suppliers", newSuppliers);
+
+  const deletedName = target ? target.name : "Fornitore";
+  closeDeleteSupplierModal();
+  renderSuppliers();
+  if (typeof populateSupplierSelect === "function") {
+    populateSupplierSelect();
+  }
+  showToast(`🗑️ Fornitore "${deletedName}" eliminato.`);
+}
+
+function openSupplierOrderModal(supId) {
+  const suppliers = (window.db ? window.db.get("suppliers") : []) || [];
+  const s = suppliers.find(item => String(item.id) === String(supId));
+  if (!s) return;
+
+  currentOrderSupplier = s;
+
+  const modal = document.getElementById("supplierOrderModal");
+  if (!modal) return;
+
+  const idEl = document.getElementById("orderSupplierId");
+  if (idEl) idEl.value = s.id;
+
+  const nameEl = document.getElementById("orderSupplierName");
+  if (nameEl) nameEl.textContent = s.name;
+
+  const contactEl = document.getElementById("orderSupplierContact");
+  if (contactEl) {
+    contactEl.textContent = `📞 ${s.phone || '-'} · ✉️ ${s.email || '-'} ${s.contact_name ? '· 👤 ' + s.contact_name : ''}`;
+  }
+
+  const notesEl = document.getElementById("orderDeliveryNotes");
+  if (notesEl) notesEl.value = "";
+
+  const container = document.getElementById("orderItemsContainer");
+  if (container) {
+    container.innerHTML = "";
+
+    const inv = (window.db ? window.db.get("inventory") : []) || [];
+    const matchedInv = inv.filter(i => i.supplier && i.supplier.toLowerCase().includes(s.name.toLowerCase()));
+
+    if (matchedInv.length > 0) {
+      matchedInv.forEach(item => {
+        addOrderRow(item.name, Math.max(1, Math.round((item.reorderLevel || 2) * 2)), item.unit || "pz");
+      });
+    } else if (s.products_supplied && Array.isArray(s.products_supplied) && s.products_supplied.length > 0) {
+      s.products_supplied.slice(0, 4).forEach((p, idx) => {
+        addOrderRow(p, idx === 0 ? 5 : 2, "colli");
+      });
+    } else {
+      addOrderRow("", 1, "colli");
+    }
+  }
+
+  modal.classList.add("active");
+}
+
+function addOrderRow(name = "", qty = 1, unit = "colli") {
+  const container = document.getElementById("orderItemsContainer");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "order-item-row";
+  row.style.cssText = "display:flex; gap:8px; align-items:center;";
+
+  row.innerHTML = `
+    <input type="text" class="form-input order-row-name" placeholder="Nome prodotto / referenza" value="${escapeHtml(name)}" required style="flex:2; padding:7px 10px; font-size:12px;">
+    <input type="number" step="0.1" min="0.1" class="form-input order-row-qty" placeholder="Q.tà" value="${qty}" required style="width:75px; text-align:center; padding:7px 8px; font-size:12px; font-weight:700;">
+    <select class="form-input order-row-unit" style="width:90px; padding:7px 6px; font-size:12px; background:var(--bg-card); cursor:pointer;">
+      <option value="colli" ${unit === 'colli' ? 'selected' : ''}>colli</option>
+      <option value="cartoni" ${unit === 'cartoni' ? 'selected' : ''}>cartoni</option>
+      <option value="kg" ${unit === 'kg' ? 'selected' : ''}>kg</option>
+      <option value="L" ${unit === 'L' ? 'selected' : ''}>L</option>
+      <option value="bott." ${unit === 'bott.' ? 'selected' : ''}>bott.</option>
+      <option value="fusti" ${unit === 'fusti' ? 'selected' : ''}>fusti</option>
+      <option value="pz" ${unit === 'pz' ? 'selected' : ''}>pz</option>
+    </select>
+    <button type="button" class="btn-secondary" style="padding:6px 9px; color:var(--text-muted); font-size:12px;" onclick="this.parentElement.remove()" title="Rimuovi riga">✕</button>
+  `;
+
+  container.appendChild(row);
+}
+
+function closeSupplierOrderModal() {
+  currentOrderSupplier = null;
+  const modal = document.getElementById("supplierOrderModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleSendSupplierOrder(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  if (!currentOrderSupplier) return;
+
+  const container = document.getElementById("orderItemsContainer");
+  const rows = container ? container.querySelectorAll(".order-item-row") : [];
+
+  const items = [];
+  rows.forEach(r => {
+    const nameEl = r.querySelector(".order-row-name");
+    const qtyEl = r.querySelector(".order-row-qty");
+    const unitEl = r.querySelector(".order-row-unit");
+    if (nameEl && nameEl.value.trim()) {
+      items.push({
+        name: nameEl.value.trim(),
+        qty: parseFloat(qtyEl.value) || 1,
+        unit: unitEl ? unitEl.value : "colli"
+      });
+    }
+  });
+
+  if (items.length === 0) {
+    showToast("⚠️ Inserisci almeno un articolo da ordinare.");
+    return;
+  }
+
+  const urgency = document.getElementById("orderDeliveryUrgency") ? document.getElementById("orderDeliveryUrgency").value : "Prima data utile";
+  const channel = document.getElementById("orderChannel") ? document.getElementById("orderChannel").value : "both";
+  const notes = document.getElementById("orderDeliveryNotes") ? document.getElementById("orderDeliveryNotes").value.trim() : "";
+
+  const orderNumber = `PO-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+
+  const supplierOrders = (window.db ? window.db.get("supplier_orders") : []) || [];
+  supplierOrders.unshift({
+    id: orderNumber,
+    supplierId: currentOrderSupplier.id,
+    supplierName: currentOrderSupplier.name,
+    items,
+    urgency,
+    notes,
+    channel,
+    timestamp: new Date().toISOString(),
+    status: "inviato"
+  });
+  if (window.db) {
+    window.db.set("supplier_orders", supplierOrders);
+  }
+
+  let orderText = `BUONO D'ORDINE: ${orderNumber}\n`;
+  orderText += `Destinatario: ${currentOrderSupplier.name}\n`;
+  orderText += `Data: ${new Date().toLocaleDateString('it-IT')} ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n`;
+  orderText += `Mittente: Bar Central\n\n`;
+  orderText += `ARTICOLI RICHIESTI:\n`;
+  items.forEach((it, idx) => {
+    orderText += `${idx + 1}. ${it.name} — ${it.qty} ${it.unit}\n`;
+  });
+  orderText += `\nTempistica Consegna: ${urgency}\n`;
+  if (notes) {
+    orderText += `Note Consegna: ${notes}\n`;
+  }
+
+  if (channel === "whatsapp" || channel === "both") {
+    if (currentOrderSupplier.phone) {
+      const cleanPhone = currentOrderSupplier.phone.replace(/[^0-9+]/g, '');
+      const waUrl = `https://wa.me/${cleanPhone.replace('+', '')}?text=${encodeURIComponent(orderText)}`;
+      window.open(waUrl, "_blank");
+    }
+  }
+
+  if (channel === "email" || channel === "both") {
+    if (currentOrderSupplier.email) {
+      const mailtoUrl = `mailto:${currentOrderSupplier.email}?subject=${encodeURIComponent("Buono d'Ordine " + orderNumber + " - Bar Central")}&body=${encodeURIComponent(orderText)}`;
+      window.open(mailtoUrl, "_blank");
+    }
+  }
+
+  closeSupplierOrderModal();
+  showToast(`🚀 Buono d'ordine #${orderNumber} inviato a ${currentOrderSupplier.name}!`);
 }
 
 // ==========================================================================
@@ -1352,6 +1764,7 @@ const ROLE_PERMISSIONS = {
     canEditStaff: true,
     canManageTables: true,
     canManageInventory: true,
+    canManageSuppliers: true,
     defaultView: "dashboard",
     badgeClass: "badge-role-owner"
   },
@@ -1478,6 +1891,17 @@ function applyActiveStaff(staff, doSwitchView = true) {
   const addIngBtn = document.getElementById("btnAddNewIngredient");
   if (addIngBtn) {
     addIngBtn.style.display = perms.canManageInventory ? "inline-flex" : "none";
+  }
+
+  // 4d. Supplier Add Permission (Solo il proprietario può aggiungere nuovi fornitori)
+  const addSupplierBtn = document.getElementById("btnAddNewSupplier");
+  if (addSupplierBtn) {
+    addSupplierBtn.style.display = perms.canManageSuppliers ? "inline-flex" : "none";
+  }
+
+  // Re-render suppliers when role changes
+  if (typeof renderSuppliers === "function") {
+    renderSuppliers();
   }
 
   // 5. If doSwitchView is true or current view is not allowed for this role, automatically switch
@@ -2934,6 +3358,27 @@ function setupModals() {
     });
   }
 
+  const addSupModal = document.getElementById("addSupplierModal");
+  if (addSupModal) {
+    addSupModal.addEventListener("click", (e) => {
+      if (e.target === addSupModal) closeAddSupplierModal();
+    });
+  }
+
+  const deleteSupModal = document.getElementById("deleteSupplierModal");
+  if (deleteSupModal) {
+    deleteSupModal.addEventListener("click", (e) => {
+      if (e.target === deleteSupModal) closeDeleteSupplierModal();
+    });
+  }
+
+  const supOrderModal = document.getElementById("supplierOrderModal");
+  if (supOrderModal) {
+    supOrderModal.addEventListener("click", (e) => {
+      if (e.target === supOrderModal) closeSupplierOrderModal();
+    });
+  }
+
   // Global Keyboard listener for Staff PIN keypad
   document.addEventListener("keydown", (e) => {
     const activePinModal = document.getElementById("staffPinModal");
@@ -3972,3 +4417,14 @@ window.closeDeleteIngredientModal = closeDeleteIngredientModal;
 window.confirmDeleteIngredientAction = confirmDeleteIngredientAction;
 window.handleSupplierSelectChange = handleSupplierSelectChange;
 window.quickRestock = quickRestock;
+window.openAddSupplierModal = openAddSupplierModal;
+window.openEditSupplierModal = openEditSupplierModal;
+window.closeAddSupplierModal = closeAddSupplierModal;
+window.handleAddSupplierSubmit = handleAddSupplierSubmit;
+window.openDeleteSupplierModal = openDeleteSupplierModal;
+window.closeDeleteSupplierModal = closeDeleteSupplierModal;
+window.confirmDeleteSupplierAction = confirmDeleteSupplierAction;
+window.openSupplierOrderModal = openSupplierOrderModal;
+window.addOrderRow = addOrderRow;
+window.closeSupplierOrderModal = closeSupplierOrderModal;
+window.handleSendSupplierOrder = handleSendSupplierOrder;

@@ -921,7 +921,7 @@
         <section class="view-panel" id="view-suppliers">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
             <h2 style="font-size:20px; font-weight:800;" data-i18n="navSuppliers">Fornitori</h2>
-            <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="alert('Nuovo fornitore')" data-i18n="addSupplier">+ Nuovo fornitore</button>
+            <button class="btn-primary" id="btnAddNewSupplier" style="padding:8px 16px; font-size:13px; display:none;" onclick="openAddSupplierModal()" data-i18n="addSupplier">+ Nuovo fornitore</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:14px;" id="suppliersListWrap">
             <!-- Rendered via app.js -->
@@ -1921,6 +1921,173 @@
         <button type="button" class="btn-secondary" onclick="closeDeleteIngredientModal()" style="flex:1; padding:11px;">Annulla</button>
         <button type="button" class="btn-danger" onclick="confirmDeleteIngredientAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Supplier Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="addSupplierModal">
+    <div class="modal-box" style="max-width:520px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;" id="supplierModalTitle">
+            <span>🚚</span> <span>Nuovo Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="supplierModalSubtitle">Registra un fornitore con catalogo prodotti e contatti (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddSupplierModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addSupplierForm" onsubmit="handleAddSupplierSubmit(event)">
+        <input type="hidden" id="editSupplierId" value="">
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Ragione Sociale / Nome Fornitore</label>
+          <input type="text" class="form-input" id="newSupName" placeholder="Es: Caffè Vergnano, Campari, Metro Italia" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Categoria Fornitura</label>
+            <select class="form-input" id="newSupCategory" style="background:var(--bg-card); cursor:pointer;">
+              <option value="Caffetteria & Macchine">☕ Caffetteria & Macchine</option>
+              <option value="Spiriti & Alcolici">🍸 Spiriti & Alcolici</option>
+              <option value="Bevande & Soft Drinks">🍺 Bevande & Soft Drinks</option>
+              <option value="Latticini & Freschi">🥛 Latticini & Freschi</option>
+              <option value="Food & Drogheria">🥫 Food & Drogheria</option>
+              <option value="Pasticceria & Surgelati">🥐 Pasticceria & Forno</option>
+              <option value="Packaging & Detergenza">📦 Packaging & Pulizie</option>
+              <option value="Generale">🏢 Altro / Generale</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Referente Commerciale</label>
+            <input type="text" class="form-input" id="newSupContact" placeholder="Es: Marco Rossi">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Telefono / WhatsApp Ordini</label>
+            <input type="tel" class="form-input" id="newSupPhone" placeholder="+39 02 1234567" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Ordini</label>
+            <input type="email" class="form-input" id="newSupEmail" placeholder="ordini@fornitore.it" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Articoli Forniti (separati da virgola)</label>
+          <input type="text" class="form-input" id="newSupProducts" placeholder="Es: Caffè Arabica, Tazze, Filtri macchina, Latte fresco">
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Note / Condizioni di Consegna</label>
+          <input type="text" class="form-input" id="newSupNotes" placeholder="Es: Consegna il martedì mattina, minimo d'ordine 80€">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddSupplierModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="supplierModalSubmitBtn" style="flex:1; padding:11px;">+ Salva Fornitore</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Supplier Confirmation Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteSupplierModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span>Elimina Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteSupplierModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color);">
+        <p style="font-size:13.5px; line-height:1.5; margin-bottom:6px;">
+          Sei sicuro di voler rimuovere il fornitore <strong id="deleteSupplierName" style="color:var(--text-main); font-weight:800;"></strong>?
+        </p>
+        <p style="font-size:11.5px; color:var(--text-muted);" id="deleteSupplierInfo">
+          Contatti e catalogo associato verranno eliminati.
+        </p>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteSupplierModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-danger" onclick="confirmDeleteSupplierAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Purchase Order Modal (Nuovo Ordine Fornitore) -->
+  <div class="modal-overlay" id="supplierOrderModal">
+    <div class="modal-box" style="max-width:540px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+            <span>📦</span> <span id="supplierOrderModalTitle">Nuovo Ordine Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="supplierOrderModalSubtitle">Genera buono d'ordine, invia via email o WhatsApp</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeSupplierOrderModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="font-size:14px; font-weight:800; color:var(--text-main);" id="orderSupplierName">Fornitore</div>
+          <div style="font-size:11.5px; color:var(--text-muted);" id="orderSupplierContact">📞 Contatto · ✉️ Email</div>
+        </div>
+        <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:11px; font-weight:700;">Buono d'Ordine</span>
+      </div>
+
+      <form id="supplierOrderForm" onsubmit="handleSendSupplierOrder(event)">
+        <input type="hidden" id="orderSupplierId" value="">
+
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="form-label" style="margin-bottom:0;">Articoli da Ordinare</label>
+            <button type="button" class="btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="addOrderRow()">+ Aggiungi riga</button>
+          </div>
+          <div id="orderItemsContainer" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Data Consegna Richiesta</label>
+            <select class="form-input" id="orderDeliveryUrgency" style="background:var(--bg-card); cursor:pointer;">
+              <option value="Prima data utile">Prima data utile (Standard)</option>
+              <option value="Entro domani mattina">Entro domani mattina (Urgente)</option>
+              <option value="Entro fine settimana">Entro fine settimana</option>
+              <option value="Prossimo lunedì">Prossimo lunedì</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Canale di Invio</label>
+            <select class="form-input" id="orderChannel" style="background:var(--bg-card); cursor:pointer;">
+              <option value="both">✉️ Email & 📱 WhatsApp</option>
+              <option value="email">✉️ Solo Email</option>
+              <option value="whatsapp">📱 Solo WhatsApp</option>
+              <option value="internal">📄 Solo Registrazione Interna</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Note / Istruzioni Speciali per la Consegna</label>
+          <textarea class="form-input" id="orderDeliveryNotes" rows="2" placeholder="Es: Consegna tassativa prima delle ore 11:00, scarico dal retro del bar..." style="resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeSupplierOrderModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">🚀 Conferma e Invia Ordine</button>
+        </div>
+      </form>
     </div>
   </div>
 

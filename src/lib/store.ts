@@ -341,6 +341,11 @@ interface BarPilotState {
   updateInventoryItem: (itemId: string, data: Partial<InventoryItem>) => void;
   deleteInventoryItem: (itemId: string) => void;
 
+  // Suppliers
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
+  updateSupplier: (supplierId: string, data: Partial<Supplier>) => void;
+  deleteSupplier: (supplierId: string) => void;
+
   // Products
   addProduct: (product: Omit<ProductItem, 'id'>) => void;
   updateProduct: (productId: string, data: Partial<ProductItem>) => void;
@@ -600,6 +605,28 @@ export const useBarPilotStore = create<BarPilotState>()(
       deleteInventoryItem: (itemId) => {
         set(state => ({
           inventory: state.inventory.filter(i => i.id !== itemId),
+        }));
+      },
+
+      addSupplier: (supplier) => {
+        const newSupplier: Supplier = {
+          ...supplier,
+          id: `sup-${Date.now()}`,
+        };
+        set(state => ({ suppliers: [...state.suppliers, newSupplier] }));
+      },
+
+      updateSupplier: (supplierId, data) => {
+        set(state => ({
+          suppliers: state.suppliers.map(s =>
+            s.id === supplierId ? { ...s, ...data } : s
+          ),
+        }));
+      },
+
+      deleteSupplier: (supplierId) => {
+        set(state => ({
+          suppliers: state.suppliers.filter(s => s.id !== supplierId),
         }));
       },
 
