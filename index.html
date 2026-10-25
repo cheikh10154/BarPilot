@@ -2293,6 +2293,14 @@
         <button class="modal-close-icon-btn" onclick="closeCheckoutModal()" aria-label="Fermer">✕</button>
       </div>
 
+      <!-- Mandatory Checkout Notice (Non-closable) -->
+      <div id="checkoutMandatoryNotice" style="display:none; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; font-size:12px; color:var(--text-main); align-items:center; gap:10px; width:100%; box-sizing:border-box;">
+        <span style="font-size:20px; flex-shrink:0;">🔒</span>
+        <div style="line-height:1.45; flex:1;">
+          <strong style="color:var(--text-main);">Abbonamento obbligatorio per accedere al gestionale:</strong> Attiva la prova gratuita di 14 giorni (0,00 € oggi) tramite Google Pay o Carta per sbloccare la Dashboard.
+        </div>
+      </div>
+
       <!-- Recap Box -->
       <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
@@ -2301,14 +2309,6 @@
             <div style="font-size:16px; font-weight:900; color:var(--text-main);">BarPilot Pro — Accès Complet</div>
             <div style="font-size:12px; color:var(--text-muted);">Toutes les fonctionnalités incluses sans limite</div>
           </div>
-
-      <!-- Mandatory Checkout Notice (Non-closable) -->
-      <div id="checkoutMandatoryNotice" style="display:none; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:16px; font-size:12px; color:var(--text-main); align-items:center; gap:10px;">
-        <span style="font-size:20px;">🔒</span>
-        <div style="line-height:1.4;">
-          <strong>Abbonamento obbligatorio per accedere al gestionale:</strong> Attiva la prova gratuita di 14 giorni (0,00 € oggi) tramite Google Pay o Carta per sbloccare la Dashboard.
-        </div>
-      </div>
           <div style="text-align:right;">
             <div style="font-size:24px; font-weight:900; color:var(--primary);">59 € <span style="font-size:12px; font-weight:600; color:var(--text-muted);">/ mois</span></div>
             <span style="font-size:11px; color:var(--status-free); font-weight:700;">14 jours d'essai gratuit</span>
