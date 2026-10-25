@@ -3580,3 +3580,247 @@ input:checked + .toggle-slider:before {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px var(--primary-glow);
 }
+
+/* ========================================================
+   Google Play Pay & In-App Purchase Styles
+   ======================================================== */
+.btn-gplay-subscribe {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(135deg, #0b1928 0%, #15293d 100%);
+  color: #FFFFFF;
+  border: 1.5px solid rgba(0, 210, 255, 0.45);
+  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 210, 255, 0.2);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-gplay-subscribe:hover {
+  transform: translateY(-2px);
+  border-color: #00D2FF;
+  box-shadow: 0 12px 30px rgba(0, 210, 255, 0.35);
+}
+
+.btn-gplay-fast-checkout {
+  width: 100%;
+  background: #0b1928;
+  color: #FFFFFF;
+  border: 1.5px solid rgba(0, 210, 255, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-gplay-fast-checkout:hover {
+  background: #112235;
+  border-color: #00D2FF;
+  transform: translateY(-1px);
+}
+
+.gplay-logo-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#googlePlayModal {
+  z-index: 999999;
+}
+
+.gplay-sheet-box {
+  max-width: 460px;
+  width: 92%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: gplaySheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gplaySheetUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.gplay-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.gplay-account-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card-secondary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.gplay-acc-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #00D2FF;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 10px;
+}
+
+.gplay-acc-email {
+  color: var(--text-muted);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gplay-app-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gplay-app-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.gplay-price-card {
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.gplay-trial-tag {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00E676;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.gplay-timeline {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gplay-timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.gplay-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00E676;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.gplay-dot-future {
+  background: #00D2FF;
+}
+
+.gplay-method-row {
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.gplay-method-badge {
+  background: #1a73e8;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gplay-legal-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+.btn-gplay-confirm {
+  width: 100%;
+  background: #01875f;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 24px;
+  padding: 14px;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(1, 135, 95, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.btn-gplay-confirm:hover {
+  background: #017250;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(1, 135, 95, 0.5);
+}
+
+/* Dashboard Lock Banner */
+.dashboard-sub-lock {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.12) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+

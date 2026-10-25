@@ -511,7 +511,21 @@
              ======================================================== -->
         <section class="view-panel active" id="view-dashboard">
           
-          <!-- KPI Metrics Cards Grid -->
+                    <!-- Subscription Required Lock Banner for Dashboard -->
+          <div id="dashboardSubLockBanner" class="dashboard-sub-lock" style="display:none;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:24px;">🔒</span>
+              <div>
+                <strong style="font-size:14px; color:var(--text-main); display:block;">Accesso Dashboard Riservato agli Abbonati</strong>
+                <span style="font-size:12px; color:var(--text-muted);">Attiva BarPilot Pro per visualizzare i dati in tempo reale (59 €/mese · 14 giorni di prova gratuita).</span>
+              </div>
+            </div>
+            <button class="btn-primary" onclick="openGooglePlayModal()" style="padding:9px 18px; font-size:12.5px; font-weight:800; background:#01875f; border-radius:20px; box-shadow:0 4px 12px rgba(1, 135, 95, 0.4);">
+              ⚡ Abbonati con Google Play Pay
+            </button>
+          </div>
+
+<!-- KPI Metrics Cards Grid -->
           <div class="metrics-grid">
             <div class="metric-card">
               <div class="metric-header">
@@ -2223,7 +2237,33 @@
         </div>
       </div>
 
-      <!-- Payment Form -->
+            <!-- 1-Tap Google Play Pay Fast Option -->
+      <div style="margin-bottom:18px;">
+        <button type="button" class="btn-gplay-fast-checkout" onclick="closeCheckoutModal(); openGooglePlayModal();">
+          <span class="gplay-logo-wrap">
+            <svg viewBox="0 0 512 512" width="22" height="22">
+              <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+              <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+              <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+              <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+            </svg>
+          </span>
+          <div style="text-align:left; flex:1;">
+            <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+              Paga subito con <strong>Google Play</strong> <span class="badge" style="background:#00E676; color:#0b1928; font-size:10px; font-weight:900; padding:1px 6px;">1-TAP</span>
+            </div>
+            <div style="font-size:11px; opacity:0.85; color:#cbd5e1;">0,00 € oggi · 14 gg prova · Poi 59 €/mese se non disdetto</div>
+          </div>
+          <span style="color:#00D2FF; font-size:18px;">➔</span>
+        </button>
+        <div style="display:flex; align-items:center; margin:16px 0 12px; gap:10px;">
+          <div style="flex:1; height:1px; background:var(--border-color);"></div>
+          <span style="font-size:10.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">oppure con carta di credito / debito</span>
+          <div style="flex:1; height:1px; background:var(--border-color);"></div>
+        </div>
+      </div>
+
+<!-- Payment Form -->
       <form id="subscriptionCheckoutForm" onsubmit="handleConfirmCheckout(event)">
         <!-- Accepted Card Badges -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -2280,6 +2320,94 @@
       </form>
     </div>
   </div>
+
+    <!-- Google Play In-App Purchase Modal Sheet -->
+  <div class="modal-overlay" id="googlePlayModal">
+    <div class="modal-box gplay-sheet-box">
+      <!-- Header: Google Play Brand & Account -->
+      <div class="gplay-sheet-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 512 512" width="22" height="22">
+            <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+            <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+            <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+            <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+          </svg>
+          <span style="font-size:15px; font-weight:800; color:var(--text-main); letter-spacing:-0.2px;">Google Play</span>
+        </div>
+        <div class="gplay-account-pill">
+          <span class="gplay-acc-avatar">M</span>
+          <span class="gplay-acc-email" id="gplayUserEmail">marco.rossi@gmail.com</span>
+        </div>
+      </div>
+
+      <!-- App details row -->
+      <div class="gplay-app-row">
+        <img src="assets/images/logo.png" alt="BarPilot" class="gplay-app-icon" onerror="this.src='assets/images/icons/icon-192x192.png'">
+        <div>
+          <div style="font-size:15px; font-weight:800; color:var(--text-main);">BarPilot Pro — Tutto Incluso</div>
+          <div style="font-size:12px; color:var(--text-muted);">BarPilot Inc. · Gestione Bar & Ristoranti</div>
+        </div>
+      </div>
+
+      <!-- Price & Auto-debit breakdown -->
+      <div class="gplay-price-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+          <div>
+            <span class="gplay-trial-tag">PROVA GRATUITA 14 GIORNI</span>
+            <div style="font-size:15px; font-weight:800; color:var(--text-main); margin-top:4px;">Piano Mensile Tutto Incluso</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:22px; font-weight:900; color:#00D2FF;">59,00 € <span style="font-size:11px; font-weight:600; color:var(--text-muted);">/ mese</span></div>
+            <div style="font-size:12px; font-weight:800; color:var(--status-free);">0,00 € oggi</div>
+          </div>
+        </div>
+
+        <div class="gplay-timeline">
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot"></div>
+            <div style="font-size:12px; color:var(--text-main);"><strong id="gplayDateToday">Oggi :</strong> 0,00 € — Accesso completo immediato</div>
+          </div>
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot gplay-dot-future"></div>
+            <div style="font-size:12px; color:var(--text-main);">
+              <strong id="gplayDateFuture">Fra 14 giorni :</strong> Il primo pagamento di <strong>59,00 €</strong> succede in automatico se non viene disdetto.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method Row -->
+      <div class="gplay-method-row">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="gplay-method-badge">
+            <span style="font-weight:900; color:#fff; font-size:11px;">G Pay</span>
+          </div>
+          <div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-main);">Google Pay • Mastercard •••• 4242</div>
+            <div style="font-size:11px; color:var(--text-muted);">Saldo Google Play o metodo predefinito</div>
+          </div>
+        </div>
+        <span style="font-size:11px; color:var(--primary); font-weight:700;">Modifica</span>
+      </div>
+
+      <!-- Disclaimer clause -->
+      <div class="gplay-legal-text">
+        L'abbonamento si rinnoverà automaticamente al costo di 59,00 € al mese fino a disdetta. Puoi disdire in qualsiasi momento nelle impostazioni di Google Play o direttamente da BarPilot. Se disdici durante i 14 giorni di prova gratuita, non ti verrà addebitato alcun importo.
+      </div>
+
+      <!-- CTA Button: 1-Tap Subscribe -->
+      <div style="margin-top:18px; display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn-gplay-confirm" id="btnGPlayConfirm" onclick="confirmGooglePlaySubscription()">
+          <span class="btn-gplay-text">Abbonati con 1 tocco</span>
+        </button>
+        <button type="button" class="btn-secondary" onclick="closeGooglePlayModal()" style="padding:10px; font-size:12px;">
+          Annulla
+        </button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Add / Invite Staff Member Modal -->
   <div class="modal-overlay" id="addStaffModal">

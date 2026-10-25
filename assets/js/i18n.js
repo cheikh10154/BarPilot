@@ -252,6 +252,9 @@ const i18nData = {
     // Subscriptions & Trial
     subTitle: "Abbonamento BarPilot — Offerta Unica Tutto Incluso",
     subSubtitle: "14 giorni di prova gratuita senza impegno, 59 €/mese con tutte le funzionalità incluse",
+    subRequiredForDashboard: "🔒 Abbonamento richiesto: È necessario abbonarsi per accedere alla Dashboard. Paga subito con Google Play Pay!",
+    gplaySubscribeBtn: "Abbonati subito con Google Play Pay",
+    gplayAutoDebitNotice: "Il primo pagamento di 59 € succede in automatico se non viene disdetto.",
     planStarter: "Starter",
     planStarterPrice: "29 €",
     planStarterDesc: "Comande, tavoli, catalogo e statistiche di base.",
@@ -575,6 +578,9 @@ const i18nData = {
     // Subscriptions & Trial
     subTitle: "Abonnement BarPilot — Offre Unique Tout-en-un",
     subSubtitle: "14 jours d'essai gratuit sans engagement, 59 €/mois avec toutes les fonctionnalités incluses",
+    subRequiredForDashboard: "🔒 Abonnement requis : Vous devez vous abonner pour accéder au Tableau de Bord. Payez avec Google Play Pay !",
+    gplaySubscribeBtn: "S'abonner avec Google Play Pay",
+    gplayAutoDebitNotice: "Le premier prélèvement de 59 € s'effectue automatiquement s'il n'est pas résilié.",
     planStarter: "Starter",
     planStarterPrice: "29 €",
     planStarterDesc: "Commandes, tables, catalogue et statistiques de base.",

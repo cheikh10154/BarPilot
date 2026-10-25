@@ -10,6 +10,7 @@ const initialData = {
     managerName: "Marco Rossi",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces",
     plan: "Pro",
+    isSubscribed: false,
     trialDaysRemaining: 14,
     trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
   },

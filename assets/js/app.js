@@ -52,6 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 5. Trigger 3-Second Splash Animation
   initSplashScreen();
+  if (isUserLoggedIn() && !isUserSubscribed()) {
+    switchView("subscriptions");
+  }
 });
 
 // App State
@@ -85,6 +88,7 @@ function renderApp() {
   renderPlans();
   renderGoogleSetting();
   renderFacebookSetting();
+  updateDashboardLockState();
 }
 
 function renderGoogleSetting() {
@@ -109,6 +113,15 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
+      if (view === "dashboard" && !isUserSubscribed()) {
+        showToast(window.i18n && window.i18n.currentLang === 'fr'
+          ? "🔒 Abonnement requis pour accéder au Tableau de Bord. Payez avec Google Play Pay !"
+          : "🔒 È necessario abbonarsi per accedere alla Dashboard. Paga subito con Google Play Pay!");
+        switchView("subscriptions");
+        setTimeout(() => openGooglePlayModal(), 350);
+        if (window.innerWidth <= 1024) closeSidebar();
+        return;
+      }
       if (currentStaff) {
         const perms = ROLE_PERMISSIONS[currentStaff.role] || ROLE_PERMISSIONS.Proprietario;
         if (!perms.views.includes(view)) {
@@ -196,7 +209,158 @@ function setupNavigation() {
   });
 }
 
+
+// --------------------------------------------------------------------------
+// Subscription State & Google Play In-App Purchase Controller
+// --------------------------------------------------------------------------
+function isUserSubscribed() {
+  try {
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    const stored = localStorage.getItem("barpilot_is_subscribed");
+    return stored === "true" || bar.isSubscribed === true || bar.subscriptionStatus === "active";
+  } catch (e) {
+    return false;
+  }
+}
+
+function updateDashboardLockState() {
+  const subscribed = isUserSubscribed();
+  const dashNavBtn = document.querySelector('.nav-item[data-view="dashboard"]');
+  if (dashNavBtn) {
+    let lockPill = dashNavBtn.querySelector(".dash-nav-lock");
+    if (!subscribed) {
+      if (!lockPill) {
+        lockPill = document.createElement("span");
+        lockPill.className = "dash-nav-lock";
+        lockPill.innerHTML = "🔒";
+        lockPill.style.marginLeft = "auto";
+        lockPill.style.fontSize = "11px";
+        dashNavBtn.appendChild(lockPill);
+      }
+      dashNavBtn.title = (window.i18n && window.i18n.currentLang === "fr")
+        ? "Abonnement requis pour accéder au Tableau de Bord"
+        : "Abbonamento richiesto per accedere alla Dashboard";
+    } else {
+      if (lockPill) lockPill.remove();
+      dashNavBtn.removeAttribute("title");
+    }
+  }
+
+  const dashLockBanner = document.getElementById("dashboardSubLockBanner");
+  if (dashLockBanner) {
+    dashLockBanner.style.display = subscribed ? "none" : "flex";
+  }
+}
+
+function activateSubscription(method = "google_play") {
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+  bar.plan = "BarPilot Pro 59€";
+  bar.isSubscribed = true;
+  bar.subscriptionStatus = "active";
+  bar.subscriptionMethod = method;
+  bar.trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (window.db) {
+    window.db.set("activeBar", bar);
+  }
+  localStorage.setItem("barpilot_is_subscribed", "true");
+
+  closeGooglePlayModal();
+  closeCheckoutModal();
+  renderPlans();
+  renderDashboard();
+  renderActiveBar();
+  updateDashboardLockState();
+
+  showToast(
+    isFr
+      ? (method === "google_play"
+          ? "🎉 Félicitations ! Votre abonnement Google Play Pay (59 €/mois) est activé. Accès complet au Tableau de Bord débloqué !"
+          : "🎉 Félicitations ! Votre abonnement BarPilot Pro (59 €/mois) est activé. Accès au Tableau de Bord débloqué !")
+      : (method === "google_play"
+          ? "🎉 Congratulazioni! Il tuo abbonamento Google Play Pay (59 €/mese) è attivo. Accesso alla Dashboard sbloccato!"
+          : "🎉 Congratulazioni! Il tuo abbonamento BarPilot Pro (59 €/mese) è attivo. Accesso alla Dashboard sbloccato!")
+  );
+
+  // Directly bring them to the dashboard now that they are subscribed!
+  switchView("dashboard");
+}
+
+function openGooglePlayModal() {
+  const modal = document.getElementById("googlePlayModal");
+  if (!modal) return;
+
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
+  
+  const userEmail = (loggedUser && loggedUser.email) || bar.managerEmail || "marco.rossi@gmail.com";
+  const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
+
+  const emailEl = document.getElementById("gplayUserEmail");
+  if (emailEl) emailEl.textContent = userEmail;
+
+  const avatarEl = document.querySelector(".gplay-acc-avatar");
+  if (avatarEl) avatarEl.textContent = (userName.charAt(0) || "M").toUpperCase();
+
+  const nextDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const nextDateStr = nextDate.toLocaleDateString(isFr ? "fr-FR" : "it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  const futureEl = document.getElementById("gplayDateFuture");
+  if (futureEl) {
+    futureEl.innerHTML = isFr 
+      ? `<strong>Dès le ${nextDateStr} :</strong> Premier prélèvement automatique de <strong>59,00 €</strong> si non résilié.`
+      : `<strong>Dal ${nextDateStr} :</strong> Il primo pagamento di <strong>59,00 €</strong> succede in automatico se non viene disdetto.`;
+  }
+
+  modal.classList.add("active");
+}
+
+function closeGooglePlayModal() {
+  const modal = document.getElementById("googlePlayModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmGooglePlaySubscription() {
+  const btn = document.getElementById("btnGPlayConfirm");
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span>
+      <span>${isFr ? "Validation Google Play en cours..." : "Elaborazione Google Play in corso..."}</span>
+    `;
+  }
+
+  setTimeout(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+    }
+    activateSubscription("google_play");
+  }, 900);
+}
+
 function switchView(viewName) {
+  // Gatekeep dashboard if user is not subscribed
+  if (viewName === "dashboard" && !isUserSubscribed()) {
+    showToast(window.i18n && window.i18n.currentLang === 'fr'
+      ? "🔒 Un abonnement actif est requis pour accéder au Tableau de Bord. Payez avec Google Play Pay !"
+      : "🔒 È necessario abbonarsi a BarPilot Pro per accedere alla Dashboard. Paga subito con Google Play Pay!");
+    viewName = "subscriptions";
+    setTimeout(() => {
+      openGooglePlayModal();
+    }, 350);
+  }
+
   appState.activeView = viewName;
   
   // Update sidebar active item
@@ -3560,19 +3724,42 @@ function renderPlans() {
         </div>
       </div>
 
-      <!-- Action Button / S'abonner leading to Checkout -->
-      <div style="text-align:center; padding-top:10px;">
+            <!-- Action Buttons: Google Play Pay (Recommended) + Standard S'abonner -->
+      <div style="text-align:center; padding-top:14px; display:flex; flex-direction:column; align-items:center; gap:12px;">
         ${isSubscribed ? `
-          <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35);" onclick="openCheckoutModal()">
+          <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35);" onclick="openGooglePlayModal()">
             ✓ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer / Modifier" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
           </button>
         ` : `
-          <button class="btn-primary btn-subscribe-hero" onclick="openCheckoutModal()">
-            ${isFr ? "S'abonner" : "Abbonati"}
+          <!-- Primary CTA: Google Play Pay 1-Tap -->
+          <button class="btn-gplay-subscribe" onclick="openGooglePlayModal()">
+            <span class="gplay-logo-wrap">
+              <svg viewBox="0 0 512 512" width="22" height="22">
+                <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+                <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+                <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+                <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+              </svg>
+            </span>
+            <div style="text-align:left; flex:1;">
+              <div style="font-size:15px; font-weight:900; line-height:1.2; color:#fff;">
+                ${isFr ? "S'abonner avec <strong>Google Play</strong>" : "Abbonati subito con <strong>Google Play Pay</strong>"}
+                <span class="badge" style="background:#00E676; color:#0b1928; font-size:10px; font-weight:900; margin-left:6px; padding:2px 6px;">1-TAP</span>
+              </div>
+              <div style="font-size:11.5px; opacity:0.9; margin-top:2px; color:#cbd5e1;">
+                ${isFr ? "14 jours d'essai (0 €) · 1er prélèvement de 59 € auto si non résilié" : "14 giorni prova (0 €) · 1° pagamento 59 € automatico salvo disdetta"}
+              </div>
+            </div>
+            <span style="color:#00D2FF; font-size:18px;">➔</span>
+          </button>
+
+          <!-- Secondary CTA: Card Checkout -->
+          <button class="btn-primary btn-subscribe-hero" style="background:var(--bg-card); color:var(--text-main); border:1.5px solid var(--border-color); box-shadow:none; padding:12px 24px; font-size:13.5px;" onclick="openCheckoutModal()">
+            💳 ${isFr ? "Ou s'abonner par Carte Bancaire (59 €/mois)" : "Oppure abbonati con Carta Bancaria (59 €/mese)"}
           </button>
         `}
-        <p style="font-size:11.5px; color:var(--text-muted); margin-top:10px;">
-          🔒 ${isFr ? "Paiement 100% sécurisé via Stripe · Aucun débit avant la fin des 14 jours" : "Pagamento sicuro al 100% con Stripe · Nessun addebito prima di 14 giorni"}
+        <p style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
+          🔒 ${isFr ? "Google Play Protect & Paiement 100% sécurisé · Premier prélèvement de 59 € automatique si non résilié" : "Google Play Protect & Pagamento sicuro 100% · Primo addebito di 59 € in automatico se non disdetto"}
         </p>
       </div>
     </div>
@@ -3616,27 +3803,7 @@ function closeCheckoutModal() {
 
 function handleConfirmCheckout(e) {
   if (e && e.preventDefault) e.preventDefault();
-
-  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
-  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
-
-  bar.plan = "BarPilot Pro 59€";
-  bar.isSubscribed = true;
-  bar.subscriptionStatus = "active";
-  bar.trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-
-  if (window.db) {
-    window.db.set("activeBar", bar);
-  }
-
-  closeCheckoutModal();
-  renderPlans();
-
-  showToast(
-    isFr
-      ? "🎉 Félicitations ! Votre abonnement BarPilot Pro (59 €/mois) est activé avec 14 jours d'essai gratuit."
-      : "🎉 Congratulazioni! Il tuo abbonamento BarPilot Pro (59 €/mese) è attivo con 14 giorni di prova gratuita."
-  );
+  activateSubscription("stripe_card");
 }
 
 function setupSimulator() {
@@ -3821,6 +3988,13 @@ function setupModals() {
   if (checkoutModal) {
     checkoutModal.addEventListener("click", (e) => {
       if (e.target === checkoutModal) closeCheckoutModal();
+    });
+  }
+
+  const gplayModal = document.getElementById("googlePlayModal");
+  if (gplayModal) {
+    gplayModal.addEventListener("click", (e) => {
+      if (e.target === gplayModal) closeGooglePlayModal();
     });
   }
 
@@ -4042,6 +4216,9 @@ function initSplashScreen() {
     const dismissSplash = () => {
       if (splashTimer) clearTimeout(splashTimer);
       splash.classList.add("hidden");
+      if (isUserLoggedIn() && !isUserSubscribed()) {
+        switchView("subscriptions");
+      }
     };
 
     if (skipBtn) {
@@ -4516,10 +4693,33 @@ function handleAuthSubmit(e) {
     setUserLoggedIn(true, { name: ownerName, email: email, phone: phone, barName: barName, provider: "email" });
     closeAuthScreen();
     renderApp();
+    if (isUserSubscribed()) {
+      switchView("dashboard");
+    } else {
+      switchView("subscriptions");
+      setTimeout(() => openGooglePlayModal(), 400);
+    }
 
-    showToast(window.i18n.currentLang === 'it'
-      ? `🎉 Bar "${barName}" registrato! Benvenuto ${ownerName}, 14 giorni di prova gratuita attivati.`
-      : `🎉 Bar "${barName}" enregistré ! Bienvenue ${ownerName}, 14 jours d'essai gratuit activés.`);
+    // Check if user has an active subscription
+    if (isUserSubscribed()) {
+      switchView("dashboard");
+      showToast(window.i18n.currentLang === 'it'
+        ? (isOwner 
+            ? `👑 Benvenuto ${personName}, accesso Amministratore (Proprietario).` 
+            : `👤 Accesso effettuato come ${role}: Benvenuto/a ${personName}!`)
+        : (isOwner 
+            ? `👑 Bienvenue ${personName}, accès Propriétaire.` 
+            : `👤 Connexion réussie en tant que ${role} : Bienvenue ${personName} !`));
+    } else {
+      // Unsubscribed: redirect immediately to subscriptions with Google Play Pay
+      switchView("subscriptions");
+      setTimeout(() => {
+        openGooglePlayModal();
+      }, 400);
+      showToast(window.i18n.currentLang === 'it'
+        ? "⚠️ Abbonamento richiesto per accedere alla Dashboard. Paga subito con Google Play Pay (59€/mese)!"
+        : "⚠️ Abonnement requis pour accéder au Tableau de Bord. Payez avec Google Play Pay (59€/mois) !");
+    }
   } else {
     // Handle Email Login: Check credentials depending on choice (Password vs PIN)
     if (currentCredMode === 'pin' && credential.length > 4) {
@@ -4674,6 +4874,12 @@ function quickLoginDemo() {
   setUserLoggedIn(true, { name: "Marco Rossi", email: "marco@barcentrale.it", role: "Proprietario", provider: "demo" });
   closeAuthScreen();
   renderApp();
+  if (isUserSubscribed()) {
+    switchView("dashboard");
+  } else {
+    switchView("subscriptions");
+    setTimeout(() => openGooglePlayModal(), 400);
+  }
   showToast(window.i18n.currentLang === 'it'
     ? "Benvenuto in Bar Centrale (Accesso Proprietario Demo)!"
     : "Bienvenue sur Bar Centrale (Accès Propriétaire Démo) !");
@@ -4879,3 +5085,12 @@ window.exportReportsCsv = exportReportsCsv;
 window.openCheckoutModal = openCheckoutModal;
 window.closeCheckoutModal = closeCheckoutModal;
 window.handleConfirmCheckout = handleConfirmCheckout;
+
+window.isUserSubscribed = isUserSubscribed;
+window.openGooglePlayModal = openGooglePlayModal;
+window.closeGooglePlayModal = closeGooglePlayModal;
+window.confirmGooglePlaySubscription = confirmGooglePlaySubscription;
+window.activateSubscription = activateSubscription;
+window.updateDashboardLockState = updateDashboardLockState;
+window.switchView = switchView;
+window.appState = appState;
