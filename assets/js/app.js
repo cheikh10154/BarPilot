@@ -1039,7 +1039,10 @@ function renderStaff() {
       <td>
         ${isOwnerRow
           ? '<span style="color:var(--primary); font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">👑 Amministratore</span>'
-          : `<button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo profilo">🔑 Accedi con PIN</button>`
+          : `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <button class="ctrl-btn" onclick="openStaffPinModal(${s.id})" title="Accedi con il PIN di questo profilo">🔑 Accedi con PIN</button>
+              ${isCurrentViewerOwner ? `<button class="ctrl-btn ctrl-btn-danger" onclick="openDeleteStaffModal(${s.id})" title="Elimina definitivamente ${s.name} dal personale">🗑️ Elimina</button>` : ''}
+            </div>`
         }
       </td>
     </tr>
@@ -1640,7 +1643,133 @@ function saveSelectedAvatar() {
   showToast("🖼️ Foto profilo salvata e aggiornata con successo!");
 }
 
+
+// --------------------------------------------------------------------------
+// Delete Staff Member (Exclusive to Owner)
+// --------------------------------------------------------------------------
+let pendingDeleteStaffId = null;
+
+function openDeleteStaffModal(staffId) {
+  // Controllo di sicurezza rigoroso: solo ed esclusivamente il Proprietario può eliminare dipendenti
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Solo il Proprietario ha i permessi per eliminare i dipendenti.");
+    return;
+  }
+
+  const staff = (window.db ? window.db.get("staff") : []) || [];
+  const target = staff.find(s => s.id === Number(staffId) || s.id === staffId);
+  if (!target) return;
+
+  if (target.role === "Proprietario") {
+    showToast("⚠️ Non è possibile eliminare il profilo Proprietario.");
+    return;
+  }
+
+  pendingDeleteStaffId = target.id;
+  const nameEl = document.getElementById("deleteStaffTargetName");
+  const roleEl = document.getElementById("deleteStaffTargetRole");
+  if (nameEl) nameEl.textContent = target.name;
+  if (roleEl) roleEl.textContent = target.role;
+
+  const modal = document.getElementById("deleteStaffConfirmModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeDeleteStaffModal() {
+  pendingDeleteStaffId = null;
+  const modal = document.getElementById("deleteStaffConfirmModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function confirmDeleteStaffAction() {
+  // Controllo di sicurezza rigoroso: solo ed esclusivamente il Proprietario può eliminare dipendenti
+  const isOwner = !currentStaff || currentStaff.role === "Proprietario";
+  if (!isOwner) {
+    showToast("⚠️ Accesso negato: solo il Proprietario può eliminare i dipendenti.");
+    closeDeleteStaffModal();
+    return;
+  }
+
+  if (!pendingDeleteStaffId) {
+    closeDeleteStaffModal();
+    return;
+  }
+
+  let staff = (window.db ? window.db.get("staff") : []) || [];
+  const targetIndex = staff.findIndex(s => s.id === pendingDeleteStaffId);
+  if (targetIndex === -1) {
+    closeDeleteStaffModal();
+    return;
+  }
+
+  const target = staff[targetIndex];
+  if (target.role === "Proprietario") {
+    showToast("⚠️ Non è possibile eliminare il profilo Proprietario.");
+    closeDeleteStaffModal();
+    return;
+  }
+
+  const deletedName = target.name;
+  const deletedEmail = (target.email || "").toLowerCase().trim();
+
+  // 1. Rimuovi dall'elenco del personale
+  staff.splice(targetIndex, 1);
+  window.db.set("staff", staff);
+
+  // 2. Rimuovi dalle credenziali di accesso nel db utenti
+  try {
+    let dbUsers = window.db.get("users") || [];
+    if (Array.isArray(dbUsers)) {
+      dbUsers = dbUsers.filter(u => !(u.email && u.email.toLowerCase().trim() === deletedEmail));
+      window.db.set("users", dbUsers);
+    }
+  } catch (err) {
+    console.warn("Errore filtro dbUsers:", err);
+  }
+
+  // 3. Rimuovi da localStorage registered users
+  try {
+    const rawUsers = localStorage.getItem("barpilot_registered_users");
+    if (rawUsers) {
+      let regUsers = JSON.parse(rawUsers);
+      if (Array.isArray(regUsers)) {
+        regUsers = regUsers.filter(u => !(u.email && u.email.toLowerCase().trim() === deletedEmail));
+        localStorage.setItem("barpilot_registered_users", JSON.stringify(regUsers));
+      }
+    }
+  } catch (err) {
+    console.warn("Errore filtro registered_users:", err);
+  }
+
+  // 4. Se il dipendente eliminato è attualmente impostato come sessione attiva
+  if (currentStaff && currentStaff.id === pendingDeleteStaffId) {
+    const ownerStaff = staff.find(s => s.role === "Proprietario");
+    currentStaff = ownerStaff || null;
+    try {
+      const session = JSON.parse(localStorage.getItem("barpilot_auth_session") || "null");
+      if (session && session.email && session.email.toLowerCase().trim() === deletedEmail) {
+        localStorage.removeItem("barpilot_auth_session");
+      }
+    } catch(e) {}
+  }
+
+  // 5. Se il dipendente era selezionato nel PIN selector
+  if (selectedPinStaff && selectedPinStaff.id === pendingDeleteStaffId) {
+    selectedPinStaff = staff.find(s => s.role !== "Proprietario") || staff[0] || null;
+  }
+
+  closeDeleteStaffModal();
+  renderStaff();
+  renderStaffPinSelector();
+  showToast(`🗑️ Dipendente "${deletedName}" eliminato con successo. Accesso e PIN revocati.`);
+}
+
 // Global Exports
+window.openDeleteStaffModal = openDeleteStaffModal;
+window.closeDeleteStaffModal = closeDeleteStaffModal;
+window.confirmDeleteStaffAction = confirmDeleteStaffAction;
+
 window.openStaffWelcomeEmailModal = openStaffWelcomeEmailModal;
 window.closeStaffWelcomeEmailModal = closeStaffWelcomeEmailModal;
 window.copyWelcomeEmailDetails = copyWelcomeEmailDetails;
@@ -1844,6 +1973,13 @@ function setupModals() {
   if (addStaffModal) {
     addStaffModal.addEventListener("click", (e) => {
       if (e.target === addStaffModal) closeAddStaffModal();
+    });
+  }
+
+  const deleteStaffModal = document.getElementById("deleteStaffConfirmModal");
+  if (deleteStaffModal) {
+    deleteStaffModal.addEventListener("click", (e) => {
+      if (e.target === deleteStaffModal) closeDeleteStaffModal();
     });
   }
 

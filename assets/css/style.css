@@ -347,6 +347,18 @@ html.user-authenticated #authOverlay {
   color: #FFFFFF;
 }
 
+.ctrl-btn-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #EF4444 !important;
+  border-color: rgba(239, 68, 68, 0.28) !important;
+}
+
+.ctrl-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #FCA5A5 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
 .lang-switch {
   display: flex;
   background: rgba(255, 255, 255, 0.06);

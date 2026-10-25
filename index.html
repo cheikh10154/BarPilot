@@ -1676,6 +1676,36 @@
     </div>
   </div>
 
+  <!-- Delete Staff Confirmation Modal (Exclusive to Owner) -->
+  <div class="modal-overlay" id="deleteStaffConfirmModal">
+    <div class="modal-box" style="max-width: 420px; width: 92%; text-align: center; padding: 28px 24px; border-radius: 22px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 2px solid rgba(239, 68, 68, 0.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; color: #EF4444; box-shadow: 0 0 20px rgba(239,68,68,0.2);">
+        🗑️
+      </div>
+
+      <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+        Elimina Dipendente
+      </h3>
+
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+        Sei sicuro di voler eliminare <strong id="deleteStaffTargetName" style="color:var(--text-main);">--</strong> (<span id="deleteStaffTargetRole" style="font-weight:600; color:var(--primary);">--</span>)?
+      </p>
+
+      <div style="font-size: 11.5px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 9px 12px; border-radius: 10px; margin-bottom: 22px; line-height: 1.45; text-align: left;">
+        ⚠️ <strong>Attenzione:</strong> Questa azione è riservata esclusivamente al proprietario. Il dipendente verrà rimosso dal personale e le sue credenziali di accesso (PIN ed email) verranno revocate immediatamente.
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteStaffModal()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px;">
+          Annulla
+        </button>
+        <button type="button" class="btn-primary" onclick="confirmDeleteStaffAction()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px; background: #EF4444; border-color: #EF4444; box-shadow: 0 4px 14px rgba(239,68,68,0.35);">
+          Sì, Elimina
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Staff Welcome Onboarding Email Modal -->
   <div class="modal-overlay" id="staffWelcomeEmailModal">
     <div class="modal-box email-preview-modal-box">
