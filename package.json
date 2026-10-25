@@ -2,10 +2,10 @@
   "name": "barpilot",
   "version": "1.0.0",
   "description": "BarPilot - Smart Bar Management Platform (Mobile & Web SaaS)",
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "npx serve -l 3000 .",
-    "dev": "npx serve -l 3000 ."
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": [
     "barpilot",
