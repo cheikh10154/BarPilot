@@ -2283,14 +2283,14 @@
           </div>
           <div>
             <h3 style="font-size:18px; font-weight:800; margin:0;" id="checkoutModalTitle">
-              Finaliser mon abonnement
+              Completa il tuo abbonamento
             </h3>
             <p style="font-size:11.5px; color:var(--text-muted); margin:2px 0 0;" id="checkoutModalSubtitle">
-              Paiement 100% sécurisé via Stripe · Chiffrement SSL 256 bits
+              Pagamento 100% sicuro via Stripe · Crittografia SSL 256 bit
             </p>
           </div>
         </div>
-        <button class="modal-close-icon-btn" onclick="closeCheckoutModal()" aria-label="Fermer">✕</button>
+        <button class="modal-close-icon-btn" onclick="closeCheckoutModal()" aria-label="Chiudi finestra">✕</button>
       </div>
 
       <!-- Mandatory Checkout Notice (Non-closable) -->
@@ -2305,22 +2305,22 @@
       <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
           <div>
-            <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; margin-bottom:4px; display:inline-block;">OFFRE UNIQUE TOUT-EN-UN</span>
-            <div style="font-size:16px; font-weight:900; color:var(--text-main);">BarPilot Pro — Accès Complet</div>
-            <div style="font-size:12px; color:var(--text-muted);">Toutes les fonctionnalités incluses sans limite</div>
+            <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; margin-bottom:4px; display:inline-block;">OFFERTA UNICA TUTTO INCLUSO</span>
+            <div style="font-size:16px; font-weight:900; color:var(--text-main);">BarPilot Pro — Accesso Completo</div>
+            <div style="font-size:12px; color:var(--text-muted);">Tutte le funzionalità incluse senza limiti</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:24px; font-weight:900; color:var(--primary);">59 € <span style="font-size:12px; font-weight:600; color:var(--text-muted);">/ mois</span></div>
-            <span style="font-size:11px; color:var(--status-free); font-weight:700;">14 jours d'essai gratuit</span>
+            <div style="font-size:24px; font-weight:900; color:var(--primary);">59 € <span style="font-size:12px; font-weight:600; color:var(--text-muted);">/ mese</span></div>
+            <span style="font-size:11px; color:var(--status-free); font-weight:700;">14 giorni di prova gratuita</span>
           </div>
         </div>
 
         <div style="border-top:1px dashed var(--border-color); padding-top:10px; display:flex; justify-content:space-between; font-size:12.5px;">
-          <span style="color:var(--text-muted);">Montant débité aujourd'hui :</span>
-          <strong style="color:var(--status-free); font-size:14px;">0,00 € (Essai gratuit)</strong>
+          <span style="color:var(--text-muted);">Importo addebitato oggi:</span>
+          <strong style="color:var(--status-free); font-size:14px;">0,00 € (Prova gratuita)</strong>
         </div>
         <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-muted); margin-top:4px;">
-          <span>Premier prélèvement automatique de 59 € :</span>
+          <span>Primo addebito automatico di 59 €:</span>
           <span id="checkoutNextBillingDate" style="font-weight:700; color:var(--text-main);">--/--/----</span>
         </div>
       </div>
@@ -2355,21 +2355,21 @@
       <form id="subscriptionCheckoutForm" onsubmit="handleConfirmCheckout(event)">
         <!-- Accepted Card Badges -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <span class="form-label" style="margin-bottom:0; font-size:12px;">Règlement sécurisé par carte bancaire</span>
+          <span class="form-label" style="margin-bottom:0; font-size:12px;">Pagamento sicuro con carta bancaria</span>
           <div style="display:flex; gap:6px;">
             <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">VISA</span>
             <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">Mastercard</span>
-            <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">CB</span>
+            <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">Postepay</span>
           </div>
         </div>
 
         <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Nom du titulaire de la carte</label>
-          <input type="text" class="form-input" id="checkoutCardHolder" placeholder="Ex: Jean Dupont" required autocomplete="cc-name">
+          <label class="form-label">Nome del titolare della carta</label>
+          <input type="text" class="form-input" id="checkoutCardHolder" placeholder="Es: Marco Rossi" required autocomplete="cc-name">
         </div>
 
         <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label">Numéro de carte bancaire</label>
+          <label class="form-label">Numero di carta bancaria</label>
           <div style="position:relative;">
             <input type="text" class="form-input" id="checkoutCardNumber" placeholder="4532 •••• •••• 8892" required maxlength="19" autocomplete="cc-number" style="font-family:monospace; font-size:14px; letter-spacing:1px;">
             <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:16px;">💳</span>
@@ -2378,31 +2378,31 @@
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
           <div class="form-group">
-            <label class="form-label">Date d'expiration</label>
+            <label class="form-label">Data di scadenza</label>
             <input type="text" class="form-input" id="checkoutCardExpiry" placeholder="MM / AA" required maxlength="5" autocomplete="cc-exp" style="font-family:monospace; text-align:center;">
           </div>
           <div class="form-group">
-            <label class="form-label">Cryptogramme (CVC)</label>
+            <label class="form-label">Codice di sicurezza (CVC)</label>
             <input type="password" class="form-input" id="checkoutCardCvc" placeholder="•••" required maxlength="4" autocomplete="cc-csc" style="font-family:monospace; text-align:center;">
           </div>
         </div>
 
         <div class="form-group" style="margin-bottom:18px;">
-          <label class="form-label">Raison sociale du Bar / Établissement</label>
-          <input type="text" class="form-input" id="checkoutBarName" placeholder="Ex: Bar Central Milano" required>
+          <label class="form-label">Ragione sociale del Bar / Esercizio</label>
+          <input type="text" class="form-input" id="checkoutBarName" placeholder="Es: Bar Centrale Milano" required>
         </div>
 
         <div style="background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:18px; display:flex; align-items:center; gap:10px;">
           <span style="font-size:18px;">🛡️</span>
           <span style="font-size:11.5px; color:var(--text-main); line-height:1.4;">
-            <strong>Garantie Sérénité :</strong> 14 jours d'essai 100% gratuit. Annulation possible à tout moment en un clic depuis les paramètres.
+            <strong>Garanzia di serenità:</strong> 14 giorni di prova gratuita al 100%. Disdetta possibile in qualsiasi momento in 1 clic dalle impostazioni.
           </span>
         </div>
 
         <div style="display:flex; gap:10px;">
-          <button type="button" class="btn-secondary" id="btnCheckoutCancel" onclick="closeCheckoutModal()" style="flex:1; padding:12px;">Annuler</button>
+          <button type="button" class="btn-secondary" id="btnCheckoutCancel" onclick="closeCheckoutModal()" style="flex:1; padding:12px;">Annulla</button>
           <button type="submit" class="btn-primary" id="btnConfirmCheckout" style="flex:2; padding:12px; font-weight:800; font-size:13px;">
-            🔒 Confirmer et Activer (59 €/mois)
+            🔒 Conferma e Attiva (59 €/mese)
           </button>
         </div>
       </form>

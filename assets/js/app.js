@@ -3644,7 +3644,7 @@ function renderPlans() {
   if (!grid) return;
 
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
-  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
   const isSubscribed = Boolean(bar.isSubscribed || (bar.plan && (bar.plan.includes("Pro") || bar.plan.includes("59"))));
 
   const plan = {
