@@ -331,46 +331,27 @@ const initialData = {
   ],
   plans: [
     {
-      id: "starter",
-      name: "Starter",
-      price: 29,
-      period: "/mois/bar",
-      features: [
-        "Prise de commandes ultra-rapide",
-        "Plan de salle dynamique",
-        "Catalogue produits & catégories",
-        "Statistiques de base",
-        "Support par email"
-      ]
-    },
-    {
-      id: "pro",
-      name: "Pro",
+      id: "pro_unique",
+      name: "BarPilot Pro Tout-en-un",
       price: 59,
       period: "/mois/bar",
       popular: true,
+      trialDays: 14,
+      tagline: "L'ensemble de la plateforme BarPilot sans aucune restriction pour votre bar",
       features: [
-        "Toutes les fonctions Starter",
-        "Gestion intelligente des stocks",
-        "Recettes et déductions automatiques",
-        "Fournisseurs et bons de commande",
-        "Menu QR Code interactif",
-        "Écran Barman (KDS) temps réel",
-        "Support prioritaire 7j/7"
-      ]
-    },
-    {
-      id: "premium",
-      name: "Premium",
-      price: 99,
-      period: "/mois/bar",
-      features: [
-        "Toutes les fonctions Pro",
-        "BarPilot AI assistant & prévisions",
-        "Gestion multi-établissements",
-        "Import de factures par IA",
-        "Automatisations & alertes SMS/Email",
-        "Onboarding dédié & formation d'équipe"
+        { cat: "Service & Caisse", title: "Prise de commandes ultra-rapide", desc: "Comande al tavolo, al banco e asporto con scontrino digitale e pagamenti frazionati" },
+        { cat: "Service & Caisse", title: "Plan de salle interactif en direct", desc: "Gestione dinamica dei tavoli, capienza, sale e stato dell'occupazione in tempo reale" },
+        { cat: "Boissons & Recettes", title: "Catalogue produits & cocktails illimité", desc: "Foto HD, allergeni, varianti, prezzi calcolati e schede tecniche complete" },
+        { cat: "Boissons & Recettes", title: "Fiches recettes & calcul des marges", desc: "Scarico automatico di millilitri e grammi da ogni cocktail o caffè servito" },
+        { cat: "Stocks & Achats", title: "Gestion intelligente des stocks", desc: "Inventario in tempo reale, soglie di sicurezza e alert automatici sotto scorta" },
+        { cat: "Stocks & Achats", title: "Gestion des fournisseurs & bons de commande", desc: "Generazione buoni d'ordine e trasmissione diretta con un clic via Email e WhatsApp" },
+        { cat: "Cuisine & Équipe", title: "Écran Barman (KDS) & Cuisine en direct", desc: "Monitor touch per la preparazione delle comande con avvisi sonori e stati sincronizzati" },
+        { cat: "Cuisine & Équipe", title: "Gestion multi-utilisateurs & codes PIN", desc: "Accesso profilato per Proprietario, Manager, Barman e Camerieri con PIN a 4 cifre" },
+        { cat: "Gestion & Chiffres", title: "Rapports & Statistiques financières complètes", desc: "Analisi vendite giorno/settimana/mese con grafici X/Y, scontrino medio ed export CSV" },
+        { cat: "Digital & Clients", title: "Menu digital QR Code sans contact", desc: "Menu interattivo visualizzabile istantaneamente dallo smartphone dei clienti al tavolo" },
+        { cat: "Technologie & Sécurité", title: "Mode Hors-ligne (PWA) & Cloud Sync", desc: "Funzionamento garantito al 100% anche senza connessione internet, sincronizzazione automatica" },
+        { cat: "Technologie & Sécurité", title: "Sauvegardes automatiques & Chiffrement SSL", desc: "Dati protetti nel cloud su server europei conformi a sicurezza bancaria e RT" },
+        { cat: "Accompagnement", title: "Support prioritaire dédié 7j/7", desc: "Assistenza clienti rapida via chat ed email, aggiornamenti e nuove funzioni inclusi" }
       ]
     }
   ]

@@ -250,8 +250,8 @@ const i18nData = {
     last30Days: "Ultimi 30 giorni",
 
     // Subscriptions & Trial
-    subTitle: "Offerte di abbonamento BarPilot",
-    subSubtitle: "14 giorni di prova gratuita, senza impegno, disdici quando vuoi",
+    subTitle: "Abbonamento BarPilot — Offerta Unica Tutto Incluso",
+    subSubtitle: "14 giorni di prova gratuita senza impegno, 59 €/mese con tutte le funzionalità incluse",
     planStarter: "Starter",
     planStarterPrice: "29 €",
     planStarterDesc: "Comande, tavoli, catalogo e statistiche di base.",
@@ -573,8 +573,8 @@ const i18nData = {
     last30Days: "30 derniers jours",
 
     // Subscriptions & Trial
-    subTitle: "Offres d'abonnement BarPilot",
-    subSubtitle: "14 jours d'essai gratuit sans engagement, résiliation en 1 clic",
+    subTitle: "Abonnement BarPilot — Offre Unique Tout-en-un",
+    subSubtitle: "14 jours d'essai gratuit sans engagement, 59 €/mois avec toutes les fonctionnalités incluses",
     planStarter: "Starter",
     planStarterPrice: "29 €",
     planStarterDesc: "Commandes, tables, catalogue et statistiques de base.",

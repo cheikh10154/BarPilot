@@ -3486,3 +3486,97 @@ input:checked + .toggle-slider:before {
   color: var(--primary);
   font-weight: 700;
 }
+
+/* ========================================================
+   SINGLE UNIQUE SUBSCRIPTION OFFER (59€) & CHECKOUT
+   ======================================================== */
+.single-plan-hero {
+  max-width: 880px;
+  margin: 10px auto 30px auto;
+  background: var(--bg-card);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-xl);
+  padding: 38px 32px 32px 32px;
+  box-shadow: 0 16px 45px var(--primary-glow);
+  position: relative;
+}
+
+.single-plan-badge-pill {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 5px 20px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 14px var(--primary-glow);
+  white-space: nowrap;
+}
+
+.single-plan-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 24px;
+  margin: 26px 0 32px 0;
+  padding: 24px 26px;
+  background: var(--bg-card-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 700px) {
+  .single-plan-features-grid {
+    grid-template-columns: 1fr;
+    padding: 18px 16px;
+  }
+}
+
+.single-plan-feature-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-main);
+}
+
+.single-plan-check-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+  margin-top: 1px;
+  box-shadow: 0 2px 6px var(--primary-glow);
+}
+
+.btn-subscribe-hero {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: block;
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 25px var(--primary-glow);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-subscribe-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px var(--primary-glow);
+}

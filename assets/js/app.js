@@ -3419,45 +3419,224 @@ function exportReportsCsv() {
 }
 
 // --------------------------------------------------------------------------
-// Subscriptions & Simulator
+// Subscriptions & Checkout (Offre Unique 59€ / mois & Liste des Fonctionnalités)
 // --------------------------------------------------------------------------
 function renderPlans() {
-  const plans = window.db.get("plans");
   const grid = document.getElementById("plansGridWrap");
   if (!grid) return;
 
-  grid.innerHTML = plans.map(p => `
-    <div class="plan-card ${p.popular ? 'popular' : ''}">
-      ${p.popular ? `<span class="plan-popular-pill">${window.i18n.t("planProBadge")}</span>` : ''}
-      <h3 class="plan-name">${p.name}</h3>
-      <p class="plan-desc">${p.name === 'Starter' ? window.i18n.t('planStarterDesc') : (p.name === 'Pro' ? window.i18n.t('planProDesc') : window.i18n.t('planPremiumDesc'))}</p>
-      <div class="plan-price-wrap">
-        <span class="plan-price">${p.price} €</span>
-        <span class="plan-period">${window.i18n.t("perMonthBar")}</span>
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
+  const isSubscribed = Boolean(bar.isSubscribed || (bar.plan && (bar.plan.includes("Pro") || bar.plan.includes("59"))));
+
+  const plan = {
+    name: "BarPilot Pro — Tout-en-un",
+    name_it: "BarPilot Pro — Tutto Incluso",
+    price: 59,
+    trialDays: 14,
+    badge: isFr ? "🌟 OFFRE UNIQUE TOUT-EN-UN · ACCÈS COMPLET" : "🌟 OFFERTA UNICA TUTTO INCLUSO · ACCESSO COMPLETO",
+    desc: isFr
+      ? "L'intégralité de la plateforme BarPilot sans aucune limite pour propulser votre bar, pub ou café."
+      : "L'intera piattaforma BarPilot senza alcun limite per gestire al meglio il tuo bar, pub o caffetteria.",
+    features: [
+      {
+        icon: "🚀",
+        title: isFr ? "Prise de commandes ultra-rapide" : "Comande ultra-rapide",
+        desc: isFr ? "Au comptoir, à table ou à emporter avec impression des tickets et partage d'addition." : "Al bancone, al tavolo o asporto con stampa ticket e divisione conti."
+      },
+      {
+        icon: "🪑",
+        title: isFr ? "Plan de salle interactif en direct" : "Piano di sala interattivo",
+        desc: isFr ? "Suivi en direct des tables occupées, des réservations et des montants consommés." : "Monitoraggio live dei tavoli occupati, prenotazioni e conti aperti."
+      },
+      {
+        icon: "🍸",
+        title: isFr ? "Catalogue produits & cocktails illimité" : "Catalogo prodotti & cocktail illimitato",
+        desc: isFr ? "Gestion des catégories, photos HD, fiches allergènes et tarifs sur-mesure." : "Categorie, foto HD, schede allergeni e listini personalizzati."
+      },
+      {
+        icon: "🌿",
+        title: isFr ? "Fiches recettes & calcul des marges" : "Schede ricette & calcolo margini",
+        desc: isFr ? "Déstockage automatique au millilitre et au gramme à chaque verre ou café servi." : "Scarico automatico di ml e grammi ad ogni bicchiere o caffè servito."
+      },
+      {
+        icon: "📦",
+        title: isFr ? "Gestion intelligente des stocks" : "Gestione scorte & inventario intelligente",
+        desc: isFr ? "Inventaire en temps réel, alertes automatiques en cas de seuil critique ou rupture." : "Giacenze in tempo reale e alert immediati in caso di sottoscorta."
+      },
+      {
+        icon: "🚚",
+        title: isFr ? "Gestion des fournisseurs & bons de commande" : "Fornitori & buoni d'ordine diretti",
+        desc: isFr ? "Annuaires partenaires, génération et transmission de bons d'achat par Email et WhatsApp." : "Anagrafica partner, generazione e invio ordini d'acquisto via Email e WhatsApp."
+      },
+      {
+        icon: "🖥️",
+        title: isFr ? "Écran Barman (KDS) & Cuisine en direct" : "Schermo Barman (KDS) & Cucina live",
+        desc: isFr ? "Visualisation des boissons et préparations en temps réel avec signaux sonores." : "Monitor touch per la preparazione delle comande con avvisi acustici."
+      },
+      {
+        icon: "👥",
+        title: isFr ? "Comptes employés & codes PIN sécurisés" : "Gestione personale & PIN d'accesso",
+        desc: isFr ? "Contrôle des rôles stricts (Propriétaire, Manager, Serveur, Barman) et traçabilité." : "Controllo ruoli (Proprietario, Manager, Barman, Camerieri) e permessi."
+      },
+      {
+        icon: "📊",
+        title: isFr ? "Rapports & Statistiques financières (Jour, Semaine, Mois)" : "Rapporti & Statistiche finanziarie (Giorno, Settimana, Mese)",
+        desc: isFr ? "Graphiques interactifs avec axes dates et valeurs (€), scontrino medio et export CSV." : "Grafici interattivi con assi date e valori (€), scontrino medio ed export CSV."
+      },
+      {
+        icon: "📱",
+        title: isFr ? "Menu digital QR Code sans contact" : "Menu digitale QR Code senza contatto",
+        desc: isFr ? "Accès direct et immédiat pour les clients depuis leur smartphone à table." : "Accesso immediato dal proprio smartphone per i clienti al tavolo."
+      },
+      {
+        icon: "☁️",
+        title: isFr ? "Mode Hors-ligne (PWA) & Cloud Sync" : "Modalità Offline (PWA) & Cloud Sync",
+        desc: isFr ? "Continuez à encaisser même en cas de panne internet, synchronisation fluide." : "Continua a lavorare anche senza connessione internet, sincronizzazione automatica."
+      },
+      {
+        icon: "🔒",
+        title: isFr ? "Sauvegardes automatiques & Chiffrement SSL" : "Backup automatici & Crittografia SSL",
+        desc: isFr ? "Données protégées sur serveurs haute sécurité, conformité fiscale et bancaire." : "Dati protetti nel cloud, conformità fiscale e sicurezza bancaria certificata."
+      },
+      {
+        icon: "⚡",
+        title: isFr ? "Support prioritaire dédié 7j/7" : "Assistenza prioritaria dedicata 7g/7",
+        desc: isFr ? "Équipe réactive par chat et email, mises à jour et évolutions logicielles incluses." : "Supporto rapido via chat ed email, tutti gli aggiornamenti inclusi."
+      }
+    ]
+  };
+
+  grid.innerHTML = `
+    <div class="single-plan-hero">
+      <div class="single-plan-badge-pill">${escapeHtml(plan.badge)}</div>
+
+      <div style="text-align:center; max-width:680px; margin:0 auto 24px auto;">
+        <h3 style="font-size:28px; font-weight:900; margin:0 0 6px 0; color:var(--text-main);">
+          ${escapeHtml(isFr ? plan.name : plan.name_it)}
+        </h3>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.5; margin:0;">
+          ${escapeHtml(plan.desc)}
+        </p>
+
+        <!-- Pricing Badge -->
+        <div style="margin:20px 0 10px 0; display:inline-flex; align-items:baseline; gap:8px;">
+          <span style="font-size:48px; font-weight:900; color:var(--primary); line-height:1;">${plan.price} €</span>
+          <span style="font-size:16px; font-weight:700; color:var(--text-muted);">${escapeHtml(isFr ? '/ mois / bar' : '/ mese / bar')}</span>
+        </div>
+
+        <div style="display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; font-size:12.5px; font-weight:700;">
+          <span style="color:var(--status-free); display:inline-flex; align-items:center; gap:5px;">
+            <span>✓</span> <span>${isFr ? "14 jours d'essai 100% gratuit" : "14 giorni di prova gratuita al 100%"}</span>
+          </span>
+          <span style="color:var(--text-muted);">•</span>
+          <span style="color:var(--text-muted);">${isFr ? "Sans engagement" : "Senza impegno"}</span>
+          <span style="color:var(--text-muted);">•</span>
+          <span style="color:var(--text-muted);">${isFr ? "Résiliation en 1 clic" : "Disdetta in 1 clic"}</span>
+        </div>
       </div>
-      <ul class="plan-features-list">
-        ${p.features.map(f => `
-          <li class="plan-feature-item">
-            <span class="feature-check-icon">✓</span>
-            <span>${f}</span>
-          </li>
-        `).join("")}
-      </ul>
-      <button class="${p.popular ? 'btn-primary' : 'btn-secondary'}" onclick="selectPlan('${p.name}')">
-        ${p.name === 'Pro' ? window.i18n.t("currentPlan") : window.i18n.t("choosePlanBtn")}
-      </button>
+
+      <!-- Comprehensive Features List -->
+      <div style="margin-bottom:8px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <h4 style="font-size:15px; font-weight:800; color:var(--text-main); margin:0;">
+            ${isFr ? "Toutes les fonctionnalités incluses dans votre offre unique :" : "Tutte le funzionalità incluse nella tua offerta unica:"}
+          </h4>
+          <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--status-free); font-size:11px; font-weight:800;">
+            13 ${isFr ? "MODULES COMPLETS" : "MODULI COMPLETI"}
+          </span>
+        </div>
+
+        <div class="single-plan-features-grid">
+          ${plan.features.map(f => `
+            <div class="single-plan-feature-row">
+              <span class="single-plan-check-icon">✓</span>
+              <div>
+                <strong style="color:var(--text-main); font-size:13.5px; display:block;">${escapeHtml(f.title)}</strong>
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">${escapeHtml(f.desc)}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- Action Button / S'abonner leading to Checkout -->
+      <div style="text-align:center; padding-top:10px;">
+        ${isSubscribed ? `
+          <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35);" onclick="openCheckoutModal()">
+            ✓ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer / Modifier" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
+          </button>
+        ` : `
+          <button class="btn-primary btn-subscribe-hero" onclick="openCheckoutModal()">
+            ${isFr ? "S'abonner" : "Abbonati"}
+          </button>
+        `}
+        <p style="font-size:11.5px; color:var(--text-muted); margin-top:10px;">
+          🔒 ${isFr ? "Paiement 100% sécurisé via Stripe · Aucun débit avant la fin des 14 jours" : "Pagamento sicuro al 100% con Stripe · Nessun addebito prima di 14 giorni"}
+        </p>
+      </div>
     </div>
-  `).join("");
+  `;
 }
 
 function selectPlan(planName) {
-  const bar = window.db.get("activeBar");
-  bar.plan = planName;
-  window.db.set("activeBar", bar);
+  openCheckoutModal();
+}
+
+function openCheckoutModal() {
+  const modal = document.getElementById("subscriptionCheckoutModal");
+  if (!modal) return;
+
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
+
+  const nextDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const nextDateStr = nextDate.toLocaleDateString(isFr ? "fr-FR" : "it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  const nextDateEl = document.getElementById("checkoutNextBillingDate");
+  if (nextDateEl) nextDateEl.textContent = nextDateStr;
+
+  const barNameEl = document.getElementById("checkoutBarName");
+  if (barNameEl && bar.name) barNameEl.value = bar.name;
+
+  const cardHolderEl = document.getElementById("checkoutCardHolder");
+  if (cardHolderEl && bar.managerName) cardHolderEl.value = bar.managerName;
+
+  modal.classList.add("active");
+}
+
+function closeCheckoutModal() {
+  const modal = document.getElementById("subscriptionCheckoutModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleConfirmCheckout(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : true;
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+
+  bar.plan = "BarPilot Pro 59€";
+  bar.isSubscribed = true;
+  bar.subscriptionStatus = "active";
+  bar.trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (window.db) {
+    window.db.set("activeBar", bar);
+  }
+
+  closeCheckoutModal();
   renderPlans();
-  showToast(window.i18n.currentLang === "it" 
-    ? `Piano ${planName} selezionato con successo!` 
-    : `Forfait ${planName} sélectionné avec succès !`);
+
+  showToast(
+    isFr
+      ? "🎉 Félicitations ! Votre abonnement BarPilot Pro (59 €/mois) est activé avec 14 jours d'essai gratuit."
+      : "🎉 Congratulazioni! Il tuo abbonamento BarPilot Pro (59 €/mese) è attivo con 14 giorni di prova gratuita."
+  );
 }
 
 function setupSimulator() {
@@ -3635,6 +3814,13 @@ function setupModals() {
   if (supOrderModal) {
     supOrderModal.addEventListener("click", (e) => {
       if (e.target === supOrderModal) closeSupplierOrderModal();
+    });
+  }
+
+  const checkoutModal = document.getElementById("subscriptionCheckoutModal");
+  if (checkoutModal) {
+    checkoutModal.addEventListener("click", (e) => {
+      if (e.target === checkoutModal) closeCheckoutModal();
     });
   }
 
@@ -4690,3 +4876,6 @@ window.handleSendSupplierOrder = handleSendSupplierOrder;
 window.switchReportsPeriod = switchReportsPeriod;
 window.selectReportPoint = selectReportPoint;
 window.exportReportsCsv = exportReportsCsv;
+window.openCheckoutModal = openCheckoutModal;
+window.closeCheckoutModal = closeCheckoutModal;
+window.handleConfirmCheckout = handleConfirmCheckout;
