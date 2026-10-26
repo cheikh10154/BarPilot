@@ -79,53 +79,108 @@ class GoogleAuthManager {
     }
   }
 
+  // Check if Supabase project has Google OAuth enabled
+  async checkSupabaseGoogleProvider() {
+    try {
+      if (!window.supabase || !window.supabase.url) return false;
+      const res = await fetch(`${window.supabase.url}/auth/v1/settings`, {
+        headers: { "apikey": window.supabase.anonKey }
+      });
+      if (!res.ok) return true;
+      const data = await res.json();
+      return Boolean(data?.external?.google);
+    } catch (e) {
+      console.warn("[GoogleAuth] Supabase provider check fallback:", e);
+      return true;
+    }
+  }
+
   // Trigger Google Sign-In Flow
   async signIn() {
     console.log("[GoogleAuth] signIn() triggered. Client ID:", this.clientId);
 
-    // 1. Check if Supabase has Google OAuth enabled
-    if (window.supabase && window.supabase.isConfigured) {
-      const isSupabaseGoogleEnabled = await this.checkSupabaseGoogleProvider();
-      if (isSupabaseGoogleEnabled) {
-        console.log("[GoogleAuth] Redirecting to Supabase Google OAuth");
-        window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin)}`;
-        return;
+    const btn = document.getElementById("btnGoogleSignIn");
+    const originalText = btn?.querySelector("span")?.textContent || "Accedi con Google";
+    if (btn) {
+      btn.style.opacity = "0.75";
+      btn.style.pointerEvents = "none";
+      const span = btn.querySelector("span");
+      if (span) span.textContent = (window.i18n?.currentLang === "fr" ? "Connexion Google..." : "Reindirizzamento Google...");
+    }
+
+    const restoreBtn = () => {
+      if (btn) {
+        btn.style.opacity = "";
+        btn.style.pointerEvents = "";
+        const span = btn.querySelector("span");
+        if (span) span.textContent = originalText;
+      }
+    };
+
+    try {
+      // 1. Check if Supabase has Google OAuth enabled (Preferred & direct Supabase flow)
+      if (window.supabase && window.supabase.isConfigured) {
+        let isSupabaseGoogleEnabled = true;
+        try {
+          isSupabaseGoogleEnabled = await this.checkSupabaseGoogleProvider();
+        } catch (e) {
+          console.warn("[GoogleAuth] Check provider failed, defaulting to enabled:", e);
+        }
+
+        if (isSupabaseGoogleEnabled) {
+          const returnUrl = window.location.origin + window.location.pathname;
+          const redirectUrl = `${window.supabase.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(returnUrl)}`;
+          console.log("[GoogleAuth] Redirecting to Supabase Google OAuth:", redirectUrl);
+          window.location.href = redirectUrl;
+          return;
+        }
+      }
+
+      // 2. Ensure GIS is loaded
+      if (!window.google?.accounts) {
+        await this.loadGisScript();
+      }
+
+      // Re-run init if tokenClient wasn't initialized
+      if (!this.tokenClient && window.google?.accounts?.oauth2) {
+        this.init();
+      }
+
+      // 3. Official OAuth2 Token Client (Opens Real Google Account Selector popup)
+      if (this.tokenClient) {
+        try {
+          restoreBtn();
+          this.tokenClient.requestAccessToken({ prompt: "select_account" });
+          return;
+        } catch (err) {
+          console.warn("[GoogleAuth] TokenClient request error, trying GIS One-Tap fallback:", err);
+        }
+      }
+
+      // 4. Fallback to GIS prompt if available
+      if (window.google?.accounts?.id && this.gisInitialized) {
+        try {
+          restoreBtn();
+          window.google.accounts.id.prompt();
+          return;
+        } catch (err) {
+          console.warn("[GoogleAuth] GIS prompt fallback error:", err);
+        }
+      }
+
+      // 5. Ultimate Fallback: Direct Google Account Chooser popup with guide
+      restoreBtn();
+      this.openRealGoogleAccountChooser();
+    } catch (err) {
+      console.error("[GoogleAuth] Error in signIn():", err);
+      restoreBtn();
+      if (window.supabase?.isConfigured) {
+        const returnUrl = window.location.origin + window.location.pathname;
+        window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(returnUrl)}`;
+      } else {
+        this.openRealGoogleAccountChooser();
       }
     }
-
-    // 2. Ensure GIS is loaded
-    if (!window.google?.accounts) {
-      await this.loadGisScript();
-    }
-
-    // Re-run init if tokenClient wasn't initialized
-    if (!this.tokenClient && window.google?.accounts?.oauth2) {
-      this.init();
-    }
-
-    // 3. Official OAuth2 Token Client (Opens Real Google Account Selector popup)
-    if (this.tokenClient) {
-      try {
-        // Request token with account selection prompt
-        this.tokenClient.requestAccessToken({ prompt: "select_account" });
-        return;
-      } catch (err) {
-        console.warn("[GoogleAuth] TokenClient request error, trying GIS One-Tap fallback:", err);
-      }
-    }
-
-    // 4. Fallback to GIS prompt if available
-    if (window.google?.accounts?.id && this.gisInitialized) {
-      try {
-        window.google.accounts.id.prompt();
-        return;
-      } catch (err) {
-        console.warn("[GoogleAuth] GIS prompt fallback error:", err);
-      }
-    }
-
-    // 5. Ultimate Fallback: Direct Google Account Chooser popup with guide
-    this.openRealGoogleAccountChooser();
   }
 
   loadGisScript() {
