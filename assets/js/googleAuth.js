@@ -1,17 +1,44 @@
 // BarPilot - Real Google Authentication Module
-// Supports Google Identity Services (GIS), Official Google AccountChooser Popup & Supabase OAuth
+// Supports Google Identity Services (GIS) OAuth 2.0 Token Client & ID Services
+
+const DEFAULT_GOOGLE_CLIENT_ID = "281872587864-a034vj159lft3d9svad1a8h8b0225q57.apps.googleusercontent.com";
 
 class GoogleAuthManager {
   constructor() {
-    this.clientId = localStorage.getItem("barpilot_google_client_id") || window.GOOGLE_CLIENT_ID || "";
+    this.clientId = localStorage.getItem("barpilot_google_client_id") || window.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+    // Persist default if not already set
+    if (!localStorage.getItem("barpilot_google_client_id")) {
+      localStorage.setItem("barpilot_google_client_id", this.clientId);
+    }
+    window.GOOGLE_CLIENT_ID = this.clientId;
+
+    this.tokenClient = null;
+    this.gisInitialized = false;
     this.activePopup = null;
     this.popupWatcher = null;
+
     this.init();
+    this.setupAutoLoader();
+  }
+
+  setupAutoLoader() {
+    // If GIS script hasn't finished loading yet, listen for load or poll briefly
+    if (!window.google?.accounts?.oauth2) {
+      const checkGis = setInterval(() => {
+        if (window.google?.accounts?.oauth2) {
+          clearInterval(checkGis);
+          this.init();
+        }
+      }, 250);
+      setTimeout(() => clearInterval(checkGis), 10000);
+    }
   }
 
   init() {
-    // If client ID is present and GIS is loaded, initialize official Google SDK
-    if (this.clientId && window.google?.accounts?.id) {
+    if (!this.clientId) return;
+
+    // 1. Initialize Google Identity Services (One-Tap / ID Credential)
+    if (window.google?.accounts?.id) {
       try {
         window.google.accounts.id.initialize({
           client_id: this.clientId,
@@ -19,16 +46,42 @@ class GoogleAuthManager {
           auto_select: false,
           cancel_on_tap_outside: true
         });
-        console.log("[GoogleAuth] Official Google GIS initialized with client ID");
+        this.gisInitialized = true;
+        console.log("[GoogleAuth] GIS id initialized with Client ID:", this.clientId);
       } catch (e) {
-        console.warn("[GoogleAuth] GIS init note:", e);
+        console.warn("[GoogleAuth] GIS id.initialize note:", e);
+      }
+    }
+
+    // 2. Initialize OAuth 2.0 Token Client (Preferred for Custom Button clicks)
+    if (window.google?.accounts?.oauth2) {
+      try {
+        this.tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: this.clientId,
+          scope: "openid email profile",
+          callback: async (tokenResponse) => {
+            console.log("[GoogleAuth] Token response received:", tokenResponse);
+            if (tokenResponse && tokenResponse.access_token) {
+              await this.fetchGoogleUserProfile(tokenResponse.access_token);
+            } else if (tokenResponse && tokenResponse.error) {
+              this.handleOAuthError(tokenResponse.error);
+            }
+          },
+          error_callback: (err) => {
+            console.warn("[GoogleAuth] Token client error:", err);
+            this.handleOAuthError(err);
+          }
+        });
+        console.log("[GoogleAuth] OAuth2 TokenClient initialized successfully");
+      } catch (e) {
+        console.warn("[GoogleAuth] OAuth2 initTokenClient note:", e);
       }
     }
   }
 
   // Trigger Google Sign-In Flow
-  signIn() {
-    console.log("[GoogleAuth] signIn() triggered. Real ClientID present:", !!this.clientId);
+  async signIn() {
+    console.log("[GoogleAuth] signIn() triggered. Client ID:", this.clientId);
 
     // 1. If Supabase is connected with Google OAuth
     if (window.supabase && window.supabase.isConfigured) {
@@ -36,62 +89,90 @@ class GoogleAuthManager {
       return;
     }
 
-    // 2. If real Google Client ID is configured and GIS SDK is present
-    if (this.clientId && window.google?.accounts?.id) {
+    // 2. Ensure GIS is loaded
+    if (!window.google?.accounts) {
+      await this.loadGisScript();
+    }
+
+    // Re-run init if tokenClient wasn't initialized
+    if (!this.tokenClient && window.google?.accounts?.oauth2) {
+      this.init();
+    }
+
+    // 3. Official OAuth2 Token Client (Opens Real Google Account Selector popup)
+    if (this.tokenClient) {
       try {
-        window.google.accounts.id.initialize({
-          client_id: this.clientId,
-          callback: (response) => this.handleGoogleCredentialResponse(response),
-          auto_select: false,
-          cancel_on_tap_outside: true
-        });
-        window.google.accounts.id.prompt();
+        // Request token with account selection prompt
+        this.tokenClient.requestAccessToken({ prompt: "select_account" });
         return;
       } catch (err) {
-        console.warn("[GoogleAuth] GIS prompt fallback to official Google popup:", err);
+        console.warn("[GoogleAuth] TokenClient request error, trying GIS One-Tap fallback:", err);
       }
     }
 
-    // 3. Open Real Google Account Chooser Popup directly on accounts.google.com
+    // 4. Fallback to GIS prompt if available
+    if (window.google?.accounts?.id && this.gisInitialized) {
+      try {
+        window.google.accounts.id.prompt();
+        return;
+      } catch (err) {
+        console.warn("[GoogleAuth] GIS prompt fallback error:", err);
+      }
+    }
+
+    // 5. Ultimate Fallback: Direct Google Account Chooser popup with guide
     this.openRealGoogleAccountChooser();
   }
 
-  // Opens the official Google Account Chooser & Sign-in on accounts.google.com
-  openRealGoogleAccountChooser() {
-    const width = 520;
-    const height = 640;
-    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
-    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
-
-    const googleChooserUrl = "https://accounts.google.com/AccountChooser";
-
-    this.activePopup = window.open(
-      googleChooserUrl,
-      "GoogleAccountChooser",
-      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no,location=yes,resizable=yes`
-    );
-
-    if (this.activePopup) {
-      try {
-        this.activePopup.focus();
-      } catch (e) {}
-
-      // Monitor popup closure
-      if (this.popupWatcher) clearInterval(this.popupWatcher);
-      this.popupWatcher = setInterval(() => {
-        if (!this.activePopup || this.activePopup.closed) {
-          clearInterval(this.popupWatcher);
-          this.handlePopupClosed();
-        }
-      }, 800);
-    }
-
-    // Show native overlay guiding the user through the open Google window
-    this.showGooglePopupActiveModal();
+  loadGisScript() {
+    return new Promise((resolve) => {
+      if (window.google?.accounts) {
+        resolve();
+        return;
+      }
+      const existing = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+      if (existing) {
+        existing.addEventListener("load", () => resolve());
+        setTimeout(resolve, 2000);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.appendChild(script);
+      setTimeout(resolve, 2500);
+    });
   }
 
-  handlePopupClosed() {
-    console.log("[GoogleAuth] Google popup was closed by user");
+  // Fetch real Google Profile (Name, Email, Picture) from Google userinfo API
+  async fetchGoogleUserProfile(accessToken) {
+    try {
+      const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Google API returned status ${res.status}`);
+      }
+      const profile = await res.json();
+      console.log("[GoogleAuth] User profile retrieved from Google:", profile.email);
+
+      this.loginWithGoogleProfile({
+        name: profile.name || "Utente Google",
+        email: profile.email,
+        picture: profile.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || "Google")}&background=4285F4&color=fff`
+      });
+    } catch (err) {
+      console.error("[GoogleAuth] Failed to fetch userinfo:", err);
+      if (typeof showToast === "function") {
+        showToast("⚠️ Errore nel recupero del profilo Google. Riprova.");
+      }
+      this.openRealGoogleAccountChooser();
+    }
   }
 
   // Parse JWT Token from Google GIS response
@@ -115,12 +196,13 @@ class GoogleAuthManager {
         this.loginWithGoogleProfile({
           name: payload.name || "Utente Google",
           email: payload.email || "utente@gmail.com",
-          picture: payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || "Google")}&background=FF7A00&color=fff`
+          picture: payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || "Google")}&background=4285F4&color=fff`
         });
       }
     }
   }
 
+  // Completes login and directs to Dashboard or Checkout depending on subscription
   loginWithGoogleProfile(profile) {
     if (this.activePopup && !this.activePopup.closed) {
       try {
@@ -163,6 +245,7 @@ class GoogleAuthManager {
     } else {
       localStorage.setItem("barpilot_is_logged_in", "true");
     }
+
     if (typeof closeAuthScreen === "function") closeAuthScreen();
     this.hideGoogleModal();
 
@@ -181,17 +264,68 @@ class GoogleAuthManager {
           : `Bienvenue, ${profile.name} ! Connexion Google réussie.`);
       }
     } else {
-      // Direct unsubscribed Google user to subscription page with Google Play Pay
+      // Direct unsubscribed Google user to subscription page with mandatory Google Pay / Card checkout
       if (typeof switchView === "function") switchView("subscriptions");
       setTimeout(() => {
         if (typeof openCheckoutModal === "function") openCheckoutModal(true);
       }, 400);
       if (typeof showToast === "function") {
         showToast(isIt
-          ? `⚠️ Benvenuto ${profile.name}! Abbonamento richiesto per la Dashboard. Paga subito con Google Play Pay (59€/mese).`
-          : `⚠️ Bienvenue ${profile.name} ! Abonnement requis pour le Tableau de Bord. Payez avec Google Play Pay (59€/mois).`);
+          ? `⚠️ Benvenuto ${profile.name}! Abbonamento richiesto per la Dashboard. Completa l'attivazione con Google Pay & Wallet (59€/mese).`
+          : `⚠️ Bienvenue ${profile.name} ! Abonnement requis pour le Tableau de Bord. Payez avec Google Pay (59€/mois).`);
       }
     }
+  }
+
+  handleOAuthError(err) {
+    const origin = window.location.origin;
+    console.error("[GoogleAuth] OAuth Error details:", err, "Current origin:", origin);
+
+    const isOriginError = typeof err === "string" && (err.includes("origin_mismatch") || err.includes("unregistered_origin"));
+    if (isOriginError) {
+      alert(`⚠️ Configurazione Google Cloud necessaria:\n\nL'indirizzo "${origin}" non è ancora presente tra le "Origini JavaScript autorizzate" nella console Google.\n\nAccedi a Google Cloud Console > Credenziali > ID Client Web e aggiungi "${origin}" in "Origini JavaScript autorizzate".`);
+      return;
+    }
+
+    if (typeof showToast === "function") {
+      showToast("⚠️ Finestra Google chiusa o autorizzazione non completata.");
+    }
+  }
+
+  // Opens the official Google Account Chooser & Sign-in on accounts.google.com
+  openRealGoogleAccountChooser() {
+    const width = 520;
+    const height = 640;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+
+    const googleChooserUrl = "https://accounts.google.com/AccountChooser";
+
+    this.activePopup = window.open(
+      googleChooserUrl,
+      "GoogleAccountChooser",
+      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no,location=yes,resizable=yes`
+    );
+
+    if (this.activePopup) {
+      try {
+        this.activePopup.focus();
+      } catch (e) {}
+
+      if (this.popupWatcher) clearInterval(this.popupWatcher);
+      this.popupWatcher = setInterval(() => {
+        if (!this.activePopup || this.activePopup.closed) {
+          clearInterval(this.popupWatcher);
+          this.handlePopupClosed();
+        }
+      }, 800);
+    }
+
+    this.showGooglePopupActiveModal();
+  }
+
+  handlePopupClosed() {
+    console.log("[GoogleAuth] Google popup closed by user");
   }
 
   showGooglePopupActiveModal() {
@@ -210,10 +344,7 @@ class GoogleAuthManager {
       ? "Conferma l'email con cui hai effettuato l'accesso per entrare nel tuo Bar:"
       : "Confirmez l'email avec laquelle vous vous êtes connecté pour entrer :";
     const enterAppBtn = isIt ? "Entra nel Gestionale →" : "Accéder à l'application →";
-    const reopenBtn = isIt ? "🔄 Riapri finestra Google" : "🔄 Rouvrir fenêtre Google";
-    const clientIdHint = isIt
-      ? "💡 <strong>Vuoi il ritorno automatico a 1 clic senza passaggi intermedi?</strong> Inserisci il tuo <strong>Google Client ID</strong> (da Google Cloud Console):"
-      : "💡 <strong>Vous souhaitez un retour automatique en 1 clic ?</strong> Entrez votre <strong>Google Client ID</strong> :";
+    const reopenBtn = isIt ? "🔄 Riapri finestra Google" : "🔄 Rouvrir finestra Google";
 
     if (!modal) {
       modal = document.createElement("div");
@@ -245,7 +376,7 @@ class GoogleAuthManager {
           ${openNotice}
         </p>
 
-        <!-- Step 1: Return to App Card -->
+        <!-- Return to App Card -->
         <div style="background:var(--bg-card-secondary); padding:16px; border-radius:14px; border:1px solid var(--border-color); margin-bottom:14px; text-align:left;">
           <div style="font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
             <span>✅</span> ${stepDoneText}
@@ -261,24 +392,13 @@ class GoogleAuthManager {
           </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
           <button type="button" onclick="window.googleAuth.openRealGoogleAccountChooser()" style="background:none; border:none; color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
             ${reopenBtn}
           </button>
           <a href="https://accounts.google.com/signup" target="_blank" rel="noopener" style="color:var(--text-muted); font-size:11px; text-decoration:none;">
             Crea account Google ↗
           </a>
-        </div>
-
-        <!-- Step 2: Instant 1-Click Automatic OAuth Setup -->
-        <div style="background:rgba(255,122,0,0.06); border:1px dashed var(--primary); padding:12px 14px; border-radius:12px; text-align:left;">
-          <div style="font-size:11px; color:var(--text-main); line-height:1.4; margin-bottom:8px;">
-            ${clientIdHint}
-          </div>
-          <div style="display:flex; gap:6px;">
-            <input type="text" id="inlineGoogleClientId" placeholder="es: 123456-xxx.apps.googleusercontent.com" value="${this.clientId}" class="form-input" style="flex:1; padding:7px 10px; font-size:11px; border-radius:8px;">
-            <button type="button" class="btn-primary" onclick="window.googleAuth.saveInlineClientId()" style="padding:7px 12px; font-size:11px; font-weight:700; border-radius:8px; white-space:nowrap;">Salva & Attiva</button>
-          </div>
         </div>
       </div>
     `;
@@ -307,36 +427,17 @@ class GoogleAuthManager {
     this.loginWithGoogleProfile({
       name: name,
       email: email,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=FF7A00&color=fff&size=128`
+      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4285F4&color=fff&size=128`
     });
   }
 
-  saveInlineClientId() {
-    const input = document.getElementById("inlineGoogleClientId");
-    const val = input ? input.value.trim() : "";
-    if (val) {
-      this.saveClientId(val);
-      // Re-trigger GIS prompt immediately
-      if (window.google?.accounts?.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: this.clientId,
-            callback: (res) => this.handleGoogleCredentialResponse(res)
-          });
-          window.google.accounts.id.prompt();
-        } catch (e) {
-          console.warn("GIS immediate prompt note:", e);
-        }
-      }
-    }
-  }
-
   saveClientId(clientId) {
-    this.clientId = clientId.trim();
+    this.clientId = (clientId || "").trim();
     localStorage.setItem("barpilot_google_client_id", this.clientId);
+    window.GOOGLE_CLIENT_ID = this.clientId;
     this.init();
     if (typeof showToast === "function") {
-      showToast("Google Client ID salvato!");
+      showToast("Google Client ID salvato e attivato!");
     }
   }
 }
