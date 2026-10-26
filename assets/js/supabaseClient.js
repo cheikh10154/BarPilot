@@ -34,6 +34,59 @@ class BarPilotSupabaseClient {
     } catch (e) {}
   }
 
+  async checkUrlHashForSession() {
+    if (typeof window === "undefined" || !window.location) return;
+    const hash = window.location.hash || "";
+    if (!hash.includes("access_token")) return;
+
+    try {
+      const params = new URLSearchParams(hash.replace(/^#/, ""));
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      const expiresIn = params.get("expires_in");
+      const tokenType = params.get("token_type") || "bearer";
+
+      if (accessToken) {
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, null, window.location.pathname + window.location.search);
+        }
+
+        const res = await fetch(`${this.url}/auth/v1/user`, {
+          headers: {
+            "apikey": this.anonKey,
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
+
+        if (res.ok) {
+          const user = await res.json();
+          this.session = {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expiresIn,
+            token_type: tokenType,
+            user
+          };
+          localStorage.setItem("barpilot_supabase_session", JSON.stringify(this.session));
+          console.log("[SupabaseAuth] OAuth session established for:", user.email);
+
+          const fullName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split("@")[0] : "Utente Google");
+          const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4285F4&color=fff`;
+
+          if (window.googleAuth && typeof window.googleAuth.loginWithGoogleProfile === "function") {
+            window.googleAuth.loginWithGoogleProfile({
+              name: fullName,
+              email: user.email,
+              picture: avatarUrl
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[SupabaseAuth] Hash session note:", err);
+    }
+  }
+
   getHeaders(withAuth = true) {
     const headers = {
       "apikey": this.anonKey,
