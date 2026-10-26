@@ -1,18 +1,28 @@
 // BarPilot - Supabase Enterprise Client & Auth Engine
 // Complete integration with Supabase Auth (OAuth 2.0 PKCE, Email/Password, Recover, Multi-Tenant REST)
 
+const DEFAULT_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
+const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
+
 const SUPABASE_CONFIG = {
-  url: window.BARPILOT_SUPABASE_URL || localStorage.getItem("barpilot_supabase_url") || "https://your-project.supabase.co",
-  anonKey: window.BARPILOT_SUPABASE_KEY || localStorage.getItem("barpilot_supabase_key") || "your-anon-key",
+  url: window.BARPILOT_SUPABASE_URL || localStorage.getItem("barpilot_supabase_url") || DEFAULT_SUPABASE_URL,
+  anonKey: window.BARPILOT_SUPABASE_KEY || localStorage.getItem("barpilot_supabase_key") || DEFAULT_SUPABASE_KEY,
 };
 
 class BarPilotSupabaseClient {
   constructor(url, anonKey) {
-    this.url = url.replace(/\/$/, "");
-    this.anonKey = anonKey;
-    this.isConfigured = this.url !== "https://your-project.supabase.co" && this.url.startsWith("https://");
+    this.url = (url || DEFAULT_SUPABASE_URL).replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+    this.anonKey = (anonKey || DEFAULT_SUPABASE_KEY).trim();
+    this.isConfigured = Boolean(
+      this.url && 
+      this.url.startsWith("https://") && 
+      !this.url.includes("your-project") && 
+      this.anonKey && 
+      this.anonKey !== "your-anon-key"
+    );
     this.session = null;
     this.initSession();
+    this.checkUrlHashForSession();
   }
 
   initSession() {

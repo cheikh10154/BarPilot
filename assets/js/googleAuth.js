@@ -83,10 +83,14 @@ class GoogleAuthManager {
   async signIn() {
     console.log("[GoogleAuth] signIn() triggered. Client ID:", this.clientId);
 
-    // 1. If Supabase is connected with Google OAuth
+    // 1. Check if Supabase has Google OAuth enabled
     if (window.supabase && window.supabase.isConfigured) {
-      window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin)}`;
-      return;
+      const isSupabaseGoogleEnabled = await this.checkSupabaseGoogleProvider();
+      if (isSupabaseGoogleEnabled) {
+        console.log("[GoogleAuth] Redirecting to Supabase Google OAuth");
+        window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin)}`;
+        return;
+      }
     }
 
     // 2. Ensure GIS is loaded
