@@ -1,15 +1,16 @@
 // BarPilot - Real Google Authentication Module
 // Supports Google Identity Services (GIS) OAuth 2.0 Token Client & ID Services
 
-const DEFAULT_GOOGLE_CLIENT_ID = "281872587864-a034vj159lft3d9svad1a8h8b0225q57.apps.googleusercontent.com";
+const DEFAULT_GOOGLE_CLIENT_ID = "281872587864-5699lqs2e94o55secgsjh58jgvc7eelh.apps.googleusercontent.com";
 
 class GoogleAuthManager {
   constructor() {
-    this.clientId = localStorage.getItem("barpilot_google_client_id") || window.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
-    // Persist default if not already set
-    if (!localStorage.getItem("barpilot_google_client_id")) {
-      localStorage.setItem("barpilot_google_client_id", this.clientId);
+    let saved = localStorage.getItem("barpilot_google_client_id");
+    if (!saved || saved.includes("a034vj159lft3d9svad1a8h8b0225q57")) {
+      saved = DEFAULT_GOOGLE_CLIENT_ID;
+      localStorage.setItem("barpilot_google_client_id", saved);
     }
+    this.clientId = window.GOOGLE_CLIENT_ID || saved || DEFAULT_GOOGLE_CLIENT_ID;
     window.GOOGLE_CLIENT_ID = this.clientId;
 
     this.tokenClient = null;
