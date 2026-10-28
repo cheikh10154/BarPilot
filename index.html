@@ -973,26 +973,16 @@
              9. RAPPORTI / ANALYTICS VIEW
              ======================================================== -->
         <section class="view-panel" id="view-reports">
-          <!-- Top Bar with Title, Date Range and Period Filter Switcher -->
+          <!-- Top Bar with Title and Active Date Range -->
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
             <div>
               <h2 style="font-size:22px; font-weight:800; margin:0;" data-i18n="navReports">Rapporti & Statistiche</h2>
               <span style="font-size:12.5px; color:var(--text-muted);" id="reportsDateRangeText">Caricamento periodo...</span>
             </div>
 
-            <!-- Period Switcher: Giornaliero, Settimanale, Mensile, Intervallo Personalizzato -->
-            <div style="display:flex; background:var(--bg-card-secondary); padding:4px; border-radius:var(--radius-md); border:1px solid var(--border-color); gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-period-tab" id="btnReportDay" onclick="switchReportsPeriod('day')">
-                📅 Giornaliero
-              </button>
-              <button type="button" class="btn-period-tab active" id="btnReportWeek" onclick="switchReportsPeriod('week')">
-                📊 Settimanale
-              </button>
-              <button type="button" class="btn-period-tab" id="btnReportMonth" onclick="switchReportsPeriod('month')">
-                🗓️ Mensile
-              </button>
-              <button type="button" class="btn-period-tab" id="btnReportCustom" onclick="toggleCustomRangeBox()">
-                ⏱️ Intervallo Libero ▾
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn-secondary" style="padding:7px 14px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" onclick="exportReportsCsv()">
+                <span>📥</span> <span>Esporta CSV</span>
               </button>
             </div>
           </div>
