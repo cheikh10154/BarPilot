@@ -5385,12 +5385,15 @@ function handleAuthSubmit(e) {
 
   if (currentAuthTab === 'register') {
     const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
+    const vatNumber = document.getElementById("regVat")?.value.trim() || "";
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
     const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
     const activeBar = {
       id: "bar_" + Date.now(),
       name: barName,
+      vat: vatNumber,
+      piva: vatNumber,
       city: city,
       address: `Via Principale, 1 - ${city}`,
       currency: "€",
@@ -5421,6 +5424,8 @@ function handleAuthSubmit(e) {
       role: "Proprietario",
       name: ownerName,
       barName: barName,
+      vat: vatNumber,
+      piva: vatNumber,
       city: city,
       date: new Date().toISOString()
     });
