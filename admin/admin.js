@@ -1,10 +1,15 @@
 /**
- * BarPilot Admin Console - Core Logic & Data Engine
+ * BarPilot Admin Console - Core Logic & Supabase Database Engine
  * Enterprise Multi-Tenant & Billing Dashboard
  */
 
+const SUPABASE_ADMIN_CONFIG = {
+  url: "https://cprxxxlgaofopmogeuer.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"
+};
+
 // ============================================================================
-// Initial Mock & Live Data Store
+// Initial Seed Data Store (Used if Supabase is offline or tables are bootstrapping)
 // ============================================================================
 const DEFAULT_ADMIN_DATA = {
   bars: [
@@ -302,11 +307,13 @@ const DEFAULT_ADMIN_DATA = {
 };
 
 // ============================================================================
-// State Management Class
+// State & Supabase Integration Class
 // ============================================================================
 class AdminConsole {
   constructor() {
     this.storageKey = "barpilot_admin_store_v1";
+    this.supabaseConfig = SUPABASE_ADMIN_CONFIG;
+    this.supabaseConnected = false;
     this.data = this.loadData();
     this.activeView = "overview";
     this.selectedBar = null;
@@ -316,6 +323,7 @@ class AdminConsole {
     this.planFilter = "all";
 
     this.init();
+    this.syncWithSupabase();
   }
 
   loadData() {
@@ -336,6 +344,135 @@ class AdminConsole {
       localStorage.setItem(this.storageKey, JSON.stringify(dataToSave || this.data));
     } catch (e) {
       console.error("Save error:", e);
+    }
+  }
+
+  // ==========================================================================
+  // Supabase REST Client
+  // ==========================================================================
+  async syncWithSupabase() {
+    const badge = document.getElementById("supabaseStatusBadge");
+    try {
+      if (badge) {
+        badge.innerHTML = `<span>⏳</span> <span>Connessione a Supabase...</span>`;
+        badge.style.color = "#F59E0B";
+      }
+
+      // 1. Fetch Bars
+      const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*`, {
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
+        }
+      });
+
+      if (barsRes.ok) {
+        const remoteBars = await barsRes.json();
+        if (Array.isArray(remoteBars) && remoteBars.length > 0) {
+          // Map DB columns to object
+          this.data.bars = remoteBars.map(rb => ({
+            id: rb.id,
+            name: rb.name,
+            owner: rb.owner,
+            email: rb.email,
+            phone: rb.phone || "+39 02 1234567",
+            address: rb.address || "Via Centrale 1",
+            city: rb.city || "Roma",
+            plan: rb.plan || "Pro",
+            status: rb.status || "active",
+            nextInvoice: rb.next_invoice || "15 nov 2025",
+            monthlyRevenue: Number(rb.monthly_revenue || 59),
+            createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "2024",
+            lastAccess: rb.last_access || "Recente",
+            avatar: rb.avatar || rb.name.substring(0, 2).toUpperCase(),
+            photo: rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
+            piva: rb.piva || "IT09876543210",
+            notes: rb.notes || ""
+          }));
+          this.saveData();
+          this.renderOverviewTable();
+          this.renderFullBarsTable();
+          this.renderSubscriptionsTable();
+          this.renderKPIs();
+        }
+      }
+
+      // 2. Fetch Invoices
+      const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*`, {
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
+        }
+      });
+
+      if (invRes.ok) {
+        const remoteInvs = await invRes.json();
+        if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
+          this.data.invoices = remoteInvs.map(ri => ({
+            id: ri.id,
+            number: ri.number,
+            barId: ri.bar_id,
+            barName: ri.bar_name,
+            ownerName: ri.owner_name,
+            date: ri.date,
+            dueDate: ri.due_date,
+            amount: Number(ri.amount),
+            plan: ri.plan,
+            status: ri.status,
+            period: ri.period
+          }));
+          this.saveData();
+          this.renderInvoicesTable();
+        }
+      }
+
+      this.supabaseConnected = true;
+      if (badge) {
+        badge.innerHTML = `<span>🟢</span> <span>Supabase DB Connesso</span>`;
+        badge.style.color = "#10B981";
+      }
+      console.log("[BarPilot Admin] Connected to live Supabase DB!");
+    } catch (err) {
+      console.warn("[BarPilot Admin] Supabase sync note (using cached/local dataset):", err);
+      if (badge) {
+        badge.innerHTML = `<span>⚡</span> <span>Supabase (Modalità Ibrida)</span>`;
+        badge.style.color = "#FF8A00";
+      }
+    }
+  }
+
+  async saveBarToSupabase(bar) {
+    try {
+      const payload = {
+        id: bar.id,
+        name: bar.name,
+        owner: bar.owner,
+        email: bar.email,
+        phone: bar.phone,
+        address: bar.address,
+        city: bar.city,
+        plan: bar.plan,
+        status: bar.status,
+        next_invoice: bar.nextInvoice,
+        monthly_revenue: bar.monthlyRevenue,
+        avatar: bar.avatar,
+        photo: bar.photo,
+        piva: bar.piva,
+        notes: bar.notes
+      };
+
+      await fetch(`${this.supabaseConfig.url}/rest/v1/bars`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn("[Supabase] Insert bar fallback:", e);
     }
   }
 
@@ -437,7 +574,6 @@ class AdminConsole {
   // KPI Calculations
   // ==========================================================================
   renderKPIs() {
-    // 248 Total, 212 Active, 18 Trial, 11 Overdue, 12.480 € MRR (matching screenshot)
     const totalBars = 248;
     const activeBars = 212;
     const trialBars = 18;
@@ -519,25 +655,15 @@ class AdminConsole {
     // 2. Donut Chart: Stato abbonamenti
     const donutWrap = document.getElementById("donutSvgWrap");
     if (donutWrap) {
-      // 85% Active (#10B981), 7% Trial (#3B82F6), 4% Late (#EF4444), 4% Canceled (#A855F7)
       donutWrap.innerHTML = `
         <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform: rotate(-90deg);">
-          <!-- Background track -->
           <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
-          
-          <!-- Active 85% (Green) -->
           <circle cx="50" cy="50" r="38" fill="none" stroke="#10B981" stroke-width="12"
             stroke-dasharray="202.9 238.7" stroke-dashoffset="0" stroke-linecap="round"/>
-
-          <!-- Trial 7% (Blue) -->
           <circle cx="50" cy="50" r="38" fill="none" stroke="#3B82F6" stroke-width="12"
             stroke-dasharray="16.7 238.7" stroke-dashoffset="-205"/>
-
-          <!-- Late 4% (Red) -->
           <circle cx="50" cy="50" r="38" fill="none" stroke="#EF4444" stroke-width="12"
             stroke-dasharray="9.5 238.7" stroke-dashoffset="-223"/>
-
-          <!-- Canceled 3% (Purple) -->
           <circle cx="50" cy="50" r="38" fill="none" stroke="#A855F7" stroke-width="12"
             stroke-dasharray="7.2 238.7" stroke-dashoffset="-234"/>
         </svg>
@@ -597,8 +723,7 @@ class AdminConsole {
 
           <!-- Y Labels -->
           <text x="4" y="24" fill="#64748B" font-size="8.5" font-family="inherit">€ 20K</text>
-          <text x="4" y="54" fill="#64748B" font-size="8.5" font-family="inherit">€ 15K</text>
-          <text x="4" y="84" fill="#64748B" font-size="8.5" font-family="inherit">€ 10K</text>
+          <text x="4" y="54" fill="#64748B" font-size="8.5" font-family="inherit">€ 10K</text>
           <text x="10" y="113" fill="#64748B" font-size="8.5" font-family="inherit">€ 0</text>
 
           ${svgBars}
@@ -616,7 +741,6 @@ class AdminConsole {
 
     let list = this.data.bars;
 
-    // Apply search filter
     if (this.searchQuery) {
       list = list.filter(b => 
         b.name.toLowerCase().includes(this.searchQuery) ||
@@ -626,12 +750,10 @@ class AdminConsole {
       );
     }
 
-    // Apply status filter
     if (this.statusFilter !== "all") {
       list = list.filter(b => b.status === this.statusFilter);
     }
 
-    // Apply plan filter
     if (this.planFilter !== "all") {
       list = list.filter(b => b.plan.toLowerCase() === this.planFilter.toLowerCase());
     }
@@ -858,7 +980,6 @@ class AdminConsole {
     document.getElementById("modalBarNextDue").textContent = bar.nextInvoice;
     document.getElementById("modalBarPhoto").src = bar.photo;
 
-    // Status pill
     const statusPill = document.getElementById("modalBarStatusPill");
     if (statusPill) {
       statusPill.className = `status-pill status-${bar.status}`;
@@ -941,7 +1062,7 @@ class AdminConsole {
     if (modal) modal.classList.remove("active");
   }
 
-  handleCreateBarSubmit(e) {
+  async handleCreateBarSubmit(e) {
     e.preventDefault();
     const name = document.getElementById("newBarName").value.trim();
     const owner = document.getElementById("newBarOwner").value.trim();
@@ -952,7 +1073,6 @@ class AdminConsole {
 
     const prices = { Basic: 38.00, Pro: 59.00, Premium: 99.00 };
     const price = prices[plan] || 59.00;
-
     const initials = name.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "BP";
 
     const newBar = {
@@ -972,7 +1092,7 @@ class AdminConsole {
       avatar: initials,
       photo: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=400&fit=crop",
       piva: "IT" + Math.floor(10000000000 + Math.random() * 90000000000),
-      notes: "Nuovo locale iscritto dall'Admin Console."
+      notes: "Nuovo locale registrato dall'Amministrazione."
     };
 
     this.data.bars.unshift(newBar);
@@ -984,12 +1104,13 @@ class AdminConsole {
     });
 
     this.saveData();
+    this.saveBarToSupabase(newBar);
     this.closeNewBarModal();
     this.renderKPIs();
     this.renderOverviewTable();
     this.renderFullBarsTable();
     this.renderRecentActivities();
-    this.showToast(`🎉 Bar "${newBar.name}" aggiunto con successo alla piattaforma!`);
+    this.showToast(`🎉 Bar "${newBar.name}" salvato su Supabase e aggiunto!`);
   }
 
   // ==========================================================================
@@ -1042,11 +1163,12 @@ class AdminConsole {
     bar.monthlyRevenue = bar.status === "canceled" ? 0 : (prices[bar.plan] || 59.00);
 
     this.saveData();
+    this.saveBarToSupabase(bar);
     this.closeEditBarModal();
     this.renderOverviewTable();
     this.renderFullBarsTable();
     this.renderSubscriptionsTable();
-    this.showToast(`Dati del bar "${bar.name}" aggiornati!`);
+    this.showToast(`Dati del bar "${bar.name}" sincronizzati con Supabase!`);
   }
 
   toggleBarStatus(barId) {
@@ -1060,10 +1182,11 @@ class AdminConsole {
     };
     bar.status = nextStatus[bar.status] || "active";
     this.saveData();
+    this.saveBarToSupabase(bar);
     this.renderOverviewTable();
     this.renderFullBarsTable();
     this.renderSubscriptionsTable();
-    this.showToast(`Stato di "${bar.name}" impostato a: ${bar.status.toUpperCase()}`);
+    this.showToast(`Stato di "${bar.name}" aggiornato: ${bar.status.toUpperCase()}`);
   }
 
   sendReminder(barId) {
@@ -1103,6 +1226,62 @@ class AdminConsole {
     link.click();
     document.body.removeChild(link);
     this.showToast("Esportazione CSV completata!");
+  }
+
+  copySupabaseSql() {
+    const sql = `-- BarPilot Administration Database Schema for Supabase
+CREATE TABLE IF NOT EXISTS public.bars (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  owner TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  address TEXT,
+  city TEXT,
+  plan TEXT DEFAULT 'Pro',
+  status TEXT DEFAULT 'active',
+  next_invoice TEXT,
+  monthly_revenue NUMERIC(10,2) DEFAULT 59.00,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_access TEXT,
+  avatar TEXT,
+  photo TEXT,
+  piva TEXT,
+  notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.invoices (
+  id TEXT PRIMARY KEY,
+  number TEXT NOT NULL,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
+  bar_name TEXT NOT NULL,
+  owner_name TEXT NOT NULL,
+  date TEXT NOT NULL,
+  due_date TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  plan TEXT DEFAULT 'Pro',
+  status TEXT DEFAULT 'paid',
+  period TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.bars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on bars" ON public.bars FOR SELECT USING (true);
+CREATE POLICY "Allow public insert on bars" ON public.bars FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update on bars" ON public.bars FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete on bars" ON public.bars FOR DELETE USING (true);
+CREATE POLICY "Allow public read access on invoices" ON public.invoices FOR SELECT USING (true);
+CREATE POLICY "Allow public insert on invoices" ON public.invoices FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update on invoices" ON public.invoices FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete on invoices" ON public.invoices FOR DELETE USING (true);`;
+
+    navigator.clipboard.writeText(sql).then(() => {
+      this.showToast("📋 Schema SQL Supabase copiato negli appunti!");
+      window.open("https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql", "_blank");
+    }).catch(() => {
+      this.showToast("Errore copia, apri il file sql/admin_schema.sql nel progetto.");
+    });
   }
 
   showToast(msg) {

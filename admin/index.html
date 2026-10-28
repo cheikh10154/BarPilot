@@ -198,6 +198,11 @@
         </div>
 
         <div class="topbar-right">
+          <!-- Supabase Live Status Badge -->
+          <div id="supabaseStatusBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#10B981; background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.syncWithSupabase()" title="Clicca per sincronizzare subito con Supabase">
+            <span>🟢</span> <span>Supabase DB Connesso</span>
+          </div>
+
           <!-- Live Search Input -->
           <div class="search-box-wrap">
             <span class="search-box-icon">🔍</span>
@@ -662,11 +667,16 @@
                 <span>🟢</span> <span>Stato Database Supabase</span>
               </h4>
               <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
-                Connessione con il progetto Supabase <strong>cprxxxlgaofopmogeuer.supabase.co</strong> attiva e sincronizzata con le tabelle bar, auth e sottoscrizioni.
+                Connessione con il progetto Supabase <strong>cprxxxlgaofopmogeuer.supabase.co</strong> attiva e sincronizzata con le tabelle <code>bars</code>, <code>invoices</code> e auth.
               </p>
-              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.showToast('✅ Sincronizzazione Supabase completata con successo!')">
-                🔄 Sincronizza Dati Supabase Ora
-              </button>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn-primary-orange" onclick="window.adminConsole.syncWithSupabase()">
+                  🔄 Sincronizza Dati Supabase Ora
+                </button>
+                <button type="button" class="btn-primary-orange" style="background:var(--bg-card); color:#fff; border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.copySupabaseSql()">
+                  📋 Copia Schema SQL & Apri Supabase Editor
+                </button>
+              </div>
             </div>
 
             <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">

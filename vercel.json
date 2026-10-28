@@ -7,6 +7,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "administration/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "administration.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "admin/**",
       "use": "@vercel/static"
     },
@@ -29,8 +37,16 @@
   ],
   "routes": [
     {
+      "src": "^/administration/?$",
+      "dest": "/administration/index.html"
+    },
+    {
+      "src": "^/administration/(.*)$",
+      "dest": "/administration/$1"
+    },
+    {
       "src": "^/admin/?$",
-      "dest": "/admin/index.html"
+      "dest": "/administration/index.html"
     },
     {
       "src": "^/admin/(.*)$",
