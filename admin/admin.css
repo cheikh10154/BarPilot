@@ -186,6 +186,13 @@ html, body {
   font-size: 16px;
 }
 
+.nav-link-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  display: block;
+}
+
 .nav-link-chevron {
   font-size: 12px;
   opacity: 0.5;
@@ -1240,5 +1247,59 @@ html, body {
   }
   .search-box-wrap {
     display: none;
+  }
+}
+
+/* Custom Scrollbars (CSS3) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Print Stylesheet for Invoices & Reports (HTML5 & CSS3) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .invoice-sheet, .invoice-sheet * {
+    visibility: visible;
+  }
+  .invoice-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  .admin-modal-overlay {
+    position: static;
+    background: none !important;
+    padding: 0 !important;
+  }
+  .admin-modal-box {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .modal-header-bar, .modal-close-btn, .btn-primary-orange, .btn-table-action, .sidebar, .topbar {
+    display: none !important;
   }
 }
