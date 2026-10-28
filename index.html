@@ -980,8 +980,8 @@
               <span style="font-size:12.5px; color:var(--text-muted);" id="reportsDateRangeText">Caricamento periodo...</span>
             </div>
 
-            <!-- Period Switcher: Giornaliero, Settimanale, Mensile -->
-            <div style="display:flex; background:var(--bg-card-secondary); padding:4px; border-radius:var(--radius-md); border:1px solid var(--border-color); gap:4px;">
+            <!-- Period Switcher: Giornaliero, Settimanale, Mensile, Intervallo Personalizzato -->
+            <div style="display:flex; background:var(--bg-card-secondary); padding:4px; border-radius:var(--radius-md); border:1px solid var(--border-color); gap:4px; flex-wrap:wrap;">
               <button type="button" class="btn-period-tab" id="btnReportDay" onclick="switchReportsPeriod('day')">
                 📅 Giornaliero
               </button>
@@ -991,6 +991,54 @@
               <button type="button" class="btn-period-tab" id="btnReportMonth" onclick="switchReportsPeriod('month')">
                 🗓️ Mensile
               </button>
+              <button type="button" class="btn-period-tab" id="btnReportCustom" onclick="toggleCustomRangeBox()">
+                ⏱️ Intervallo Libero ▾
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Time Range Selector Box -->
+          <div id="reportsCustomRangeBox" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:20px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">🗓️</span>
+                <strong style="font-size:14px; color:var(--text-main);">Seleziona Intervallo Temporale Grafico:</strong>
+                <span id="reportsActiveRangeBadge" style="background:var(--primary-glow); color:var(--primary); font-size:11.5px; font-weight:800; padding:3px 10px; border-radius:6px; border:1px solid rgba(255,107,0,0.3);">
+                  Ultimi 7 Giorni
+                </span>
+              </div>
+
+              <!-- Quick Presets -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-range-chip" id="chipPresetToday" onclick="applyReportPreset('today')">Oggi</button>
+                <button type="button" class="btn-range-chip" id="chipPresetYesterday" onclick="applyReportPreset('yesterday')">Ieri</button>
+                <button type="button" class="btn-range-chip active" id="chipPreset7" onclick="applyReportPreset('7days')">Ultimi 7 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPreset14" onclick="applyReportPreset('14days')">Ultimi 14 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPreset30" onclick="applyReportPreset('30days')">Ultimi 30 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPresetMonth" onclick="applyReportPreset('thisMonth')">Questo Mese</button>
+                <button type="button" class="btn-range-chip" id="chipPresetLastMonth" onclick="applyReportPreset('lastMonth')">Mese Scorso</button>
+              </div>
+            </div>
+
+            <!-- Date Pickers (Da / A) -->
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding-top:8px; border-top:1px dashed var(--border-color);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="reportStartDate" style="font-size:12.5px; color:var(--text-muted); font-weight:700;">Da Data:</label>
+                <input type="date" id="reportStartDate" class="form-input" style="padding:6px 12px; font-size:12.5px; border-radius:8px; width:auto; background:var(--bg-card); cursor:pointer;" onchange="applyCustomDateRange()">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="reportEndDate" style="font-size:12.5px; color:var(--text-muted); font-weight:700;">A Data:</label>
+                <input type="date" id="reportEndDate" class="form-input" style="padding:6px 12px; font-size:12.5px; border-radius:8px; width:auto; background:var(--bg-card); cursor:pointer;" onchange="applyCustomDateRange()">
+              </div>
+
+              <button type="button" class="btn-primary" style="padding:8px 16px; font-size:12.5px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:6px;" onclick="applyCustomDateRange()">
+                <span>⚡</span> <span>Applica Intervallo al Grafico</span>
+              </button>
+
+              <div id="reportsRangeDaysCount" style="font-size:12px; color:var(--text-muted); margin-left:auto; font-weight:600;">
+                Visualizzazione: 7 giorni selezionati
+              </div>
             </div>
           </div>
 
@@ -2767,8 +2815,8 @@
         <button type="button" class="btn-primary" onclick="saveSelectedAvatar()" style="flex:1; padding:11px;">💾 Salva Foto Profilo</button>
       </div>
     </div>
-  </div>
-
+  </div>
+
   <!-- Add Table Modal (Solo Proprietario) -->
   <div class="modal-overlay" id="addTableModal">
     <div class="modal-box" style="max-width:440px; width:92%;">

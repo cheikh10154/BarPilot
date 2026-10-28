@@ -3455,6 +3455,259 @@ const REPORTS_DATASETS = {
   }
 };
 
+
+// ============================================================================
+// Custom Time Range & Reports Date Picker Engine
+// ============================================================================
+function toggleCustomRangeBox() {
+  const box = document.getElementById("reportsCustomRangeBox");
+  if (box) {
+    box.style.display = (box.style.display === "none") ? "flex" : "flex";
+  }
+  const btnCustom = document.getElementById("btnReportCustom");
+  const btnDay = document.getElementById("btnReportDay");
+  const btnWeek = document.getElementById("btnReportWeek");
+  const btnMonth = document.getElementById("btnReportMonth");
+  if (btnCustom) btnCustom.classList.add("active");
+  if (btnDay) btnDay.classList.remove("active");
+  if (btnWeek) btnWeek.classList.remove("active");
+  if (btnMonth) btnMonth.classList.remove("active");
+
+  applyReportPreset("7days");
+}
+
+function applyReportPreset(preset) {
+  const chips = ["chipPresetToday", "chipPresetYesterday", "chipPreset7", "chipPreset14", "chipPreset30", "chipPresetMonth", "chipPresetLastMonth"];
+  chips.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("active");
+  });
+
+  const now = new Date();
+  let start = new Date(now);
+  let end = new Date(now);
+  let label = "Intervallo Personalizzato";
+
+  if (preset === "today") {
+    const chip = document.getElementById("chipPresetToday");
+    if (chip) chip.classList.add("active");
+    label = "Oggi (" + now.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + ")";
+  } else if (preset === "yesterday") {
+    start.setDate(now.getDate() - 1);
+    end.setDate(now.getDate() - 1);
+    const chip = document.getElementById("chipPresetYesterday");
+    if (chip) chip.classList.add("active");
+    label = "Ieri (" + start.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + ")";
+  } else if (preset === "7days") {
+    start.setDate(now.getDate() - 6);
+    const chip = document.getElementById("chipPreset7");
+    if (chip) chip.classList.add("active");
+    label = "Ultimi 7 Giorni";
+  } else if (preset === "14days") {
+    start.setDate(now.getDate() - 13);
+    const chip = document.getElementById("chipPreset14");
+    if (chip) chip.classList.add("active");
+    label = "Ultimi 14 Giorni";
+  } else if (preset === "30days") {
+    start.setDate(now.getDate() - 29);
+    const chip = document.getElementById("chipPreset30");
+    if (chip) chip.classList.add("active");
+    label = "Ultimi 30 Giorni";
+  } else if (preset === "thisMonth") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const chip = document.getElementById("chipPresetMonth");
+    if (chip) chip.classList.add("active");
+    label = "Questo Mese (" + now.toLocaleDateString("it-IT", { month: "long" }) + ")";
+  } else if (preset === "lastMonth") {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    end = new Date(now.getFullYear(), now.getMonth(), 0);
+    const chip = document.getElementById("chipPresetLastMonth");
+    if (chip) chip.classList.add("active");
+    label = "Mese Scorso (" + start.toLocaleDateString("it-IT", { month: "long" }) + ")";
+  }
+
+  const formatYmd = d => {
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${yr}-${mo}-${da}`;
+  };
+
+  const startInput = document.getElementById("reportStartDate");
+  const endInput = document.getElementById("reportEndDate");
+  if (startInput) startInput.value = formatYmd(start);
+  if (endInput) endInput.value = formatYmd(end);
+
+  generateCustomReportsDataset(start, end, label);
+}
+
+function applyCustomDateRange() {
+  const startInput = document.getElementById("reportStartDate");
+  const endInput = document.getElementById("reportEndDate");
+  if (!startInput || !endInput || !startInput.value || !endInput.value) {
+    return;
+  }
+
+  let start = new Date(startInput.value);
+  let end = new Date(endInput.value);
+
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+    startInput.value = start.toISOString().split("T")[0];
+    endInput.value = end.toISOString().split("T")[0];
+  }
+
+  const label = `${start.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`;
+  generateCustomReportsDataset(start, end, label);
+}
+
+function generateCustomReportsDataset(startDate, endDate, rangeLabel) {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const numDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / msPerDay) + 1);
+
+  const countEl = document.getElementById("reportsRangeDaysCount");
+  if (countEl) {
+    countEl.textContent = `Visualizzazione: ${numDays} ${numDays === 1 ? 'giorno' : 'giorni'} ${numDays === 1 ? 'selezionato' : 'selezionati'}`;
+  }
+
+  const badgeEl = document.getElementById("reportsActiveRangeBadge");
+  if (badgeEl) {
+    badgeEl.textContent = rangeLabel;
+  }
+
+  let points = [];
+  const daysOfWeek = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+
+  if (numDays === 1) {
+    const hours = [
+      { h: "08:00", factor: 0.35, note: "Colazioni: espresso & cornetti" },
+      { h: "10:00", factor: 0.65, note: "Pausa caffè di metà mattina" },
+      { h: "12:00", factor: 1.10, note: "Pranzo veloce & toast" },
+      { h: "14:00", factor: 0.85, note: "Caffè dopo pranzo" },
+      { h: "16:00", factor: 0.50, note: "Pausa pomeridiana & tè" },
+      { h: "18:00", factor: 1.95, note: "Rush Aperitivo: Spritz & taglieri" },
+      { h: "20:00", factor: 1.60, note: "Cocktails & stuzzicherie" },
+      { h: "22:00", factor: 0.90, note: "Drink della sera & amari" }
+    ];
+
+    const baseVal = 200;
+    points = hours.map(hr => {
+      const val = Math.round(baseVal * hr.factor);
+      const orders = Math.round(val / 6.2);
+      return {
+        label: hr.h,
+        value: val,
+        orders: orders,
+        note: hr.note
+      };
+    });
+  } else if (numDays <= 14) {
+    for (let i = 0; i < numDays; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dayName = daysOfWeek[d.getDay()];
+      const dayNum = d.getDate();
+      const isWeekend = (d.getDay() === 5 || d.getDay() === 6);
+      const baseRev = isWeekend ? 2100 + ((d.getDate() * 47) % 350) : 1050 + ((d.getDate() * 37) % 320);
+      const orders = Math.round(baseRev / (isWeekend ? 7.8 : 6.4));
+
+      points.push({
+        label: `${dayName} ${dayNum}`,
+        value: baseRev,
+        orders: orders,
+        note: isWeekend ? "Fine settimana: aperitivi e cocktail serali" : "Servizio standard banco & tavoli"
+      });
+    }
+  } else if (numDays <= 60) {
+    const step = Math.ceil(numDays / 10);
+    for (let i = 0; i < numDays; i += step) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dayNum = d.getDate();
+      const monthShort = d.toLocaleDateString("it-IT", { month: "short" });
+      const rev = 1200 + ((d.getDate() * 59) % 950);
+      points.push({
+        label: `${dayNum} ${monthShort}`,
+        value: rev,
+        orders: Math.round(rev / 7),
+        note: `Periodo aggregato di ${step} giorni`
+      });
+    }
+  } else {
+    const stepDays = Math.ceil(numDays / 12);
+    for (let i = 0; i < numDays; i += stepDays) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const monthLabel = d.toLocaleDateString("it-IT", { month: "short", year: "2-digit" });
+      const rev = 14000 + ((i * 123) % 4500);
+      points.push({
+        label: monthLabel,
+        value: Math.round(rev / 10),
+        orders: Math.round(rev / 70),
+        note: `Mese di ${monthLabel}`
+      });
+    }
+  }
+
+  const totalRev = points.reduce((acc, p) => acc + p.value, 0);
+  const totalOrders = points.reduce((acc, p) => acc + p.orders, 0);
+  const avgTicket = (totalRev / Math.max(1, totalOrders)).toFixed(2);
+
+  let peakPoint = points[0] || { label: "-", value: 0 };
+  points.forEach(p => {
+    if (p.value > peakPoint.value) peakPoint = p;
+  });
+
+  const maxValRaw = Math.max(...points.map(p => p.value), 100);
+  const maxVal = Math.ceil((maxValRaw * 1.18) / 100) * 100;
+  const yStep = maxVal / 5;
+  const yLabels = [maxVal, Math.round(yStep * 4), Math.round(yStep * 3), Math.round(yStep * 2), Math.round(yStep), 0];
+
+  REPORTS_DATASETS.custom = {
+    id: "custom",
+    title: `Andamento Vendite: ${rangeLabel}`,
+    subtitle: `Intervallo selezionato: ${startDate.toLocaleDateString("it-IT")} al ${endDate.toLocaleDateString("it-IT")} (${numDays} gg) · Ascisse (X) - Bississe (Y) in €`,
+    dateRangeText: `${rangeLabel} · ${numDays} ${numDays === 1 ? 'giorno' : 'giorni'}`,
+    kpi: {
+      revenue: `${totalRev.toLocaleString()} €`,
+      growth: "+11.8% vs periodo prec.",
+      orders: totalOrders.toLocaleString(),
+      ordersSub: `Media di ${Math.round(totalOrders / Math.max(1, points.length))} per fascia`,
+      avgTicket: `${avgTicket} €`,
+      peak: `${peakPoint.label}`,
+      peakSub: `Picco massimo (${peakPoint.value.toLocaleString()} €)`
+    },
+    maxVal: maxVal,
+    yLabels: yLabels,
+    points: points
+  };
+
+  currentReportsPeriod = "custom";
+  selectedReportPointIndex = null;
+
+  const btnCustom = document.getElementById("btnReportCustom");
+  const btnDay = document.getElementById("btnReportDay");
+  const btnWeek = document.getElementById("btnReportWeek");
+  const btnMonth = document.getElementById("btnReportMonth");
+  if (btnCustom) btnCustom.classList.add("active");
+  if (btnDay) btnDay.classList.remove("active");
+  if (btnWeek) btnWeek.classList.remove("active");
+  if (btnMonth) btnMonth.classList.remove("active");
+
+  renderReports();
+
+  if (typeof showToast === "function") {
+    showToast(`📈 Grafico aggiornato per: ${rangeLabel}`);
+  }
+}
+
+window.toggleCustomRangeBox = toggleCustomRangeBox;
+window.applyReportPreset = applyReportPreset;
+window.applyCustomDateRange = applyCustomDateRange;
+window.generateCustomReportsDataset = generateCustomReportsDataset;
+
 function switchReportsPeriod(period) {
   if (!REPORTS_DATASETS[period]) return;
   currentReportsPeriod = period;
@@ -3467,6 +3720,8 @@ function switchReportsPeriod(period) {
   if (btnDay) btnDay.classList.toggle("active", period === "day");
   if (btnWeek) btnWeek.classList.toggle("active", period === "week");
   if (btnMonth) btnMonth.classList.toggle("active", period === "month");
+  const btnCustom = document.getElementById("btnReportCustom");
+  if (btnCustom) btnCustom.classList.remove("active");
 
   renderReports();
 }
