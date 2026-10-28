@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarPilot Admin Console - Gestione Bar, Fatture & Abbonamenti</title>
+  <link rel="icon" type="image/png" href="../assets/images/logo.png">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="admin-layout">
+
+    <!-- ======================================================================
+         Sidebar Navigation
+         ====================================================================== -->
+    <aside class="sidebar" id="adminSidebar">
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-logo-icon">
+          <!-- Cocktail Glass SVG -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 22h8"></path>
+            <path d="M12 15v7"></path>
+            <path d="m19 3-7 8-7-8Z"></path>
+          </svg>
+        </div>
+        <div class="sidebar-brand-title">
+          BarPilot
+          <span class="sidebar-brand-badge">Admin Console</span>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <button type="button" class="nav-link active" data-view="overview">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">📊</span>
+            <span>Panoramica</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="bars">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">🏢</span>
+            <span>Bar iscritti</span>
+          </div>
+          <span class="nav-badge">248</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="subscriptions">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">💳</span>
+            <span>Abbonamenti</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="invoices">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">📄</span>
+            <span>Fatture</span>
+          </div>
+          <span class="nav-badge" style="background:rgba(239,68,68,0.25); color:#EF4444;">11</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="payments">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">💰</span>
+            <span>Pagamenti</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="stats">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">📈</span>
+            <span>Statistiche</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+
+        <button type="button" class="nav-link" data-view="settings">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">⚙️</span>
+            <span>Impostazioni</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <!-- Return to POS link -->
+        <a href="../" class="btn-open-client-pos" title="Apri applicazione gestionale bar">
+          <span>🏪</span>
+          <span>Apri Bar POS Client</span>
+        </a>
+
+        <!-- Admin Profile -->
+        <div class="admin-user-card" onclick="window.adminConsole.switchView('settings')">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="admin-avatar-img" alt="Super Admin">
+          <div class="admin-user-info">
+            <div class="admin-user-name">Luca Ferrari</div>
+            <div class="admin-user-role">Super Admin</div>
+          </div>
+          <span style="font-size:12px; color:var(--text-dim);">›</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ======================================================================
+         Main Layout
+         ====================================================================== -->
+    <div class="main-wrapper">
+
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="topbar-title" id="topbarTitle">Panoramica</h1>
+          <p class="topbar-subtitle" id="topbarSubtitle">Tutti i dati della tua piattaforma BarPilot in tempo reale.</p>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Live Search Input -->
+          <div class="search-box-wrap">
+            <span class="search-box-icon">🔍</span>
+            <input type="text" class="search-box-input" id="globalSearchInput" placeholder="Cerca bar, email, fattura..." autocomplete="off">
+          </div>
+
+          <!-- Date Filter Dropdown -->
+          <button type="button" class="date-filter-btn" onclick="alert('Filtro intervallo date: Ottobre 2025 (Periodo Corrente)')">
+            <span>📅</span>
+            <span>1 ott 2025 - 31 ott 2025</span>
+            <span style="font-size:10px; opacity:0.6;">▾</span>
+          </button>
+
+          <!-- Notification Bell -->
+          <button type="button" class="icon-bell-btn" onclick="alert('Notifiche Admin:\n• 11 bar con pagamento in ritardo (sollecito disponibile)\n• 18 bar in scadenza prova gratuita nei prossimi 5 giorni\n• Nuovo bar registrato: Caffè del Porto')">
+            <span>🔔</span>
+            <span class="icon-bell-badge">3</span>
+          </button>
+
+          <!-- Admin Avatar Pill -->
+          <div class="topbar-avatar-pill" onclick="window.adminConsole.switchView('settings')">
+            LF
+          </div>
+
+          <!-- Add New Bar CTA Button -->
+          <button type="button" class="btn-primary-orange" onclick="window.adminConsole.openNewBarModal()">
+            <span>+</span>
+            <span>Nuovo bar</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Body -->
+      <main class="content-body">
+
+        <!-- ==================================================================
+             VIEW 1: PANORAMICA (Overview)
+             ================================================================== -->
+        <section class="page-view active" id="view-overview">
+          
+          <!-- Top 5 KPI Cards -->
+          <div class="kpi-grid">
+            <!-- 1. Bar totali -->
+            <div class="kpi-card" onclick="window.adminConsole.switchView('bars')" style="cursor:pointer;">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap kpi-icon-purple">👥</div>
+                <div class="kpi-sparkline">
+                  <span class="spark-bar" style="height:40%;"></span>
+                  <span class="spark-bar" style="height:60%;"></span>
+                  <span class="spark-bar" style="height:85%;"></span>
+                  <span class="spark-bar" style="height:100%; background:#A855F7;"></span>
+                </div>
+              </div>
+              <div class="kpi-card-label">Bar totali</div>
+              <div class="kpi-card-value" id="kpiTotalBars">248</div>
+              <div class="kpi-card-trend trend-up">
+                <span>↑</span> <span>+12%</span>
+              </div>
+            </div>
+
+            <!-- 2. Bar attivi -->
+            <div class="kpi-card" onclick="window.adminConsole.switchView('bars')" style="cursor:pointer;">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap kpi-icon-green">🟢</div>
+                <div class="kpi-sparkline">
+                  <span class="spark-bar" style="height:50%;"></span>
+                  <span class="spark-bar" style="height:70%;"></span>
+                  <span class="spark-bar" style="height:90%;"></span>
+                  <span class="spark-bar" style="height:100%; background:#10B981;"></span>
+                </div>
+              </div>
+              <div class="kpi-card-label">Bar attivi</div>
+              <div class="kpi-card-value" id="kpiActiveBars">212</div>
+              <div class="kpi-card-trend trend-up">
+                <span>↑</span> <span>+8%</span>
+              </div>
+            </div>
+
+            <!-- 3. In prova gratuita -->
+            <div class="kpi-card" onclick="window.adminConsole.switchView('bars')" style="cursor:pointer;">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap kpi-icon-blue">⏱️</div>
+                <div class="kpi-sparkline">
+                  <span class="spark-bar" style="height:35%;"></span>
+                  <span class="spark-bar" style="height:55%;"></span>
+                  <span class="spark-bar" style="height:80%;"></span>
+                  <span class="spark-bar" style="height:100%; background:#3B82F6;"></span>
+                </div>
+              </div>
+              <div class="kpi-card-label">In prova gratuita</div>
+              <div class="kpi-card-value" id="kpiTrialBars">18</div>
+              <div class="kpi-card-trend trend-up">
+                <span>↑</span> <span>+20%</span>
+              </div>
+            </div>
+
+            <!-- 4. In ritardo pagamento -->
+            <div class="kpi-card" onclick="window.adminConsole.switchView('invoices')" style="cursor:pointer; border-color: rgba(239, 68, 68, 0.35);">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap kpi-icon-red">🔴</div>
+                <span style="font-size:16px;">⚠️</span>
+              </div>
+              <div class="kpi-card-label">In ritardo pagamento</div>
+              <div class="kpi-card-value" id="kpiLateBars" style="color:#EF4444;">11</div>
+              <div class="kpi-card-trend trend-alert">
+                <span>↑</span> <span>+37%</span>
+              </div>
+            </div>
+
+            <!-- 5. Fatturato mensile -->
+            <div class="kpi-card" onclick="window.adminConsole.switchView('stats')" style="cursor:pointer; border-color: rgba(255, 107, 0, 0.35);">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap kpi-icon-gold">💰</div>
+                <div class="kpi-sparkline">
+                  <span class="spark-bar" style="height:45%;"></span>
+                  <span class="spark-bar" style="height:65%;"></span>
+                  <span class="spark-bar" style="height:85%;"></span>
+                  <span class="spark-bar" style="height:100%; background:#F59E0B;"></span>
+                </div>
+              </div>
+              <div class="kpi-card-label">Fatturato mensile</div>
+              <div class="kpi-card-value" id="kpiRevenue" style="color:#FFB800;">12.480 €</div>
+              <div class="kpi-card-trend trend-up">
+                <span>↑</span> <span>+16%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-grid">
+            <!-- 1. Crescita iscritti -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Crescita iscritti</h3>
+                <select class="chart-filter-select">
+                  <option>Ultimi 12 mesi</option>
+                  <option>Ultimi 6 mesi</option>
+                  <option>Anno 2025</option>
+                </select>
+              </div>
+              <div class="chart-content-area" id="growthChartWrap">
+                <!-- SVG Area Chart Rendered via JS -->
+              </div>
+            </div>
+
+            <!-- 2. Stato abbonamenti -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Stato abbonamenti</h3>
+              </div>
+              <div class="chart-content-area">
+                <div class="donut-chart-container">
+                  <div class="donut-svg-wrap">
+                    <div id="donutSvgWrap" style="width:100%; height:100%;"></div>
+                    <div class="donut-center-text">
+                      <div class="donut-center-number">248</div>
+                      <div class="donut-center-label">Bar totali</div>
+                    </div>
+                  </div>
+
+                  <div class="donut-legend-list">
+                    <div class="donut-legend-item">
+                      <div class="donut-legend-left">
+                        <span class="legend-dot" style="background:#10B981;"></span>
+                        <span>Attivi</span>
+                      </div>
+                      <div class="donut-legend-right">
+                        <span class="donut-legend-count">212</span>
+                        <span class="donut-legend-percent">85%</span>
+                      </div>
+                    </div>
+
+                    <div class="donut-legend-item">
+                      <div class="donut-legend-left">
+                        <span class="legend-dot" style="background:#3B82F6;"></span>
+                        <span>Prova gratuita</span>
+                      </div>
+                      <div class="donut-legend-right">
+                        <span class="donut-legend-count">18</span>
+                        <span class="donut-legend-percent">7%</span>
+                      </div>
+                    </div>
+
+                    <div class="donut-legend-item">
+                      <div class="donut-legend-left">
+                        <span class="legend-dot" style="background:#EF4444;"></span>
+                        <span>In ritardo</span>
+                      </div>
+                      <div class="donut-legend-right">
+                        <span class="donut-legend-count">11</span>
+                        <span class="donut-legend-percent">4%</span>
+                      </div>
+                    </div>
+
+                    <div class="donut-legend-item">
+                      <div class="donut-legend-left">
+                        <span class="legend-dot" style="background:#A855F7;"></span>
+                        <span>Cancellati</span>
+                      </div>
+                      <div class="donut-legend-right">
+                        <span class="donut-legend-count">7</span>
+                        <span class="donut-legend-percent">3%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Ricavi -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Ricavi</h3>
+                <select class="chart-filter-select">
+                  <option>Ultimi 12 mesi</option>
+                  <option>Ultimi 3 mesi</option>
+                </select>
+              </div>
+              <div class="chart-content-area" id="revenueChartWrap">
+                <!-- SVG Bar Chart Rendered via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Grid: Ultimi bar iscritti + Attività recenti -->
+          <div class="bottom-grid">
+            <!-- Table: Ultimi bar iscritti -->
+            <div class="section-box">
+              <div class="section-box-header">
+                <h3 class="section-box-title">Ultimi bar iscritti</h3>
+                <div class="section-box-filters">
+                  <input type="text" class="table-filter-input" id="tableQuickSearch" placeholder="Cerca bar..." oninput="document.getElementById('globalSearchInput').value = this.value; window.adminConsole.searchQuery = this.value.toLowerCase(); window.adminConsole.renderOverviewTable();">
+                  <select class="table-filter-select" id="filterStatus">
+                    <option value="all">Tutti gli stati</option>
+                    <option value="active">Attivo</option>
+                    <option value="trial">Prova gratuita</option>
+                    <option value="late">In ritardo</option>
+                    <option value="canceled">Cancellato</option>
+                  </select>
+                  <select class="table-filter-select" id="filterPlan">
+                    <option value="all">Tutti i piani</option>
+                    <option value="Basic">Basic (38€)</option>
+                    <option value="Pro">Pro (59€)</option>
+                    <option value="Premium">Premium (99€)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="data-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th style="width:24px;"><input type="checkbox"></th>
+                      <th>Nome del bar</th>
+                      <th>Proprietario</th>
+                      <th>Email</th>
+                      <th>Piano</th>
+                      <th>Stato</th>
+                      <th>Prossima fattura</th>
+                      <th>Ricavi mensili</th>
+                      <th>Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewBarsTbody">
+                    <!-- Populated dynamically via admin.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right Feed: Attività recenti -->
+            <div class="section-box">
+              <div class="section-box-header">
+                <h3 class="section-box-title">Attività recenti</h3>
+                <a href="#" onclick="alert('Registro completo aperto'); return false;" style="font-size:11.5px; color:var(--primary); text-decoration:none; font-weight:700;">Vedi tutte</a>
+              </div>
+              <div class="activity-feed-list" id="recentActivitiesList">
+                <!-- Populated dynamically via admin.js -->
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================================================================
+             VIEW 2: BAR ISCRITTI (Full Directory)
+             ================================================================== -->
+        <section class="page-view" id="view-bars">
+          <div class="section-box" style="margin-bottom:20px;">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Directory Completa Bar Iscritti (248)</h3>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn-primary-orange" onclick="window.adminConsole.exportBarsCSV()" style="background:var(--bg-card-secondary); color:#fff; border:1px solid var(--border-color); box-shadow:none;">
+                  ⬇️ Esporta CSV
+                </button>
+                <button type="button" class="btn-primary-orange" onclick="window.adminConsole.openNewBarModal()">
+                  + Aggiungi Bar
+                </button>
+              </div>
+            </div>
+
+            <div class="data-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width:24px;"><input type="checkbox"></th>
+                    <th>Locale</th>
+                    <th>Città</th>
+                    <th>Titolare</th>
+                    <th>Email</th>
+                    <th>Telefono</th>
+                    <th>Piano</th>
+                    <th>Stato</th>
+                    <th>Scadenza / Fattura</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="fullBarsTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 3: ABBONAMENTI & SCADENZE
+             ================================================================== -->
+        <section class="page-view" id="view-subscriptions">
+          <div class="section-box">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Monitoraggio Scadenze & Canoni Ricorrenti</h3>
+              <span class="badge" style="background:rgba(255,107,0,0.15); color:var(--primary); padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700;">
+                Tariffa Unica Ufficiale: 59,00 € / mese
+              </span>
+            </div>
+            <div class="data-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Bar</th>
+                    <th>Piano & Tariffa</th>
+                    <th>Metodo Pagamento</th>
+                    <th>Prossima Data Scadenza</th>
+                    <th>Stato Rinnovo</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="subscriptionsTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 4: FATTURE (Invoices)
+             ================================================================== -->
+        <section class="page-view" id="view-invoices">
+          <div class="section-box">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Registro Fatture & Ricevute Fiscali</h3>
+              <div style="display:flex; gap:8px;">
+                <button class="btn-primary-orange" onclick="alert('Generazione automatica ricevute del mese completata!')">
+                  ⚡ Emetti Fatture del Mese
+                </button>
+              </div>
+            </div>
+            <div class="data-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Numero</th>
+                    <th>Bar Intestatario</th>
+                    <th>Data Emissione</th>
+                    <th>Scadenza Pagamento</th>
+                    <th>Importo</th>
+                    <th>Stato</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="invoicesTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 5: PAGAMENTI & GATEWAY
+             ================================================================== -->
+        <section class="page-view" id="view-payments">
+          <div class="section-box">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Gateway & Transazioni Elettroniche</h3>
+            </div>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">
+              Canali di pagamento attivi per i clienti: <strong>Google Pay & Wallet</strong>, <strong>Carta di Credito (Stripe)</strong>, <strong>SEPA Direct Debit</strong>.
+            </p>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:24px;">
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Transazioni Riuscite (30 gg)</div>
+                <div style="font-size:24px; font-weight:800; color:#10B981; margin-top:4px;">212 / 223</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Tasso di successo: 95.1%</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Incasso Totale Mensile</div>
+                <div style="font-size:24px; font-weight:800; color:#FFB800; margin-top:4px;">12.480,00 €</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">+16% rispetto al mese precedente</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Pagamenti Sospesi / Retry</div>
+                <div style="font-size:24px; font-weight:800; color:#EF4444; margin-top:4px;">11 (649 €)</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Sollecito automatico attivo via email</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 6: STATISTICHE (SaaS Metrics)
+             ================================================================== -->
+        <section class="page-view" id="view-stats">
+          <div class="section-box">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Metriche Chiave SaaS BarPilot</h3>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+                <div style="font-size:12px; color:var(--text-muted);">MRR (Monthly Recurring Revenue)</div>
+                <div style="font-size:24px; font-weight:900; color:#10B981;">12.480 €</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+                <div style="font-size:12px; color:var(--text-muted);">ARR (Annual Run Rate)</div>
+                <div style="font-size:24px; font-weight:900; color:#3B82F6;">149.760 €</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+                <div style="font-size:12px; color:var(--text-muted);">ARPU (Ricavo medio per bar)</div>
+                <div style="font-size:24px; font-weight:900; color:#F59E0B;">58,86 €</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+                <div style="font-size:12px; color:var(--text-muted);">Tasso di Churn Mensile</div>
+                <div style="font-size:24px; font-weight:900; color:#94A3B8;">2.8%</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 7: IMPOSTAZIONI (Settings & Supabase Sync)
+             ================================================================== -->
+        <section class="page-view" id="view-settings">
+          <div class="section-box" style="max-width:800px;">
+            <div class="section-box-header">
+              <h3 class="section-box-title">Configurazione Piattaforma & Supabase Live Sync</h3>
+            </div>
+            
+            <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
+              <h4 style="font-size:14px; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <span>🟢</span> <span>Stato Database Supabase</span>
+              </h4>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+                Connessione con il progetto Supabase <strong>cprxxxlgaofopmogeuer.supabase.co</strong> attiva e sincronizzata con le tabelle bar, auth e sottoscrizioni.
+              </p>
+              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.showToast('✅ Sincronizzazione Supabase completata con successo!')">
+                🔄 Sincronizza Dati Supabase Ora
+              </button>
+            </div>
+
+            <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
+              <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">Dati Aziendali per Fatturazione ai Bar</h4>
+              <div class="form-group-admin">
+                <label class="form-label-admin">Ragione Sociale Fornitore Software</label>
+                <input type="text" class="form-input-admin" value="BarPilot Inc. · Gestione Bar & Ristoranti">
+              </div>
+              <div class="form-group-admin">
+                <label class="form-label-admin">Partita IVA / Codice Fiscale</label>
+                <input type="text" class="form-input-admin" value="IT 12345678901">
+              </div>
+              <div class="form-group-admin">
+                <label class="form-label-admin">Email Invio Notifiche & Fatture</label>
+                <input type="email" class="form-input-admin" value="billing@barpilot.app">
+              </div>
+              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.showToast('Impostazioni salvate con successo!')">
+                💾 Salva Modifiche
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================
+       MODAL 1: Dettaglio Bar (Matches Screenshot 2)
+       ======================================================================== -->
+  <div class="admin-modal-overlay" id="barDetailModal">
+    <div class="admin-modal-box">
+      <div class="modal-header-bar">
+        <div class="modal-title-wrap">
+          <div style="font-size:24px;">🏢</div>
+          <div>
+            <h3 class="modal-header-title">Dettaglio bar</h3>
+            <p style="font-size:11.5px; color:var(--text-muted);">Scheda anagrafica e piano abbonamento</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="window.adminConsole.closeBarDetail()">✕</button>
+      </div>
+
+      <div class="modal-body-scroll">
+        <!-- Hero Card -->
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card-secondary); border-radius:14px; padding:16px; margin-bottom:16px; border:1px solid var(--border-color);">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:48px; height:48px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900;">
+              BC
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h4 style="font-size:17px; font-weight:800; color:#fff;" id="modalBarName">Bar Centrale</h4>
+                <span class="status-pill status-active" id="modalBarStatusPill">Attivo</span>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted);" id="modalBarCity">Milano</p>
+            </div>
+          </div>
+
+          <button class="btn-primary-orange" onclick="window.adminConsole.closeBarDetail(); window.adminConsole.openEditBarModal(window.adminConsole.selectedBar.id)" style="height:32px; font-size:12px;">
+            ✏️ Modifica
+          </button>
+        </div>
+
+        <!-- Sub Tabs -->
+        <div class="modal-tabs-row">
+          <button class="modal-tab-btn active">Panoramica</button>
+          <button class="modal-tab-btn" onclick="alert('Abbonamento attivo: 59€/mese con Google Pay')">Abbonamento</button>
+          <button class="modal-tab-btn" onclick="window.adminConsole.closeBarDetail(); window.adminConsole.switchView('invoices')">Fatture</button>
+          <button class="modal-tab-btn" onclick="alert('Statistiche utilizzo: 1.420 scontrini emessi questo mese')">Utilizzo</button>
+          <button class="modal-tab-btn" onclick="alert('Note interne memorizzate')">Note</button>
+        </div>
+
+        <!-- Grid Info -->
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px;">
+          <div style="background:var(--bg-card-secondary); border-radius:12px; padding:16px; border:1px solid var(--border-color);">
+            <div style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px;">Informazioni Bar</div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Proprietario:</span>
+                <strong id="modalBarOwner">Marco Bianchi</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Email:</span>
+                <span id="modalBarEmail" style="color:var(--primary); font-weight:600;">marco@barcentrale.it</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Telefono:</span>
+                <span id="modalBarPhone">+39 02 87654321</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Indirizzo:</span>
+                <span id="modalBarAddress">Via Roma 123, Milano</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Partita IVA:</span>
+                <span id="modalBarPiva">IT09876543210</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Data iscrizione:</span>
+                <span id="modalBarCreated">15 gen 2024</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Ultimo accesso:</span>
+                <span id="modalBarLastAccess">28 ott 2025, 14:32</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Piano & Canone:</span>
+                <span id="modalBarPlan" style="color:#10B981; font-weight:800;">Pro (59.00 €/mese)</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Prossima scadenza:</span>
+                <strong id="modalBarNextDue">15 nov 2025</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-muted);">ID Bar:</span>
+                <code id="modalBarId" style="font-size:11px; color:#A855F7;">bp-bar-01</code>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="border-radius:12px; overflow:hidden; border:1px solid var(--border-color); margin-bottom:12px; height:180px;">
+              <img id="modalBarPhoto" src="" style="width:100%; height:100%; object-fit:cover;" alt="Foto Bar">
+            </div>
+            <button type="button" class="btn-primary-orange" style="width:100%; justify-content:center;" onclick="window.adminConsole.sendReminder(window.adminConsole.selectedBar.id)">
+              ✉️ Invia Promemoria / Contatta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 2: Dettaglio Fattura (Matches Screenshot 4)
+       ======================================================================== -->
+  <div class="admin-modal-overlay" id="invoiceDetailModal">
+    <div class="admin-modal-box" style="max-width:720px;">
+      <div class="modal-header-bar">
+        <div class="modal-title-wrap">
+          <div style="font-size:24px;">📄</div>
+          <div>
+            <h3 class="modal-header-title">Dettaglio fattura</h3>
+            <p style="font-size:11.5px; color:var(--text-muted);">Ricevuta fiscale per abbonamento BarPilot</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="window.adminConsole.closeInvoiceDetail()">✕</button>
+      </div>
+
+      <div class="modal-body-scroll">
+        <!-- Printable Invoice Paper -->
+        <div class="invoice-sheet" id="invoicePrintArea">
+          <div class="invoice-header-row">
+            <div>
+              <div class="invoice-brand-h2">Bar<span>Pilot</span></div>
+              <p style="font-size:11px; color:#64748b; margin-top:2px;">Software Gestionale Bar & Ristorazione</p>
+              <p style="font-size:11px; color:#64748b;">BarPilot Inc. · P.IVA IT12345678901 · Milano</p>
+            </div>
+            <div style="text-align:right;">
+              <div class="invoice-meta-num" id="invPreviewNumber">Fattura #2025-0145</div>
+              <div class="invoice-meta-date">Data emissione: <strong id="invPreviewDate">15 ottobre 2025</strong></div>
+              <div class="invoice-meta-date">Data scadenza: <strong id="invPreviewDueDate">15 ottobre 2025</strong></div>
+              <div style="margin-top:6px;">
+                <span class="status-pill status-active" id="invPreviewStatusPill">Pagata</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="invoice-parties-grid">
+            <div class="invoice-party-box">
+              <div class="invoice-party-title">Emessa da:</div>
+              <strong>BarPilot Inc.</strong><br>
+              Via Monte Napoleone 8, Milano<br>
+              P.IVA: IT 12345678901<br>
+              Email: billing@barpilot.app
+            </div>
+            <div class="invoice-party-box">
+              <div class="invoice-party-title">Intestata a:</div>
+              <strong id="invPreviewBarName">Bar Centrale</strong><br>
+              Cliente: <span id="invPreviewClientName">Marco Bianchi</span><br>
+              Indirizzo: <span id="invPreviewAddress">Via Roma 123, Milano</span><br>
+              P.IVA / CF: <span id="invPreviewPiva">IT09876543210</span>
+            </div>
+          </div>
+
+          <table class="invoice-items-table">
+            <thead>
+              <tr>
+                <th>Descrizione</th>
+                <th style="width:80px; text-align:center;">Q.tà</th>
+                <th style="width:110px; text-align:right;">Prezzo</th>
+                <th style="width:110px; text-align:right;">Importo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong id="invPreviewPlanName">Abbonamento BarPilot Pro (Mensile)</strong><br>
+                  <span style="font-size:11px; color:#64748b;">Periodo di servizio: <span id="invPreviewPeriod">15/10/2025 - 14/11/2025</span></span>
+                </td>
+                <td style="text-align:center;">1</td>
+                <td style="text-align:right;" id="invPreviewPrice">59,00 €</td>
+                <td style="text-align:right;"><strong>59,00 €</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="invoice-total-row">
+            <div class="invoice-total-box">
+              <div class="invoice-total-line">
+                <span>Imponibile:</span>
+                <span>48,36 €</span>
+              </div>
+              <div class="invoice-total-line">
+                <span>IVA (22%):</span>
+                <span>10,64 €</span>
+              </div>
+              <div class="invoice-total-line grand-total">
+                <span>Totale Fattura:</span>
+                <span id="invPreviewTotal">59,00 €</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn-primary-orange" onclick="window.print()">
+              🖨️ Scarica PDF / Stampa
+            </button>
+            <button type="button" class="btn-primary-orange" style="background:var(--bg-card-secondary); color:#fff; border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.showToast('Fattura inviata via email con successo!')">
+              ✉️ Invia via email
+            </button>
+          </div>
+          <button type="button" class="btn-table-action" style="width:auto; padding:0 14px; height:36px; color:#EF4444; border-color:rgba(239,68,68,0.3);" onclick="alert('Fattura contrassegnata come annullata')">
+            Annulla fattura
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 3: Nuovo Bar (Add New Bar)
+       ======================================================================== -->
+  <div class="admin-modal-overlay" id="newBarModal">
+    <div class="admin-modal-box" style="max-width:520px;">
+      <div class="modal-header-bar">
+        <h3 class="modal-header-title">➕ Iscrivi Nuovo Bar</h3>
+        <button class="modal-close-btn" onclick="window.adminConsole.closeNewBarModal()">✕</button>
+      </div>
+
+      <form onsubmit="window.adminConsole.handleCreateBarSubmit(event)" class="modal-body-scroll">
+        <div class="form-group-admin">
+          <label class="form-label-admin">Nome del Bar / Locale *</label>
+          <input type="text" id="newBarName" class="form-input-admin" placeholder="Es: Bar Navigli Lounge" required>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">Nome e Cognome Proprietario *</label>
+          <input type="text" id="newBarOwner" class="form-input-admin" placeholder="Es: Roberto Rossi" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group-admin">
+            <label class="form-label-admin">Email di Accesso *</label>
+            <input type="email" id="newBarEmail" class="form-input-admin" placeholder="roberto@navigli.it" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">Telefono / WhatsApp</label>
+            <input type="tel" id="newBarPhone" class="form-input-admin" placeholder="+39 333 1234567">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group-admin">
+            <label class="form-label-admin">Città</label>
+            <input type="text" id="newBarCity" class="form-input-admin" placeholder="Milano" value="Milano">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">Piano di Abbonamento</label>
+            <select id="newBarPlan" class="form-input-admin">
+              <option value="Pro" selected>Pro (59 €/mese)</option>
+              <option value="Basic">Basic (38 €/mese)</option>
+              <option value="Premium">Premium (99 €/mese)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-primary-orange" style="background:var(--bg-card-secondary); color:#fff; flex:1; justify-content:center; box-shadow:none;" onclick="window.adminConsole.closeNewBarModal()">
+            Annulla
+          </button>
+          <button type="submit" class="btn-primary-orange" style="flex:2; justify-content:center;">
+            🚀 Registra Bar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 4: Modifica Bar (Edit Bar)
+       ======================================================================== -->
+  <div class="admin-modal-overlay" id="editBarModal">
+    <div class="admin-modal-box" style="max-width:520px;">
+      <div class="modal-header-bar">
+        <h3 class="modal-header-title">✏️ Modifica Bar & Abbonamento</h3>
+        <button class="modal-close-btn" onclick="window.adminConsole.closeEditBarModal()">✕</button>
+      </div>
+
+      <form onsubmit="window.adminConsole.handleEditBarSubmit(event)" class="modal-body-scroll">
+        <input type="hidden" id="editBarId">
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">Nome Locale</label>
+          <input type="text" id="editBarName" class="form-input-admin" required>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">Proprietario</label>
+          <input type="text" id="editBarOwner" class="form-input-admin" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group-admin">
+            <label class="form-label-admin">Email</label>
+            <input type="email" id="editBarEmail" class="form-input-admin" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">Telefono</label>
+            <input type="tel" id="editBarPhone" class="form-input-admin">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group-admin">
+            <label class="form-label-admin">Città</label>
+            <input type="text" id="editBarCity" class="form-input-admin">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">Indirizzo</label>
+            <input type="text" id="editBarAddress" class="form-input-admin">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group-admin">
+            <label class="form-label-admin">Piano</label>
+            <select id="editBarPlan" class="form-input-admin">
+              <option value="Basic">Basic (38 €/mese)</option>
+              <option value="Pro">Pro (59 €/mese)</option>
+              <option value="Premium">Premium (99 €/mese)</option>
+            </select>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">Stato Abbonamento</label>
+            <select id="editBarStatus" class="form-input-admin">
+              <option value="active">Attivo</option>
+              <option value="trial">Prova gratuita</option>
+              <option value="late">In ritardo</option>
+              <option value="canceled">Cancellato</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">Data Prossima Fattura / Scadenza</label>
+          <input type="text" id="editBarNextDue" class="form-input-admin" placeholder="es: 15 nov 2025">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-primary-orange" style="background:var(--bg-card-secondary); color:#fff; flex:1; justify-content:center; box-shadow:none;" onclick="window.adminConsole.closeEditBarModal()">
+            Annulla
+          </button>
+          <button type="submit" class="btn-primary-orange" style="flex:2; justify-content:center;">
+            💾 Salva Modifiche
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
