@@ -3457,8 +3457,56 @@ const REPORTS_DATASETS = {
 
 
 // ============================================================================
-// Custom Time Range & Reports Date Picker Engine
 // ============================================================================
+// Custom Time Range & Italian Calendar Table Engine (DD/MM/YYYY)
+// ============================================================================
+const IT_MONTH_NAMES = [
+  "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+  "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+];
+
+let calCurrentYear = new Date().getFullYear();
+let calCurrentMonth = new Date().getMonth();
+let calRangeStart = null;
+let calRangeEnd = null;
+let calSelectingStep = 0; // 0 = next click sets start, 1 = next click sets end
+
+// Format Date object to Italian format GG/MM/AAAA
+function formatDateIT(date) {
+  if (!date || isNaN(date.getTime())) return "";
+  const d = String(date.getDate()).padStart(2, "0");
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const y = date.getFullYear();
+  return `${d}/${m}/${y}`;
+}
+
+// Parse Italian format GG/MM/AAAA to Date object
+function parseDateIT(str) {
+  if (!str) return null;
+  const clean = String(str).trim();
+  const parts = clean.split(/[\/\-\.]/);
+  if (parts.length !== 3) return null;
+  const d = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const y = parseInt(parts[2], 10);
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  if (y < 2000 || y > 2100 || m < 0 || m > 11 || d < 1 || d > 31) return null;
+  const date = new Date(y, m, d);
+  if (date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) {
+    return date;
+  }
+  return null;
+}
+
+// Format Date to YYYY-MM-DD for native input sync
+function formatYmd(d) {
+  if (!d || isNaN(d.getTime())) return "";
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${yr}-${mo}-${da}`;
+}
+
 function toggleCustomRangeBox() {
   const box = document.getElementById("reportsCustomRangeBox");
   if (box) {
@@ -3474,6 +3522,273 @@ function toggleCustomRangeBox() {
   if (btnMonth) btnMonth.classList.remove("active");
 
   applyReportPreset("7days");
+  renderReportsCalendarTable();
+}
+
+function toggleReportsCalendarTable() {
+  const container = document.getElementById("reportsCalendarContainer");
+  const btnText = document.getElementById("btnToggleCalendarText");
+  if (!container) return;
+
+  const isHidden = (container.style.display === "none");
+  container.style.display = isHidden ? "block" : "none";
+  if (btnText) {
+    btnText.textContent = isHidden ? "Nascondi Tabella" : "Mostra Tabella";
+  }
+}
+
+function navCalendarMonth(delta) {
+  if (delta === 0) {
+    const today = new Date();
+    calCurrentYear = today.getFullYear();
+    calCurrentMonth = today.getMonth();
+  } else {
+    calCurrentMonth += delta;
+    if (calCurrentMonth > 11) {
+      calCurrentMonth = 0;
+      calCurrentYear++;
+    } else if (calCurrentMonth < 0) {
+      calCurrentMonth = 11;
+      calCurrentYear--;
+    }
+  }
+  renderReportsCalendarTable();
+}
+
+function renderReportsCalendarTable() {
+  const tbody = document.getElementById("reportsCalendarTbody");
+  const labelEl = document.getElementById("reportsCalCurrentMonthLabel");
+  if (!tbody) return;
+
+  if (labelEl) {
+    labelEl.innerHTML = `<span>🗓️</span> <span>${IT_MONTH_NAMES[calCurrentMonth]} ${calCurrentYear}</span>`;
+  }
+
+  tbody.innerHTML = "";
+
+  const today = new Date();
+  const todayY = today.getFullYear();
+  const todayM = today.getMonth();
+  const todayD = today.getDate();
+
+  const firstDay = new Date(calCurrentYear, calCurrentMonth, 1);
+  const totalDays = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+
+  // Italian calendar: Monday-based (0 = Lun, 6 = Dom)
+  const startDayOffset = (firstDay.getDay() + 6) % 7;
+
+  let currentDay = 1;
+  let tr = document.createElement("tr");
+
+  // Leading empty cells
+  for (let i = 0; i < startDayOffset; i++) {
+    const td = document.createElement("td");
+    td.className = "reports-calendar-cell empty";
+    td.textContent = "";
+    tr.appendChild(td);
+  }
+
+  const isSameDay = (d1, d2) => {
+    if (!d1 || !d2) return false;
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
+
+  const isBetweenDays = (target, start, end) => {
+    if (!target || !start || !end) return false;
+    const tTime = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+    const sTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+    const eTime = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+    return tTime > sTime && tTime < eTime;
+  };
+
+  while (currentDay <= totalDays) {
+    if (tr.children.length === 7) {
+      tbody.appendChild(tr);
+      tr = document.createElement("tr");
+    }
+
+    const cellDate = new Date(calCurrentYear, calCurrentMonth, currentDay);
+    const dayNum = currentDay;
+    const td = document.createElement("td");
+    td.className = "reports-calendar-cell";
+
+    const isToday = (calCurrentYear === todayY && calCurrentMonth === todayM && dayNum === todayD);
+    if (isToday) td.classList.add("today-cell");
+
+    const isStart = isSameDay(cellDate, calRangeStart);
+    const isEnd = isSameDay(cellDate, calRangeEnd);
+    const isInRange = isBetweenDays(cellDate, calRangeStart, calRangeEnd);
+
+    if (isStart && isEnd) {
+      td.classList.add("range-start", "range-end", "range-single");
+      td.title = `Data selezionata: ${formatDateIT(cellDate)}`;
+    } else if (isStart) {
+      td.classList.add("range-start");
+      td.title = `Da Data: ${formatDateIT(cellDate)}`;
+    } else if (isEnd) {
+      td.classList.add("range-end");
+      td.title = `A Data: ${formatDateIT(cellDate)}`;
+    } else if (isInRange) {
+      td.classList.add("in-range");
+      td.title = `Incluso nel periodo (${formatDateIT(cellDate)})`;
+    }
+
+    td.textContent = dayNum;
+
+    // Direct click handler for table selection
+    td.onclick = () => handleCalendarCellClick(calCurrentYear, calCurrentMonth, dayNum);
+
+    tr.appendChild(td);
+    currentDay++;
+  }
+
+  // Trailing empty cells
+  while (tr.children.length < 7) {
+    const td = document.createElement("td");
+    td.className = "reports-calendar-cell empty";
+    td.textContent = "";
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+
+function handleCalendarCellClick(year, month, day) {
+  const clickedDate = new Date(year, month, day);
+
+  if (calSelectingStep === 0 || !calRangeStart || (calRangeStart && calRangeEnd)) {
+    // Step 1: First click sets Da Data
+    calRangeStart = clickedDate;
+    calRangeEnd = null;
+    calSelectingStep = 1;
+
+    const startInputIT = document.getElementById("reportStartDateIT");
+    const endInputIT = document.getElementById("reportEndDateIT");
+    if (startInputIT) startInputIT.value = formatDateIT(calRangeStart);
+    if (endInputIT) endInputIT.value = "";
+
+    const hint = document.getElementById("calSelectionStatusHint");
+    if (hint) {
+      hint.innerHTML = `🟢 <strong>Da Data:</strong> ${formatDateIT(calRangeStart)} — Ora clicca su una data per <strong>A Data</strong>`;
+    }
+
+    renderReportsCalendarTable();
+  } else if (calSelectingStep === 1) {
+    // Step 2: Second click sets A Data
+    if (clickedDate < calRangeStart) {
+      calRangeEnd = calRangeStart;
+      calRangeStart = clickedDate;
+    } else {
+      calRangeEnd = clickedDate;
+    }
+    calSelectingStep = 0;
+
+    const startInputIT = document.getElementById("reportStartDateIT");
+    const endInputIT = document.getElementById("reportEndDateIT");
+    if (startInputIT) startInputIT.value = formatDateIT(calRangeStart);
+    if (endInputIT) endInputIT.value = formatDateIT(calRangeEnd);
+
+    // Sync native inputs
+    const startNative = document.getElementById("reportStartDate");
+    const endNative = document.getElementById("reportEndDate");
+    if (startNative) startNative.value = formatYmd(calRangeStart);
+    if (endNative) endNative.value = formatYmd(calRangeEnd);
+
+    const hint = document.getElementById("calSelectionStatusHint");
+    if (hint) {
+      hint.innerHTML = `✅ <strong>Periodo:</strong> ${formatDateIT(calRangeStart)} ➔ ${formatDateIT(calRangeEnd)}`;
+    }
+
+    renderReportsCalendarTable();
+
+    // Deselect preset chips because user made custom selection on table
+    const chips = ["chipPresetToday", "chipPresetYesterday", "chipPreset7", "chipPreset14", "chipPreset30", "chipPresetMonth", "chipPresetLastMonth"];
+    chips.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("active");
+    });
+
+    const rangeLabel = `${formatDateIT(calRangeStart)} - ${formatDateIT(calRangeEnd)}`;
+    generateCustomReportsDataset(calRangeStart, calRangeEnd, rangeLabel);
+
+    if (typeof showToast === "function") {
+      showToast(`🗓️ Periodo impostato: ${rangeLabel}`);
+    }
+  }
+}
+
+function handleManualDateInput(type, el) {
+  let val = el.value.replace(/\D/g, "");
+  if (val.length > 8) val = val.substring(0, 8);
+
+  if (val.length >= 5) {
+    el.value = val.substring(0, 2) + "/" + val.substring(2, 4) + "/" + val.substring(4);
+  } else if (val.length >= 3) {
+    el.value = val.substring(0, 2) + "/" + val.substring(2);
+  } else {
+    el.value = val;
+  }
+}
+
+function applyCustomDateRangeFromIT() {
+  const startInput = document.getElementById("reportStartDateIT");
+  const endInput = document.getElementById("reportEndDateIT");
+  if (!startInput || !endInput) return;
+
+  let start = parseDateIT(startInput.value);
+  let end = parseDateIT(endInput.value);
+
+  if (!start && !end) {
+    if (typeof showToast === "function") showToast("Inserisci date valide in formato GG/MM/AAAA");
+    return;
+  }
+
+  if (start && !end) end = new Date(start);
+  if (!start && end) start = new Date(end);
+
+  if (start > end) {
+    const tmp = start;
+    start = end;
+    end = tmp;
+    startInput.value = formatDateIT(start);
+    endInput.value = formatDateIT(end);
+  }
+
+  calRangeStart = start;
+  calRangeEnd = end;
+  calCurrentYear = start.getFullYear();
+  calCurrentMonth = start.getMonth();
+
+  const startNative = document.getElementById("reportStartDate");
+  const endNative = document.getElementById("reportEndDate");
+  if (startNative) startNative.value = formatYmd(start);
+  if (endNative) endNative.value = formatYmd(end);
+
+  renderReportsCalendarTable();
+
+  const label = `${formatDateIT(start)} - ${formatDateIT(end)}`;
+  generateCustomReportsDataset(start, end, label);
+}
+
+function syncNativeToITDate() {
+  const startNative = document.getElementById("reportStartDate");
+  const endNative = document.getElementById("reportEndDate");
+  if (startNative && startNative.value) {
+    const parts = startNative.value.split("-");
+    if (parts.length === 3) {
+      const itEl = document.getElementById("reportStartDateIT");
+      if (itEl) itEl.value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
+  if (endNative && endNative.value) {
+    const parts = endNative.value.split("-");
+    if (parts.length === 3) {
+      const itEl = document.getElementById("reportEndDateIT");
+      if (itEl) itEl.value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
+  applyCustomDateRangeFromIT();
 }
 
 function applyReportPreset(preset) {
@@ -3491,13 +3806,13 @@ function applyReportPreset(preset) {
   if (preset === "today") {
     const chip = document.getElementById("chipPresetToday");
     if (chip) chip.classList.add("active");
-    label = "Oggi (" + now.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + ")";
+    label = "Oggi (" + formatDateIT(now) + ")";
   } else if (preset === "yesterday") {
     start.setDate(now.getDate() - 1);
     end.setDate(now.getDate() - 1);
     const chip = document.getElementById("chipPresetYesterday");
     if (chip) chip.classList.add("active");
-    label = "Ieri (" + start.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + ")";
+    label = "Ieri (" + formatDateIT(start) + ")";
   } else if (preset === "7days") {
     start.setDate(now.getDate() - 6);
     const chip = document.getElementById("chipPreset7");
@@ -3517,50 +3832,41 @@ function applyReportPreset(preset) {
     start = new Date(now.getFullYear(), now.getMonth(), 1);
     const chip = document.getElementById("chipPresetMonth");
     if (chip) chip.classList.add("active");
-    label = "Questo Mese (" + now.toLocaleDateString("it-IT", { month: "long" }) + ")";
+    label = "Questo Mese (" + IT_MONTH_NAMES[now.getMonth()] + ")";
   } else if (preset === "lastMonth") {
     start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     end = new Date(now.getFullYear(), now.getMonth(), 0);
     const chip = document.getElementById("chipPresetLastMonth");
     if (chip) chip.classList.add("active");
-    label = "Mese Scorso (" + start.toLocaleDateString("it-IT", { month: "long" }) + ")";
+    label = "Mese Scorso (" + IT_MONTH_NAMES[start.getMonth()] + ")";
   }
 
-  const formatYmd = d => {
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, "0");
-    const da = String(d.getDate()).padStart(2, "0");
-    return `${yr}-${mo}-${da}`;
-  };
+  calRangeStart = new Date(start);
+  calRangeEnd = new Date(end);
+  calCurrentYear = start.getFullYear();
+  calCurrentMonth = start.getMonth();
+
+  const startInputIT = document.getElementById("reportStartDateIT");
+  const endInputIT = document.getElementById("reportEndDateIT");
+  if (startInputIT) startInputIT.value = formatDateIT(start);
+  if (endInputIT) endInputIT.value = formatDateIT(end);
 
   const startInput = document.getElementById("reportStartDate");
   const endInput = document.getElementById("reportEndDate");
   if (startInput) startInput.value = formatYmd(start);
   if (endInput) endInput.value = formatYmd(end);
 
+  const hint = document.getElementById("calSelectionStatusHint");
+  if (hint) {
+    hint.innerHTML = `✅ <strong>Periodo:</strong> ${formatDateIT(start)} ➔ ${formatDateIT(end)}`;
+  }
+
+  renderReportsCalendarTable();
   generateCustomReportsDataset(start, end, label);
 }
 
 function applyCustomDateRange() {
-  const startInput = document.getElementById("reportStartDate");
-  const endInput = document.getElementById("reportEndDate");
-  if (!startInput || !endInput || !startInput.value || !endInput.value) {
-    return;
-  }
-
-  let start = new Date(startInput.value);
-  let end = new Date(endInput.value);
-
-  if (start > end) {
-    const tmp = start;
-    start = end;
-    end = tmp;
-    startInput.value = start.toISOString().split("T")[0];
-    endInput.value = end.toISOString().split("T")[0];
-  }
-
-  const label = `${start.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`;
-  generateCustomReportsDataset(start, end, label);
+  applyCustomDateRangeFromIT();
 }
 
 function generateCustomReportsDataset(startDate, endDate, rangeLabel) {
@@ -3706,6 +4012,13 @@ function generateCustomReportsDataset(startDate, endDate, rangeLabel) {
 window.toggleCustomRangeBox = toggleCustomRangeBox;
 window.applyReportPreset = applyReportPreset;
 window.applyCustomDateRange = applyCustomDateRange;
+window.applyCustomDateRangeFromIT = applyCustomDateRangeFromIT;
+window.syncNativeToITDate = syncNativeToITDate;
+window.handleManualDateInput = handleManualDateInput;
+window.toggleReportsCalendarTable = toggleReportsCalendarTable;
+window.navCalendarMonth = navCalendarMonth;
+window.renderReportsCalendarTable = renderReportsCalendarTable;
+window.handleCalendarCellClick = handleCalendarCellClick;
 window.generateCustomReportsDataset = generateCustomReportsDataset;
 
 function switchReportsPeriod(period) {
@@ -3749,6 +4062,26 @@ function selectReportPoint(idx) {
 
 function renderReports() {
   const data = REPORTS_DATASETS[currentReportsPeriod] || REPORTS_DATASETS.week;
+
+  const calBody = document.getElementById('reportsCalendarTbody');
+  if (calBody && calBody.children.length === 0) {
+    if (!calRangeStart) {
+      const now = new Date();
+      const s = new Date(now);
+      s.setDate(now.getDate() - 6);
+      calRangeStart = s;
+      calRangeEnd = now;
+      const sEl = document.getElementById('reportStartDateIT');
+      const eEl = document.getElementById('reportEndDateIT');
+      if (sEl) sEl.value = formatDateIT(s);
+      if (eEl) eEl.value = formatDateIT(now);
+      const hint = document.getElementById('calSelectionStatusHint');
+      if (hint) {
+        hint.innerHTML = '✅ <strong>Periodo:</strong> ' + formatDateIT(s) + ' ➔ ' + formatDateIT(now);
+      }
+    }
+    renderReportsCalendarTable();
+  }
 
   // 1. Update Date Range & Titles
   const rangeEl = document.getElementById("reportsDateRangeText");
