@@ -5345,17 +5345,14 @@ function handlePasswordInput(input) {
   const val = input ? input.value : "";
   const rulesBox = document.getElementById("passwordRulesBox");
 
-  if (currentCredMode === "pin") {
-    if (rulesBox) rulesBox.style.display = "none";
-    return;
-  }
-
   const isRegister = (currentAuthTab === "register");
   if (rulesBox) {
-    rulesBox.style.display = (isRegister || val.length > 0) ? "flex" : "none";
+    rulesBox.style.display = isRegister ? "flex" : "none";
   }
 
-  checkPasswordRules(val);
+  if (isRegister) {
+    checkPasswordRules(val);
+  }
 }
 
 function switchAuthTab(tab) {
