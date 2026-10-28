@@ -4503,6 +4503,43 @@ function closeCheckoutModal(force = false) {
   modal.removeAttribute("data-mandatory");
 }
 
+function switchCheckoutPaymentMethod(method) {
+  const tabCard = document.getElementById("tabPayCard");
+  const tabStripe = document.getElementById("tabPayStripe");
+  const tabGoogle = document.getElementById("tabPayGoogle");
+
+  const paneCard = document.getElementById("panePayCard");
+  const paneStripe = document.getElementById("panePayStripe");
+  const paneGoogle = document.getElementById("panePayGoogle");
+
+  if (tabCard) tabCard.classList.toggle("active", method === "card");
+  if (tabStripe) tabStripe.classList.toggle("active", method === "stripe");
+  if (tabGoogle) tabGoogle.classList.toggle("active", method === "google");
+
+  if (paneCard) paneCard.classList.toggle("active", method === "card");
+  if (paneStripe) paneStripe.classList.toggle("active", method === "stripe");
+  if (paneGoogle) paneGoogle.classList.toggle("active", method === "google");
+}
+
+function handleStripeCheckoutSubmit() {
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url");
+  if (customStripeUrl && customStripeUrl.startsWith("http")) {
+    window.open(customStripeUrl, "_blank");
+    showToast(isFr ? "Redirection vers Stripe Checkout..." : "Reindirizzamento verso Stripe Checkout...");
+    setTimeout(() => {
+      activateSubscription("stripe_checkout");
+    }, 2500);
+    return;
+  }
+
+  // Direct confirmation via Stripe Gateway
+  activateSubscription("stripe_checkout");
+  showToast(isFr
+    ? "🎉 Paiement Stripe validé ! Votre abonnement de 59 €/mois est actif."
+    : "🎉 Pagamento Stripe completato con successo! Il tuo abbonamento è attivo.");
+}
+
 function handleConfirmCheckout(e) {
   if (e && e.preventDefault) e.preventDefault();
   activateSubscription("stripe_card");
@@ -5981,3 +6018,6 @@ function testGooglePayPayment() {
 
 window.savePaymentGatewaySettings = savePaymentGatewaySettings;
 window.testGooglePayPayment = testGooglePayPayment;
+
+window.switchCheckoutPaymentMethod = switchCheckoutPaymentMethod;
+window.handleStripeCheckoutSubmit = handleStripeCheckoutSubmit;

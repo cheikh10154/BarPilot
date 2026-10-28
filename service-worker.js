@@ -1,5 +1,5 @@
 // BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v71';
+const CACHE_NAME = 'barpilot-cache-v72';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -4171,3 +4171,46 @@ input:checked + .toggle-slider:before {
   color: #10B981 !important;
 }
 
+/* Checkout Payment Method Switcher (Carta, Stripe, Google) */
+.checkout-method-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.checkout-tab-btn {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-main);
+  text-align: center;
+}
+
+.checkout-tab-btn:hover {
+  background: var(--bg-card-secondary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.checkout-tab-btn.active {
+  background: rgba(255, 107, 0, 0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.checkout-pane {
+  display: none;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.checkout-pane.active {
+  display: block;
+}
+
