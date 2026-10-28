@@ -224,8 +224,20 @@
   <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL) -->
   <div class="auth-overlay hidden" id="authOverlay">
     <div class="auth-card">
-      <div class="auth-top-brand">
+      <!-- Language Switcher in Auth Screen (IT / FR) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <span class="auth-trial-pill" data-i18n="authBadgeTrial">14 GIORNI DI PROVA GRATUITA INCLUSI</span>
+        <div class="auth-lang-picker">
+          <button type="button" class="lang-btn auth-lang-btn active" data-lang="it" onclick="window.i18n.setLang('it')" title="Italiano">
+            🇮🇹 IT
+          </button>
+          <button type="button" class="lang-btn auth-lang-btn" data-lang="fr" onclick="window.i18n.setLang('fr')" title="Français">
+            🇫🇷 FR
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-top-brand" style="margin-top:0;">
         <img src="assets/images/logo.png" alt="BarPilot" class="auth-logo-badge">
         <h2 class="auth-title" data-i18n="authMainTitle">Entra in BarPilot</h2>
         <p class="auth-subtitle" data-i18n="authMainSub">Il software di gestione intelligente per bar, pub, caffè e lounge</p>
@@ -289,7 +301,35 @@
             <label class="form-label" id="authPasswordLabel" data-i18n="passwordOnlyLabel">Password</label>
             <a href="#" id="authForgotPassLink" onclick="openPasswordRecoveryModal(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
           </div>
-          <input type="password" class="form-input" id="authPassword" placeholder="••••••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="hideAuthError()" required>
+          <div class="password-input-wrap">
+            <input type="password" class="form-input" id="authPassword" placeholder="••••••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="handlePasswordInput(this)" required>
+            <button type="button" id="btnTogglePasswordVisibility" class="btn-toggle-eye" onclick="togglePasswordVisibility()" data-i18n-title="showPassword" title="Mostra password">
+              <span id="eyeIcon">👁️</span>
+            </button>
+          </div>
+
+          <!-- Real-Time Password Requirements Checklist -->
+          <div id="passwordRulesBox" class="password-rules-box" style="display:none;">
+            <div style="font-weight:700; color:var(--text-muted); margin-bottom:2px;" data-i18n="pwdRulesTitle">
+              Criteri di sicurezza password:
+            </div>
+            <div class="pwd-rule-item" id="ruleMinLength">
+              <span class="rule-icon" id="iconMinLength">✖</span>
+              <span data-i18n="pwdRuleMinLength">Minimo 8 caratteri</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleUppercase">
+              <span class="rule-icon" id="iconUppercase">✖</span>
+              <span data-i18n="pwdRuleUppercase">Almeno una lettera maiuscola (A-Z)</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleNumber">
+              <span class="rule-icon" id="iconNumber">✖</span>
+              <span data-i18n="pwdRuleNumber">Almeno un numero (0-9)</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleSpecial">
+              <span class="rule-icon" id="iconSpecial">✖</span>
+              <span data-i18n="pwdRuleSpecial">Almeno un carattere speciale (!@#$%^&*...)</span>
+            </div>
+          </div>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">

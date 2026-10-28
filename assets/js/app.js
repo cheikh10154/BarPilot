@@ -5291,6 +5291,73 @@ function setAuthCredentialMode(mode) {
   }
 }
 
+
+function togglePasswordVisibility() {
+  const passInput = document.getElementById("authPassword");
+  const eyeIcon = document.getElementById("eyeIcon");
+  const btn = document.getElementById("btnTogglePasswordVisibility");
+  if (!passInput) return;
+
+  if (passInput.type === "password") {
+    passInput.type = "text";
+    if (eyeIcon) eyeIcon.textContent = "🙈";
+    if (btn) btn.title = window.i18n ? window.i18n.t("hidePassword") : "Nascondi password";
+  } else {
+    passInput.type = "password";
+    if (eyeIcon) eyeIcon.textContent = "👁️";
+    if (btn) btn.title = window.i18n ? window.i18n.t("showPassword") : "Mostra password";
+  }
+}
+
+function checkPasswordRules(password = "") {
+  const rules = {
+    minLength: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)
+  };
+
+  const updateItem = (id, iconId, isValid) => {
+    const el = document.getElementById(id);
+    const icon = document.getElementById(iconId);
+    if (!el || !icon) return;
+    if (isValid) {
+      el.classList.add("valid");
+      el.classList.remove("invalid");
+      icon.textContent = "✔";
+    } else {
+      el.classList.remove("valid");
+      el.classList.add("invalid");
+      icon.textContent = "✖";
+    }
+  };
+
+  updateItem("ruleMinLength", "iconMinLength", rules.minLength);
+  updateItem("ruleUppercase", "iconUppercase", rules.uppercase);
+  updateItem("ruleNumber", "iconNumber", rules.number);
+  updateItem("ruleSpecial", "iconSpecial", rules.special);
+
+  return rules.minLength && rules.uppercase && rules.number && rules.special;
+}
+
+function handlePasswordInput(input) {
+  hideAuthError();
+  const val = input ? input.value : "";
+  const rulesBox = document.getElementById("passwordRulesBox");
+
+  if (currentCredMode === "pin") {
+    if (rulesBox) rulesBox.style.display = "none";
+    return;
+  }
+
+  const isRegister = (currentAuthTab === "register");
+  if (rulesBox) {
+    rulesBox.style.display = (isRegister || val.length > 0) ? "flex" : "none";
+  }
+
+  checkPasswordRules(val);
+}
+
 function switchAuthTab(tab) {
   currentAuthTab = tab;
   hideAuthError();
@@ -5305,7 +5372,14 @@ function switchAuthTab(tab) {
     btnRegister.classList.toggle("active", tab === 'register');
   }
 
-  const isRegister = (tab === 'register');
+    const isRegister = (tab === 'register');
+  const rulesBox = document.getElementById("passwordRulesBox");
+  if (rulesBox) {
+    rulesBox.style.display = isRegister ? "flex" : "none";
+    if (isRegister) {
+      checkPasswordRules(document.getElementById("authPassword")?.value || "");
+    }
+  }
   if (extraFieldsEmail) {
     extraFieldsEmail.style.display = isRegister ? 'block' : 'none';
   }
@@ -5384,6 +5458,13 @@ function handleAuthSubmit(e) {
   }
 
   if (currentAuthTab === 'register') {
+    const credential = (document.getElementById("authPassword")?.value || "").trim();
+    if (!checkPasswordRules(credential)) {
+      showAuthError(window.i18n ? window.i18n.t("pwdRulesError") : "La password deve contenere almeno 8 caratteri, 1 maiuscola, 1 numero e 1 carattere speciale.");
+      const rulesBox = document.getElementById("passwordRulesBox");
+      if (rulesBox) rulesBox.style.display = "flex";
+      return;
+    }
     const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
     const vatNumber = document.getElementById("regVat")?.value.trim() || "";
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
@@ -5807,6 +5888,9 @@ function saveFacebookAppIdSetting() {
 
 
 
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.handlePasswordInput = handlePasswordInput;
+window.checkPasswordRules = checkPasswordRules;
 window.openAddTableModal = openAddTableModal;
 window.closeAddTableModal = closeAddTableModal;
 window.handleAddTableSubmit = handleAddTableSubmit;

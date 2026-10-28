@@ -86,6 +86,14 @@ const i18nData = {
     regPinLabel: "PIN veloce per il personale (max 4 cifre)",
     regPinPlaceholder: "Es: 1234",
     passwordOnlyLabel: "Password",
+    pwdRulesTitle: "Criteri di sicurezza password:",
+    pwdRuleMinLength: "Minimo 8 caratteri",
+    pwdRuleUppercase: "Almeno una lettera maiuscola (A-Z)",
+    pwdRuleNumber: "Almeno un numero (0-9)",
+    pwdRuleSpecial: "Almeno un carattere speciale (!@#$%^&*...)",
+    pwdRulesError: "La password deve contenere almeno 8 caratteri, 1 maiuscola, 1 numero e 1 carattere speciale.",
+    showPassword: "Mostra password",
+    hidePassword: "Nascondi password",
     pinOnlyLabel: "PIN veloce (max 4 cifre)",
     methodEmail: "Email",
     methodPhone: "Numero di cellulare",
@@ -430,6 +438,14 @@ const i18nData = {
     regPinLabel: "Code PIN pour le personnel (max 4 chiffres)",
     regPinPlaceholder: "Ex : 1234",
     passwordOnlyLabel: "Mot de passe",
+    pwdRulesTitle: "Critères de sécurité du mot de passe :",
+    pwdRuleMinLength: "Au moins 8 caractères",
+    pwdRuleUppercase: "Au moins une lettre majuscule (A-Z)",
+    pwdRuleNumber: "Au moins un chiffre (0-9)",
+    pwdRuleSpecial: "Au moins un caractère spécial (!@#$%^&*...)",
+    pwdRulesError: "Le mot de passe doit contenir au moins 8 caractères, 1 majuscule, 1 chiffre et 1 caractère spécial.",
+    showPassword: "Voir le mot de passe",
+    hidePassword: "Masquer le mot de passe",
     pinOnlyLabel: "Code PIN (max 4 chiffres)",
     passwordLabel: "Mot de passe ou code PIN (max 4 chiffres)",
     passwordPlaceholder: "••••",
@@ -709,3 +725,11 @@ window.i18n = {
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: this.currentLang } }));
   }
 };
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.i18n.applyTranslations());
+  } else {
+    window.i18n.applyTranslations();
+  }
+}
