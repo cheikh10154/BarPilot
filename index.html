@@ -1666,7 +1666,14 @@
                     <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Chiave Stripe ufficiale configurata per il tuo account.</span>
                   </div>
 
-                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                  
+                  <div class="form-group">
+                    <label class="form-label" style="font-weight:700;">Link Ufficiale Stripe Checkout (Payment Link)</label>
+                    <input type="url" id="settingStripeUrl" class="form-input" value="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00" style="font-family:monospace; font-size:12.5px;">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Link di pagamento diretto Stripe con 14 giorni di prova gratuita inclusi (59 €/mese).</span>
+                  </div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
                     <div class="form-group">
                       <label class="form-label" style="font-weight:700;">ID Profilo Pagamenti Google (Merchant ID)</label>
                       <input type="text" id="settingGoogleMerchantId" class="form-input" value="0225-1603-6390" style="font-family:monospace; font-size:13px; font-weight:700;">

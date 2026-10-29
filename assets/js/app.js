@@ -4623,9 +4623,11 @@ function switchCheckoutPaymentMethod(method) {
   if (paneGoogle) paneGoogle.classList.toggle("active", method === "google");
 }
 
+const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00";
+
 function handleStripeCheckoutSubmit() {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
-  const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url");
+  const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
   if (customStripeUrl && customStripeUrl.startsWith("http")) {
     window.open(customStripeUrl, "_blank");
     showToast(isFr ? "Redirection vers Stripe Checkout..." : "Reindirizzamento verso Stripe Checkout...");
@@ -6092,10 +6094,13 @@ window.quickLoginDemo = quickLoginDemo;
 // --------------------------------------------------------------------------
 function savePaymentGatewaySettings() {
   const stripePkInput = document.getElementById("settingStripePk");
+  const stripeUrlInput = document.getElementById("settingStripeUrl");
   const merchantIdInput = document.getElementById("settingGoogleMerchantId");
   const envSelect = document.getElementById("settingGooglePayEnv");
 
   const stripePk = stripePkInput ? stripePkInput.value.trim() : "";
+  const stripeUrl = stripeUrlInput ? stripeUrlInput.value.trim() : "";
+  if (stripeUrl) localStorage.setItem("barpilot_stripe_payment_url", stripeUrl);
   const merchantId = merchantIdInput ? merchantIdInput.value.trim() : "";
   const env = envSelect ? envSelect.value : "PRODUCTION";
 
