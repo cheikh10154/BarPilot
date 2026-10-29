@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BarPilot - Completa l'abbonamento</title>
-  <link rel="icon" type="image/png" href="assets/images/logo.png">
-  <link rel="apple-touch-icon" href="assets/images/logo.png">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
   <meta name="theme-color" content="#FF7A00">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
   <script src="https://js.stripe.com/v3/"></script>
   <script async src="https://pay.google.com/gp/p/js/pay.js" onload="window.onGooglePayLoaded && window.onGooglePayLoaded()"></script>
   <style>
@@ -58,7 +58,7 @@
       <!-- Top Brand Header (Clean without close cross) -->
       <div class="checkout-pro-header">
         <div class="checkout-pro-logo">
-          <img src="assets/images/logo.png" alt="BarPilot" style="width: 26px; height: 26px; object-fit: contain;">
+          <img src="/assets/images/logo.png" alt="BarPilot" style="width: 26px; height: 26px; object-fit: contain;">
           <span>Bar<strong>Pilot</strong></span>
         </div>
       </div>
@@ -278,8 +278,8 @@
     </div>
   </div>
 
-  <script src="assets/js/data.js"></script>
-  <script src="assets/js/googlePayService.js"></script>
+  <script src="/assets/js/data.js"></script>
+  <script src="/assets/js/googlePayService.js"></script>
   <script>
     const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00";
     let currentProMethod = 'card';
@@ -377,7 +377,7 @@
       localStorage.setItem("barpilot_is_logged_in", "true");
 
       alert("🎉 Abbonamento attivato con successo! Accesso alla Dashboard sbloccato.");
-      window.location.href = "index.html#view-dashboard";
+      window.location.href = "/index.html#view-dashboard";
     }
 
     function handleDirectStripeClick() {

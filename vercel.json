@@ -7,6 +7,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "checkout.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "checkout/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "administration/**",
       "use": "@vercel/static"
     },
@@ -36,6 +44,14 @@
     }
   ],
   "routes": [
+    {
+      "src": "^/checkout/?$",
+      "dest": "/checkout.html"
+    },
+    {
+      "src": "^/checkout.html$",
+      "dest": "/checkout.html"
+    },
     {
       "src": "^/administration/?$",
       "dest": "/administration/index.html"
