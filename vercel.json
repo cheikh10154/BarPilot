@@ -15,6 +15,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "pro.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "pro/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "administration/**",
       "use": "@vercel/static"
     },
@@ -44,6 +52,18 @@
     }
   ],
   "routes": [
+    {
+      "src": "^/pro/?$",
+      "dest": "/pro.html"
+    },
+    {
+      "src": "^/pro.html$",
+      "dest": "/pro.html"
+    },
+    {
+      "src": "^/offerta/?$",
+      "dest": "/pro.html"
+    },
     {
       "src": "^/checkout/?$",
       "dest": "/checkout.html"

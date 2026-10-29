@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BarPilot Pro — Tutto Incluso | La soluzione completa per il tuo bar</title>
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#080F1D">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #060B14;
+      --bg-card: #0B1528;
+      --bg-card-inner: #101E35;
+      --bg-badge: #162644;
+      --orange: #FF7A00;
+      --orange-light: #FF9429;
+      --orange-gradient: linear-gradient(135deg, #FFB03A 0%, #FF6F00 100%);
+      --orange-btn-grad: linear-gradient(90deg, #FF7A00 0%, #FF5500 100%);
+      --text-white: #FFFFFF;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-orange: rgba(255, 122, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 80% 15%, rgba(255, 122, 0, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 20% 40%, rgba(26, 86, 219, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 90%, rgba(255, 122, 0, 0.06) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Ambient Warm Atmosphere overlay (Cozy Bar Vibe) */
+    .ambient-header-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 680px;
+      background: 
+        linear-gradient(180deg, rgba(6, 11, 20, 0.4) 0%, rgba(6, 11, 20, 0.85) 60%, var(--bg-dark) 100%),
+        url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1600&auto=format&fit=crop&q=80') center top / cover no-repeat;
+      z-index: 0;
+      opacity: 0.38;
+      pointer-events: none;
+    }
+
+    .page-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+    }
+
+    .brand-logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo-icon {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(255, 122, 0, 0.35));
+    }
+
+    .brand-logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-logo-text span {
+      color: var(--orange);
+    }
+
+    .brand-slogan {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #94A3B8;
+      text-transform: uppercase;
+      margin-top: 2px;
+      padding-left: 2px;
+    }
+
+    /* Handwritten cursive script in top right */
+    .top-cursive-hook {
+      font-family: 'Caveat', cursive;
+      font-size: 26px;
+      color: #FFC043;
+      transform: rotate(-3deg);
+      line-height: 1.15;
+      text-align: right;
+      text-shadow: 0 2px 10px rgba(255, 122, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .top-cursive-hook span.curved-line {
+      display: block;
+      width: 110px;
+      height: 6px;
+      border-bottom: 2px solid #FF7A00;
+      border-radius: 50%;
+      margin-top: 2px;
+    }
+
+    /* Hero Layout (Grid: Left offer, Right mockups) */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.3fr;
+      gap: 40px;
+      align-items: center;
+      margin-bottom: 60px;
+    }
+
+    /* Left Offer Column */
+    .hero-offer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .pill-pro-badge {
+      display: inline-flex;
+      align-items: center;
+      background: var(--orange);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      align-self: flex-start;
+      box-shadow: 0 4px 14px rgba(255, 122, 0, 0.4);
+    }
+
+    .hero-headline {
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      color: #FFFFFF;
+    }
+
+    .hero-description {
+      font-size: 17px;
+      color: #CBD5E1;
+      line-height: 1.5;
+      max-width: 480px;
+    }
+
+    /* Big Glowing Price Pill */
+    .price-pill-box {
+      background: var(--orange-gradient);
+      border-radius: 20px;
+      padding: 16px 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(255, 111, 0, 0.35);
+      align-self: flex-start;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .price-pill-box::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .price-amount {
+      font-size: 54px;
+      font-weight: 900;
+      color: #0F172A;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .price-details {
+      display: flex;
+      flex-direction: column;
+      font-size: 17px;
+      font-weight: 800;
+      color: #1E293B;
+      line-height: 1.25;
+    }
+
+    /* 3 Trust Guarantee Badges */
+    .trust-badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .trust-badge-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #E2E8F0;
+    }
+
+    .trust-badge-item .icon-check {
+      color: #10B981;
+      font-weight: bold;
+    }
+    .trust-badge-item .icon-cal {
+      color: #38BDF8;
+    }
+    .trust-badge-item .icon-x {
+      color: #F43F5E;
+    }
+
+    /* Right Mockups Column */
+    .hero-mockups-col {
+      position: relative;
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Mockup Tablet Wrapper */
+    .mockup-tablet {
+      width: 100%;
+      max-width: 580px;
+      background: #0B111E;
+      border: 8px solid #1E293B;
+      border-radius: 20px;
+      box-shadow: 
+        0 25px 60px -15px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      position: relative;
+      transform: perspective(1000px) rotateY(-4deg) rotateX(2deg);
+      transition: transform 0.4s ease;
+    }
+
+    .mockup-tablet:hover {
+      transform: perspective(1000px) rotateY(-1deg) rotateX(0deg);
+    }
+
+    .tablet-screen {
+      padding: 16px;
+      background: #080E1A;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Tablet Topbar */
+    .tablet-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+
+    .tablet-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tablet-greeting {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .tablet-date {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Tablet 4 KPI Cards */
+    .tablet-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .kpi-card {
+      background: #111C30;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .kpi-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin: 2px 0;
+    }
+
+    .kpi-sub {
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .kpi-sub.up { color: #10B981; }
+    .kpi-sub.alert { color: #EF4444; }
+
+    /* Tablet Charts Preview Row */
+    .tablet-charts {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 10px;
+    }
+
+    .chart-box {
+      background: #111C30;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .chart-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94A3B8;
+      margin-bottom: 8px;
+    }
+
+    .fake-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 60px;
+      padding-top: 10px;
+    }
+
+    .fake-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #FF7A00 0%, rgba(255, 122, 0, 0.2) 100%);
+      border-radius: 3px 3px 0 0;
+    }
+
+    .fake-donut-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .donut-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: conic-gradient(
+        #FF7A00 0% 42%,
+        #38BDF8 42% 62%,
+        #A855F7 62% 77%,
+        #10B981 77% 92%,
+        #64748B 92% 100%
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .donut-hole {
+      width: 36px;
+      height: 36px;
+      background: #111C30;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFF;
+    }
+
+    .donut-legend {
+      font-size: 9px;
+      color: #94A3B8;
+      line-height: 1.4;
+    }
+
+    /* Floating Front Phone 1: Nuova Comanda */
+    .mockup-phone-pos {
+      position: absolute;
+      left: 10%;
+      bottom: -40px;
+      width: 240px;
+      background: #090E17;
+      border: 6px solid #1E293B;
+      border-radius: 28px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      z-index: 2;
+      transform: rotate(-3deg);
+      transition: transform 0.3s;
+    }
+
+    .mockup-phone-pos:hover {
+      transform: rotate(0deg) scale(1.03);
+      z-index: 5;
+    }
+
+    /* Floating Front Phone 2: Piano di Sala */
+    .mockup-phone-tables {
+      position: absolute;
+      right: -10px;
+      bottom: -30px;
+      width: 240px;
+      background: #090E17;
+      border: 6px solid #1E293B;
+      border-radius: 28px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      z-index: 3;
+      transform: rotate(4deg);
+      transition: transform 0.3s;
+    }
+
+    .mockup-phone-tables:hover {
+      transform: rotate(0deg) scale(1.03);
+      z-index: 5;
+    }
+
+    .phone-screen {
+      padding: 12px 10px 14px;
+      font-size: 11px;
+    }
+
+    .phone-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .phone-pill-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .phone-tab {
+      padding: 3px 8px;
+      background: #16243D;
+      border-radius: 12px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #94A3B8;
+    }
+    .phone-tab.active {
+      background: var(--orange);
+      color: #FFF;
+    }
+
+    .phone-items-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .phone-item-card {
+      background: #111C30;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .phone-item-img {
+      width: 100%;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+    .phone-item-name {
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .phone-item-price {
+      font-size: 9px;
+      color: var(--orange);
+      font-weight: 800;
+    }
+
+    .phone-bottom-cta {
+      background: var(--orange);
+      color: #FFF;
+      text-align: center;
+      padding: 7px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    /* Tables Floor Plan Mockup */
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .table-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .table-cell.free {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10B981;
+      color: #A7F3D0;
+    }
+    .table-cell.occupied {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #F59E0B;
+      color: #FDE68A;
+    }
+    .table-cell.bill {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid #3B82F6;
+      color: #BFDBFE;
+    }
+
+    /* ------------------------------------------------------------- */
+    /* 13 MODULI COMPLETI CONTAINER & GRID                           */
+    /* ------------------------------------------------------------- */
+    .modules-main-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 28px;
+      padding: 36px 32px;
+      box-shadow: 
+        0 30px 80px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      margin-bottom: 40px;
+    }
+
+    /* Header Banner of Modules */
+    .modules-header-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .pill-modules-count {
+      background: var(--orange);
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 8px 18px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(255, 122, 0, 0.4);
+    }
+
+    .modules-banner-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.3px;
+    }
+
+    /* 2-Column Grid of 13 Modules */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .module-item {
+      background: #0E1A30;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.2s, background-color 0.2s, border-color 0.2s;
+    }
+
+    .module-item:hover {
+      background: #13223F;
+      border-color: rgba(255, 122, 0, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .module-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #172847;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .module-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .module-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 2px;
+      letter-spacing: -0.2px;
+    }
+
+    .module-desc {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+
+    .module-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(255, 122, 0, 0.35);
+    }
+
+    /* ------------------------------------------------------------- */
+    /* BOTTOM GIANT CTA & TRUST SECTION                              */
+    /* ------------------------------------------------------------- */
+    .cta-conversion-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .btn-giant-cta {
+      width: 100%;
+      max-width: 620px;
+      height: 64px;
+      background: var(--orange-btn-grad);
+      border: none;
+      border-radius: 16px;
+      color: #FFFFFF;
+      font-size: 20px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 12px 35px rgba(255, 85, 0, 0.45);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-giant-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 45px rgba(255, 85, 0, 0.55);
+      filter: brightness(1.05);
+    }
+
+    .btn-giant-cta:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 20px rgba(255, 85, 0, 0.4);
+    }
+
+    .btn-giant-cta span.arrow {
+      font-size: 22px;
+      transition: transform 0.2s;
+    }
+    .btn-giant-cta:hover span.arrow {
+      transform: translateX(4px);
+    }
+
+    /* Trust Footer Bar */
+    .trust-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #CBD5E1;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .payment-badges-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .badge-pay {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 22px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #FFFFFF;
+      color: #0F172A;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .badge-pay.stripe {
+      background: #635BFF;
+      color: #FFF;
+    }
+    .badge-pay.visa {
+      background: #00579F;
+      color: #FFF;
+    }
+    .badge-pay.black-btn {
+      background: #000000;
+      color: #FFF;
+    }
+
+    .auto-renewal-note {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: -6px;
+    }
+
+    /* Sticky Bottom Mobile Bar */
+    .mobile-sticky-cta {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(6, 11, 20, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 16px;
+      z-index: 99;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .mobile-sticky-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .mobile-sticky-price {
+      display: flex;
+      flex-direction: column;
+    }
+    .mobile-sticky-price strong {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--orange);
+      line-height: 1;
+    }
+    .mobile-sticky-price span {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .mobile-sticky-btn {
+      flex: 1;
+      height: 44px;
+      background: var(--orange-btn-grad);
+      color: #FFF;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(255, 85, 0, 0.4);
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .hero-offer-col {
+        text-align: center;
+        align-items: center;
+      }
+      .hero-headline {
+        font-size: 44px;
+      }
+      .price-pill-box {
+        align-self: center;
+      }
+      .trust-badges-row {
+        justify-content: center;
+      }
+      .modules-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-mockups-col {
+        min-height: 420px;
+      }
+      .mockup-tablet {
+        max-width: 480px;
+        transform: none;
+      }
+      .mockup-phone-pos {
+        width: 190px;
+        left: 2%;
+        bottom: -20px;
+      }
+      .mockup-phone-tables {
+        width: 190px;
+        right: 2%;
+        bottom: -15px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-container {
+        padding: 16px 14px 100px;
+      }
+      .top-nav {
+        margin-bottom: 24px;
+      }
+      .brand-logo-text {
+        font-size: 24px;
+      }
+      .top-cursive-hook {
+        font-size: 20px;
+      }
+      .hero-headline {
+        font-size: 38px;
+      }
+      .price-amount {
+        font-size: 44px;
+      }
+      .price-details {
+        font-size: 15px;
+      }
+      .modules-main-card {
+        padding: 24px 16px;
+        border-radius: 20px;
+      }
+      .modules-banner-title {
+        font-size: 18px;
+      }
+      .btn-giant-cta {
+        height: 56px;
+        font-size: 17px;
+      }
+      .trust-footer-bar {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+      .mobile-sticky-cta {
+        display: block;
+      }
+      .mockup-tablet {
+        transform: scale(0.95);
+      }
+      .mockup-phone-pos, .mockup-phone-tables {
+        display: none; /* Keep clean on small mobile devices to avoid overlap */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Cozy Bar Header Background -->
+  <div class="ambient-header-bg"></div>
+
+  <div class="page-container">
+
+    <!-- Top Navigation / Brand Row -->
+    <header class="top-nav">
+      <a href="/index.html" class="brand-block" title="BarPilot Home">
+        <div class="brand-logo-row">
+          <img src="/assets/images/logo.png" alt="BarPilot Logo" class="brand-logo-icon">
+          <div class="brand-logo-text">Bar<span>Pilot</span></div>
+        </div>
+        <div class="brand-slogan">GESTISCI &bull; SERVI &bull; CRESCI</div>
+      </a>
+
+      <div class="top-cursive-hook">
+        La soluzione completa<br>per il tuo bar
+        <span class="curved-line"></span>
+      </div>
+    </header>
+
+    <!-- Main Hero Section (Offer & Interactive Device Mockups) -->
+    <section class="hero-grid">
+      
+      <!-- Left Column: The Big Offer -->
+      <div class="hero-offer-col">
+        <div class="pill-pro-badge">BarPilot Pro</div>
+        
+        <h1 class="hero-headline">Tutto Incluso</h1>
+        
+        <p class="hero-description">
+          L’intera piattaforma BarPilot senza alcun limite per gestire al meglio il tuo bar, pub o caffetteria.
+        </p>
+
+        <!-- Big Price Box -->
+        <div class="price-pill-box">
+          <div class="price-amount">59 €</div>
+          <div class="price-details">
+            <span>/ mese</span>
+            <span>/ bar</span>
+          </div>
+        </div>
+
+        <!-- 3 Value Trust Pills -->
+        <div class="trust-badges-row">
+          <div class="trust-badge-item">
+            <span class="icon-check">✔</span>
+            <span>14 giorni di prova gratuita al 100%</span>
+          </div>
+          <div class="trust-badge-item">
+            <span class="icon-cal">📅</span>
+            <span>Senza impegno</span>
+          </div>
+          <div class="trust-badge-item">
+            <span class="icon-x">❌</span>
+            <span>Disdetta in 1 clic</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: High-End Hardware Device Mockups -->
+      <div class="hero-mockups-col">
+        
+        <!-- Center/Back Tablet Mockup (Dashboard Analytics) -->
+        <div class="mockup-tablet">
+          <div class="tablet-screen">
+            <!-- Tablet Topbar -->
+            <div class="tablet-topbar">
+              <div class="tablet-brand">
+                <img src="/assets/images/logo.png" style="width:18px; height:18px;" alt="Logo">
+                <span>BarPilot</span>
+              </div>
+              <div class="tablet-greeting">
+                Buongiorno, Marco 👋
+              </div>
+              <div class="tablet-date" id="tabletLiveDate">
+                Oggi &bull; Produzione
+              </div>
+            </div>
+
+            <!-- 4 KPI Metrics -->
+            <div class="tablet-kpis">
+              <div class="kpi-card">
+                <div class="kpi-label">Fatturato oggi</div>
+                <div class="kpi-value">1.248 €</div>
+                <div class="kpi-sub up">▲ +12%</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Comande</div>
+                <div class="kpi-value">186</div>
+                <div class="kpi-sub up">▲ +8%</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Tavoli occupati</div>
+                <div class="kpi-value">7 / 12</div>
+                <div class="kpi-sub up">58%</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Prodotti in allerta</div>
+                <div class="kpi-value">4</div>
+                <div class="kpi-sub alert">Alert</div>
+              </div>
+            </div>
+
+            <!-- Live Charts Row -->
+            <div class="tablet-charts">
+              <div class="chart-box">
+                <div class="chart-title">Vendite per fascia oraria</div>
+                <div class="fake-bars">
+                  <div class="fake-bar" style="height: 30%;"></div>
+                  <div class="fake-bar" style="height: 55%;"></div>
+                  <div class="fake-bar" style="height: 90%;"></div>
+                  <div class="fake-bar" style="height: 70%;"></div>
+                  <div class="fake-bar" style="height: 85%;"></div>
+                  <div class="fake-bar" style="height: 100%;"></div>
+                  <div class="fake-bar" style="height: 65%;"></div>
+                  <div class="fake-bar" style="height: 40%;"></div>
+                </div>
+              </div>
+
+              <div class="chart-box">
+                <div class="chart-title">Vendite per categoria</div>
+                <div class="fake-donut-row">
+                  <div class="donut-circle">
+                    <div class="donut-hole">248</div>
+                  </div>
+                  <div class="donut-legend">
+                    <div>🟠 Bevande 42%</div>
+                    <div>🔵 Caffè 20%</div>
+                    <div>🟣 Cocktail 15%</div>
+                    <div>🟢 Cibo 15%</div>
+                    <div>⚪ Altro 8%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Left Foreground Phone (Nuova Comanda / Cassa) -->
+        <div class="mockup-phone-pos">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <span>Nuova comanda</span>
+              <span style="color:var(--orange);">Tavolo 04</span>
+            </div>
+            <div class="phone-pill-tabs">
+              <div class="phone-tab">Tutti</div>
+              <div class="phone-tab active">Caffè</div>
+              <div class="phone-tab">Bevande</div>
+              <div class="phone-tab">Cocktail</div>
+            </div>
+            <div class="phone-items-grid">
+              <div class="phone-item-card">
+                <img src="https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=160&fit=crop" class="phone-item-img" alt="Espresso">
+                <div class="phone-item-name">Espresso</div>
+                <div class="phone-item-price">1,50 € +</div>
+              </div>
+              <div class="phone-item-card">
+                <img src="https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=160&fit=crop" class="phone-item-img" alt="Cappuccino">
+                <div class="phone-item-name">Cappuccino</div>
+                <div class="phone-item-price">2,00 € +</div>
+              </div>
+              <div class="phone-item-card">
+                <img src="https://images.unsplash.com/photo-1560512823-829485b8bf24?w=160&fit=crop" class="phone-item-img" alt="Spritz">
+                <div class="phone-item-name">Spritz</div>
+                <div class="phone-item-price">7,00 € +</div>
+              </div>
+              <div class="phone-item-card">
+                <img src="https://images.unsplash.com/photo-1608270176465-b16865d1dcf5?w=160&fit=crop" class="phone-item-img" alt="Bière">
+                <div class="phone-item-name">Bière</div>
+                <div class="phone-item-price">5,00 € +</div>
+              </div>
+            </div>
+            <div class="phone-bottom-cta" onclick="window.location.href='/checkout.html'">
+              2 articoli &bull; 4,50 € &bull; Invia
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Foreground Phone (Piano di Sala Interattivo) -->
+        <div class="mockup-phone-tables">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <span>Piano di sala</span>
+              <span style="font-size:9px; color:#10B981;">● Live</span>
+            </div>
+            <div class="phone-pill-tabs">
+              <div class="phone-tab active">Interno</div>
+              <div class="phone-tab">Terrazza</div>
+              <div class="phone-tab">Comptoir</div>
+            </div>
+            <div class="tables-grid">
+              <div class="table-cell free">
+                <strong>T01</strong>
+                <span>Libero</span>
+              </div>
+              <div class="table-cell occupied">
+                <strong>T02</strong>
+                <span>2 p. 15€</span>
+              </div>
+              <div class="table-cell free">
+                <strong>T03</strong>
+                <span>Libero</span>
+              </div>
+              <div class="table-cell bill">
+                <strong>T04</strong>
+                <span>4 p. 28€</span>
+              </div>
+              <div class="table-cell occupied">
+                <strong>T05</strong>
+                <span>2 p. 13€</span>
+              </div>
+              <div class="table-cell free">
+                <strong>T06</strong>
+                <span>Libero</span>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-around; font-size:8px; color:#94A3B8; margin-top:4px;">
+              <span>🟢 Libero</span>
+              <span>🟡 Occupato</span>
+              <span>🔵 Da pagare</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- 13 MODULI COMPLETI CONTAINER -->
+    <section class="modules-main-card">
+      
+      <div class="modules-header-banner">
+        <div class="pill-modules-count">13 MODULI COMPLETI</div>
+        <h2 class="modules-banner-title">Tutte le funzionalità incluse nella tua offerta unica</h2>
+      </div>
+
+      <div class="modules-grid">
+
+        <!-- Module 1 -->
+        <div class="module-item">
+          <div class="module-icon-box">🥤</div>
+          <div class="module-info">
+            <div class="module-title">Comande ultra-rapide</div>
+            <div class="module-desc">Al bancone, al tavolo o asporto con stampa ticket e divisione conti.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 2 -->
+        <div class="module-item">
+          <div class="module-icon-box">👥</div>
+          <div class="module-info">
+            <div class="module-title">Gestione personale &amp; PIN d'accesso</div>
+            <div class="module-desc">Controllo ruoli (Proprietario, Manager, Barman, Camerieri) e permessi.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 3 -->
+        <div class="module-item">
+          <div class="module-icon-box">🪑</div>
+          <div class="module-info">
+            <div class="module-title">Piano di sala interattivo</div>
+            <div class="module-desc">Monitoraggio live dei tavoli occupati, prenotazioni e conti aperti.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 4 -->
+        <div class="module-item">
+          <div class="module-icon-box">📊</div>
+          <div class="module-info">
+            <div class="module-title">Rapporti &amp; Statistiche finanziarie</div>
+            <div class="module-desc">Grafici interattivi con assi date e valori (€), scontrino medio ed export CSV.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 5 -->
+        <div class="module-item">
+          <div class="module-icon-box">📋</div>
+          <div class="module-info">
+            <div class="module-title">Catalogo prodotti &amp; cocktail illimitato</div>
+            <div class="module-desc">Categorie, foto HD, schede allergeni e listini personalizzati.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 6 -->
+        <div class="module-item">
+          <div class="module-icon-box">📱</div>
+          <div class="module-info">
+            <div class="module-title">Menu digitale QR Code senza contatto</div>
+            <div class="module-desc">Accesso immediato dal proprio smartphone per i clienti al tavolo.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 7 -->
+        <div class="module-item">
+          <div class="module-icon-box">🍸</div>
+          <div class="module-info">
+            <div class="module-title">Schede ricette &amp; calcolo margini</div>
+            <div class="module-desc">Scarico automatico di ml e grammi ad ogni bicchiere o caffè servito.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 8 -->
+        <div class="module-item">
+          <div class="module-icon-box">📶</div>
+          <div class="module-info">
+            <div class="module-title">Modalità Offline (PWA) &amp; Cloud Sync</div>
+            <div class="module-desc">Continua a lavorare anche senza connessione internet, sincronizzazione automatica.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 9 -->
+        <div class="module-item">
+          <div class="module-icon-box">📦</div>
+          <div class="module-info">
+            <div class="module-title">Gestione scorte &amp; inventario intelligente</div>
+            <div class="module-desc">Giacenze in tempo reale e alert immediati in caso di sottoscorta.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 10 -->
+        <div class="module-item">
+          <div class="module-icon-box">🛡️</div>
+          <div class="module-info">
+            <div class="module-title">Backup automatici &amp; Crittografia SSL</div>
+            <div class="module-desc">Dati protetti nel cloud, conformità fiscale e sicurezza bancaria certificata.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 11 -->
+        <div class="module-item">
+          <div class="module-icon-box">🚚</div>
+          <div class="module-info">
+            <div class="module-title">Fornitori &amp; buoni d'ordine diretti</div>
+            <div class="module-desc">Anagrafica partner, generazione e invio ordini d'acquisto via Email e WhatsApp.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 12 -->
+        <div class="module-item">
+          <div class="module-icon-box">🎧</div>
+          <div class="module-info">
+            <div class="module-title">Assistenza prioritaria dedicata 7g/7</div>
+            <div class="module-desc">Supporto rapido via chat ed email, tutti gli aggiornamenti inclusi.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+        <!-- Module 13 -->
+        <div class="module-item" style="grid-column: 1 / -1;">
+          <div class="module-icon-box">👨‍🍳</div>
+          <div class="module-info">
+            <div class="module-title">Schermo Barman (KDS) &amp; Cucina live</div>
+            <div class="module-desc">Monitor touch per la preparazione delle comande con avvisi acustici.</div>
+          </div>
+          <div class="module-check">✓</div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Bottom Giant CTA & Trust Security Bar -->
+    <section class="cta-conversion-wrap">
+      
+      <!-- Primary Giant CTA Button -->
+      <a href="/checkout.html" class="btn-giant-cta" id="btnMainFreeTrial">
+        <span>Inizia ora la prova gratuita di 14 giorni</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+
+      <!-- Trust & Payment Methods Guarantee Row -->
+      <div class="trust-footer-bar">
+        <div class="trust-item">
+          <span style="color:#10B981; font-size:18px;">🔒</span>
+          <span><strong>Pagamento sicuro 100%</strong> con Stripe</span>
+        </div>
+
+        <div class="payment-badges-row">
+          <span class="badge-pay stripe">stripe</span>
+          <span class="badge-pay visa">VISA</span>
+          <span class="badge-pay" style="padding:2px 4px;">
+            <svg width="22" height="14" viewBox="0 0 32 20" style="display:block;">
+              <circle cx="10" cy="10" r="9" fill="#EB001B"/>
+              <circle cx="22" cy="10" r="9" fill="#F79E1B" fill-opacity="0.88"/>
+            </svg>
+          </span>
+          <span class="badge-pay black-btn"> Pay</span>
+          <span class="badge-pay black-btn"><span style="color:#4285F4;">G</span>Pay</span>
+        </div>
+
+        <div class="trust-item">
+          <span style="color:#38BDF8; font-size:18px;">🛡️</span>
+          <span>Google Play Protect e dati crittografati</span>
+        </div>
+      </div>
+
+      <div class="auto-renewal-note">
+        Primo addebito di 59 &euro; in automatico se non disdetto.
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Sticky Bottom Bar for Mobile Devices -->
+  <div class="mobile-sticky-cta" id="mobileStickyBar">
+    <div class="mobile-sticky-inner">
+      <div class="mobile-sticky-price">
+        <strong>59 €<span>/mese</span></strong>
+        <span>14 giorni gratis</span>
+      </div>
+      <a href="/checkout.html" class="mobile-sticky-btn">
+        <span>Attiva Prova Gratis</span>
+        <span>&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Update live date in the tablet mockup
+    const dateEl = document.getElementById('tabletLiveDate');
+    if (dateEl) {
+      const now = new Date();
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      dateEl.textContent = now.toLocaleDateString('it-IT', options);
+    }
+
+    // Interactive tablet / table toggle demo
+    document.querySelectorAll('.table-cell').forEach(cell => {
+      cell.style.cursor = 'pointer';
+      cell.addEventListener('click', () => {
+        if (cell.classList.contains('free')) {
+          cell.classList.remove('free');
+          cell.classList.add('occupied');
+          cell.querySelector('span').textContent = '2 p. 12€';
+        } else if (cell.classList.contains('occupied')) {
+          cell.classList.remove('occupied');
+          cell.classList.add('bill');
+          cell.querySelector('span').textContent = 'Conto aperto';
+        } else {
+          cell.classList.remove('bill');
+          cell.classList.add('free');
+          cell.querySelector('span').textContent = 'Libero';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
