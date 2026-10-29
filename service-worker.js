@@ -1,5 +1,5 @@
 // BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v86';
+const CACHE_NAME = 'barpilot-cache-v87';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   './assets/js/googlePayService.js',
   './assets/js/app.js',
   './assets/images/logo.png',
+  './assets/images/barpilot-logo-app.png',
   './assets/images/google-pay-button.png'
 ];
 
