@@ -4605,7 +4605,12 @@ function openCheckoutModal(isForcedMandatory = false) {
       return { brand: 'VISA', text: 'VISA', color: '#00579F', bg: '#F0F7FF', border: '#D0E5FF', fontWeight: '900', fontSize: '11px' };
     }
     if (/^(5[1-5]|2(22[1-9]|2[3-9][0-9]|[3-6][0-9]{2}|7[01][0-9]|720))/.test(clean)) {
-      return { brand: 'MC', text: 'MC', color: '#EB001B', bg: '#FFF5F0', border: '#FFD7C2', fontWeight: '900', fontSize: '11px' };
+      return {
+        brand: 'MASTERCARD',
+        svg: '<svg width="22" height="14" viewBox="0 0 32 20" style="display:block;"><circle cx="10" cy="10" r="9" fill="#EB001B"/><circle cx="22" cy="10" r="9" fill="#F79E1B" fill-opacity="0.88"/></svg>',
+        bg: '#FFFFFF',
+        border: '#E5E7EB'
+      };
     }
     if (/^3[47]/.test(clean)) {
       return { brand: 'AMEX', text: 'AMEX', color: '#006FCF', bg: '#EDF5FC', border: '#BFE0F7', fontWeight: '800', fontSize: '10px' };
@@ -4626,14 +4631,27 @@ function openCheckoutModal(isForcedMandatory = false) {
     if (!brandBadge) return;
     const brand = detectCardBrand(cardInput ? cardInput.value : '');
     if (brand) {
-      brandBadge.textContent = brand.text;
-      brandBadge.style.color = brand.color;
-      brandBadge.style.background = brand.bg;
-      brandBadge.style.border = '1px solid ' + brand.border;
-      brandBadge.style.fontWeight = brand.fontWeight;
-      brandBadge.style.fontSize = brand.fontSize;
-      brandBadge.style.padding = '2px 6px';
-      brandBadge.style.borderRadius = '4px';
+      if (brand.svg) {
+        brandBadge.innerHTML = brand.svg;
+        brandBadge.style.color = 'inherit';
+        brandBadge.style.background = brand.bg || '#FFFFFF';
+        brandBadge.style.border = '1px solid ' + (brand.border || '#E5E7EB');
+        brandBadge.style.padding = '2px 4px';
+        brandBadge.style.borderRadius = '4px';
+        brandBadge.style.display = 'inline-flex';
+        brandBadge.style.alignItems = 'center';
+        brandBadge.style.justifyContent = 'center';
+      } else {
+        brandBadge.textContent = brand.text;
+        brandBadge.style.color = brand.color;
+        brandBadge.style.background = brand.bg;
+        brandBadge.style.border = '1px solid ' + brand.border;
+        brandBadge.style.fontWeight = brand.fontWeight;
+        brandBadge.style.fontSize = brand.fontSize;
+        brandBadge.style.padding = '2px 6px';
+        brandBadge.style.borderRadius = '4px';
+        brandBadge.style.display = 'inline-block';
+      }
       if (cvcInput) {
         if (brand.brand === 'AMEX') {
           cvcInput.maxLength = 4;
@@ -4652,6 +4670,7 @@ function openCheckoutModal(isForcedMandatory = false) {
       brandBadge.style.fontSize = '13px';
       brandBadge.style.padding = '2px 4px';
       brandBadge.style.borderRadius = '0';
+      brandBadge.style.display = 'inline-block';
       if (cvcInput) {
         cvcInput.maxLength = 4;
         cvcInput.placeholder = '123';
