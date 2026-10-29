@@ -233,26 +233,23 @@ window.isDemoMode = isDemoMode;
 
 function isUserSubscribed() {
   try {
-    // Demo mode: completely exempt from subscription requirement
     if (isDemoMode()) {
       return true;
     }
-
-    // Google, Facebook and Email accounts: require active subscription in localStorage or active bar
     const stored = localStorage.getItem("barpilot_is_subscribed");
     if (stored === "true") {
       return true;
     }
-
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true || (bar.trialDaysRemaining && bar.trialDaysRemaining > 0))) {
+    if (bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true)) {
       return true;
     }
-    return true;
+    return false;
   } catch (e) {
     return false;
   }
 }
+window.isUserSubscribed = isUserSubscribed;
 
 function updateDashboardLockState() {
   const subscribed = isUserSubscribed();
@@ -5664,37 +5661,28 @@ function handleAuthSubmit(e) {
     }
 
     hideAuthError();
+    // Reimposta lo stato abbonamento in attesa del checkout
+    localStorage.removeItem("barpilot_is_subscribed");
+    activeBar.isSubscribed = false;
+    activeBar.subscriptionStatus = "pending_checkout";
+    if (window.db) {
+      window.db.set("activeBar", activeBar);
+    }
+
     setUserLoggedIn(true, { name: ownerName, email: email, phone: phone, barName: barName, provider: "email" });
     closeAuthScreen();
     renderApp();
-    if (isUserSubscribed()) {
-      switchView("dashboard");
-    } else {
-      switchView("subscriptions");
-      setTimeout(() => openGooglePlayModal(), 400);
-    }
 
-    // Check if user has an active subscription
-    const isDemoAccount = email === "marco@barcentrale.it" || (activeBar && (activeBar.isDemo || activeBar.id === "bar_01"));
-    if (isDemoAccount || isUserSubscribed()) {
-      switchView("dashboard");
-      showToast(window.i18n.currentLang === 'it'
-        ? (isOwner 
-            ? `👑 Benvenuto ${personName}, accesso Amministratore (Proprietario).` 
-            : `👤 Accesso effettuato come ${role}: Benvenuto/a ${personName}!`)
-        : (isOwner 
-            ? `👑 Bienvenue ${personName}, accès Propriétaire.` 
-            : `👤 Connexion réussie en tant que ${role} : Bienvenue ${personName} !`));
-    } else {
-      // Unsubscribed: redirect immediately to subscriptions with Google Play Pay
-      switchView("subscriptions");
+    // DOPO LA REGISTRAZIONE: indirizza subito alla pagina di checkout
+    switchView("subscriptions");
     setTimeout(() => {
       openCheckoutModal(true);
-    }, 350);
-    showToast(window.i18n.currentLang === 'it'
-      ? "⚠️ Completa l'attivazione con Google Pay & Wallet per accedere alla Dashboard."
-      : "⚠️ Complétez l'activation avec Google Pay & Wallet pour accéder au Tableau de Bord.");
-  }
+    }, 300);
+
+    const isIt = !window.i18n || window.i18n.currentLang === 'it';
+    showToast(isIt
+      ? `🎉 Bar "${barName}" registrato! Completa il checkout per accedere alla Dashboard.`
+      : `🎉 Bar "${barName}" enregistré ! Complétez le paiement pour accéder au Tableau de Bord.`);
   } else {
     // Handle Email Login: Check credentials depending on choice (Password vs PIN)
     if (currentCredMode === 'pin' && credential.length > 4) {
@@ -5819,9 +5807,9 @@ function handleAuthSubmit(e) {
       barName: activeBar.name,
       provider: "email"
     });
-
     closeAuthScreen();
     renderApp();
+    switchView("dashboard");
 
     showToast(window.i18n.currentLang === 'it'
       ? (isOwner 
