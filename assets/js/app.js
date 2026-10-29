@@ -5218,8 +5218,8 @@ function initSplashScreen() {
   closeCheckoutModal(true);
 
   // CHECK PERSISTENT SESSION:
-  // If the user is already authenticated, keep stories and auth screen HIDDEN!
-  if (isUserLoggedIn()) {
+  // If the user is already authenticated and subscribed, keep stories and auth screen HIDDEN!
+  if (isUserLoggedIn() && isUserSubscribed()) {
     if (storiesOverlay) storiesOverlay.classList.add("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
@@ -5232,7 +5232,7 @@ function initSplashScreen() {
       skipBtn.addEventListener("click", dismissSplash);
     }
 
-    // Smooth 1.2s transition directly to dashboard
+    // Smooth transition directly to dashboard
     splashTimer = setTimeout(() => {
       dismissSplash();
     }, 1200);
@@ -5240,22 +5240,21 @@ function initSplashScreen() {
   }
 
   // FIRST-TIME OR LOGGED OUT USER:
-  // Immediately show the "Accedi / Registra il tuo Bar" page after the splash!
+  // After the loading menu splash, launch stories onboarding, then login/register screen!
   const dismissSplash = () => {
     if (splashTimer) clearTimeout(splashTimer);
     splash.classList.add("hidden");
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    openAuthScreen();
+    initStoriesOnboarding();
   };
 
   if (skipBtn) {
     skipBtn.addEventListener("click", dismissSplash);
   }
 
-  // Fast 1.2s splash duration
+  // Fast 1.4s splash duration
   splashTimer = setTimeout(() => {
     dismissSplash();
-  }, 1200);
+  }, 1400);
 }
 
 // ==========================================================================
@@ -5806,16 +5805,8 @@ function handleAuthSubmit(e) {
     closeAuthScreen();
     renderApp();
 
-    // DOPO LA REGISTRAZIONE: indirizza subito alla pagina di checkout
-    switchView("subscriptions");
-    setTimeout(() => {
-      openCheckoutModal(true);
-    }, 300);
-
-    const isIt = !window.i18n || window.i18n.currentLang === 'it';
-    showToast(isIt
-      ? `🎉 Bar "${barName}" registrato! Completa il checkout per accedere alla Dashboard.`
-      : `🎉 Bar "${barName}" enregistré ! Complétez le paiement pour accéder au Tableau de Bord.`);
+    // DOPO LA REGISTRAZIONE: mostra la pagina dell'offerta BarPilot Pro (pro.html)
+    window.location.href = "/pro.html";
   } else {
     // Handle Email Login: Check credentials depending on choice (Password vs PIN)
     if (currentCredMode === 'pin' && credential.length > 4) {

@@ -1350,7 +1350,7 @@
       
       <!-- Primary Giant CTA Button -->
       <a href="/checkout.html" class="btn-giant-cta" id="btnMainFreeTrial">
-        <span>Inizia ora la prova gratuita di 14 giorni</span>
+        <span>Attiva Pro Gratis — 14 giorni di prova</span>
         <span class="arrow">&rarr;</span>
       </a>
 
@@ -1396,13 +1396,26 @@
         <span>14 giorni gratis</span>
       </div>
       <a href="/checkout.html" class="mobile-sticky-btn">
-        <span>Attiva Prova Gratis</span>
+        <span>Attiva Pro Gratis</span>
         <span>&rarr;</span>
       </a>
     </div>
   </div>
 
+  <script src="/assets/js/data.js"></script>
   <script>
+    // Personalize mockup with the registered bar & manager if present
+    try {
+      const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+      const greetingEl = document.querySelector('.tablet-greeting');
+      if (greetingEl && bar.managerName) {
+        greetingEl.textContent = `Buongiorno, ${bar.managerName.split(' ')[0]} 👋`;
+      }
+      const tabletBrandSpan = document.querySelector('.tablet-brand span');
+      if (tabletBrandSpan && bar.name) {
+        tabletBrandSpan.textContent = bar.name;
+      }
+    } catch(e) {}
     // Update live date in the tablet mockup
     const dateEl = document.getElementById('tabletLiveDate');
     if (dateEl) {
