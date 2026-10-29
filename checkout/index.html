@@ -134,8 +134,8 @@
               <div style="margin-bottom: 10px;">
                 <label class="pro-field-label">Numero della carta</label>
                 <div class="pro-input-wrap">
-                  <input type="text" id="checkoutCardNumber" class="pro-input" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="cc-number">
-                  <span class="pro-input-right-badge" style="color:#00579F; font-weight:900; font-size:11px; background:#F0F7FF; padding:2px 6px; border-radius:4px; border:1px solid #D0E5FF;">VISA</span>
+                  <input type="text" id="checkoutCardNumber" class="pro-input" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number">
+                  <span id="checkoutCardBrandBadge" class="pro-input-right-badge" style="color:#9CA3AF; font-size:13px; background:transparent; border:none; padding:2px 4px;">💳</span>
                 </div>
               </div>
 
@@ -303,17 +303,92 @@
       const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
       if (cardHolderEl && userName) cardHolderEl.value = userName;
 
-      // Format card number with auto spaces
+      // Format card number with auto spaces & dynamic card brand detection
       const cardInput = document.getElementById("checkoutCardNumber");
+      const brandBadge = document.getElementById("checkoutCardBrandBadge");
+      const cvcInput = document.getElementById("checkoutCardCvc");
+
+      function detectCardBrand(numStr) {
+        const clean = (numStr || '').replace(/\D/g, '');
+        if (!clean) return null;
+        if (/^4/.test(clean)) {
+          return { brand: 'VISA', text: 'VISA', color: '#00579F', bg: '#F0F7FF', border: '#D0E5FF', fontWeight: '900', fontSize: '11px' };
+        }
+        if (/^(5[1-5]|2(22[1-9]|2[3-9][0-9]|[3-6][0-9]{2}|7[01][0-9]|720))/.test(clean)) {
+          return { brand: 'MC', text: 'MC', color: '#EB001B', bg: '#FFF5F0', border: '#FFD7C2', fontWeight: '900', fontSize: '11px' };
+        }
+        if (/^3[47]/.test(clean)) {
+          return { brand: 'AMEX', text: 'AMEX', color: '#006FCF', bg: '#EDF5FC', border: '#BFE0F7', fontWeight: '800', fontSize: '10px' };
+        }
+        if (/^(6011|65|64[4-9]|622)/.test(clean)) {
+          return { brand: 'DISCOVER', text: 'DISC', color: '#FF6000', bg: '#FFF7F0', border: '#FFE0CC', fontWeight: '800', fontSize: '10px' };
+        }
+        if (/^35(2[89]|[3-8][0-9])/.test(clean)) {
+          return { brand: 'JCB', text: 'JCB', color: '#0E7F3D', bg: '#F0FBF4', border: '#C2F0D3', fontWeight: '800', fontSize: '10px' };
+        }
+        if (/^(30[0-5]|36|38)/.test(clean)) {
+          return { brand: 'DINERS', text: 'DINERS', color: '#004B87', bg: '#F0F5FA', border: '#D0E0F0', fontWeight: '800', fontSize: '9px' };
+        }
+        return null;
+      }
+
+      function updateCardBrandBadge() {
+        if (!brandBadge) return;
+        const brand = detectCardBrand(cardInput ? cardInput.value : '');
+        if (brand) {
+          brandBadge.textContent = brand.text;
+          brandBadge.style.color = brand.color;
+          brandBadge.style.background = brand.bg;
+          brandBadge.style.border = '1px solid ' + brand.border;
+          brandBadge.style.fontWeight = brand.fontWeight;
+          brandBadge.style.fontSize = brand.fontSize;
+          brandBadge.style.padding = '2px 6px';
+          brandBadge.style.borderRadius = '4px';
+          if (cvcInput) {
+            if (brand.brand === 'AMEX') {
+              cvcInput.maxLength = 4;
+              cvcInput.placeholder = '1234';
+            } else {
+              cvcInput.maxLength = 3;
+              cvcInput.placeholder = '123';
+            }
+          }
+        } else {
+          brandBadge.textContent = '💳';
+          brandBadge.style.color = '#9CA3AF';
+          brandBadge.style.background = 'transparent';
+          brandBadge.style.border = 'none';
+          brandBadge.style.fontWeight = 'normal';
+          brandBadge.style.fontSize = '13px';
+          brandBadge.style.padding = '2px 4px';
+          brandBadge.style.borderRadius = '0';
+          if (cvcInput) {
+            cvcInput.maxLength = 4;
+            cvcInput.placeholder = '123';
+          }
+        }
+      }
+
       if (cardInput) {
         cardInput.addEventListener("input", (e) => {
-          let v = e.target.value.replace(/\D/g, '').substring(0, 16);
+          let v = e.target.value.replace(/\D/g, '');
+          const isAmex = /^3[47]/.test(v);
+          const maxLen = isAmex ? 15 : 16;
+          v = v.substring(0, maxLen);
           let parts = [];
-          for (let i = 0; i < v.length; i += 4) {
-            parts.push(v.substring(i, i + 4));
+          if (isAmex) {
+            if (v.length > 0) parts.push(v.substring(0, 4));
+            if (v.length > 4) parts.push(v.substring(4, 10));
+            if (v.length > 10) parts.push(v.substring(10, 15));
+          } else {
+            for (let i = 0; i < v.length; i += 4) {
+              parts.push(v.substring(i, i + 4));
+            }
           }
           e.target.value = parts.join(' ');
+          updateCardBrandBadge();
         });
+        updateCardBrandBadge();
       }
 
       // Format expiry MM / AA
