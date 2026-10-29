@@ -53,6 +53,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5. Trigger Splash Animation (no forced checkout popup)
   initSplashScreen();
   closeCheckoutModal(true);
+  // Direct Link Hash Router (e.g. #checkout)
+  const handleHashRouting = () => {
+    const hash = (window.location.hash || "").toLowerCase();
+    if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
+      switchView("subscriptions");
+      setTimeout(() => openCheckoutModal(true), 200);
+    } else if (hash.startsWith("#view-")) {
+      const v = hash.replace("#view-", "");
+      switchView(v);
+    }
+  };
+  handleHashRouting();
+  window.addEventListener("hashchange", handleHashRouting);
+
 });
 
 // App State
