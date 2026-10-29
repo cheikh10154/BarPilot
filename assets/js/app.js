@@ -641,6 +641,113 @@ function renderActiveBar() {
 // --------------------------------------------------------------------------
 // Dashboard
 // --------------------------------------------------------------------------
+
+// ==========================================================================
+// Responsive Hourly Sales Bar Chart Engine
+// ==========================================================================
+let currentHourlySlot = 'all';
+let selectedHourlyItem = { hour: '19:00', val: 380 };
+
+function filterHourlySlot(slot) {
+  currentHourlySlot = slot;
+  const chips = ['slotFilterAll', 'slotFilterMorning', 'slotFilterAfternoon', 'slotFilterEvening'];
+  chips.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+
+  const activeId = slot === 'all' ? 'slotFilterAll' :
+                   slot === 'morning' ? 'slotFilterMorning' :
+                   slot === 'afternoon' ? 'slotFilterAfternoon' : 'slotFilterEvening';
+  const activeEl = document.getElementById(activeId);
+  if (activeEl) activeEl.classList.add('active');
+
+  renderHourlySalesChart();
+}
+
+function selectHourlyBar(hour, val) {
+  selectedHourlyItem = { hour, val };
+  const detailEl = document.getElementById("hourlySelectedText");
+  const hourly = (window.db && window.db.get("hourlySales")) || [];
+  const total = hourly.reduce((sum, h) => sum + h.val, 0);
+  const share = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+  const isPeak = (hour === '19:00' || val >= 380);
+
+  if (detailEl) {
+    detailEl.innerHTML = `Ore ${hour} ➔ ${val} € <span style="font-size:11px; font-weight:600; opacity:0.85;">(${share}% del fatturato ${isPeak ? '· 🔥 Picco' : ''})</span>`;
+  }
+  renderHourlySalesChart();
+}
+
+function renderHourlySalesChart() {
+  const barsWrap = document.getElementById("hourlyBarsWrap");
+  if (!barsWrap) return;
+
+  const hourly = (window.db && window.db.get("hourlySales")) || [];
+  if (!hourly || hourly.length === 0) return;
+
+  // Filter according to slot
+  let filtered = hourly;
+  if (currentHourlySlot === 'morning') {
+    filtered = hourly.filter(h => h.hour >= "08:00" && h.hour <= "13:00");
+  } else if (currentHourlySlot === 'afternoon') {
+    filtered = hourly.filter(h => h.hour >= "14:00" && h.hour <= "17:00");
+  } else if (currentHourlySlot === 'evening') {
+    filtered = hourly.filter(h => h.hour >= "18:00" && h.hour <= "22:00");
+  }
+
+  const overallMax = Math.max(...hourly.map(h => h.val));
+  const peakItem = hourly.find(h => h.val === overallMax) || { hour: '19:00', val: 380 };
+  const peakBadge = document.getElementById("hourlyPeakBadge");
+  if (peakBadge) {
+    peakBadge.textContent = `🔥 Picco: ${peakItem.hour} (${peakItem.val} €)`;
+  }
+
+  // Update Y-Axis labels dynamically
+  const yAxis = document.getElementById("hourlyYAxis");
+  const maxVal = Math.max(...filtered.map(h => h.val));
+  if (yAxis) {
+    const step = Math.ceil(maxVal / 4 / 50) * 50;
+    const topVal = step * 4;
+    yAxis.innerHTML = `
+      <span>${topVal}€</span>
+      <span>${topVal * 0.75}€</span>
+      <span>${topVal * 0.5}€</span>
+      <span>${topVal * 0.25}€</span>
+      <span>0€</span>
+    `;
+  }
+
+  // Responsive wrapper styling
+  barsWrap.className = 'chart-bars-wrap ' + (currentHourlySlot === 'all' ? 'slot-all' : 'slot-filtered');
+  const scrollHint = document.getElementById("chartScrollHint");
+  if (scrollHint) {
+    scrollHint.classList.toggle('show-hint', currentHourlySlot === 'all');
+  }
+
+  // Generate responsive bars
+  barsWrap.innerHTML = filtered.map(item => {
+    const heightPercent = Math.max(6, Math.min(100, (item.val / (maxVal * 1.08)) * 100));
+    const isPeak = (item.hour === peakItem.hour);
+    const isActive = (selectedHourlyItem && selectedHourlyItem.hour === item.hour);
+    const colClasses = ['bar-col', isPeak ? 'peak' : '', isActive ? 'active' : ''].filter(Boolean).join(' ');
+
+    return `
+      <div class="${colClasses}" onclick="selectHourlyBar('${item.hour}', ${item.val})" title="Fascia ${item.hour}: ${item.val} €">
+        <span class="bar-val-badge">${item.val}€</span>
+        <div class="bar-fill" style="height: ${heightPercent}%">
+          <span class="bar-tooltip">${item.val} €</span>
+        </div>
+        <span class="bar-label">${item.hour}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+window.filterHourlySlot = filterHourlySlot;
+window.selectHourlyBar = selectHourlyBar;
+window.renderHourlySalesChart = renderHourlySalesChart;
+
 function renderDashboard() {
   const metrics = window.db.get("metrics");
   const hourly = window.db.get("hourlySales");

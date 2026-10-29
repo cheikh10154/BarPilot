@@ -592,22 +592,47 @@
           <!-- Charts Row -->
           <div class="charts-grid">
             <!-- Hourly Sales Bar Chart -->
-            <div class="card">
-              <div class="card-header">
-                <h3 class="card-title" data-i18n="hourlySales">Vendite per fascia oraria</h3>
-                <span style="font-size:12px; color:var(--text-muted);" data-i18n="today">Oggi</span>
+            <div class="card" id="hourlySalesCard">
+              <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <h3 class="card-title" data-i18n="hourlySales">Vendite per fascia oraria</h3>
+                  <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; padding:2px 8px;" id="hourlyPeakBadge">
+                    🔥 Picco: 19:00 (380 €)
+                  </span>
+                </div>
+
+                <!-- Responsive Time Slot Filter Buttons -->
+                <div class="hourly-slot-filters">
+                  <button type="button" class="btn-slot-filter active" id="slotFilterAll" onclick="filterHourlySlot('all')">Tutte (15h)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterMorning" onclick="filterHourlySlot('morning')">Mattina (08-13)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterAfternoon" onclick="filterHourlySlot('afternoon')">Pomeriggio (14-17)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterEvening" onclick="filterHourlySlot('evening')">Sera (18-22)</button>
+                </div>
               </div>
+
+              <!-- Selected Hour Detail Bar (Instant touch info for mobile) -->
+              <div id="hourlySelectedDetail" style="padding:6px 12px; margin-bottom:10px; background:var(--bg-card-secondary); border-radius:var(--radius-sm); font-size:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border-color);">
+                <span style="color:var(--text-muted); font-size:11.5px;">Tocca una colonna per i dettagli:</span>
+                <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Ore 19:00 ➔ 380 € (Picco giornaliero)</strong>
+              </div>
+
               <div class="bar-chart-container">
-                <div class="chart-y-axis">
+                <div class="chart-y-axis" id="hourlyYAxis">
                   <span>400€</span>
                   <span>300€</span>
                   <span>200€</span>
                   <span>100€</span>
                   <span>0€</span>
                 </div>
-                <div class="chart-bars-wrap" id="hourlyBarsWrap">
-                  <!-- Generated via app.js -->
+                <div class="chart-bars-scroll">
+                  <div class="chart-bars-wrap slot-all" id="hourlyBarsWrap">
+                    <!-- Generated via app.js -->
+                  </div>
                 </div>
+              </div>
+
+              <div class="chart-scroll-hint show-hint" id="chartScrollHint">
+                <span>↔️ Scorri in orizzontale per vedere tutte le ore</span>
               </div>
             </div>
 
