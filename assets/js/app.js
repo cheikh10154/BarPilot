@@ -4537,6 +4537,32 @@ function openCheckoutModal(isForcedMandatory = false) {
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
+  // Synchronize Live Credentials & Client Access Links
+  const liveStripePk = localStorage.getItem("barpilot_stripe_pk") || DEFAULT_STRIPE_LIVE_PK;
+  const liveMerchantId = localStorage.getItem("barpilot_gpay_merchant_id") || DEFAULT_GOOGLE_MERCHANT_ID;
+  const liveStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+
+  localStorage.setItem("barpilot_stripe_pk", liveStripePk);
+  localStorage.setItem("barpilot_gpay_merchant_id", liveMerchantId);
+  localStorage.setItem("barpilot_stripe_payment_url", liveStripeUrl);
+  localStorage.setItem("barpilot_gpay_env", "PRODUCTION");
+
+  if (window.googlePayService) {
+    window.googlePayService.stripePk = liveStripePk;
+    window.googlePayService.merchantId = liveMerchantId;
+    window.googlePayService.environment = "PRODUCTION";
+  }
+
+  const gDisplay = document.getElementById("checkoutProGoogleMerchantDisplay");
+  if (gDisplay) gDisplay.textContent = liveMerchantId;
+
+  const sLinkPreview = document.getElementById("checkoutProStripeLinkPreview");
+  if (sLinkPreview) {
+    sLinkPreview.textContent = liveStripeUrl;
+    sLinkPreview.href = liveStripeUrl;
+  }
+
+
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
   let loggedUser = null;
   try {
@@ -6124,7 +6150,7 @@ let isProSaveCardChecked = true;
 
 function selectProPaymentMethod(method) {
   currentProMethod = method;
-  const methods = ['card', 'paypal', 'sepa', 'google'];
+  const methods = ['card', 'stripe', 'paypal', 'sepa', 'google'];
   methods.forEach(m => {
     const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
     if (row) {
@@ -6134,7 +6160,9 @@ function selectProPaymentMethod(method) {
 
   const submitBtn = document.getElementById('btnProSubmit');
   if (submitBtn) {
-    if (method === 'google') {
+    if (method === 'stripe') {
+      submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
+    } else if (method === 'google') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
     } else if (method === 'paypal') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Continua con PayPal</span> <span>➔</span>';
@@ -6159,6 +6187,11 @@ window.toggleProSaveCard = toggleProSaveCard;
 
 function handleProCheckoutSubmit(e) {
   if (e && e.preventDefault) e.preventDefault();
+
+  if (currentProMethod === 'stripe') {
+    handleStripeCheckoutSubmit();
+    return;
+  }
 
   if (currentProMethod === 'card') {
     const cardInput = document.getElementById('checkoutCardNumber');
