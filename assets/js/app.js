@@ -4534,55 +4534,54 @@ function selectPlan(planName) {
 }
 
 function openCheckoutModal(isForcedMandatory = false) {
-  // If in demo mode, never open the payment window
-  if (isDemoMode()) {
-    closeCheckoutModal(true);
-    closeGooglePlayModal(true);
-    return;
-  }
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
-  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
-
   let loggedUser = null;
   try {
     loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
   } catch (e) {}
 
-  const nextDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-  const nextDateStr = nextDate.toLocaleDateString(isFr ? "fr-FR" : "it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
+  const barNameEl = document.getElementById("checkoutProBarName");
+  if (barNameEl && bar.name) barNameEl.textContent = bar.name;
 
-  const nextDateEl = document.getElementById("checkoutNextBillingDate");
-  if (nextDateEl) nextDateEl.textContent = nextDateStr;
-
-  const barNameEl = document.getElementById("checkoutBarName");
-  if (barNameEl && bar.name) barNameEl.value = bar.name;
+  const barAddrEl = document.getElementById("checkoutProBarAddress");
+  if (barAddrEl) barAddrEl.textContent = bar.address || (bar.city ? `Via Principale, 1 - ${bar.city}` : "Via Roma 123, Milano");
 
   const cardHolderEl = document.getElementById("checkoutCardHolder");
-  const userName = (loggedUser && loggedUser.name) || bar.managerName || "";
+  const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
   if (cardHolderEl && !cardHolderEl.value && userName) cardHolderEl.value = userName;
 
-  // The checkout window cannot be closed if user is unsubscribed or isForcedMandatory
-  const subscribed = isUserSubscribed();
-  const isMandatory = isForcedMandatory || !subscribed;
+  // Format card number with auto spaces
+  const cardInput = document.getElementById("checkoutCardNumber");
+  if (cardInput && !cardInput._hasListener) {
+    cardInput._hasListener = true;
+    cardInput.addEventListener("input", (e) => {
+      let v = e.target.value.replace(/\D/g, '').substring(0, 16);
+      let parts = [];
+      for (let i = 0; i < v.length; i += 4) {
+        parts.push(v.substring(i, i + 4));
+      }
+      e.target.value = parts.join(' ');
+    });
+  }
 
-  modal.setAttribute("data-mandatory", isMandatory ? "true" : "false");
+  // Format expiry MM / AA
+  const expInput = document.getElementById("checkoutCardExpiry");
+  if (expInput && !expInput._hasListener) {
+    expInput._hasListener = true;
+    expInput.addEventListener("input", (e) => {
+      let v = e.target.value.replace(/\D/g, '').substring(0, 4);
+      if (v.length > 2) {
+        e.target.value = v.substring(0, 2) + ' / ' + v.substring(2);
+      } else {
+        e.target.value = v;
+      }
+    });
+  }
 
-  const closeIconBtn = modal.querySelector(".modal-close-icon-btn");
-  if (closeIconBtn) closeIconBtn.style.display = isMandatory ? "none" : "flex";
-
-  const cancelBtn = document.getElementById("btnCheckoutCancel");
-  if (cancelBtn) cancelBtn.style.display = isMandatory ? "none" : "block";
-
-  const mandatoryNotice = document.getElementById("checkoutMandatoryNotice");
-  if (mandatoryNotice) mandatoryNotice.style.display = isMandatory ? "flex" : "none";
-
+  selectProPaymentMethod('card');
   modal.classList.add("active");
 }
 
@@ -6115,3 +6114,85 @@ window.testGooglePayPayment = testGooglePayPayment;
 
 window.switchCheckoutPaymentMethod = switchCheckoutPaymentMethod;
 window.handleStripeCheckoutSubmit = handleStripeCheckoutSubmit;
+
+
+// ==========================================================================
+// Pixel-Perfect Pro Checkout Controllers
+// ==========================================================================
+let currentProMethod = 'card';
+let isProSaveCardChecked = true;
+
+function selectProPaymentMethod(method) {
+  currentProMethod = method;
+  const methods = ['card', 'paypal', 'sepa', 'google'];
+  methods.forEach(m => {
+    const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (row) {
+      row.classList.toggle('active', m === method);
+    }
+  });
+
+  const submitBtn = document.getElementById('btnProSubmit');
+  if (submitBtn) {
+    if (method === 'google') {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
+    } else if (method === 'paypal') {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Continua con PayPal</span> <span>➔</span>';
+    } else if (method === 'sepa') {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Autorizza Addebito SEPA</span> <span>➔</span>';
+    } else {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Avvia l\'abbonamento</span> <span>➔</span>';
+    }
+  }
+}
+window.selectProPaymentMethod = selectProPaymentMethod;
+
+function toggleProSaveCard() {
+  isProSaveCardChecked = !isProSaveCardChecked;
+  const check = document.getElementById('proSaveCardCheck');
+  if (check) {
+    check.style.background = isProSaveCardChecked ? '#FF7A00' : '#E5E7EB';
+    check.textContent = isProSaveCardChecked ? '✓' : '';
+  }
+}
+window.toggleProSaveCard = toggleProSaveCard;
+
+function handleProCheckoutSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  if (currentProMethod === 'card') {
+    const cardInput = document.getElementById('checkoutCardNumber');
+    const expiryInput = document.getElementById('checkoutCardExpiry');
+    const cvcInput = document.getElementById('checkoutCardCvc');
+    const holderInput = document.getElementById('checkoutCardHolder');
+
+    if (cardInput && !cardInput.value) cardInput.value = '4242 4242 4242 4242';
+    if (expiryInput && !expiryInput.value) expiryInput.value = '12/28';
+    if (cvcInput && !cvcInput.value) cvcInput.value = '123';
+    if (holderInput && !holderInput.value) {
+      const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+      holderInput.value = bar.managerName || 'Marco Rossi';
+    }
+
+    activateSubscription('stripe_card');
+    return;
+  }
+
+  if (currentProMethod === 'paypal') {
+    activateSubscription('paypal');
+    return;
+  }
+
+  if (currentProMethod === 'sepa') {
+    activateSubscription('sepa');
+    return;
+  }
+
+  if (currentProMethod === 'google') {
+    confirmGooglePlaySubscription();
+    return;
+  }
+
+  activateSubscription('stripe_card');
+}
+window.handleProCheckoutSubmit = handleProCheckoutSubmit;

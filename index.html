@@ -2402,218 +2402,202 @@
     </div>
   </div>
 
-  <!-- Subscription Checkout Modal (Unique Offer 59€) -->
+    <!-- Subscription Checkout Modal (Pixel-Perfect Matching Uploaded Design) -->
   <div class="modal-overlay" id="subscriptionCheckoutModal">
-    <div class="modal-box" style="max-width:540px; width:92%; max-height:92vh; overflow-y:auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:38px; height:38px; border-radius:10px; background:var(--primary); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; font-weight:900;">
-            BP
-          </div>
+    <div class="modal-box checkout-pro-box">
+      <!-- Top Brand Header with Close X -->
+      <div class="checkout-pro-header">
+        <div class="checkout-pro-logo">
+          <img src="assets/images/logo.png" alt="BarPilot" style="width: 26px; height: 26px; object-fit: contain;">
+          <span>Bar<strong>Pilot</strong></span>
+        </div>
+        <button type="button" class="checkout-pro-close" onclick="closeCheckoutModal(true)" aria-label="Chiudi">
+          ✕
+        </button>
+      </div>
+
+      <!-- Title & Price Subtitle -->
+      <h2 class="checkout-pro-title">Completa l'abbonamento</h2>
+      <p class="checkout-pro-subtitle" id="checkoutProPlanSubtitle">BarPilot Pro — € 99,00 / mese</p>
+
+      <!-- Active Bar Summary Card -->
+      <div class="checkout-pro-bar-card">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=160&h=120&fit=crop" id="checkoutProBarImg" class="checkout-pro-bar-img" alt="Bar Locale">
           <div>
-            <h3 style="font-size:18px; font-weight:800; margin:0;" id="checkoutModalTitle">
-              Completa il tuo abbonamento
-            </h3>
-            <p style="font-size:11.5px; color:var(--text-muted); margin:2px 0 0;" id="checkoutModalSubtitle">
-              Pagamento 100% sicuro via Stripe · Crittografia SSL 256 bit
-            </p>
+            <div class="checkout-pro-bar-name">
+              <span id="checkoutProBarName">Bar Centrale</span>
+              <span class="checkout-pro-pill" id="checkoutProPlanBadge">Pro</span>
+            </div>
+            <span class="checkout-pro-bar-address" id="checkoutProBarAddress">Via Roma 123, Milano</span>
           </div>
         </div>
-        <button class="modal-close-icon-btn" onclick="closeCheckoutModal()" aria-label="Chiudi finestra">✕</button>
+        <a href="javascript:void(0)" onclick="closeCheckoutModal(true); switchView('subscriptions');" class="checkout-pro-change-plan">Cambia piano</a>
       </div>
 
-      <!-- Mandatory Checkout Notice (Non-closable) -->
-      <div id="checkoutMandatoryNotice" style="display:none; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; font-size:12px; color:var(--text-main); align-items:center; gap:10px; width:100%; box-sizing:border-box;">
-        <span style="font-size:20px; flex-shrink:0;">🔒</span>
-        <div style="line-height:1.45; flex:1;">
-          <strong style="color:var(--text-main);">Abbonamento obbligatorio per accedere al gestionale:</strong> Attiva la prova gratuita di 14 giorni (0,00 € oggi) tramite Google Pay o Carta per sbloccare la Dashboard.
-        </div>
+      <!-- Express Google Pay Black Pill Button -->
+      <button type="button" class="btn-gpay-pill-black" id="btnGPayExpressTop" onclick="confirmGooglePlaySubscription()">
+        <svg viewBox="0 0 512 206" width="62" height="24">
+          <path d="M85 103c0-5.8-.5-11.4-1.5-16.7H43.3v31.6h23.4c-1 5.4-4 10-8.5 13.1v10.9h13.8C80 134.4 85 119.8 85 103z" fill="#4285F4"/>
+          <path d="M43.3 145.4c11.7 0 21.5-3.9 28.7-10.5l-13.8-10.9c-3.9 2.6-8.8 4.2-14.9 4.2-11.5 0-21.2-7.7-24.7-18.1H4.4v11.2c7.2 14.3 22 24.1 38.9 24.1z" fill="#34A853"/>
+          <path d="M18.6 110.1c-.9-2.6-1.4-5.4-1.4-8.3s.5-5.7 1.4-8.3V82.3H4.4C1.6 87.8 0 94.2 0 101.8s1.6 14 4.4 19.5l14.2-11.2z" fill="#FBBC04"/>
+          <path d="M43.3 76.5c6.4 0 12.1 2.2 16.6 6.5l12.5-12.5C64.8 63.4 54.9 59 43.3 59 26.4 59 11.6 68.8 4.4 83.1l14.2 11.2c3.5-10.4 13.2-17.8 24.7-17.8z" fill="#EA4335"/>
+          <path d="M141.6 86.8c-10.5 0-19.3 8.3-19.3 19.2 0 10.8 8.7 19.2 19.3 19.2 10.4 0 19.1-8.3 19.1-19.2 0-10.9-8.7-19.2-19.1-19.2zm0 30.5c-5.7 0-10.7-4.7-10.7-11.3s5-11.3 10.7-11.3 10.5 4.7 10.5 11.3-4.8 11.3-10.5 11.3zm47.2-29.3c-2.4-.9-5.3-1.4-8.4-1.4-9.3 0-15.8 5-15.8 14.7v22.7h-8.3V61h8.3v14.4c2.8-5.3 8.5-8.6 14.7-8.6 3.6 0 6.6.6 9.5 1.7v18.3zm-78.2-27h-8.4v62.9h8.4V61zm85.8 62.9h8.4V88h13.2c10.4 0 18.8-7.9 18.8-18s-8.4-18-18.8-18h-21.6v71.9zm8.4-43.9V69h13.2c5.8 0 10.4 4.4 10.4 10s-4.6 10-10.4 10h-13.2zm64.8 17.8c0-2.3-.2-4.5-.6-6.6h-21v12.5h12.2c-.5 2.8-2.1 5.2-4.5 6.8v5.7h7.3c4.3-3.9 6.6-9.7 6.6-18.4z" fill="#FFFFFF"/>
+        </svg>
+      </button>
+      <div class="gpay-subtext">Paga con Google Pay</div>
+
+      <!-- Divider "oppure" -->
+      <div class="checkout-pro-divider">
+        <span>oppure</span>
       </div>
 
-      <!-- Recap Box -->
-      <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-          <div>
-            <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; margin-bottom:4px; display:inline-block;">OFFERTA UNICA TUTTO INCLUSO</span>
-            <div style="font-size:16px; font-weight:900; color:var(--text-main);">BarPilot Pro — Accesso Completo</div>
-            <div style="font-size:12px; color:var(--text-muted);">Tutte le funzionalità incluse senza limiti</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:24px; font-weight:900; color:var(--primary);">59 € <span style="font-size:12px; font-weight:600; color:var(--text-muted);">/ mese</span></div>
-            <span style="font-size:11px; color:var(--status-free); font-weight:700;">14 giorni di prova gratuita</span>
-          </div>
-        </div>
-
-        <div style="border-top:1px dashed var(--border-color); padding-top:10px; display:flex; justify-content:space-between; font-size:12.5px;">
-          <span style="color:var(--text-muted);">Importo addebitato oggi:</span>
-          <strong style="color:var(--status-free); font-size:14px;">0,00 € (Prova gratuita)</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-muted); margin-top:4px;">
-          <span>Primo addebito automatico di 59 €:</span>
-          <span id="checkoutNextBillingDate" style="font-weight:700; color:var(--text-main);">--/--/----</span>
-        </div>
-      </div>
-
-      <!-- 3 Payment Method Tabs: Carta di Credito, Stripe, Google -->
-      <div style="margin-bottom:18px;">
-        <label class="form-label" style="font-weight:700; margin-bottom:8px; display:block;">
-          Scegli il metodo di pagamento:
-        </label>
-        <div class="checkout-method-tabs">
-          <button type="button" class="checkout-tab-btn active" id="tabPayCard" onclick="switchCheckoutPaymentMethod('card')">
-            <span style="font-size:20px;">💳</span>
-            <span style="font-weight:800; font-size:12.5px;">Carta di Credito</span>
-            <span style="font-size:10px; color:var(--text-muted);">Visa, MC, Postepay</span>
-          </button>
-
-          <button type="button" class="checkout-tab-btn" id="tabPayStripe" onclick="switchCheckoutPaymentMethod('stripe')">
-            <span style="font-size:20px;">⚡</span>
-            <span style="font-weight:800; font-size:12.5px;">Stripe</span>
-            <span style="font-size:10px; color:var(--text-muted);">Gateway Ufficiale</span>
-          </button>
-
-          <button type="button" class="checkout-tab-btn" id="tabPayGoogle" onclick="switchCheckoutPaymentMethod('google')">
-            <span style="font-size:20px;">🌐</span>
-            <span style="font-weight:800; font-size:12.5px;">Google</span>
-            <span style="font-size:10px; color:var(--text-muted);">Google Pay & Wallet</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- PANE 1: Carta di Credito (Form) -->
-      <div class="checkout-pane active" id="panePayCard">
-        <form id="subscriptionCheckoutForm" onsubmit="handleConfirmCheckout(event)">
-          <!-- Accepted Card Badges -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <span class="form-label" style="margin-bottom:0; font-size:12px;">Dati della Carta di Credito / Debito</span>
-            <div style="display:flex; gap:6px;">
-              <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">VISA</span>
-              <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">Mastercard</span>
-              <span style="padding:2px 8px; border:1px solid var(--border-color); border-radius:6px; font-size:10px; font-weight:800; background:var(--bg-card);">Postepay</span>
-            </div>
-          </div>
-
-          <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label">Nome del titolare della carta</label>
-            <input type="text" class="form-input" id="checkoutCardHolder" placeholder="Es: Marco Rossi" required autocomplete="cc-name">
-          </div>
-
-          <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label">Numero di carta bancaria</label>
-            <div style="position:relative;">
-              <input type="text" class="form-input" id="checkoutCardNumber" placeholder="4532 •••• •••• 8892" required maxlength="19" autocomplete="cc-number" style="font-family:monospace; font-size:14px; letter-spacing:1px;">
-              <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:16px;">💳</span>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
-            <div class="form-group">
-              <label class="form-label">Data di scadenza</label>
-              <input type="text" class="form-input" id="checkoutCardExpiry" placeholder="MM / AA" required maxlength="5" autocomplete="cc-exp" style="font-family:monospace; text-align:center;">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Codice di sicurezza (CVC)</label>
-              <input type="password" class="form-input" id="checkoutCardCvc" placeholder="•••" required maxlength="4" autocomplete="cc-csc" style="font-family:monospace; text-align:center;">
-            </div>
-          </div>
-
-          <div class="form-group" style="margin-bottom:18px;">
-            <label class="form-label">Ragione sociale del Bar / Esercizio</label>
-            <input type="text" class="form-input" id="checkoutBarName" placeholder="Es: Bar Centrale Milano" required>
-          </div>
-
-          <div style="background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:18px; display:flex; align-items:center; gap:10px;">
-            <span style="font-size:18px;">🛡️</span>
-            <span style="font-size:11.5px; color:var(--text-main); line-height:1.4;">
-              <strong>Garanzia di serenità:</strong> 14 giorni di prova gratuita al 100%. Disdetta possibile in qualsiasi momento in 1 clic.
-            </span>
-          </div>
-
-          <div>
-            <button type="submit" class="btn-primary" id="btnConfirmCheckout" style="width:100%; padding:13px; font-weight:800; font-size:13.5px;">
-              💳 Conferma e Paga con Carta (59 €/mese)
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- PANE 2: Stripe (Stripe Gateway) -->
-      <div class="checkout-pane" id="panePayStripe">
-        <div style="display:flex; flex-direction:column; gap:16px;">
-          <div style="background:linear-gradient(135deg, rgba(99, 91, 255, 0.12) 0%, rgba(0, 210, 255, 0.08) 100%); border:1.5px solid rgba(99, 91, 255, 0.35); border-radius:var(--radius-lg); padding:18px; display:flex; align-items:flex-start; gap:14px;">
-            <div style="width:44px; height:44px; border-radius:12px; background:#635BFF; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:900; font-size:20px; flex-shrink:0;">
-              S
-            </div>
-            <div style="flex:1;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <strong style="font-size:15px; color:var(--text-main);">Stripe Checkout Live</strong>
-                <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--status-free); font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px;">SICURO 256-BIT</span>
+      <!-- Payment Methods Accordion Form -->
+      <form id="proCheckoutMainForm" onsubmit="handleProCheckoutSubmit(event)">
+        <div class="checkout-pro-methods-wrap">
+          
+          <!-- METHOD 1: Carta di credito o debito (Active by default) -->
+          <div class="checkout-pro-method-row active" id="proMethodRowCard">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('card')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <svg width="20" height="16" viewBox="0 0 24 18" fill="none">
+                  <rect x="1" y="2" width="22" height="14" rx="3" stroke="#111827" stroke-width="2"/>
+                  <path d="M1 6h22" stroke="#111827" stroke-width="2"/>
+                  <rect x="4" y="11" width="4" height="2" rx="0.5" fill="#111827"/>
+                </svg>
               </div>
-              <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0; line-height:1.45;">
-                Transazione crittografata gestita dall'infrastruttura ufficiale Stripe. Supporta Carte di Credito, SEPA Direct Debit e Apple/Google Pay collegati a Stripe.
+              <span class="pro-method-title">Carta di credito o debito</span>
+              <div class="pro-badges-row">
+                <span class="pro-badge-card" style="color:#00579F; font-size:10px; font-weight:900;">VISA</span>
+                <span class="pro-badge-card" style="padding:1px 3px;">
+                  <svg width="18" height="11" viewBox="0 0 24 15">
+                    <circle cx="7" cy="7.5" r="6.5" fill="#EB001B"/>
+                    <circle cx="17" cy="7.5" r="6.5" fill="#F79E1B" fill-opacity="0.85"/>
+                  </svg>
+                </span>
+                <span class="pro-badge-card" style="background:#006FCF; color:#fff; font-size:8px; border-color:#006FCF;">AMEX</span>
+                <span class="pro-badge-card" style="color:#FF6000; font-size:8px;">DISCOVER</span>
+                <span class="pro-badge-card" style="font-size:10px;">💳</span>
+              </div>
+            </div>
+
+            <!-- Card Input Fields Expanded -->
+            <div class="checkout-pro-method-body" id="proMethodBodyCard">
+              <div style="margin-bottom: 10px;">
+                <label class="pro-field-label">Numero della carta</label>
+                <div class="pro-input-wrap">
+                  <input type="text" id="checkoutCardNumber" class="pro-input" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="cc-number">
+                  <span class="pro-input-right-badge" style="color:#00579F; font-weight:900; font-size:11px; background:#F0F7FF; padding:2px 6px; border-radius:4px; border:1px solid #D0E5FF;">VISA</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                  <label class="pro-field-label">Data di scadenza</label>
+                  <input type="text" id="checkoutCardExpiry" class="pro-input" placeholder="MM / AA" maxlength="5" autocomplete="cc-exp">
+                </div>
+                <div>
+                  <label class="pro-field-label">CVC</label>
+                  <div class="pro-input-wrap">
+                    <input type="password" id="checkoutCardCvc" class="pro-input" placeholder="123" maxlength="4" autocomplete="cc-csc">
+                    <span class="pro-input-right-badge" style="background:#E5E7EB; border-radius:3px; padding:1px 4px; font-size:9px; font-weight:700; color:#374151;">123</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 8px;">
+                <label class="pro-field-label">Nome sul conto</label>
+                <input type="text" id="checkoutCardHolder" class="pro-input" placeholder="Marco Rossi" autocomplete="cc-name">
+              </div>
+
+              <!-- Save Card Checkbox -->
+              <div class="pro-checkbox-wrap" onclick="toggleProSaveCard()">
+                <div class="pro-custom-checkbox" id="proSaveCardCheck">✓</div>
+                <span class="pro-checkbox-label">Salva questa carta per i prossimi pagamenti</span>
+                <span style="color:#9CA3AF; font-size:13px;" title="I tuoi dati vengono crittografati in totale sicurezza secondo gli standard PCI-DSS.">ⓘ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- METHOD 2: PayPal -->
+          <div class="checkout-pro-method-row" id="proMethodRowPaypal">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('paypal')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <span style="color:#003087; font-weight:900; font-size:15px; font-style:italic;">P<span style="color:#0079C1;">P</span></span>
+              </div>
+              <span class="pro-method-title">PayPal</span>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyPaypal">
+              <p style="font-size:12px; color:#4B5563; margin:0 0 6px; line-height:1.45;">
+                Verrai reindirizzato sul tuo conto PayPal per confermare l'autorizzazione dell'abbonamento con prova gratuita.
               </p>
             </div>
           </div>
 
-          <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px; font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Canale Gateway:</span>
-              <strong style="color:var(--text-main);">Stripe Payments API v3</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Certificazione:</span>
-              <strong style="color:var(--status-free);">PCI-DSS Service Provider Level 1</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Periodo gratuito:</span>
-              <strong style="color:var(--primary);">14 Giorni di Prova a 0,00 €</strong>
-            </div>
-          </div>
-
-          <button type="button" class="btn-primary" onclick="handleStripeCheckoutSubmit()" style="background:#635BFF; border-color:#635BFF; width:100%; padding:14px; font-weight:800; font-size:14px; display:inline-flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(99, 91, 255, 0.35);">
-            <span>⚡</span> <span>Paga subito con Stripe (59 €/mese)</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- PANE 3: Google (Google Pay & Google Play) -->
-      <div class="checkout-pane" id="panePayGoogle">
-        <div style="display:flex; flex-direction:column; gap:14px;">
-          <!-- 1-Tap Google Pay Button -->
-          <button type="button" class="btn-gplay-fast-checkout" id="btnGPayCheckoutFast" onclick="confirmGooglePlaySubscription()">
-            <span class="gplay-logo-wrap">
-              <svg viewBox="0 0 512 512" width="22" height="22">
-                <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
-                <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
-                <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
-                <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
-              </svg>
-            </span>
-            <div style="text-align:left; flex:1;">
-              <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
-                Paga subito con <strong>Google Pay & Wallet</strong> <span class="badge" style="background:#00E676; color:#0b1928; font-size:10px; font-weight:900; padding:1px 6px;">1-TAP</span>
+          <!-- METHOD 3: Addebito diretto (SEPA) -->
+          <div class="checkout-pro-method-row" id="proMethodRowSepa">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('sepa')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <span style="color:#003A70; font-weight:900; font-size:9.5px; border:1px solid #003A70; border-radius:3px; padding:0 3px;">SEPA</span>
               </div>
-              <div style="font-size:11px; opacity:0.85; color:#cbd5e1;">0,00 € oggi · 14 gg prova · Addebito su carta Google Wallet</div>
+              <span class="pro-method-title">Addebito diretto</span>
             </div>
-            <span style="color:#00D2FF; font-size:18px;">➔</span>
-          </button>
-
-          <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px; font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; justify-content:space-between;">
-              <span>Integrazione:</span>
-              <strong style="color:var(--text-main);">Google Payments Client API</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>Merchant ID Google:</span>
-              <strong style="color:var(--text-main); font-family:monospace;">0225-1603-6390</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>Carte supportate nel Wallet:</span>
-              <span style="color:var(--text-main); font-weight:700;">Visa, Mastercard, Postepay</span>
+            <div class="checkout-pro-method-body" id="proMethodBodySepa">
+              <div style="margin-bottom: 8px;">
+                <label class="pro-field-label">Codice IBAN</label>
+                <input type="text" id="checkoutSepaIban" class="pro-input" placeholder="IT60 X 05428 11101 000000123456" maxlength="32">
+              </div>
             </div>
           </div>
+
+          <!-- METHOD 4: Google Pay -->
+          <div class="checkout-pro-method-row" id="proMethodRowGoogle">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('google')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <span style="background:#000; color:#fff; border-radius:3px; padding:1px 4px; font-size:9.5px; font-weight:800; display:inline-flex; align-items:center;"><span style="color:#4285F4;">G</span>Pay</span>
+              </div>
+              <span class="pro-method-title">Google Pay</span>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyGoogle">
+              <p style="font-size:12px; color:#4B5563; margin:0 0 6px; line-height:1.45;">
+                Usa le carte salvate nel tuo Google Wallet con addebito sicuro a 1 tocco tramite Google Payments.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Submit Button: Orange with Padlock & Arrow -->
+        <button type="submit" class="btn-checkout-pro-cta" id="btnProSubmit">
+          <span style="font-size: 15px;">🔒</span>
+          <span>Avvia l'abbonamento</span>
+          <span style="font-size: 15px;">➔</span>
+        </button>
+      </form>
+
+      <!-- Terms & Privacy Links -->
+      <div class="checkout-pro-footer-terms">
+        Confermando, accetti i nostri <a href="javascript:void(0)" onclick="showToast('Termini di servizio BarPilot consultabili online.');">Termini di servizio</a> e l'<a href="javascript:void(0)" onclick="showToast('Informativa sulla privacy conforme GDPR.');">Informativa sulla privacy</a>.
+      </div>
+
+      <!-- Bottom Bar: Powered by stripe & Security -->
+      <div class="checkout-pro-bottom-bar">
+        <div>
+          Powered by <strong style="color:#635BFF; font-weight:900; font-size:12.5px;">stripe</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <svg width="13" height="15" viewBox="0 0 16 18" fill="none">
+            <path d="M8 1L1 3.5V8.5C1 12.8 4 16.5 8 17.5C12 16.5 15 12.8 15 8.5V3.5L8 1Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.5 8.5L7.2 10.2L10.5 6.8" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Pagamenti sicuri e crittografati</span>
         </div>
       </div>
+
     </div>
   </div>
 
