@@ -2411,9 +2411,6 @@
           <img src="assets/images/logo.png" alt="BarPilot" style="width: 26px; height: 26px; object-fit: contain;">
           <span>Bar<strong>Pilot</strong></span>
         </div>
-        <button type="button" class="checkout-pro-close" onclick="closeCheckoutModal(true)" aria-label="Chiudi">
-          ✕
-        </button>
       </div>
 
       <!-- Title & Price Subtitle -->
@@ -2568,24 +2565,7 @@
             </div>
           </div>
 
-          <!-- METHOD 4: Addebito diretto (SEPA) -->
-          <div class="checkout-pro-method-row" id="proMethodRowSepa">
-            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('sepa')">
-              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
-              <div class="pro-method-icon">
-                <span style="color:#003A70; font-weight:900; font-size:9.5px; border:1px solid #003A70; border-radius:3px; padding:0 3px;">SEPA</span>
-              </div>
-              <span class="pro-method-title">Addebito diretto</span>
-            </div>
-            <div class="checkout-pro-method-body" id="proMethodBodySepa">
-              <div style="margin-bottom: 8px;">
-                <label class="pro-field-label">Codice IBAN</label>
-                <input type="text" id="checkoutSepaIban" class="pro-input" placeholder="IT60 X 05428 11101 000000123456" maxlength="32">
-              </div>
-            </div>
-          </div>
-
-          <!-- METHOD 5: Google Pay (Merchant ID: 0225-1603-6390) -->
+          <!-- METHOD 4: Google Pay (Merchant ID: 0225-1603-6390) -->
           <div class="checkout-pro-method-row" id="proMethodRowGoogle">
             <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('google')">
               <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>

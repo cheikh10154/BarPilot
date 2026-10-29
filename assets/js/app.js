@@ -6164,7 +6164,7 @@ let isProSaveCardChecked = true;
 
 function selectProPaymentMethod(method) {
   currentProMethod = method;
-  const methods = ['card', 'stripe', 'paypal', 'sepa', 'google'];
+  const methods = ['card', 'stripe', 'paypal', 'google'];
   methods.forEach(m => {
     const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
     if (row) {
@@ -6180,8 +6180,6 @@ function selectProPaymentMethod(method) {
       submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
     } else if (method === 'paypal') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Continua con PayPal</span> <span>➔</span>';
-    } else if (method === 'sepa') {
-      submitBtn.innerHTML = '<span>🔒</span> <span>Autorizza Addebito SEPA</span> <span>➔</span>';
     } else {
       submitBtn.innerHTML = '<span>🔒</span> <span>Avvia l\'abbonamento</span> <span>➔</span>';
     }
@@ -6227,11 +6225,6 @@ function handleProCheckoutSubmit(e) {
 
   if (currentProMethod === 'paypal') {
     activateSubscription('paypal');
-    return;
-  }
-
-  if (currentProMethod === 'sepa') {
-    activateSubscription('sepa');
     return;
   }
 
