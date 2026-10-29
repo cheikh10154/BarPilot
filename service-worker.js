@@ -1,5 +1,5 @@
 // BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v83';
+const CACHE_NAME = 'barpilot-cache-v84';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,7 +11,8 @@ const ASSETS_TO_CACHE = [
   './assets/js/supabaseClient.js',
   './assets/js/googlePayService.js',
   './assets/js/app.js',
-  './assets/images/logo.png'
+  './assets/images/logo.png',
+  './assets/images/google-pay-button.png'
 ];
 
 self.addEventListener('install', (event) => {
