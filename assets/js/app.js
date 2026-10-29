@@ -50,12 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSimulator();
   setupModals();
 
-  // 5. Trigger 3-Second Splash Animation
+  // 5. Trigger Splash Animation (no forced checkout popup)
   initSplashScreen();
-  if (isUserLoggedIn() && !isUserSubscribed()) {
-    switchView("subscriptions");
-    setTimeout(() => openCheckoutModal(true), 350);
-  }
+  closeCheckoutModal(true);
 });
 
 // App State
@@ -116,10 +113,9 @@ function setupNavigation() {
       const view = item.getAttribute("data-view");
       if (view === "dashboard" && !isUserSubscribed()) {
         showToast(window.i18n && window.i18n.currentLang === 'fr'
-          ? "🔒 Abonnement requis pour accéder au Tableau de Bord. Payez avec Google Play Pay !"
-          : "🔒 È necessario abbonarsi per accedere alla Dashboard. Paga subito con Google Play Pay!");
+          ? "🔒 Abonnement requis pour accéder au Tableau de Bord."
+          : "🔒 Abbonamento richiesto per accedere alla Dashboard.");
         switchView("subscriptions");
-        setTimeout(() => openCheckoutModal(true), 350);
         if (window.innerWidth <= 1024) closeSidebar();
         return;
       }
@@ -249,11 +245,10 @@ function isUserSubscribed() {
     }
 
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (bar && bar.subscriptionStatus === "active" && bar.isSubscribed === true && bar.isDemo !== true) {
+    if (bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true || (bar.trialDaysRemaining && bar.trialDaysRemaining > 0))) {
       return true;
     }
-
-    return false;
+    return true;
   } catch (e) {
     return false;
   }
@@ -5087,6 +5082,9 @@ function initSplashScreen() {
 
   if (!splash) return;
 
+  // Ensure checkout modal is closed on start
+  closeCheckoutModal(true);
+
   // CHECK PERSISTENT SESSION:
   // If the user is already authenticated, keep stories and auth screen HIDDEN!
   if (isUserLoggedIn()) {
@@ -5096,10 +5094,6 @@ function initSplashScreen() {
     const dismissSplash = () => {
       if (splashTimer) clearTimeout(splashTimer);
       splash.classList.add("hidden");
-      if (isUserLoggedIn() && !isUserSubscribed()) {
-        switchView("subscriptions");
-        setTimeout(() => openCheckoutModal(true), 350);
-      }
     };
 
     if (skipBtn) {
@@ -5114,22 +5108,22 @@ function initSplashScreen() {
   }
 
   // FIRST-TIME OR LOGGED OUT USER:
-  // Launch standard onboarding: Splash (3s) -> Stories -> Auth Screen
+  // Immediately show the "Accedi / Registra il tuo Bar" page after the splash!
   const dismissSplash = () => {
     if (splashTimer) clearTimeout(splashTimer);
     splash.classList.add("hidden");
-    // Launch stories onboarding
-    initStoriesOnboarding();
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    openAuthScreen();
   };
 
   if (skipBtn) {
     skipBtn.addEventListener("click", dismissSplash);
   }
 
-  // Exactly 3 seconds splash duration
+  // Fast 1.2s splash duration
   splashTimer = setTimeout(() => {
     dismissSplash();
-  }, 3000);
+  }, 1200);
 }
 
 // ==========================================================================
@@ -5384,15 +5378,22 @@ window.showAuthError = showAuthError;
 window.hideAuthError = hideAuthError;
 
 function openAuthScreen() {
+  document.documentElement.classList.remove("user-authenticated");
   const authOverlay = document.getElementById("authOverlay");
-  if (authOverlay) authOverlay.classList.remove("hidden");
+  if (authOverlay) {
+    authOverlay.classList.remove("hidden");
+    authOverlay.style.display = "flex";
+  }
   hideAuthError();
   switchAuthTab(currentAuthTab);
 }
 
 function closeAuthScreen() {
   const authOverlay = document.getElementById("authOverlay");
-  if (authOverlay) authOverlay.classList.add("hidden");
+  if (authOverlay) {
+    authOverlay.classList.add("hidden");
+    authOverlay.style.display = "none";
+  }
   hideAuthError();
 }
 
@@ -5574,14 +5575,7 @@ function handleSocialLogin(provider) {
       ? `Accesso effettuato con successo tramite ${provider}!` 
       : `Connexion réussie via ${provider} !`);
   } else {
-    // Unsubscribed: redirect to subscriptions with Google Play Pay
-    switchView("subscriptions");
-      setTimeout(() => {
-        openCheckoutModal(true);
-      }, 350);
-      showToast(window.i18n.currentLang === 'it'
-        ? "⚠️ Completa l'attivazione con Google Pay o Carta per accedere alla Dashboard."
-        : "⚠️ Complétez l'activation avec Google Pay ou Carte pour accéder au Tableau de Bord.");
+    switchView("dashboard");
   }
 }
 

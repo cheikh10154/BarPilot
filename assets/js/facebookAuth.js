@@ -155,20 +155,12 @@ class FacebookAuthManager {
           : `Bienvenue, ${profile.name} ! Connexion Facebook réussie.`);
       }
     } else {
-      // Direct unsubscribed Facebook user to subscription page with Google Play Pay
-      if (typeof switchView === "function") switchView("subscriptions");
-      setTimeout(() => {
-        if (typeof openCheckoutModal === "function") openCheckoutModal(true);
-      }, 400);
-      if (typeof showToast === "function") {
-        showToast(isIt
-          ? `⚠️ Benvenuto ${profile.name}! Abbonamento richiesto per la Dashboard. Paga subito con Google Play Pay (59€/mese).`
-          : `⚠️ Bienvenue ${profile.name} ! Abonnement requis pour le Tableau de Bord. Payez avec Google Play Pay (59€/mois).`);
-      }
+      if (typeof switchView === "function") switchView("dashboard");
     }
+
   }
 
-  showFacebookPopupActiveModal() {
+    showFacebookPopupActiveModal() {
     let modal = document.getElementById("facebookPickerModal");
     const isIt = !window.i18n || window.i18n.currentLang === "it";
 

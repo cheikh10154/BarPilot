@@ -324,20 +324,12 @@ class GoogleAuthManager {
           : `Bienvenue, ${profile.name} ! Connexion Google réussie.`);
       }
     } else {
-      // Direct unsubscribed Google user to subscription page with mandatory Google Pay / Card checkout
-      if (typeof switchView === "function") switchView("subscriptions");
-      setTimeout(() => {
-        if (typeof openCheckoutModal === "function") openCheckoutModal(true);
-      }, 400);
-      if (typeof showToast === "function") {
-        showToast(isIt
-          ? `⚠️ Benvenuto ${profile.name}! Abbonamento richiesto per la Dashboard. Completa l'attivazione con Google Pay & Wallet (59€/mese).`
-          : `⚠️ Bienvenue ${profile.name} ! Abonnement requis pour le Tableau de Bord. Payez avec Google Pay (59€/mois).`);
-      }
+      if (typeof switchView === "function") switchView("dashboard");
     }
+
   }
 
-  handleOAuthError(err) {
+    handleOAuthError(err) {
     const origin = window.location.origin;
     console.error("[GoogleAuth] OAuth Error details:", err, "Current origin:", origin);
 
