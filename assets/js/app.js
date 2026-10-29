@@ -4584,10 +4584,7 @@ function openCheckoutModal(isForcedMandatory = false) {
   } catch (e) {}
 
   const barNameEl = document.getElementById("checkoutProBarName");
-  if (barNameEl && bar.name) barNameEl.textContent = bar.name;
-
-  const barAddrEl = document.getElementById("checkoutProBarAddress");
-  if (barAddrEl) barAddrEl.textContent = bar.address || (bar.city ? `Via Principale, 1 - ${bar.city}` : "Via Roma 123, Milano");
+  if (barNameEl) barNameEl.textContent = "Abbonamento";
 
   const cardHolderEl = document.getElementById("checkoutCardHolder");
   const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
