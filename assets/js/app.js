@@ -6344,7 +6344,7 @@ let isProSaveCardChecked = true;
 
 function selectProPaymentMethod(method) {
   currentProMethod = method;
-  const methods = ['card', 'stripe', 'paypal', 'google'];
+  const methods = ['card', 'stripe', 'google'];
   methods.forEach(m => {
     const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
     if (row) {
@@ -6358,8 +6358,6 @@ function selectProPaymentMethod(method) {
       submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
     } else if (method === 'google') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
-    } else if (method === 'paypal') {
-      submitBtn.innerHTML = '<span>🔒</span> <span>Continua con PayPal</span> <span>➔</span>';
     } else {
       submitBtn.innerHTML = '<span>🔒</span> <span>Avvia l\'abbonamento</span> <span>➔</span>';
     }
@@ -6387,15 +6385,6 @@ function handleProCheckoutSubmit(e) {
 
   if (currentProMethod === 'google') {
     openGooglePlayModal();
-    return;
-  }
-
-  if (currentProMethod === 'paypal') {
-    const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
-    showToast(isFr ? "Connexion sécurisée à PayPal en cours..." : "Connessione sicura a PayPal in corso...");
-    setTimeout(() => {
-      activateSubscription('paypal');
-    }, 1500);
     return;
   }
 

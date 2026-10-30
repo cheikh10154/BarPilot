@@ -206,23 +206,7 @@
             </div>
           </div>
 
-          <!-- METHOD 3: PayPal -->
-          <div class="checkout-pro-method-row" id="proMethodRowPaypal">
-            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('paypal')">
-              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
-              <div class="pro-method-icon">
-                <span style="color:#003087; font-weight:900; font-size:15px; font-style:italic;">P<span style="color:#0079C1;">P</span></span>
-              </div>
-              <span class="pro-method-title">PayPal</span>
-            </div>
-            <div class="checkout-pro-method-body" id="proMethodBodyPaypal">
-              <p style="font-size:12px; color:#4B5563; margin:0 0 6px; line-height:1.45;">
-                Verrai reindirizzato sul tuo conto PayPal per confermare l'autorizzazione dell'abbonamento con prova gratuita.
-              </p>
-            </div>
-          </div>
-
-          <!-- METHOD 4: Google Pay (Merchant ID: 0225-1603-6390) -->
+          <!-- METHOD 3: Google Pay (Merchant ID: 0225-1603-6390) -->
           <div class="checkout-pro-method-row" id="proMethodRowGoogle">
             <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('google')">
               <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
@@ -448,7 +432,7 @@
 
     function selectProPaymentMethod(method) {
       currentProMethod = method;
-      const methods = ['card', 'stripe', 'paypal', 'google'];
+      const methods = ['card', 'stripe', 'google'];
       methods.forEach(m => {
         const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
         if (row) {
@@ -462,8 +446,6 @@
           submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
         } else if (method === 'google') {
           submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
-        } else if (method === 'paypal') {
-          submitBtn.innerHTML = '<span>🔒</span> <span>Continua con PayPal</span> <span>➔</span>';
         } else {
           submitBtn.innerHTML = '<span>🔒</span> <span>Avvia l\'abbonamento</span> <span>➔</span>';
         }
@@ -670,24 +652,6 @@
       }, 1500);
     }
 
-    function handleDirectPayPal() {
-      const submitBtn = document.getElementById('btnProSubmit');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Connessione PayPal e verifica autorizzazione...`;
-      }
-      showCheckoutAlert("Connessione sicura a PayPal in corso per autorizzare l'abbonamento...", "info");
-
-      setTimeout(() => {
-        const txnId = "PAYPAL_TXN_" + Date.now().toString(36);
-        confirmAndUnlockSubscription("paypal", txnId, "PayPal Subscriptions");
-      }, 1600);
-    }
-
-    function handleDirectCheckoutSubmit(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      hideCheckoutAlert();
-
       if (currentProMethod === 'stripe') {
         handleDirectStripeClick();
         return;
@@ -695,11 +659,6 @@
 
       if (currentProMethod === 'google') {
         handleDirectGooglePay();
-        return;
-      }
-
-      if (currentProMethod === 'paypal') {
-        handleDirectPayPal();
         return;
       }
 
