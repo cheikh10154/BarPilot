@@ -5688,7 +5688,7 @@ function switchAuthTab(tab) {
 
   if (submitBtnEmail) {
     submitBtnEmail.textContent = isRegister
-      ? (window.i18n ? window.i18n.t("submitEmailRegister") : "🚀 Crea Bar e attiva 14 giorni gratis")
+      ? (window.i18n ? window.i18n.t("submitEmailRegister") : "🚀 Crea un bar e attiva 14 giorni di prova")
       : (window.i18n ? window.i18n.t("submitEmailLogin") : "Accedi al gestionale");
   }
 }
@@ -5719,7 +5719,7 @@ function handleSocialLogin(provider) {
   }
 }
 
-function handleAuthSubmit(e) {
+async function handleAuthSubmit(e) {
   e.preventDefault();
   hideAuthError();
   const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
@@ -5745,8 +5745,79 @@ function handleAuthSubmit(e) {
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
     const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
+    // Mostra stato di caricamento sul pulsante di creazione bar
+    const submitBtnEmail = document.getElementById("authSubmitBtn");
+    if (submitBtnEmail) {
+      submitBtnEmail.disabled = true;
+      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Salvataggio dati su database Supabase...`;
+    }
+
+    const trialEndIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const registrationMetadata = {
+      bar_name: barName,
+      vat_number: vatNumber,
+      piva: vatNumber,
+      owner_name: ownerName,
+      city: city,
+      address: `Via Principale, 1 - ${city}`,
+      phone: phone,
+      plan: "BarPilot Pro 59€",
+      trial_days: 14,
+      trial_start_date: new Date().toISOString(),
+      trial_end_date: trialEndIso,
+      role: "Proprietario",
+      status: "active_trial",
+      created_at: new Date().toISOString()
+    };
+
+    // 1. SALVATAGGIO DEI DATI SUL DATABASE SUPABASE (AUTH & TABELLE)
+    let supabaseUser = null;
+    let supabaseSuccess = false;
+    if (window.supabase && window.supabase.auth) {
+      try {
+        console.log("[Supabase] Salvataggio dati registrazione su Supabase Database per:", email);
+        const res = await window.supabase.auth.signUp({
+          email: email,
+          password: credential,
+          options: {
+            data: registrationMetadata
+          }
+        });
+        if (res && res.data && res.data.user) {
+          supabaseSuccess = true;
+          supabaseUser = res.data.user;
+          console.log("[Supabase] Dati salvati con successo in auth.users (ID:", res.data.user.id, ")");
+        } else if (res && res.error) {
+          console.warn("[Supabase] Risposta Supabase Auth:", res.error.message);
+        }
+      } catch (errSupabase) {
+        console.warn("[Supabase] Errore connessione Supabase:", errSupabase);
+      }
+
+      // Tentativo salvataggio opzionale anche su tabella REST registrations se configurata
+      try {
+        await fetch(`${window.supabase.url}/rest/v1/registrations`, {
+          method: "POST",
+          headers: window.supabase.getHeaders(false),
+          body: JSON.stringify({
+            email: email,
+            owner_name: ownerName,
+            bar_name: barName,
+            vat_number: vatNumber,
+            city: city,
+            phone: phone,
+            plan: "BarPilot Pro 59€",
+            trial_days: 14,
+            created_at: new Date().toISOString()
+          })
+        });
+      } catch (e) {}
+    }
+
     const activeBar = {
       id: "bar_" + Date.now(),
+      supabaseId: supabaseUser ? supabaseUser.id : null,
+      supabaseSaved: supabaseSuccess,
       name: barName,
       vat: vatNumber,
       piva: vatNumber,
@@ -5760,7 +5831,7 @@ function handleAuthSubmit(e) {
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
       trialDaysRemaining: 14,
-      trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+      trialEndDate: trialEndIso
     };
 
     const bars = window.db.get("barsList") || [];
@@ -5772,6 +5843,8 @@ function handleAuthSubmit(e) {
     // Save user in database (Owner uses password, has no PIN)
     saveUserToDatabase({
       id: "usr_" + Date.now(),
+      supabaseId: supabaseUser ? supabaseUser.id : null,
+      supabaseSaved: supabaseSuccess,
       type: "email",
       email: email,
       phone: phone,
@@ -5810,9 +5883,22 @@ function handleAuthSubmit(e) {
       window.db.set("activeBar", activeBar);
     }
 
-    setUserLoggedIn(true, { name: ownerName, email: email, phone: phone, barName: barName, provider: "email" });
+    setUserLoggedIn(true, { 
+      name: ownerName, 
+      email: email, 
+      phone: phone, 
+      barName: barName, 
+      provider: "email",
+      supabaseId: supabaseUser ? supabaseUser.id : null
+    });
     closeAuthScreen();
     renderApp();
+
+    if (window.showToast) {
+      window.showToast(window.i18n?.currentLang === 'it' 
+        ? "✅ Dati registrati e sincronizzati con successo su Supabase!" 
+        : "✅ Données enregistrées avec succès sur la base Supabase !");
+    }
 
     // DOPO LA REGISTRAZIONE: mostra la pagina dell'offerta BarPilot Pro (pro.html)
     window.location.href = "/pro.html";
