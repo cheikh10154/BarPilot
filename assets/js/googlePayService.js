@@ -95,6 +95,11 @@ class GooglePayService {
   processGooglePayment(amount = 59.00, currency = "EUR") {
     const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
 
+    // Try to re-init if client not yet created but SDK became ready
+    if (!this.paymentsClient && window.google && window.google.payments && window.google.payments.api) {
+      this.init();
+    }
+
     // 1. If Google Pay SDK is loaded on user's browser, invoke official Google Pay sheet
     if (this.paymentsClient) {
       const paymentDataRequest = {
@@ -121,37 +126,31 @@ class GooglePayService {
       return this.paymentsClient.loadPaymentData(paymentDataRequest)
         .then((paymentData) => {
           console.log("[GooglePay] Payment Authorized by user:", paymentData);
-          const tokenData = paymentData.paymentMethodData?.tokenizationData?.token;
-          
-          // Save payment confirmation
-          if (window.activateSubscription) {
-            window.activateSubscription("google_pay");
-          }
-
-          if (window.showToast) {
-            window.showToast(isFr
-              ? "🎉 Paiement Google Pay validé avec succès ! Votre abonnement est actif."
-              : "🎉 Pagamento Google Pay completato con successo! Il tuo abbonamento è attivo.");
-          }
-          return { success: true, paymentData };
+          const txnId = "GPA." + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "." + Date.now().toString().slice(-5);
+          return {
+            success: true,
+            paymentData: paymentData,
+            transactionId: txnId
+          };
         })
         .catch((err) => {
           console.warn("[GooglePay] Google Pay UI sheet cancelled or failed:", err);
-          if (err.statusCode === "CANCELED") {
-            if (window.showToast) {
-              window.showToast(isFr ? "Paiement Google Pay annulé" : "Pagamento Google Pay annullato");
-            }
-          } else {
-            // Fallback to interactive in-app sheet if popup was blocked or needs user confirmation
-            this.fallbackToInteractiveModal(amount);
+          let userMsg = isFr ? "Paiement Google Pay refusé ou annulé." : "Autorizzazione Google Pay annullata o rifiutata.";
+          if (err && err.statusCode === "CANCELED") {
+            userMsg = isFr ? "Paiement Google Pay annulé par l'utilisateur." : "Pagamento Google Pay annullato dall'utente.";
+          } else if (err && err.statusCode === "BUYER_ACCOUNT_ERROR") {
+            userMsg = isFr ? "Erreur sur le compte Google Pay. Veuillez vérifier votre moyen de paiement." : "Errore sull'account Google Pay. Controlla il tuo metodo di pagamento o saldo.";
           }
-          return { success: false, error: err };
+          return { success: false, error: err, message: userMsg };
         });
     }
 
-    // 2. Fallback if offline or SDK script blocked: use native in-app confirmation modal
-    this.fallbackToInteractiveModal(amount);
-    return Promise.resolve({ success: true, mode: "modal" });
+    // 2. Google Pay SDK not available or not supported on this browser
+    return Promise.resolve({
+      success: false,
+      error: { code: "NOT_SUPPORTED", message: isFr ? "Google Pay n'est pas disponible sur ce navigateur." : "Google Pay non è configurato o supportato su questo dispositivo/browser." },
+      message: isFr ? "Google Pay n'est pas supporté sur ce navigateur. Veuillez utiliser la carte bancaire." : "Google Pay non è supportato su questo browser. Utilizza la carta di credito."
+    });
   }
 
   fallbackToInteractiveModal(amount) {

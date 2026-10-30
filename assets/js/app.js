@@ -395,43 +395,45 @@ function closeGooglePlayModal(force = false) {
   modal.removeAttribute("data-mandatory");
 }
 
-function confirmGooglePlaySubscription() {
+async function confirmGooglePlaySubscription() {
   const btn = document.getElementById("btnGPlayConfirm");
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = `
       <span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span>
-      <span>${isFr ? "Validation Google Pay & Wallet..." : "Connessione Google Pay & Wallet..."}</span>
+      <span>${isFr ? "Validation Google Pay & Wallet..." : "Verifica autorizzazione Google Pay..."}</span>
     `;
   }
 
   if (window.googlePayService) {
-    window.googlePayService.processGooglePayment(59.00)
-      .then(res => {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
-        }
-        if (res && res.success) {
-          activateSubscription("google_pay");
-        }
-      })
-      .catch(() => {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
-        }
-        activateSubscription("google_play");
-      });
-  } else {
-    setTimeout(() => {
+    try {
+      const res = await window.googlePayService.processGooglePayment(59.00);
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
       }
-      activateSubscription("google_play");
-    }, 800);
+      if (res && res.success) {
+        showToast(isFr ? "🎉 Paiement Google Pay validé avec succès !" : "🎉 Pagamento Google Pay completato con successo!");
+        activateSubscription("google_pay");
+      } else {
+        const errorMsg = (res && (res.message || res.error?.message || res.error?.statusMessage)) || (isFr ? "Autorisation Google Pay échouée ou annulée." : "Autorizzazione Google Pay annullata o non completata.");
+        showToast("❌ " + errorMsg);
+        // DO NOT UNLOCK!
+      }
+    } catch (err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+      }
+      showToast("❌ " + (err?.message || (isFr ? "Erreur Google Pay." : "Errore autorizzazione Google Pay.")));
+    }
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="btn-gplay-text">${isFr ? "S'abonner en 1 clic" : "Abbonati con 1 tocco"}</span>`;
+    }
+    showToast(isFr ? "❌ Service Google Pay non disponible. Veuillez payer par carte bancaire." : "❌ Servizio Google Pay non disponibile su questo dispositivo. Seleziona la Carta di Credito.");
   }
 }
 
@@ -6389,7 +6391,7 @@ function toggleProSaveCard() {
 }
 window.toggleProSaveCard = toggleProSaveCard;
 
-function handleProCheckoutSubmit(e) {
+async function handleProCheckoutSubmit(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   if (currentProMethod === 'stripe') {
@@ -6456,12 +6458,45 @@ function handleProCheckoutSubmit(e) {
       submitBtn.innerHTML = `<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Elaborazione e verifica pagamento Stripe...`;
     }
 
-    showToast("Contatto con il gateway protetto di Stripe in corso...");
+    showToast("⏳ Verifica della carta con l'API protetta di Stripe in corso...");
 
-    setTimeout(() => {
+    try {
+      const verifyFn = window.verifyCardWithStripe || (window.stripePaymentService && window.stripePaymentService.verifyCard);
+      let result = null;
+      if (typeof verifyFn === 'function') {
+        result = await verifyFn({
+          number: cardRaw,
+          exp_month: expMonth,
+          exp_year: 2000 + expYear,
+          cvc: cvcRaw,
+          name: holderRaw
+        });
+      } else {
+        result = { success: false, error: "Servizio di verifica Stripe non pronto. Ricarica la pagina e riprova." };
+      }
+
+      if (!result || !result.success) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>🔒</span> <span>Avvia l'abbonamento</span> <span>➔</span>`;
+        }
+        const errorMsg = (result && result.error) ? result.error : "Carta non valida o rifiutata dal circuito bancario.";
+        showToast("❌ Pagamento non autorizzato: " + errorMsg);
+        return; // STRICTLY STOP: DO NOT UNLOCK!
+      }
+
+      // Success
       if (submitBtn) submitBtn.disabled = false;
+      showToast("✅ Carta verificata con successo da Stripe! Accesso sbloccato.");
       activateSubscription('stripe_card');
-    }, 1800);
+      switchView('dashboard');
+    } catch (err) {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>🔒</span> <span>Avvia l'abbonamento</span> <span>➔</span>`;
+      }
+      showToast("❌ Errore durante la verifica con Stripe: " + (err.message || "Riprova più tardi."));
+    }
     return;
   }
 
