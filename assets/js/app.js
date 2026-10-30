@@ -4556,7 +4556,7 @@ function openCheckoutModal(isForcedMandatory = false) {
   // Synchronize Live Credentials & Client Access Links
   const liveStripePk = localStorage.getItem("barpilot_stripe_pk") || DEFAULT_STRIPE_LIVE_PK;
   const liveMerchantId = localStorage.getItem("barpilot_gpay_merchant_id") || DEFAULT_GOOGLE_MERCHANT_ID;
-  const liveStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+  const liveStripeUrl = getStripePaymentUrl();
 
   localStorage.setItem("barpilot_stripe_pk", liveStripePk);
   localStorage.setItem("barpilot_gpay_merchant_id", liveMerchantId);
@@ -4752,11 +4752,19 @@ function switchCheckoutPaymentMethod(method) {
   if (paneGoogle) paneGoogle.classList.toggle("active", method === "google");
 }
 
-const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00";
+const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it";
+
+function getStripePaymentUrl() {
+  let customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+  if (!customStripeUrl.includes("locale=")) {
+    customStripeUrl += (customStripeUrl.includes("?") ? "&" : "?") + "locale=it";
+  }
+  return customStripeUrl;
+}
 
 function handleStripeCheckoutSubmit() {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
-  const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+  const customStripeUrl = getStripePaymentUrl();
   if (customStripeUrl && customStripeUrl.startsWith("http")) {
     window.open(customStripeUrl, "_blank");
     showToast(isFr ? "Redirection vers Stripe Checkout... Veuillez finaliser le paiement." : "Reindirizzamento verso Stripe Checkout... Completa il pagamento sul portale protetto di Stripe.");

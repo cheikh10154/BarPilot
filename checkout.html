@@ -181,7 +181,7 @@
               <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; line-height:1.45; color:#374151;">
                 <div style="margin-bottom:6px;">
                   <span style="color:#6B7280; font-size:11px; display:block; margin-bottom:2px;">🔗 Link di accesso client Stripe ufficiale:</span>
-                  <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00" target="_blank" id="checkoutProStripeLinkPreview" style="color:#635BFF; font-weight:700; word-break:break-all; text-decoration:underline;">https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00</a>
+                  <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it" target="_blank" id="checkoutProStripeLinkPreview" style="color:#635BFF; font-weight:700; word-break:break-all; text-decoration:underline;">https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it</a>
                 </div>
                 <div style="font-size:11.5px; color:#6B7280;">
                   Reindirizzamento protetto alla pagina ufficiale Stripe con <strong>14 giorni di prova gratuita a 0,00 €</strong> e rinnovo a 59 €/mese.
@@ -274,7 +274,7 @@
       <!-- Bottom Bar: Powered by stripe & Security -->
       <div class="checkout-pro-bottom-bar">
         <div>
-          Powered by <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00" target="_blank" style="color:#635BFF; font-weight:900; font-size:12.5px; text-decoration:none;" title="Apri Link di Accesso Client Stripe">stripe ↗</a>
+          Powered by <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it" target="_blank" style="color:#635BFF; font-weight:900; font-size:12.5px; text-decoration:none;" title="Apri Link di Accesso Client Stripe in Italiano">stripe ↗</a>
         </div>
         <div style="display:flex; align-items:center; gap:5px;">
           <svg width="13" height="15" viewBox="0 0 16 18" fill="none">
@@ -291,11 +291,26 @@
   <script src="/assets/js/data.js"></script>
   <script src="/assets/js/googlePayService.js"></script>
   <script>
-    const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00";
+    const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it";
     let currentProMethod = 'card';
     let isProSaveCardChecked = true;
 
+    function getStripePaymentUrl() {
+      let url = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+      if (!url.includes("locale=")) {
+        url += (url.includes("?") ? "&" : "?") + "locale=it";
+      }
+      return url;
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+      // Ensure Stripe preview is always in Italian
+      const stripePreview = document.getElementById("checkoutProStripeLinkPreview");
+      if (stripePreview) {
+        const stripeUrl = getStripePaymentUrl();
+        stripePreview.href = stripeUrl;
+        stripePreview.textContent = stripeUrl;
+      }
       // Restore bar details
       const bar = (window.db ? window.db.get("activeBar") : {}) || {};
       let loggedUser = null;
@@ -568,7 +583,7 @@
     }
 
     function handleDirectStripeClick() {
-      const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
+      const customStripeUrl = getStripePaymentUrl();
       window.open(customStripeUrl, "_blank");
 
       const stripePanel = document.getElementById('stripeVerificationPanel');
