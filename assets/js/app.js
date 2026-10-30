@@ -4590,6 +4590,18 @@ function openCheckoutModal(isForcedMandatory = false) {
   const barNameEl = document.getElementById("checkoutProBarName");
   if (barNameEl) barNameEl.textContent = "Abbonamento";
 
+  // Calculate future 14-day date for timeline
+  const futureDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const futureDateFormatted = futureDate.toLocaleDateString(window.i18n?.currentLang === 'fr' ? 'fr-FR' : 'it-IT', {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+  const timelineDateModalEl = document.getElementById("checkoutProTimelineDateModal");
+  if (timelineDateModalEl) {
+    timelineDateModalEl.textContent = futureDateFormatted;
+  }
+
   const cardHolderEl = document.getElementById("checkoutCardHolder");
   const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
   if (cardHolderEl && !cardHolderEl.value && userName) cardHolderEl.value = userName;
