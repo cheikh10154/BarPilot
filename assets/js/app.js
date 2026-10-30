@@ -4561,12 +4561,14 @@ function openCheckoutModal(isForcedMandatory = false) {
   localStorage.setItem("barpilot_stripe_pk", liveStripePk);
   localStorage.setItem("barpilot_gpay_merchant_id", liveMerchantId);
   localStorage.setItem("barpilot_stripe_payment_url", liveStripeUrl);
-  localStorage.setItem("barpilot_gpay_env", "PRODUCTION");
+  // Default to TEST to prevent [OR_BIBED_11] while Google merchant console approval is pending
+  const gpayEnv = localStorage.getItem("barpilot_gpay_env") || "TEST";
+  localStorage.setItem("barpilot_gpay_env", gpayEnv);
 
   if (window.googlePayService) {
     window.googlePayService.stripePk = liveStripePk;
     window.googlePayService.merchantId = liveMerchantId;
-    window.googlePayService.environment = "PRODUCTION";
+    window.googlePayService.environment = gpayEnv;
   }
 
   const gDisplay = document.getElementById("checkoutProGoogleMerchantDisplay");

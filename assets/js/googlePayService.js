@@ -10,7 +10,7 @@ class GooglePayService {
     this.stripePk = localStorage.getItem("barpilot_stripe_pk") || DEFAULT_STRIPE_LIVE_PK;
     this.merchantId = localStorage.getItem("barpilot_gpay_merchant_id") || DEFAULT_GOOGLE_MERCHANT_ID;
     this.merchantName = localStorage.getItem("barpilot_gpay_merchant_name") || "BarPilot";
-    this.environment = localStorage.getItem("barpilot_gpay_env") || "PRODUCTION";
+    this.environment = localStorage.getItem("barpilot_gpay_env") || "TEST";
     this.paymentsClient = null;
     this.isReady = false;
     this.init();
@@ -19,13 +19,17 @@ class GooglePayService {
   init() {
     try {
       if (window.google && window.google.payments && window.google.payments.api) {
-        this.paymentsClient = new google.payments.api.PaymentsClient({
-          environment: this.environment,
-          merchantInfo: {
+        const clientConfig = {
+          environment: this.environment
+        };
+        // In PRODUCTION, merchantInfo is mandatory. In TEST, it is optional.
+        if (this.environment === 'PRODUCTION' && this.merchantId) {
+          clientConfig.merchantInfo = {
             merchantId: this.merchantId,
             merchantName: this.merchantName
-          }
-        });
+          };
+        }
+        this.paymentsClient = new google.payments.api.PaymentsClient(clientConfig);
         this.checkIsReadyToPay();
       } else {
         console.log("[GooglePay] Google Pay SDK not yet available, will initialize on load");
@@ -97,10 +101,6 @@ class GooglePayService {
         apiVersion: 2,
         apiVersionMinor: 0,
         allowedPaymentMethods: [this.getCardPaymentMethod()],
-        merchantInfo: {
-          merchantId: this.merchantId,
-          merchantName: this.merchantName
-        },
         transactionInfo: {
           totalPriceStatus: 'FINAL',
           totalPrice: Number(amount).toFixed(2),
@@ -109,7 +109,14 @@ class GooglePayService {
         }
       };
 
-      console.log("[GooglePay] Launching real Google Pay Sheet with Stripe Gateway & Merchant ID:", this.merchantId);
+      if (this.environment === 'PRODUCTION' && this.merchantId) {
+        paymentDataRequest.merchantInfo = {
+          merchantId: this.merchantId,
+          merchantName: this.merchantName
+        };
+      }
+
+      console.log("[GooglePay] Launching Google Pay Sheet with environment:", this.environment, "Merchant ID:", this.merchantId);
 
       return this.paymentsClient.loadPaymentData(paymentDataRequest)
         .then((paymentData) => {
