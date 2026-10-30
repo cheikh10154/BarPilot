@@ -49,9 +49,17 @@
     {
       "src": "service-worker.js",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "^/api/stripe-webhook/?$",
+      "dest": "/api/stripe-webhook.js"
+    },
     {
       "src": "^/pro/?$",
       "dest": "/pro.html"
