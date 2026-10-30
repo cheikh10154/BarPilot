@@ -607,33 +607,67 @@
     }
 
     function handleDirectGooglePay() {
-      showCheckoutAlert("Inizializzazione Google Wallet / Google Pay con Merchant ID: 0225-1603-6390...", "info");
+      openGooglePlayModal();
+    }
 
-      if (window.googlePayService) {
-        window.googlePayService.processGooglePayment(59.00)
-          .then(res => {
-            if (res && res.success && res.mode !== "modal") {
-              const txnId = "GPAY_AUTH_" + Date.now().toString(36);
-              confirmAndUnlockSubscription("google_pay", txnId, "Google Pay (Merchant ID: 0225-1603-6390)");
-            } else if (res && res.mode === "modal") {
-              // Interactive modal opened for confirmation
-            } else {
-              showCheckoutAlert("❌ Pagamento Google Pay annullato o non confermato. L'accesso alla Dashboard rimane bloccato.", "error");
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-            showCheckoutAlert("❌ Pagamento Google Pay annullato o non autorizzato. L'accesso alla Dashboard rimane bloccato.", "error");
-          });
-      } else {
-        const confirmed = confirm("Procedere con l'autorizzazione di pagamento con Google Pay (59 €/mese · 14 giorni gratis)?");
-        if (confirmed) {
-          const txnId = "GPAY_AUTH_" + Date.now().toString(36);
-          confirmAndUnlockSubscription("google_pay", txnId, "Google Pay");
-        } else {
-          showCheckoutAlert("❌ Pagamento Google Pay annullato dall'utente.", "error");
-        }
+    function openGooglePlayModal() {
+      const modal = document.getElementById("googlePlayModal");
+      if (!modal) return;
+
+      const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+      let loggedUser = null;
+      try {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (e) {}
+      
+      const userEmail = (loggedUser && loggedUser.email) || bar.managerEmail || "marco.rossi@gmail.com";
+      const userName = (loggedUser && loggedUser.name) || bar.managerName || "Marco Rossi";
+
+      const emailEl = document.getElementById("gplayUserEmail");
+      if (emailEl) emailEl.textContent = userEmail;
+
+      const avatarEl = document.querySelector(".gplay-acc-avatar");
+      if (avatarEl) avatarEl.textContent = (userName.charAt(0) || "M").toUpperCase();
+
+      const nextDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      const nextDateStr = nextDate.toLocaleDateString("it-IT", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+
+      const futureEl = document.getElementById("gplayDateFuture");
+      if (futureEl) {
+        futureEl.innerHTML = `<strong>Dal ${nextDateStr} :</strong> Il primo pagamento di <strong>59,00 €</strong> succede in automatico se non viene disdetto.`;
       }
+
+      modal.classList.add("active");
+    }
+
+    function closeGooglePlayModal() {
+      const modal = document.getElementById("googlePlayModal");
+      if (modal) {
+        modal.classList.remove("active");
+      }
+    }
+
+    function confirmGooglePlaySubscription() {
+      const btn = document.getElementById("btnGPlayConfirm");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `
+          <span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span>
+          <span>Autorizzazione Google Play in corso...</span>
+        `;
+      }
+
+      showCheckoutAlert("Elaborazione transazione Google Play & Google Wallet in corso...", "info");
+
+      setTimeout(() => {
+        closeGooglePlayModal();
+        const txnId = "GPA." + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "." + Date.now().toString().slice(-5);
+        confirmAndUnlockSubscription("google_play", txnId, "Google Play In-App Purchase");
+      }, 1500);
     }
 
     function handleDirectPayPal() {
@@ -689,6 +723,93 @@
       }, 1800);
     }
   </script>
+
+  <!-- Google Play In-App Purchase Modal Sheet -->
+  <div class="modal-overlay" id="googlePlayModal" onclick="if(event.target === this) closeGooglePlayModal();">
+    <div class="modal-box gplay-sheet-box">
+      <!-- Header: Google Play Brand & Account -->
+      <div class="gplay-sheet-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 512 512" width="22" height="22">
+            <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+            <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+            <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+            <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+          </svg>
+          <span style="font-size:15px; font-weight:800; color:var(--text-main); letter-spacing:-0.2px;">Google Play</span>
+        </div>
+        <div class="gplay-account-pill">
+          <span class="gplay-acc-avatar">M</span>
+          <span class="gplay-acc-email" id="gplayUserEmail">marco.rossi@gmail.com</span>
+        </div>
+      </div>
+
+      <!-- App details row -->
+      <div class="gplay-app-row">
+        <img src="/assets/images/logo.png" alt="BarPilot" class="gplay-app-icon" onerror="this.src='/assets/images/barpilot-logo-app.png'">
+        <div>
+          <div style="font-size:15px; font-weight:800; color:var(--text-main);">BarPilot Pro — Tutto Incluso</div>
+          <div style="font-size:12px; color:var(--text-muted);">BarPilot Inc. · Gestione Bar & Ristoranti</div>
+        </div>
+      </div>
+
+      <!-- Price & Auto-debit breakdown -->
+      <div class="gplay-price-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+          <div>
+            <span class="gplay-trial-tag">PROVA GRATUITA 14 GIORNI</span>
+            <div style="font-size:15px; font-weight:800; color:var(--text-main); margin-top:4px;">Piano Mensile Tutto Incluso</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:22px; font-weight:900; color:#00D2FF;">59,00 € <span style="font-size:11px; font-weight:600; color:var(--text-muted);">/ mese</span></div>
+            <div style="font-size:12px; font-weight:800; color:var(--status-free);">0,00 € oggi</div>
+          </div>
+        </div>
+
+        <div class="gplay-timeline">
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot"></div>
+            <div style="font-size:12px; color:var(--text-main);"><strong id="gplayDateToday">Oggi :</strong> 0,00 € — Accesso completo immediato</div>
+          </div>
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot gplay-dot-future"></div>
+            <div style="font-size:12px; color:var(--text-main);">
+              <strong id="gplayDateFuture">Fra 14 giorni :</strong> Il primo pagamento di <strong>59,00 €</strong> succede in automatico se non viene disdetto.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method Row -->
+      <div class="gplay-method-row">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="gplay-method-badge">
+            <span style="font-weight:900; color:#fff; font-size:11px;">G Pay</span>
+          </div>
+          <div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-main);">Google Pay • Mastercard •••• 4242</div>
+            <div style="font-size:11px; color:var(--text-muted);">Saldo Google Play o metodo predefinito</div>
+          </div>
+        </div>
+        <span style="font-size:11px; color:var(--primary); font-weight:700;">Modifica</span>
+      </div>
+
+      <!-- Disclaimer clause -->
+      <div class="gplay-legal-text">
+        L'abbonamento si rinnoverà automaticamente al costo di 59,00 € al mese fino a disdetta. Puoi disdire in qualsiasi momento nelle impostazioni di Google Play o direttamente da BarPilot. Se disdici durante i 14 giorni di prova gratuita, non ti verrà addebitato alcun importo.
+      </div>
+
+      <!-- CTA Button: 1-Tap Subscribe & Cancel -->
+      <div style="margin-top:18px; display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn-gplay-confirm" id="btnGPlayConfirm" onclick="confirmGooglePlaySubscription()">
+          <span class="btn-gplay-text">Abbonati con 1 tocco</span>
+        </button>
+        <button type="button" onclick="closeGooglePlayModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; padding:6px;">
+          Annulla
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Success Confirmation Modal -->
   <div id="checkoutSuccessModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.78); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">

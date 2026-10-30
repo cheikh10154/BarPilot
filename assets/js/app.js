@@ -6386,7 +6386,7 @@ function handleProCheckoutSubmit(e) {
   }
 
   if (currentProMethod === 'google') {
-    confirmGooglePlaySubscription();
+    openGooglePlayModal();
     return;
   }
 
