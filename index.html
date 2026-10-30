@@ -528,18 +528,17 @@
              ======================================================== -->
         <section class="view-panel active" id="view-dashboard">
           
-                    <!-- Subscription Required Lock Banner for Dashboard -->
-          <div id="dashboardSubLockBanner" class="dashboard-sub-lock" style="display:none;">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:24px;">🔒</span>
-              <div>
-                <strong style="font-size:14px; color:var(--text-main); display:block;">Accesso Dashboard Riservato agli Abbonati</strong>
-                <span style="font-size:12px; color:var(--text-muted);">Attiva BarPilot Pro per visualizzare i dati in tempo reale (59 €/mese · 14 giorni di prova gratuita).</span>
-              </div>
-            </div>
-            <button class="btn-primary" onclick="openGooglePlayModal()" style="padding:9px 18px; font-size:12.5px; font-weight:800; background:#01875f; border-radius:20px; box-shadow:0 4px 12px rgba(1, 135, 95, 0.4);">
-              ⚡ Abbonati con Google Play Pay
-            </button>
+          <!-- Subscription Required Strict Lock for Dashboard -->
+          <div id="dashboardSubLockBanner" class="dashboard-strict-lock-container" style="display:none;">
+            <div style="font-size:52px; margin-bottom:12px;">🔒</div>
+            <h3 style="font-size:24px; font-weight:800; color:#FFFFFF; margin-bottom:10px;">Accesso Dashboard Bloccato</h3>
+            <p style="font-size:14px; color:#94A3B8; max-width:480px; line-height:1.55; margin-bottom:24px;">
+              L'accesso alla Dashboard e a tutti i dati del locale è riservato agli abbonati con pagamento confermato dal sistema.<br>
+              Completa l'abbonamento con Google Pay, Carta o Stripe per sbloccare la Dashboard.
+            </p>
+            <a href="/checkout.html" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-weight:800; font-size:15px; background:#FF7A00; text-decoration:none; border-radius:12px; box-shadow:0 8px 24px rgba(255,122,0,0.35);">
+              <span>🔒</span> <span>Completa e Conferma il Pagamento</span> <span>➔</span>
+            </a>
           </div>
 
 <!-- KPI Metrics Cards Grid -->

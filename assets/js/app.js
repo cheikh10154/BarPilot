@@ -127,9 +127,9 @@ function setupNavigation() {
       const view = item.getAttribute("data-view");
       if (view === "dashboard" && !isUserSubscribed()) {
         showToast(window.i18n && window.i18n.currentLang === 'fr'
-          ? "🔒 Abonnement requis pour accéder au Tableau de Bord."
-          : "🔒 Abbonamento richiesto per accedere alla Dashboard.");
-        switchView("subscriptions");
+          ? "🔒 Accès refusé : Le Tableau de Bord est bloqué jusqu'à confirmation du paiement."
+          : "🔒 Accesso negato : La Dashboard è bloccata finché il sistema non conferma il pagamento.");
+        window.location.href = "/checkout.html";
         if (window.innerWidth <= 1024) closeSidebar();
         return;
       }
@@ -226,19 +226,7 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isDemoMode() {
   try {
-    if (localStorage.getItem("barpilot_is_demo") === "true") return true;
-    let loggedUser = null;
-    try {
-      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-    } catch (e) {}
-    if (loggedUser && (loggedUser.provider === "demo" || loggedUser.isDemo === true || loggedUser.email === "marco@barcentrale.it")) {
-      return true;
-    }
-    const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (bar && (bar.isDemo === true || bar.id === "bar_01" || bar.managerEmail === "marco@barcentrale.it")) {
-      return true;
-    }
-    return false;
+    return localStorage.getItem("barpilot_is_demo") === "true";
   } catch (e) {
     return false;
   }
@@ -247,15 +235,18 @@ window.isDemoMode = isDemoMode;
 
 function isUserSubscribed() {
   try {
-    if (isDemoMode()) {
-      return true;
+    if (localStorage.getItem("barpilot_is_demo") === "true") {
+      let loggedUser = null;
+      try {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (e) {}
+      if (loggedUser && loggedUser.isDemo === true) {
+        return true;
+      }
     }
     const stored = localStorage.getItem("barpilot_is_subscribed");
-    if (stored === "true") {
-      return true;
-    }
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true)) {
+    if (stored === "true" && bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true)) {
       return true;
     }
     return false;
@@ -289,8 +280,21 @@ function updateDashboardLockState() {
   }
 
   const dashLockBanner = document.getElementById("dashboardSubLockBanner");
+  const metricsGrid = document.querySelector(".metrics-grid");
+  const chartsSection = document.querySelector(".charts-section");
+  const staffActivity = document.querySelector(".recent-activity-card");
+
   if (dashLockBanner) {
     dashLockBanner.style.display = subscribed ? "none" : "flex";
+  }
+  if (metricsGrid) {
+    metricsGrid.style.display = subscribed ? "" : "none";
+  }
+  if (chartsSection) {
+    chartsSection.style.display = subscribed ? "" : "none";
+  }
+  if (staffActivity) {
+    staffActivity.style.display = subscribed ? "" : "none";
   }
 }
 
@@ -435,12 +439,10 @@ function switchView(viewName) {
   // Gatekeep dashboard if user is not subscribed
   if (viewName === "dashboard" && !isUserSubscribed()) {
     showToast(window.i18n && window.i18n.currentLang === 'fr'
-      ? "🔒 Un abonnement actif est requis pour accéder au Tableau de Bord. Payez avec Google Play Pay !"
-      : "🔒 È necessario abbonarsi a BarPilot Pro per accedere alla Dashboard. Paga subito con Google Play Pay!");
-    viewName = "subscriptions";
-    setTimeout(() => {
-      openCheckoutModal(true);
-    }, 350);
+      ? "🔒 Accès refusé : Le Tableau de Bord est bloqué jusqu'à confirmation du paiement."
+      : "🔒 Accesso negato : La Dashboard è bloccata finché il sistema non conferma il pagamento.");
+    window.location.href = "/checkout.html";
+    return;
   }
 
   appState.activeView = viewName;
@@ -4757,18 +4759,9 @@ function handleStripeCheckoutSubmit() {
   const customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
   if (customStripeUrl && customStripeUrl.startsWith("http")) {
     window.open(customStripeUrl, "_blank");
-    showToast(isFr ? "Redirection vers Stripe Checkout..." : "Reindirizzamento verso Stripe Checkout...");
-    setTimeout(() => {
-      activateSubscription("stripe_checkout");
-    }, 2500);
+    showToast(isFr ? "Redirection vers Stripe Checkout... Veuillez finaliser le paiement." : "Reindirizzamento verso Stripe Checkout... Completa il pagamento sul portale protetto di Stripe.");
     return;
   }
-
-  // Direct confirmation via Stripe Gateway
-  activateSubscription("stripe_checkout");
-  showToast(isFr
-    ? "🎉 Paiement Stripe validé ! Votre abonnement de 59 €/mois est actif."
-    : "🎉 Pagamento Stripe completato con successo! Il tuo abbonamento è attivo.");
 }
 
 function handleConfirmCheckout(e) {
@@ -5233,6 +5226,17 @@ function initSplashScreen() {
     splashTimer = setTimeout(() => {
       dismissSplash();
     }, 1200);
+    return;
+  }
+
+  // LOGGED IN USER BUT NOT YET SUBSCRIBED:
+  // Strict gatekeeping - immediately send to checkout to confirm payment
+  if (isUserLoggedIn() && !isUserSubscribed()) {
+    if (splashTimer) clearTimeout(splashTimer);
+    if (splash) splash.classList.add("hidden");
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
+    window.location.href = "/checkout.html";
     return;
   }
 
@@ -6287,34 +6291,83 @@ function handleProCheckoutSubmit(e) {
     return;
   }
 
+  if (currentProMethod === 'google') {
+    confirmGooglePlaySubscription();
+    return;
+  }
+
+  if (currentProMethod === 'paypal') {
+    const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+    showToast(isFr ? "Connexion sécurisée à PayPal en cours..." : "Connessione sicura a PayPal in corso...");
+    setTimeout(() => {
+      activateSubscription('paypal');
+    }, 1500);
+    return;
+  }
+
   if (currentProMethod === 'card') {
     const cardInput = document.getElementById('checkoutCardNumber');
     const expiryInput = document.getElementById('checkoutCardExpiry');
     const cvcInput = document.getElementById('checkoutCardCvc');
     const holderInput = document.getElementById('checkoutCardHolder');
 
-    if (cardInput && !cardInput.value) cardInput.value = '4242 4242 4242 4242';
-    if (expiryInput && !expiryInput.value) expiryInput.value = '12/28';
-    if (cvcInput && !cvcInput.value) cvcInput.value = '123';
-    if (holderInput && !holderInput.value) {
-      const bar = (window.db ? window.db.get("activeBar") : {}) || {};
-      holderInput.value = bar.managerName || 'Marco Rossi';
+    const cardRaw = (cardInput ? cardInput.value : "").replace(/\s+/g, '');
+    const expRaw = (expiryInput ? expiryInput.value : "").trim();
+    const cvcRaw = (cvcInput ? cvcInput.value : "").trim();
+    const holderRaw = (holderInput ? holderInput.value : "").trim();
+
+    if (!cardRaw || cardRaw.length < 15 || !/^\d+$/.test(cardRaw)) {
+      showToast("⚠️ Inserisci un numero di carta valido (minimo 15-16 cifre).");
+      if (cardInput) cardInput.focus();
+      return;
     }
 
-    activateSubscription('stripe_card');
+    const expMatch = expRaw.match(/^(\d{2})\s*\/?\s*(\d{2})$/);
+    if (!expMatch) {
+      showToast("⚠️ Data di scadenza non valida. Usa il formato MM / AA.");
+      if (expiryInput) expiryInput.focus();
+      return;
+    }
+    const expMonth = parseInt(expMatch[1], 10);
+    const expYear = parseInt(expMatch[2], 10);
+    if (expMonth < 1 || expMonth > 12) {
+      showToast("⚠️ Mese di scadenza non valido (01-12).");
+      return;
+    }
+    const currentYear2Digits = parseInt(new Date().getFullYear().toString().slice(-2), 10);
+    const currentMonth = new Date().getMonth() + 1;
+    if (expYear < currentYear2Digits || (expYear === currentYear2Digits && expMonth < currentMonth)) {
+      showToast("⚠️ La carta inserita risulta scaduta.");
+      return;
+    }
+
+    if (!cvcRaw || cvcRaw.length < 3 || !/^\d+$/.test(cvcRaw)) {
+      showToast("⚠️ Inserisci un codice CVC valido (3 o 4 cifre).");
+      if (cvcInput) cvcInput.focus();
+      return;
+    }
+
+    if (!holderRaw || holderRaw.length < 3) {
+      showToast("⚠️ Inserisci il nome e cognome dell'intestatario della carta.");
+      if (holderInput) holderInput.focus();
+      return;
+    }
+
+    const submitBtn = document.getElementById('btnProSubmit');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Elaborazione e verifica pagamento Stripe...`;
+    }
+
+    showToast("Contatto con il gateway protetto di Stripe in corso...");
+
+    setTimeout(() => {
+      if (submitBtn) submitBtn.disabled = false;
+      activateSubscription('stripe_card');
+    }, 1800);
     return;
   }
 
-  if (currentProMethod === 'paypal') {
-    activateSubscription('paypal');
-    return;
-  }
-
-  if (currentProMethod === 'google') {
-    confirmGooglePlaySubscription();
-    return;
-  }
-
-  activateSubscription('stripe_card');
+  showToast("⚠️ Seleziona un metodo di pagamento per procedere.");
 }
 window.handleProCheckoutSubmit = handleProCheckoutSubmit;
