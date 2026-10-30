@@ -652,6 +652,10 @@
       }, 1500);
     }
 
+    function handleDirectCheckoutSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      hideCheckoutAlert();
+
       if (currentProMethod === 'stripe') {
         handleDirectStripeClick();
         return;
