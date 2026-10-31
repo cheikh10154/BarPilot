@@ -63,7 +63,7 @@
             <img src="assets/images/logo.png" alt="BarPilot">
             <span>BarPilot Stories</span>
           </div>
-          <button class="story-skip-btn" id="btnSkipStories" data-i18n="skip" style="display:none;">Salta</button>
+          <button class="story-skip-btn" id="btnSkipStories" onclick="quickLoginDemo()" style="display:inline-flex; align-items:center; gap:4px; font-weight:800; cursor:pointer;" title="Accedi subito alla Demo">⚡ Prova Demo Gratuita</button>
         </div>
       </div>
 
@@ -211,8 +211,9 @@
             <p class="story-desc" data-i18n="story5Desc">Monitora margini netti, prodotti più venduti e ricevi suggerimenti intelligenti sulle scorte direttamente dal tuo assistente virtuale di bar management.</p>
             <span class="story-highlight-pill" data-i18n="story5Pill">📈 +18% di marginalità media stimata</span>
           </div>
-          <div class="story-action-bottom">
-            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn">Inizia prova gratuita di 14 giorni</button>
+          <div class="story-action-bottom" style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#10B981; box-shadow:0 6px 20px rgba(16,185,129,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
+            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
           </div>
         </div>
 
@@ -343,10 +344,10 @@
       </form>
 
       <!-- 1-Click Demo Account Quick Access -->
-      <div class="demo-account-box">
-        <span style="font-size:11px; color:var(--text-muted);" data-i18n="demoQuickLogin">Oppure prova subito con credenziali dimostrative</span>
-        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" data-i18n="demoQuickBtn">
-          ⚡ Entra con Bar Centrale (Demo 14 giorni)
+      <div class="demo-account-box" style="margin-top:14px; background:rgba(255,122,0,0.08); border:1.5px solid rgba(255,122,0,0.22); border-radius:12px; padding:12px; text-align:center;">
+        <span style="font-size:11.5px; font-weight:700; color:var(--text-main);" data-i18n="demoQuickLogin">Vuoi testare il gestionale senza registrarti?</span>
+        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" style="margin-top:6px; width:100%; height:40px; background:#FF7A00; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;" data-i18n="demoQuickBtn">
+          ⚡ Entra Subito nella Demo (100% Libera)
         </button>
       </div>
 

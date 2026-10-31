@@ -7,6 +7,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "demo.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "demo/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "checkout.html",
       "use": "@vercel/static"
     },
@@ -59,6 +67,14 @@
     {
       "src": "^/api/stripe-webhook/?$",
       "dest": "/api/stripe-webhook.js"
+    },
+    {
+      "src": "^/demo/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/demo.html$",
+      "dest": "/index.html"
     },
     {
       "src": "^/pro/?$",

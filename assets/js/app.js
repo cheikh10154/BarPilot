@@ -53,12 +53,23 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5. Trigger Splash Animation (no forced checkout popup)
   initSplashScreen();
   closeCheckoutModal(true);
-  // Direct Link Hash Router (e.g. #checkout)
+  // Direct Link Hash Router & URL Router (e.g. /demo, ?demo=true, #demo)
   const handleHashRouting = () => {
     const hash = (window.location.hash || "").toLowerCase();
+    const search = (window.location.search || "").toLowerCase();
+    const pathname = (window.location.pathname || "").toLowerCase();
+
+    // Check if demo is requested via URL (/demo, ?demo, #demo)
+    if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html")) {
+      quickLoginDemo();
+      return;
+    }
+
     if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
-      switchView("subscriptions");
-      setTimeout(() => openCheckoutModal(true), 200);
+      if (!isDemoMode()) {
+        switchView("subscriptions");
+        setTimeout(() => openCheckoutModal(true), 200);
+      }
     } else if (hash.startsWith("#view-")) {
       const v = hash.replace("#view-", "");
       switchView(v);
@@ -235,14 +246,9 @@ window.isDemoMode = isDemoMode;
 
 function isUserSubscribed() {
   try {
-    if (localStorage.getItem("barpilot_is_demo") === "true") {
-      let loggedUser = null;
-      try {
-        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-      } catch (e) {}
-      if (loggedUser && loggedUser.isDemo === true) {
-        return true;
-      }
+    // IN DEMO MODE: the demo page and all features are 100% free, unrestricted, and open!
+    if (localStorage.getItem("barpilot_is_demo") === "true" || isDemoMode()) {
+      return true;
     }
     const stored = localStorage.getItem("barpilot_is_subscribed");
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
@@ -257,7 +263,8 @@ function isUserSubscribed() {
 window.isUserSubscribed = isUserSubscribed;
 
 function updateDashboardLockState() {
-  const subscribed = isUserSubscribed();
+  const isDemo = isDemoMode();
+  const subscribed = isDemo || isUserSubscribed();
   const dashNavBtn = document.querySelector('.nav-item[data-view="dashboard"]');
   if (dashNavBtn) {
     let lockPill = dashNavBtn.querySelector(".dash-nav-lock");
@@ -295,6 +302,19 @@ function updateDashboardLockState() {
   }
   if (staffActivity) {
     staffActivity.style.display = subscribed ? "" : "none";
+  }
+
+  // Update top global banner in demo mode
+  const trialBanner = document.getElementById("globalTrialBanner");
+  if (trialBanner && isDemo) {
+    trialBanner.style.background = "linear-gradient(90deg, #10B981, #059669)";
+    trialBanner.innerHTML = `
+      <div class="trial-text-wrap">
+        <span class="trial-pulse-icon">⚡</span>
+        <span><strong>Modalità Demo Libera:</strong> Accesso completo e navigazione senza limiti a tutte le funzioni.</span>
+      </div>
+      <button class="trial-cta-btn" onclick="window.location.href='/pro.html'" style="background:#fff; color:#059669; font-weight:800;">Attiva BarPilot Pro</button>
+    `;
   }
 }
 
@@ -438,8 +458,8 @@ async function confirmGooglePlaySubscription() {
 }
 
 function switchView(viewName) {
-  // Gatekeep dashboard if user is not subscribed
-  if (viewName === "dashboard" && !isUserSubscribed()) {
+  // Gatekeep dashboard ONLY if user is not in demo and not subscribed
+  if (!isDemoMode() && viewName === "dashboard" && !isUserSubscribed()) {
     showToast(window.i18n && window.i18n.currentLang === 'fr'
       ? "🔒 Accès refusé : Le Tableau de Bord est bloqué jusqu'à confirmation du paiement."
       : "🔒 Accesso negato : La Dashboard è bloccata finché il sistema non conferma il pagamento.");
@@ -4552,6 +4572,13 @@ function selectPlan(planName) {
 }
 
 function openCheckoutModal(isForcedMandatory = false) {
+  // If in demo mode: demo page is 100% free and open, never open checkout!
+  if (isDemoMode()) {
+    closeCheckoutModal(true);
+    closeGooglePlayModal(true);
+    return;
+  }
+
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
@@ -4737,6 +4764,13 @@ function openCheckoutModal(isForcedMandatory = false) {
 function closeCheckoutModal(force = false) {
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
+
+  // In demo mode: modal can always be closed immediately without restrictions
+  if (isDemoMode()) {
+    modal.classList.remove("active");
+    modal.removeAttribute("data-mandatory");
+    return;
+  }
 
   // Non-closable rule: cannot close if mandatory or user is not subscribed
   if (!force && (modal.getAttribute("data-mandatory") === "true" || !isUserSubscribed())) {
@@ -5230,6 +5264,18 @@ function initSplashScreen() {
 
   // Ensure checkout modal is closed on start
   closeCheckoutModal(true);
+
+  // IN DEMO MODE: Keep demo page 100% free, unblocked, and directly open!
+  if (isDemoMode()) {
+    if (splashTimer) clearTimeout(splashTimer);
+    if (splash) splash.classList.add("hidden");
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
+    closeCheckoutModal(true);
+    closeGooglePlayModal(true);
+    updateDashboardLockState();
+    return;
+  }
 
   // CHECK PERSISTENT SESSION:
   // If the user is already authenticated and subscribed, keep stories and auth screen HIDDEN!
@@ -6059,8 +6105,18 @@ async function handleAuthSubmit(e) {
 function quickLoginDemo() {
   hideAuthError();
   localStorage.setItem("barpilot_is_demo", "true");
+  localStorage.setItem("barpilot_is_subscribed", "true");
+  localStorage.setItem("barpilot_is_logged_in", "true");
+
   closeCheckoutModal(true);
   closeGooglePlayModal(true);
+
+  const splash = document.getElementById("splashScreen");
+  if (splash) splash.classList.add("hidden");
+
+  const storiesOverlay = document.getElementById("storiesOverlay");
+  if (storiesOverlay) storiesOverlay.classList.add("hidden");
+
   const staffList = (window.db ? window.db.get("staff") : []) || [];
   const ownerStaff = staffList.find(s => s.role === "Proprietario") || {
     id: 1,
@@ -6073,8 +6129,11 @@ function quickLoginDemo() {
   };
 
   const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+  activeBar.name = "Bar Centrale (Demo)";
   activeBar.isDemo = true;
   activeBar.isSubscribed = true;
+  activeBar.subscriptionStatus = "active";
+  activeBar.plan = "BarPilot Pro 59€ (Demo Gratuita)";
   if (window.db) window.db.set("activeBar", activeBar);
 
   applyActiveStaff(ownerStaff, true);
@@ -6088,13 +6147,14 @@ function quickLoginDemo() {
 
   closeAuthScreen();
   renderApp();
+  updateDashboardLockState();
 
-  // In demo mode: take user straight to dashboard, no subscription requested!
+  // In demo mode: take user straight to dashboard, completely unlocked!
   switchView("dashboard");
 
-  showToast(window.i18n.currentLang === 'it'
-    ? "⚡ Benvenuto in Bar Centrale (Accesso Proprietario Demo)!"
-    : "⚡ Bienvenue sur Bar Centrale (Accès Propriétaire Démo) !");
+  showToast(window.i18n && window.i18n.currentLang === 'fr'
+    ? "⚡ Démo Bar Centrale active : Accès 100% libre et débloqué !"
+    : "⚡ Demo Bar Centrale attiva: Accesso 100% libero e sbloccato!");
 }
 
 // ==========================================================================

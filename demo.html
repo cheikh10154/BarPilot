@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarPilot - Demo Gratuita</title>
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <script>
+    try {
+      localStorage.setItem("barpilot_is_demo", "true");
+      localStorage.setItem("barpilot_is_subscribed", "true");
+      localStorage.setItem("barpilot_is_logged_in", "true");
+      sessionStorage.setItem("barpilot_demo_active", "true");
+    } catch (e) {}
+    window.location.replace("/index.html?demo=true#view-dashboard");
+  </script>
+</head>
+<body style="background:#0F172A; color:#E2E8F0; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="text-align:center;">
+    <div style="font-size:36px; margin-bottom:12px;">⚡</div>
+    <h2 style="font-size:20px; font-weight:800; margin:0 0 8px 0; color:#FF7A00;">BarPilot Demo</h2>
+    <p style="font-size:14px; color:#94A3B8; margin:0;">Accesso alla demo gratuita in corso...</p>
+  </div>
+</body>
+</html>
