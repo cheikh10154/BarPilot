@@ -83,11 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // App State
 let appState = {
   activeView: "dashboard",
-  cart: [
-    { id: 2, name: "Cappuccino", qty: 2, price: 2.80 },
-    { id: 1, name: "Espresso", qty: 1, price: 1.50 },
-    { id: 9, name: "Croissant burro", qty: 1, price: 1.80 }
-  ],
+  dashboardPeriod: "today",
+  cart: [],
   selectedTable: "Tavolo 04",
   selectedCategory: "all",
   kdsFilter: "all",
@@ -673,10 +670,306 @@ function renderActiveBar() {
 // --------------------------------------------------------------------------
 
 // ==========================================================================
-// Responsive Hourly Sales Bar Chart Engine
+// Centralized Dashboard Statistics Calculation Engine (Phases 1 - 15)
 // ==========================================================================
+function calculateDashboardStatistics(period = "today") {
+  const isDemo = (typeof isDemoMode === "function" && isDemoMode()) || 
+                 (window.db && typeof window.db.isDemo === "function" && window.db.isDemo());
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || {};
+  const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
+
+  // 1. Retrieve all orders for current context
+  const allOrders = (window.db ? window.db.get("orders") : []) || [];
+
+  // 2. Compute date boundaries for selected period (Europe/Rome timezone context)
+  const now = new Date();
+  let startMs = 0;
+  let endMs = Infinity;
+  let prevStartMs = 0;
+  let prevEndMs = 0;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  if (period === "today") {
+    startMs = startOfToday;
+    endMs = endOfToday;
+    prevStartMs = startOfToday - oneDayMs;
+    prevEndMs = startOfToday - 1;
+  } else if (period === "yesterday") {
+    startMs = startOfToday - oneDayMs;
+    endMs = startOfToday - 1;
+    prevStartMs = startOfToday - (2 * oneDayMs);
+    prevEndMs = startOfToday - oneDayMs - 1;
+  } else if (period === "week") {
+    const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+    startMs = startOfToday - (dayOfWeek * oneDayMs);
+    endMs = now.getTime();
+    const duration = Math.max(oneDayMs, endMs - startMs);
+    prevEndMs = startMs - 1;
+    prevStartMs = prevEndMs - duration;
+  } else if (period === "month") {
+    startMs = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+    endMs = now.getTime();
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999).getTime();
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0).getTime();
+    prevStartMs = prevMonthStart;
+    prevEndMs = prevMonthEnd;
+  } else if (period === "30days") {
+    startMs = now.getTime() - (30 * oneDayMs);
+    endMs = now.getTime();
+    prevEndMs = startMs - 1;
+    prevStartMs = prevEndMs - (30 * oneDayMs);
+  } else {
+    // "all"
+    startMs = 0;
+    endMs = Infinity;
+    prevStartMs = 0;
+    prevEndMs = 0;
+  }
+
+  // 3. Filter valid confirmed orders (exclude draft and cancelled)
+  function isValidOrder(ord) {
+    if (!ord) return false;
+    const s = String(ord.status || "").toLowerCase().trim();
+    if (s === "cancelled" || s === "draft" || s === "annullata" || s === "bozza") return false;
+    return true;
+  }
+
+  function getOrderTimestamp(ord) {
+    if (ord.createdAt) {
+      const t = new Date(ord.createdAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    return now.getTime();
+  }
+
+  const validOrdersInPeriod = allOrders.filter(ord => {
+    if (!isValidOrder(ord)) return false;
+    const t = getOrderTimestamp(ord);
+    return t >= startMs && t <= endMs;
+  });
+
+  const validOrdersPrevPeriod = (prevStartMs > 0) ? allOrders.filter(ord => {
+    if (!isValidOrder(ord)) return false;
+    const t = getOrderTimestamp(ord);
+    return t >= prevStartMs && t <= prevEndMs;
+  }) : [];
+
+  // 4. Compute Net Revenues (Vendite registrate)
+  function computeNetTotal(orders) {
+    return orders.reduce((sum, ord) => {
+      let ordTot = 0;
+      if (Array.isArray(ord.items) && ord.items.length > 0) {
+        ordTot = ord.items.reduce((iSum, item) => {
+          const qty = Number(item.qty) || 0;
+          const price = Number(item.price) || 0;
+          const discount = Number(item.discount) || 0;
+          return iSum + (qty * price) - discount;
+        }, 0);
+      } else {
+        ordTot = Number(ord.total) || 0;
+      }
+      const ordDiscount = Number(ord.discount) || 0;
+      const ordRefund = Number(ord.refund) || 0;
+      return sum + Math.max(0, ordTot - ordDiscount - ordRefund);
+    }, 0);
+  }
+
+  const revenue = Math.round(computeNetTotal(validOrdersInPeriod) * 100) / 100;
+  const prevRevenue = Math.round(computeNetTotal(validOrdersPrevPeriod) * 100) / 100;
+
+  // 5. Orders Count
+  const ordersCount = validOrdersInPeriod.length;
+  const prevOrdersCount = validOrdersPrevPeriod.length;
+
+  // 6. Average Ticket
+  const avgTicket = ordersCount > 0 ? Math.round((revenue / ordersCount) * 100) / 100 : 0.00;
+  const prevAvgTicket = prevOrdersCount > 0 ? Math.round((prevRevenue / prevOrdersCount) * 100) / 100 : 0.00;
+
+  // 7. Inventory Alerts
+  const inventory = (window.db ? window.db.get("inventory") : []) || [];
+  const alertCount = inventory.filter(i => {
+    const reorder = Number(i.reorderLevel) || 0;
+    const qty = Number(i.qty) || 0;
+    return reorder > 0 && qty <= reorder;
+  }).length;
+
+  // 8. Percentage Deltas (FASE 13)
+  function computeDelta(current, prev) {
+    if (prev <= 0) {
+      if (current <= 0) return { text: "0%", type: "neutral", label: "Nessuna variazione" };
+      return { text: "Nuova attività", type: "new", label: "Nuova attività (nessun dato precedente)" };
+    }
+    const diff = ((current - prev) / prev) * 100;
+    const sign = diff >= 0 ? "+" : "";
+    return {
+      text: `${sign}${diff.toFixed(0)}%`,
+      type: diff >= 0 ? "positive" : "negative",
+      label: `${sign}${diff.toFixed(1)}% rispetto al periodo precedente`
+    };
+  }
+
+  const revenueDelta = computeDelta(revenue, prevRevenue);
+  const ordersDelta = computeDelta(ordersCount, prevOrdersCount);
+  const avgTicketDelta = computeDelta(avgTicket, prevAvgTicket);
+
+  // 9. Hourly Sales (FASE 8)
+  const hourSlots = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"];
+  const hourlyMap = {};
+  hourSlots.forEach(h => { hourlyMap[h] = 0; });
+
+  validOrdersInPeriod.forEach(ord => {
+    const ordDate = ord.createdAt ? new Date(ord.createdAt) : now;
+    const h = ordDate.getHours().toString().padStart(2, '0') + ":00";
+    const ordTot = Number(ord.total) || 0;
+    if (hourlyMap[h] !== undefined) {
+      hourlyMap[h] = Math.round((hourlyMap[h] + ordTot) * 100) / 100;
+    }
+  });
+
+  const hourlySales = hourSlots.map(h => ({ hour: h, val: hourlyMap[h] }));
+
+  let peakHour = "";
+  let peakVal = 0;
+  hourlySales.forEach(item => {
+    if (item.val > peakVal) {
+      peakVal = item.val;
+      peakHour = item.hour;
+    }
+  });
+
+  // 10. Category Sales (FASE 7)
+  const products = (window.db ? window.db.get("products") : []) || [];
+  const prodMap = {};
+  products.forEach(p => { prodMap[p.id] = p; });
+
+  const catMap = {
+    "coffee": { label: "Caffè", color: "#F59E0B", amount: 0 },
+    "drinks": { label: "Bevande", color: "#3B82F6", amount: 0 },
+    "cocktail": { label: "Cocktail", color: "#10B981", amount: 0 },
+    "food": { label: "Cibo", color: "#EC4899", amount: 0 },
+    "other": { label: "Altro", color: "#8B5CF6", amount: 0 }
+  };
+
+  validOrdersInPeriod.forEach(ord => {
+    if (Array.isArray(ord.items)) {
+      ord.items.forEach(it => {
+        const prod = prodMap[it.id] || {};
+        let cat = String(it.category || prod.category || "").toLowerCase().trim();
+        if (cat === "coffee" || cat === "caffè") cat = "coffee";
+        else if (cat === "drinks" || cat === "beer" || cat === "softdrinks" || cat === "bevande" || cat === "wine") cat = "drinks";
+        else if (cat === "cocktail" || cat === "cocktails" || cat === "spirits") cat = "cocktail";
+        else if (cat === "food" || cat === "cibo" || cat === "snack" || cat === "snacks") cat = "food";
+        else cat = "other";
+
+        const val = (Number(it.qty) || 0) * (Number(it.price) || 0);
+        catMap[cat].amount = Math.round((catMap[cat].amount + val) * 100) / 100;
+      });
+    }
+  });
+
+  const totalCatAmount = Object.values(catMap).reduce((s, c) => s + c.amount, 0);
+  const categorySales = Object.keys(catMap).map(k => {
+    const item = catMap[k];
+    const pct = totalCatAmount > 0 ? Math.round((item.amount / totalCatAmount) * 100) : 0;
+    return {
+      key: k,
+      label: item.label,
+      color: item.color,
+      amount: item.amount,
+      percent: pct
+    };
+  });
+
+  // Ensure percent sum is 100% when total > 0
+  if (totalCatAmount > 0) {
+    const sumPct = categorySales.reduce((s, c) => s + c.percent, 0);
+    const diff = 100 - sumPct;
+    if (diff !== 0) {
+      const maxCat = categorySales.reduce((prev, curr) => curr.percent > prev.percent ? curr : prev, categorySales[0]);
+      if (maxCat) maxCat.percent += diff;
+    }
+  }
+
+  // 11. Top Products (FASE 10)
+  const productSalesMap = {};
+  validOrdersInPeriod.forEach(ord => {
+    if (Array.isArray(ord.items)) {
+      ord.items.forEach(it => {
+        const pId = it.id || it.name;
+        if (!productSalesMap[pId]) {
+          const matchedProd = prodMap[it.id] || {};
+          productSalesMap[pId] = {
+            id: it.id,
+            name: it.name || matchedProd.name || "Articolo",
+            image: matchedProd.image || "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=150&h=150&fit=crop",
+            salesCount: 0,
+            revenue: 0,
+            price: Number(it.price) || Number(matchedProd.price) || 0
+          };
+        }
+        const qty = Number(it.qty) || 0;
+        const val = qty * (Number(it.price) || productSalesMap[pId].price);
+        productSalesMap[pId].salesCount += qty;
+        productSalesMap[pId].revenue = Math.round((productSalesMap[pId].revenue + val) * 100) / 100;
+      });
+    }
+  });
+
+  const topProducts = Object.values(productSalesMap)
+    .filter(p => p.salesCount > 0)
+    .sort((a, b) => {
+      if (b.salesCount !== a.salesCount) return b.salesCount - a.salesCount;
+      if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+      return a.name.localeCompare(b.name);
+    });
+
+  // 12. Recent Orders (FASE 9)
+  const recentOrders = [...validOrdersInPeriod]
+    .sort((a, b) => getOrderTimestamp(b) - getOrderTimestamp(a))
+    .slice(0, 10);
+
+  return {
+    period,
+    revenue,
+    revenueDelta,
+    ordersCount,
+    ordersDelta,
+    avgTicket,
+    avgTicketDelta,
+    alertCount,
+    hourlySales,
+    peakHour,
+    peakVal,
+    categorySales,
+    totalCatAmount,
+    topProducts,
+    recentOrders,
+    isDemo
+  };
+}
+
+window.calculateDashboardStatistics = calculateDashboardStatistics;
+
+// Period Selector Controller
+function setDashboardPeriod(period) {
+  if (!appState) appState = {};
+  appState.dashboardPeriod = period;
+
+  const pills = document.querySelectorAll("#dashboardPeriodPills .btn-period-pill");
+  pills.forEach(pill => {
+    pill.classList.toggle("active", pill.getAttribute("data-period") === period);
+  });
+
+  renderDashboard();
+}
+window.setDashboardPeriod = setDashboardPeriod;
+
+// Responsive Hourly Sales Bar Chart Engine
 let currentHourlySlot = 'all';
-let selectedHourlyItem = { hour: '19:00', val: 380 };
+let selectedHourlyItem = null;
 
 function filterHourlySlot(slot) {
   currentHourlySlot = slot;
@@ -698,13 +991,17 @@ function filterHourlySlot(slot) {
 function selectHourlyBar(hour, val) {
   selectedHourlyItem = { hour, val };
   const detailEl = document.getElementById("hourlySelectedText");
-  const hourly = (window.db && window.db.get("hourlySales")) || [];
-  const total = hourly.reduce((sum, h) => sum + h.val, 0);
+  const stats = calculateDashboardStatistics(appState.dashboardPeriod || "today");
+  const total = stats.revenue;
   const share = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-  const isPeak = (hour === '19:00' || val >= 380);
+  const isPeak = (stats.peakHour === hour && val > 0);
 
   if (detailEl) {
-    detailEl.innerHTML = `Ore ${hour} ➔ ${val} € <span style="font-size:11px; font-weight:600; opacity:0.85;">(${share}% del fatturato ${isPeak ? '· 🔥 Picco' : ''})</span>`;
+    if (val > 0) {
+      detailEl.innerHTML = `Ore ${hour} ➔ ${val.toFixed(2)} € <span style="font-size:11px; font-weight:600; opacity:0.85;">(${share}% del totale ${isPeak ? '· 🔥 Picco' : ''})</span>`;
+    } else {
+      detailEl.innerHTML = `Ore ${hour} ➔ 0,00 € <span style="font-size:11px; font-weight:600; opacity:0.85;">(Nessuna vendita registrata in questa fascia)</span>`;
+    }
   }
   renderHourlySalesChart();
 }
@@ -713,8 +1010,8 @@ function renderHourlySalesChart() {
   const barsWrap = document.getElementById("hourlyBarsWrap");
   if (!barsWrap) return;
 
-  const hourly = (window.db && window.db.get("hourlySales")) || [];
-  if (!hourly || hourly.length === 0) return;
+  const stats = calculateDashboardStatistics(appState.dashboardPeriod || "today");
+  const hourly = stats.hourlySales || [];
 
   // Filter according to slot
   let filtered = hourly;
@@ -726,24 +1023,26 @@ function renderHourlySalesChart() {
     filtered = hourly.filter(h => h.hour >= "18:00" && h.hour <= "22:00");
   }
 
-  const overallMax = Math.max(...hourly.map(h => h.val));
-  const peakItem = hourly.find(h => h.val === overallMax) || { hour: '19:00', val: 380 };
   const peakBadge = document.getElementById("hourlyPeakBadge");
   if (peakBadge) {
-    peakBadge.textContent = `🔥 Picco: ${peakItem.hour} (${peakItem.val} €)`;
+    if (stats.peakVal > 0) {
+      peakBadge.textContent = `🔥 Picco: ${stats.peakHour} (${stats.peakVal.toFixed(2)} €)`;
+      peakBadge.style.display = "";
+    } else {
+      peakBadge.textContent = "Nessuna vendita";
+    }
   }
 
   // Update Y-Axis labels dynamically
   const yAxis = document.getElementById("hourlyYAxis");
-  const maxVal = Math.max(...filtered.map(h => h.val));
+  const maxVal = Math.max(...filtered.map(h => h.val), stats.peakVal);
   if (yAxis) {
-    const step = Math.ceil(maxVal / 4 / 50) * 50;
-    const topVal = step * 4;
+    const effectiveTop = maxVal > 0 ? Math.ceil(maxVal / 4 / 20) * 20 * 4 : 100;
     yAxis.innerHTML = `
-      <span>${topVal}€</span>
-      <span>${topVal * 0.75}€</span>
-      <span>${topVal * 0.5}€</span>
-      <span>${topVal * 0.25}€</span>
+      <span>${effectiveTop}€</span>
+      <span>${Math.round(effectiveTop * 0.75)}€</span>
+      <span>${Math.round(effectiveTop * 0.5)}€</span>
+      <span>${Math.round(effectiveTop * 0.25)}€</span>
       <span>0€</span>
     `;
   }
@@ -756,17 +1055,18 @@ function renderHourlySalesChart() {
   }
 
   // Generate responsive bars
+  const chartHeightRef = maxVal > 0 ? maxVal * 1.15 : 100;
   barsWrap.innerHTML = filtered.map(item => {
-    const heightPercent = Math.max(6, Math.min(100, (item.val / (maxVal * 1.08)) * 100));
-    const isPeak = (item.hour === peakItem.hour);
+    const heightPercent = maxVal > 0 ? Math.max(item.val > 0 ? 8 : 0, Math.min(100, (item.val / chartHeightRef) * 100)) : 0;
+    const isPeak = (stats.peakVal > 0 && item.hour === stats.peakHour);
     const isActive = (selectedHourlyItem && selectedHourlyItem.hour === item.hour);
     const colClasses = ['bar-col', isPeak ? 'peak' : '', isActive ? 'active' : ''].filter(Boolean).join(' ');
 
     return `
-      <div class="${colClasses}" onclick="selectHourlyBar('${item.hour}', ${item.val})" title="Fascia ${item.hour}: ${item.val} €">
-        <span class="bar-val-badge">${item.val}€</span>
+      <div class="${colClasses}" onclick="selectHourlyBar('${item.hour}', ${item.val})" title="Fascia ${item.hour}: ${item.val.toFixed(2)} €">
+        <span class="bar-val-badge">${item.val.toFixed(0)}€</span>
         <div class="bar-fill" style="height: ${heightPercent}%">
-          <span class="bar-tooltip">${item.val} €</span>
+          <span class="bar-tooltip">${item.val.toFixed(2)} €</span>
         </div>
         <span class="bar-label">${item.hour}</span>
       </div>
@@ -779,64 +1079,172 @@ window.selectHourlyBar = selectHourlyBar;
 window.renderHourlySalesChart = renderHourlySalesChart;
 
 function renderDashboard() {
-  const metrics = window.db.get("metrics");
-  const hourly = window.db.get("hourlySales");
-  const orders = window.db.get("orders");
-  const products = window.db.get("products");
+  const currentPeriod = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
+  const stats = calculateDashboardStatistics(currentPeriod);
 
-  // Fill KPI
-  document.getElementById("metricRevenue").textContent = `${metrics.revenue.toLocaleString()} €`;
-  document.getElementById("metricOrders").textContent = metrics.ordersCount;
-  document.getElementById("metricAvgTicket").textContent = `${metrics.avgTicket.toFixed(2)} €`;
-  document.getElementById("metricAlerts").textContent = metrics.alertCount;
+  // 1. Fill KPI Values
+  const revEl = document.getElementById("metricRevenue");
+  const ordEl = document.getElementById("metricOrders");
+  const avgEl = document.getElementById("metricAvgTicket");
+  const altEl = document.getElementById("metricAlerts");
 
-  // Render Hourly Bar Chart
-  const barsWrap = document.getElementById("hourlyBarsWrap");
-  if (barsWrap) {
-    const maxVal = Math.max(...hourly.map(h => h.val));
-    barsWrap.innerHTML = hourly.map(item => {
-      const heightPercent = (item.val / maxVal) * 100;
-      return `
-        <div class="bar-col">
-          <div class="bar-fill" style="height: ${heightPercent}%">
-            <span class="bar-tooltip">${item.val} €</span>
+  if (revEl) revEl.textContent = `${stats.revenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  if (ordEl) ordEl.textContent = stats.ordersCount;
+  if (avgEl) avgEl.textContent = `${stats.avgTicket.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  if (altEl) altEl.textContent = stats.alertCount;
+
+  // 2. Fill KPI Delta Badges (FASE 13)
+  function applyBadge(el, delta) {
+    if (!el || !delta) return;
+    el.className = "metric-badge";
+    if (delta.type === "positive") {
+      el.classList.add("green");
+      el.textContent = `↑ ${delta.text}`;
+    } else if (delta.type === "negative") {
+      el.classList.add("red");
+      el.textContent = `↓ ${delta.text}`;
+    } else {
+      el.classList.add("neutral");
+      el.textContent = delta.text;
+    }
+    el.title = delta.label || "";
+  }
+
+  applyBadge(document.getElementById("metricRevenueBadge"), stats.revenueDelta);
+  applyBadge(document.getElementById("metricOrdersBadge"), stats.ordersDelta);
+  applyBadge(document.getElementById("metricAvgTicketBadge"), stats.avgTicketDelta);
+
+  // 3. Update Live / Demo Mode Badge in Toolbar
+  const liveBadge = document.getElementById("dashboardLiveBadge");
+  const modeLabel = document.getElementById("dashboardModeLabel");
+  if (modeLabel) {
+    if (stats.isDemo) {
+      modeLabel.textContent = "Modalità Demo (Simulata)";
+      if (liveBadge) {
+        liveBadge.style.background = "rgba(245, 158, 11, 0.12)";
+        liveBadge.style.color = "#F59E0B";
+        liveBadge.style.borderColor = "rgba(245, 158, 11, 0.3)";
+      }
+    } else {
+      modeLabel.textContent = "Dati Live Reali";
+      if (liveBadge) {
+        liveBadge.style.background = "rgba(16, 185, 129, 0.12)";
+        liveBadge.style.color = "#10B981";
+        liveBadge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      }
+    }
+  }
+
+  // 4. Render Hourly Sales Bar Chart
+  renderHourlySalesChart();
+
+  // 5. Render Category Donut Chart (FASE 7)
+  const donutSvg = document.getElementById("categoryDonutSvg");
+  const donutTotal = document.getElementById("categoryDonutTotal");
+  const donutSub = document.getElementById("categoryDonutSub");
+  const donutLegend = document.getElementById("categoryDonutLegend");
+
+  if (donutTotal) {
+    donutTotal.textContent = `${stats.totalCatAmount.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  }
+  if (donutSub) {
+    donutSub.textContent = stats.totalCatAmount > 0 ? (window.i18n ? window.i18n.t("total") : "Totale") : "Nessuna vendita";
+  }
+
+  if (donutSvg) {
+    let circlesHtml = `<circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border-color)" stroke-width="5"></circle>`;
+    if (stats.totalCatAmount > 0) {
+      let offset = 0;
+      stats.categorySales.forEach(cat => {
+        if (cat.percent > 0) {
+          const dashArray = `${cat.percent} ${100 - cat.percent}`;
+          const dashOffset = -offset;
+          circlesHtml += `<circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="${cat.color}" stroke-width="5" stroke-dasharray="${dashArray}" stroke-dashoffset="${dashOffset}"></circle>`;
+          offset += cat.percent;
+        }
+      });
+    }
+    donutSvg.innerHTML = circlesHtml;
+  }
+
+  if (donutLegend) {
+    if (stats.totalCatAmount > 0) {
+      donutLegend.innerHTML = stats.categorySales.map(cat => `
+        <div class="legend-item">
+          <div class="legend-left">
+            <span class="legend-color-dot" style="background:${cat.color};"></span>
+            <span>${cat.label}</span>
           </div>
-          <span class="bar-label">${item.hour}</span>
+          <span class="legend-percent" title="${cat.amount.toFixed(2)} €">${cat.percent}%</span>
+        </div>
+      `).join("");
+    } else {
+      donutLegend.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align:center; padding:16px 8px; color:var(--text-muted); font-size:12.5px;">
+          <span style="font-size:22px; display:block; margin-bottom:4px;">📊</span>
+          <span>Nessuna vendita registrata nel periodo</span>
         </div>
       `;
-    }).join("");
+    }
   }
 
-  // Render Recent Orders Table
+  // 6. Render Recent Orders Table (FASE 9)
   const recentOrdersTbody = document.getElementById("recentOrdersTableBody");
   if (recentOrdersTbody) {
-    recentOrdersTbody.innerHTML = orders.slice(0, 5).map(ord => {
-      const itemsSummary = ord.items.map(it => `${it.qty} ${it.name.toLowerCase()}`).join(", ");
-      let badgeClass = "badge-prep";
-      let statusKey = "statusPrep";
-      if (ord.status === "ready") { badgeClass = "badge-ready"; statusKey = "statusReady"; }
-      if (ord.status === "served") { badgeClass = "badge-served"; statusKey = "statusServed"; }
-
-      return `
-        <tr>
-          <td style="font-weight:700; color:var(--primary);">#${ord.id}</td>
-          <td style="font-weight:600;">${ord.table}</td>
-          <td style="color:var(--text-muted); max-width:240px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${itemsSummary}</td>
-          <td style="font-weight:700;">${ord.total.toFixed(2)} €</td>
-          <td><span class="table-badge ${badgeClass}">${window.i18n.t(statusKey)}</span></td>
-          <td style="color:var(--text-muted); font-size:12px;">${ord.time}</td>
+    if (stats.recentOrders.length === 0) {
+      recentOrdersTbody.innerHTML = `
+        <tr class="empty-state-row">
+          <td colspan="6" style="text-align:center; padding:32px 16px; color:var(--text-muted); font-size:13px;">
+            <div style="font-size:26px; margin-bottom:6px;">📄</div>
+            <strong>Nessuna comanda registrata</strong>
+            <div style="font-size:12px; margin-top:3px; opacity:0.8;">Le nuove comande appariranno qui automaticamente in tempo reale.</div>
+          </td>
         </tr>
       `;
-    }).join("");
+    } else {
+      recentOrdersTbody.innerHTML = stats.recentOrders.slice(0, 5).map(ord => {
+        const itemsSummary = (ord.items || []).map(it => `${it.qty} ${(it.name || "").toLowerCase()}`).join(", ") || "Comanda senza articoli";
+        let badgeClass = "badge-prep";
+        let statusKey = "statusPrep";
+        if (ord.status === "ready") { badgeClass = "badge-ready"; statusKey = "statusReady"; }
+        if (ord.status === "served") { badgeClass = "badge-served"; statusKey = "statusServed"; }
+        if (ord.status === "closed" || ord.status === "paid") { badgeClass = "badge-served"; statusKey = "statusServed"; }
+
+        let timeAgo = ord.time || "Poco fa";
+        if (ord.createdAt) {
+          const diffMin = Math.max(1, Math.round((Date.now() - new Date(ord.createdAt).getTime()) / 60000));
+          timeAgo = diffMin < 60 ? `${diffMin} min` : `${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
+        }
+
+        return `
+          <tr>
+            <td style="font-weight:700; color:var(--primary);">#${ord.id}</td>
+            <td style="font-weight:600;">${ord.table || "Bancone"}</td>
+            <td style="color:var(--text-muted); max-width:240px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${itemsSummary}</td>
+            <td style="font-weight:700;">${(Number(ord.total) || 0).toFixed(2)} €</td>
+            <td><span class="table-badge ${badgeClass}">${window.i18n ? window.i18n.t(statusKey) : ord.status}</span></td>
+            <td style="color:var(--text-muted); font-size:12px;">${timeAgo}</td>
+          </tr>
+        `;
+      }).join("");
+    }
   }
 
-  // Render Best Selling Products
+  // 7. Render Best Selling Products (FASE 10)
   const bestSellersTbody = document.getElementById("bestSellersTableBody");
   if (bestSellersTbody) {
-    const sorted = [...products].sort((a, b) => b.salesCount - a.salesCount).slice(0, 5);
-    bestSellersTbody.innerHTML = sorted.map((p, idx) => {
-      const totalRev = (p.price * p.salesCount).toFixed(2);
-      return `
+    if (stats.topProducts.length === 0) {
+      bestSellersTbody.innerHTML = `
+        <tr class="empty-state-row">
+          <td colspan="4" style="text-align:center; padding:32px 16px; color:var(--text-muted); font-size:13px;">
+            <div style="font-size:26px; margin-bottom:6px;">☕</div>
+            <strong>Nessun prodotto venduto</strong>
+            <div style="font-size:12px; margin-top:3px; opacity:0.8;">Nessun prodotto venduto nel periodo selezionato.</div>
+          </td>
+        </tr>
+      `;
+    } else {
+      bestSellersTbody.innerHTML = stats.topProducts.slice(0, 5).map((p, idx) => `
         <tr>
           <td style="font-weight:700; color:var(--text-muted); width:28px;">${idx + 1}</td>
           <td>
@@ -846,10 +1254,10 @@ function renderDashboard() {
             </div>
           </td>
           <td style="text-align:center; font-weight:600;">${p.salesCount}</td>
-          <td style="text-align:right; font-weight:700; color:var(--primary);">${totalRev} €</td>
+          <td style="text-align:right; font-weight:700; color:var(--primary);">${p.revenue.toFixed(2)} €</td>
         </tr>
-      `;
-    }).join("");
+      `).join("");
+    }
   }
 }
 
@@ -898,7 +1306,8 @@ function addToCart(productId) {
       id: product.id,
       name: product.name,
       qty: 1,
-      price: product.price
+      price: product.price,
+      category: product.category
     });
   }
   renderCart();
@@ -974,24 +1383,50 @@ function setupCartEvents() {
         return;
       }
 
-      const orders = window.db.get("orders");
-      const newId = 1045 + Math.floor(Math.random() * 900);
+      const orders = window.db.get("orders") || [];
+      const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+      const newId = 1001 + orders.length;
       const total = appState.cart.reduce((sum, it) => sum + (it.qty * it.price), 0);
+      const isDemo = (typeof isDemoMode === "function" && isDemoMode());
 
       const newOrder = {
         id: newId,
-        table: appState.selectedTable,
+        barId: activeBar.id || (isDemo ? "bar_demo" : "bar_01"),
+        isDemo: isDemo,
+        table: appState.selectedTable || "Tavolo 04",
         area: "interno",
-        server: window.db.get("activeBar").managerName,
+        server: activeBar.managerName || "Operatore",
         status: "prep",
         time: "1 min",
         createdAt: new Date().toISOString(),
-        items: [...appState.cart],
-        total: total
+        items: appState.cart.map(it => ({
+          id: it.id,
+          name: it.name,
+          qty: it.qty,
+          price: it.price,
+          category: it.category
+        })),
+        total: Math.round(total * 100) / 100
       };
 
       orders.unshift(newOrder);
       window.db.set("orders", orders);
+
+      // Update table occupancy on floor plan
+      const tables = (window.db ? window.db.get("tables") : []) || [];
+      const matchedTable = tables.find(t => 
+        t.id === appState.selectedTable || 
+        t.number === appState.selectedTable || 
+        ("Tavolo " + t.id) === appState.selectedTable ||
+        t.id === "T04"
+      );
+      if (matchedTable) {
+        matchedTable.status = "occupied";
+        matchedTable.amount = Math.round(total * 100) / 100;
+        matchedTable.orderId = newId;
+        matchedTable.time = 1;
+        window.db.set("tables", tables);
+      }
 
       // Deduct ingredients automatically
       deductStockForOrder(newOrder);
@@ -1001,6 +1436,7 @@ function setupCartEvents() {
       renderCart();
       renderDashboard();
       renderKDS();
+      renderFloorPlan();
       renderInventory();
 
       showToast(window.i18n.currentLang === "it" 
@@ -1315,13 +1751,34 @@ function renderKDS() {
 }
 
 function changeOrderStatus(orderId, newStatus) {
-  const orders = window.db.get("orders");
+  const orders = (window.db ? window.db.get("orders") : []) || [];
   const ord = orders.find(o => o.id === orderId);
   if (ord) {
     ord.status = newStatus;
+    if (newStatus === "served" || newStatus === "closed" || newStatus === "paid") {
+      ord.closedAt = new Date().toISOString();
+    }
+    if (newStatus === "cancelled") {
+      ord.cancelledAt = new Date().toISOString();
+    }
     window.db.set("orders", orders);
+
+    // Free the table if order is closed, paid or cancelled
+    if (newStatus === "closed" || newStatus === "paid" || newStatus === "cancelled") {
+      const tables = (window.db ? window.db.get("tables") : []) || [];
+      const tbl = tables.find(t => t.orderId === orderId);
+      if (tbl) {
+        tbl.status = "free";
+        tbl.amount = 0;
+        tbl.orderId = null;
+        tbl.time = 0;
+        window.db.set("tables", tables);
+      }
+    }
+
     renderKDS();
     renderDashboard();
+    renderFloorPlan();
     showToast(`Comanda #${orderId} aggiornata: ${newStatus.toUpperCase()}`);
   }
 }

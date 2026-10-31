@@ -359,16 +359,38 @@ const initialData = {
   ]
 };
 
-// Storage helper with persistence
+// Storage helper with persistence and strict separation between DEMO and LIVE
 class BarPilotStorage {
   constructor() {
-    const saved = localStorage.getItem("barpilot_store");
+    const saved = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_store") : null;
     if (saved) {
       try {
         this.data = JSON.parse(saved);
         if (!Array.isArray(this.data.users)) {
           this.data.users = initialData.users;
         }
+        if (!Array.isArray(this.data.products)) {
+          this.data.products = initialData.products;
+        }
+        if (!Array.isArray(this.data.inventory)) {
+          this.data.inventory = initialData.inventory;
+        }
+        if (!Array.isArray(this.data.tables)) {
+          this.data.tables = initialData.tables;
+        }
+        if (!this.data.demoOrders) {
+          this.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
+        }
+        if (!this.data.demoTables) {
+          this.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
+        }
+        if (!this.data.liveOrders) {
+          this.data.liveOrders = {};
+        }
+        if (!this.data.liveTables) {
+          this.data.liveTables = {};
+        }
+
         if (Array.isArray(this.data.staff)) {
           this.data.staff.forEach(s => {
             if (s.role === "Proprietario") {
@@ -381,33 +403,201 @@ class BarPilotStorage {
         }
         this.persist();
       } catch (e) {
-        this.data = initialData;
+        this.initDefaults();
       }
     } else {
-      this.data = initialData;
-      this.persist();
+      this.initDefaults();
     }
   }
 
+  initDefaults() {
+    this.data = JSON.parse(JSON.stringify(initialData));
+    this.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
+    this.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
+    this.data.liveOrders = {};
+    this.data.liveTables = {};
+    this.persist();
+  }
+
   persist() {
-    localStorage.setItem("barpilot_store", JSON.stringify(this.data));
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem("barpilot_store", JSON.stringify(this.data));
+      } catch (e) {
+        console.warn("[BarPilotStorage] Persist error:", e);
+      }
+    }
+  }
+
+  isDemo() {
+    try {
+      if (typeof window !== "undefined") {
+        if (typeof window.isDemoMode === "function" && window.isDemoMode()) return true;
+        if (localStorage.getItem("barpilot_is_demo") === "true") return true;
+        if (sessionStorage.getItem("barpilot_demo_active") === "true") return true;
+      }
+      const activeBar = this.data && this.data.activeBar;
+      if (activeBar && (activeBar.isDemo === true || (activeBar.id === "bar_01" && String(activeBar.name).includes("Demo")))) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  getActiveBarId() {
+    const active = this.data && this.data.activeBar;
+    return (active && active.id) ? active.id : (this.isDemo() ? "bar_demo" : "bar_01");
   }
 
   get(key) {
+    if (!this.data) return initialData[key];
+
+    if (key === "orders") {
+      if (this.isDemo()) {
+        if (!this.data.demoOrders) {
+          this.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
+        }
+        return this.data.demoOrders;
+      } else {
+        const barId = this.getActiveBarId();
+        if (!this.data.liveOrders) this.data.liveOrders = {};
+        if (!this.data.liveOrders[barId]) {
+          // Initialize fresh empty orders for new LIVE bar
+          this.data.liveOrders[barId] = [];
+          this.persist();
+        }
+        return this.data.liveOrders[barId];
+      }
+    }
+
+    if (key === "tables") {
+      if (this.isDemo()) {
+        if (!this.data.demoTables) {
+          this.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
+        }
+        return this.data.demoTables;
+      } else {
+        const barId = this.getActiveBarId();
+        if (!this.data.liveTables) this.data.liveTables = {};
+        if (!this.data.liveTables[barId]) {
+          // Initialize fresh tables with ALL FREE status (0 occupied)
+          const baseTables = this.data.tables || initialData.tables;
+          this.data.liveTables[barId] = baseTables.map(t => ({
+            ...t,
+            status: "free",
+            amount: 0,
+            time: 0,
+            orderId: null,
+            alert: null
+          }));
+          this.persist();
+        }
+        return this.data.liveTables[barId];
+      }
+    }
+
+    if (key === "products") {
+      const prods = (this.data.products || initialData.products).map(p => ({ ...p }));
+      if (!this.isDemo()) {
+        // Compute real sales count from active bar's orders
+        const orders = this.get("orders") || [];
+        const countMap = {};
+        orders.forEach(ord => {
+          const s = (ord.status || "").toLowerCase();
+          if (s !== "cancelled" && s !== "draft") {
+            if (Array.isArray(ord.items)) {
+              ord.items.forEach(it => {
+                countMap[it.id] = (countMap[it.id] || 0) + (Number(it.qty) || 0);
+              });
+            }
+          }
+        });
+        prods.forEach(p => {
+          p.salesCount = countMap[p.id] || 0;
+        });
+      }
+      return prods;
+    }
+
+    if (key === "metrics") {
+      if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
+        const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
+        const stats = window.calculateDashboardStatistics(period);
+        return {
+          revenue: stats.revenue,
+          revenueChange: stats.revenueDelta.text,
+          ordersCount: stats.ordersCount,
+          ordersChange: stats.ordersDelta.text,
+          avgTicket: stats.avgTicket,
+          avgTicketChange: stats.avgTicketDelta.text,
+          alertCount: stats.alertCount
+        };
+      }
+      return this.data.metrics || initialData.metrics;
+    }
+
+    if (key === "hourlySales") {
+      if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
+        const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
+        const stats = window.calculateDashboardStatistics(period);
+        return stats.hourlySales;
+      }
+      return this.data.hourlySales || initialData.hourlySales;
+    }
+
+    if (key === "categorySales") {
+      if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
+        const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
+        const stats = window.calculateDashboardStatistics(period);
+        return stats.categorySales;
+      }
+      return this.data.categorySales || initialData.categorySales;
+    }
+
     return this.data[key];
   }
 
   set(key, val) {
+    if (!this.data) this.initDefaults();
+
+    if (key === "orders") {
+      if (this.isDemo()) {
+        this.data.demoOrders = val;
+      } else {
+        const barId = this.getActiveBarId();
+        if (!this.data.liveOrders) this.data.liveOrders = {};
+        this.data.liveOrders[barId] = val;
+      }
+      this.data.orders = val;
+      this.persist();
+      return;
+    }
+
+    if (key === "tables") {
+      if (this.isDemo()) {
+        this.data.demoTables = val;
+      } else {
+        const barId = this.getActiveBarId();
+        if (!this.data.liveTables) this.data.liveTables = {};
+        this.data.liveTables[barId] = val;
+      }
+      this.data.tables = val;
+      this.persist();
+      return;
+    }
+
     this.data[key] = val;
     this.persist();
   }
 
   reset() {
-    this.data = initialData;
-    this.persist();
+    this.initDefaults();
   }
 }
 
+window.BarPilotStorage = BarPilotStorage;
 window.db = new BarPilotStorage();
 
 // Ensure active session is kept in cache on load

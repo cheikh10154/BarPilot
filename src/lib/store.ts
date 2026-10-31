@@ -312,6 +312,7 @@ export const INITIAL_STAFF: StaffMember[] = [
 ];
 
 interface BarPilotState {
+  isDemo: boolean;
   currentRole: UserRole;
   currentLocale: 'it' | 'fr';
   barName: string;
@@ -325,6 +326,7 @@ interface BarPilotState {
   staff: StaffMember[];
 
   // Actions
+  setDemoMode: (isDemo: boolean) => void;
   setRole: (role: UserRole) => void;
   setLocale: (locale: 'it' | 'fr') => void;
   
@@ -390,8 +392,10 @@ export const useBarPilotStore = create<BarPilotState>()(
           timestamp: new Date(Date.now() - 6 * 60000).toISOString(),
         },
       ],
-      tables: INITIAL_TABLES,
-      orders: INITIAL_ORDERS,
+      isDemo: typeof window !== 'undefined' ? localStorage.getItem('barpilot_is_demo') === 'true' : false,
+      tables: (typeof window !== 'undefined' && localStorage.getItem('barpilot_is_demo') === 'true') ? INITIAL_TABLES : INITIAL_TABLES.map(t => ({ ...t, status: 'available' as const, active_order_id: undefined })),
+      orders: (typeof window !== 'undefined' && localStorage.getItem('barpilot_is_demo') === 'true') ? INITIAL_ORDERS : [],
+      setDemoMode: (isDemo: boolean) => { if (typeof localStorage !== 'undefined') { if (isDemo) localStorage.setItem('barpilot_is_demo', 'true'); else localStorage.removeItem('barpilot_is_demo'); } },
       suppliers: INITIAL_SUPPLIERS,
       staff: INITIAL_STAFF,
 

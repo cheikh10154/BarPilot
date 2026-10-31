@@ -30,43 +30,126 @@ const STATUS_STYLE: Record<StatusKey, { it: string; fr: string; cls: string }> =
 export default function DashboardPage({ params }: PageProps) {
   const { locale } = use(params);
   const isIt = locale === 'it';
-  const { inventory } = useBarPilotStore();
+  const { inventory, orders = [], products = [] } = useBarPilotStore();
   const [hoverBar, setHoverBar] = useState<number | null>(null);
 
-  const lowStockCount = inventory.filter(i => i.current_quantity <= i.reorder_level).length;
+  const lowStockCount = inventory.filter(i => i.reorder_level > 0 && i.current_quantity <= i.reorder_level).length;
 
-  // Hourly sales (€) — 08:00 → 22:00, one bar per hour
-  const hourly = [42, 68, 95, 120, 150, 185, 160, 130, 145, 170, 240, 290, 330, 260, 200];
-  const maxHourly = 400;
+  // Filter valid confirmed orders (exclude cancelled & draft)
+  const validOrders = orders.filter(o => o.status !== 'cancelled' && o.status !== 'draft');
+  const revenueCents = validOrders.reduce((sum, o) => sum + (o.total_cents || 0), 0);
+  const ordersCount = validOrders.length;
+  const avgTicketCents = ordersCount > 0 ? Math.round(revenueCents / ordersCount) : 0;
 
-  const recentOrders: { id: string; table: string; items: string; total: string; status: StatusKey; time: string }[] = [
-    { id: '#1042', table: isIt ? 'Tavolo 04' : 'Table 04', items: isIt ? '2 cappuccini, 1 espresso' : '2 cappuccinos, 1 espresso', total: '8,50 €', status: 'preparing', time: '2 min' },
-    { id: '#1041', table: isIt ? 'Tavolo 08' : 'Table 08', items: isIt ? '3 birre, 1 acqua' : '3 bières, 1 eau', total: '15,00 €', status: 'ready', time: '5 min' },
-    { id: '#1040', table: 'Comptoir', items: isIt ? '1 caffè latte' : '1 café latte', total: '3,20 €', status: 'served', time: '8 min' },
-    { id: '#1039', table: isIt ? 'Tavolo 02' : 'Table 02', items: isIt ? '2 cocktail, 1 tagliere' : '2 cocktails, 1 planche', total: '24,00 €', status: 'preparing', time: '6 min' },
-    { id: '#1038', table: isIt ? 'Tavolo 06' : 'Table 06', items: isIt ? '1 birra, 1 panino' : '1 bière, 1 sandwich', total: '9,50 €', status: 'served', time: '12 min' },
-  ];
+  // Hourly sales (€) — 08:00 → 22:00
+  const hourSlots = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+  const hourly = hourSlots.map(h => {
+    const ordersInHour = validOrders.filter(o => {
+      const d = o.created_at ? new Date(o.created_at) : null;
+      return d ? d.getHours() === h : false;
+    });
+    const cents = ordersInHour.reduce((sum, o) => sum + (o.total_cents || 0), 0);
+    return Math.round(cents / 100);
+  });
+  const maxHourly = Math.max(...hourly, 100);
 
-  const topProducts = [
-    { name: 'Espresso', qty: 48, total: '72,00 €' },
-    { name: 'Cappuccino', qty: 35, total: '98,00 €' },
-    { name: isIt ? 'Birra bionda' : 'Bière blonde', qty: 28, total: '140,00 €' },
-    { name: 'Spritz', qty: 24, total: '168,00 €' },
-    { name: 'Caffè latte', qty: 22, total: '70,40 €' },
-  ];
+  // Recent orders
+  const recentOrders: { id: string; table: string; items: string; total: string; status: StatusKey; time: string }[] = validOrders
+    .slice(0, 5)
+    .map(o => {
+      const itemsText = (o.items || []).map(i => `${i.quantity} ${i.product_name || 'art.'}`).join(', ') || 'Comanda al banco';
+      let statusKey: StatusKey = 'served';
+      if (o.status === 'preparing' || o.status === 'sent') statusKey = 'preparing';
+      else if (o.status === 'ready') statusKey = 'ready';
 
+      let timeAgo = 'Poco fa';
+      if (o.created_at) {
+        const diffMin = Math.max(1, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000));
+        timeAgo = diffMin < 60 ? `${diffMin} min` : `${Math.floor(diffMin / 60)}h`;
+      }
+
+      return {
+        id: `#${o.order_number || o.id}`,
+        table: o.table_number || (isIt ? 'Bancone' : 'Comptoir'),
+        items: itemsText,
+        total: `${((o.total_cents || 0) / 100).toFixed(2).replace('.', ',')} €`,
+        status: statusKey,
+        time: timeAgo
+      };
+    });
+
+  // Top products
+  const productSalesMap: Record<string, { name: string; qty: number; cents: number }> = {};
+  validOrders.forEach(o => {
+    (o.items || []).forEach(it => {
+      const pName = it.product_name || 'Prodotto';
+      if (!productSalesMap[pName]) {
+        productSalesMap[pName] = { name: pName, qty: 0, cents: 0 };
+      }
+      productSalesMap[pName].qty += it.quantity;
+      productSalesMap[pName].cents += (it.unit_price_cents * it.quantity);
+    });
+  });
+
+  const topProducts = Object.values(productSalesMap)
+    .sort((a, b) => b.qty !== a.qty ? b.qty - a.qty : b.cents - a.cents)
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      qty: p.qty,
+      total: `${(p.cents / 100).toFixed(2).replace('.', ',')} €`
+    }));
+
+  // Categories
+  const prodMap = new Map(products.map(p => [p.id, p]));
+  const catCents: Record<string, number> = {
+    coffee: 0,
+    beer: 0,
+    cocktails: 0,
+    food: 0,
+    other: 0
+  };
+
+  validOrders.forEach(o => {
+    (o.items || []).forEach(it => {
+      const prod = prodMap.get(it.product_id);
+      const cat = prod?.category || 'other';
+      const cKey = cat in catCents ? cat : 'other';
+      catCents[cKey] += (it.unit_price_cents * it.quantity);
+    });
+  });
+
+  const totalCatCents = Object.values(catCents).reduce((a, b) => a + b, 0);
   const categories = [
-    { label: isIt ? 'Bevande' : 'Boissons', pct: 42, color: '#3b82f6' },
-    { label: isIt ? 'Caffè' : 'Café', pct: 28, color: '#f59e0b' },
-    { label: 'Cocktail', pct: 15, color: '#22c55e' },
-    { label: isIt ? 'Cibo' : 'Cuisine', pct: 10, color: '#a855f7' },
-    { label: isIt ? 'Altro' : 'Autre', pct: 5, color: '#94a3b8' },
+    { label: isIt ? 'Caffè' : 'Café', pct: totalCatCents > 0 ? Math.round((catCents.coffee / totalCatCents) * 100) : 0, color: '#f59e0b' },
+    { label: isIt ? 'Bevande & Birre' : 'Boissons & Bières', pct: totalCatCents > 0 ? Math.round((catCents.beer / totalCatCents) * 100) : 0, color: '#3b82f6' },
+    { label: 'Cocktail', pct: totalCatCents > 0 ? Math.round((catCents.cocktails / totalCatCents) * 100) : 0, color: '#22c55e' },
+    { label: isIt ? 'Cibo' : 'Cuisine', pct: totalCatCents > 0 ? Math.round((catCents.food / totalCatCents) * 100) : 0, color: '#a855f7' },
+    { label: isIt ? 'Altro' : 'Autre', pct: totalCatCents > 0 ? Math.round((catCents.other / totalCatCents) * 100) : 0, color: '#94a3b8' },
   ];
 
   const kpis = [
-    { label: isIt ? 'Fatturato registrato' : "Chiffre d'affaires", value: '1.248 €', delta: '+12%', icon: BarChart3, tone: 'bg-orange-50 text-orange-500' },
-    { label: isIt ? 'Comande' : 'Commandes', value: '186', delta: '+8%', icon: FileText, tone: 'bg-sky-50 text-sky-500' },
-    { label: isIt ? 'Scontrino medio' : 'Panier moyen', value: '6,71 €', delta: '+5%', icon: Users, tone: 'bg-emerald-50 text-emerald-500' },
+    { 
+      label: isIt ? 'Vendite registrate' : "Ventes enregistrées", 
+      value: `${(revenueCents / 100).toFixed(2).replace('.', ',')} €`, 
+      delta: ordersCount > 0 ? 'Live' : '0%', 
+      icon: BarChart3, 
+      tone: 'bg-orange-50 text-orange-500' 
+    },
+    { 
+      label: isIt ? 'Comande' : 'Commandes', 
+      value: String(ordersCount), 
+      delta: ordersCount > 0 ? 'Live' : '0', 
+      icon: FileText, 
+      tone: 'bg-sky-50 text-sky-500' 
+    },
+    { 
+      label: isIt ? 'Scontrino medio' : 'Panier moyen', 
+      value: `${(avgTicketCents / 100).toFixed(2).replace('.', ',')} €`, 
+      delta: ordersCount > 0 ? 'Live' : '0,00 €', 
+      icon: Users, 
+      tone: 'bg-emerald-50 text-emerald-500' 
+    },
   ];
 
   // Donut geometry
@@ -210,7 +293,7 @@ export default function DashboardPage({ params }: PageProps) {
                 })}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-extrabold text-slate-900 leading-none">1.248 €</span>
+                <span className="text-xl font-extrabold text-slate-900 leading-none">{((totalCatCents || 0) / 100).toFixed(2).replace('.', ',')} €</span>
                 <span className="text-[11px] text-slate-400 font-medium mt-1">{isIt ? 'Totale' : 'Total'}</span>
               </div>
             </div>
@@ -253,7 +336,13 @@ export default function DashboardPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map(o => {
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 text-sm">
+                      {isIt ? 'Nessuna comanda registrata. Le nuove comande appariranno qui.' : 'Aucune commande enregistrée. Les nouvelles commandes apparaîtront ici.'}
+                    </td>
+                  </tr>
+                ) : recentOrders.map(o => {
                   const st = STATUS_STYLE[o.status];
                   return (
                     <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50/70 transition">
@@ -289,7 +378,11 @@ export default function DashboardPage({ params }: PageProps) {
           </div>
 
           <ul>
-            {topProducts.map((p, i) => (
+            {topProducts.length === 0 ? (
+              <li className="py-8 text-center text-slate-400 text-sm border-t border-slate-100">
+                {isIt ? 'Nessun prodotto venduto nel periodo selezionato.' : 'Aucun produit vendu sur la période sélectionnée.'}
+              </li>
+            ) : topProducts.map((p, i) => (
               <li key={p.name} className="flex items-center py-2 border-t border-slate-100 text-[13px]">
                 <span className="w-8">
                   <span

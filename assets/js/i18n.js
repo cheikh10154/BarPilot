@@ -145,7 +145,7 @@ const i18nData = {
     navSettings: "Impostazioni",
 
     // Dashboard Metrics
-    metricRevenue: "Fatturato registrato",
+    metricRevenue: "Vendite registrate",
     metricOrders: "Comande",
     metricAvgTicket: "Scontrino medio",
     metricAlerts: "Prodotti in allerta",
@@ -481,7 +481,7 @@ const i18nData = {
     navSettings: "Paramètres",
 
     // Dashboard Metrics
-    metricRevenue: "Chiffre d'affaires",
+    metricRevenue: "Ventes enregistrées",
     metricOrders: "Commandes",
     metricAvgTicket: "Ticket moyen",
     metricAlerts: "Produits en alerte",

@@ -542,16 +542,35 @@
             </a>
           </div>
 
-<!-- KPI Metrics Cards Grid -->
+          <!-- Dashboard Global Period Filter & Live Status Toolbar -->
+          <div class="dashboard-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Periodo:</span>
+              <div class="period-pills-wrap" id="dashboardPeriodPills" style="display:inline-flex; background:var(--bg-card); padding:3px; border-radius:10px; border:1px solid var(--border-color); gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-period-pill active" data-period="today" onclick="setDashboardPeriod('today')">Oggi</button>
+                <button type="button" class="btn-period-pill" data-period="yesterday" onclick="setDashboardPeriod('yesterday')">Ieri</button>
+                <button type="button" class="btn-period-pill" data-period="week" onclick="setDashboardPeriod('week')">Questa settimana</button>
+                <button type="button" class="btn-period-pill" data-period="month" onclick="setDashboardPeriod('month')">Questo mese</button>
+                <button type="button" class="btn-period-pill" data-period="30days" onclick="setDashboardPeriod('30days')">Ultimi 30 giorni</button>
+                <button type="button" class="btn-period-pill" data-period="all" onclick="setDashboardPeriod('all')">Tutto</button>
+              </div>
+            </div>
+            <div id="dashboardLiveBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.3);">
+              <span style="width:7px; height:7px; border-radius:50%; background:#10B981; display:inline-block;"></span>
+              <span id="dashboardModeLabel">Dati Live Reali</span>
+            </div>
+          </div>
+
+          <!-- KPI Metrics Cards Grid -->
           <div class="metrics-grid">
             <div class="metric-card">
               <div class="metric-header">
-                <span class="metric-label" data-i18n="metricRevenue">Fatturato registrato</span>
+                <span class="metric-label" data-i18n="metricRevenue" title="Dato gestionale vendite non fiscale">Vendite registrate <small style="font-size:10.5px; opacity:0.75; font-weight:normal;">(gestionale)</small></span>
                 <div class="metric-icon-box orange">📊</div>
               </div>
               <div class="metric-value-wrap">
-                <span class="metric-value" id="metricRevenue">1.248 €</span>
-                <span class="metric-badge green">↑ +12%</span>
+                <span class="metric-value" id="metricRevenue">0,00 €</span>
+                <span class="metric-badge green" id="metricRevenueBadge">--</span>
               </div>
             </div>
 
@@ -561,8 +580,8 @@
                 <div class="metric-icon-box blue">📄</div>
               </div>
               <div class="metric-value-wrap">
-                <span class="metric-value" id="metricOrders">186</span>
-                <span class="metric-badge green">↑ +8%</span>
+                <span class="metric-value" id="metricOrders">0</span>
+                <span class="metric-badge green" id="metricOrdersBadge">--</span>
               </div>
             </div>
 
@@ -572,8 +591,8 @@
                 <div class="metric-icon-box green">👥</div>
               </div>
               <div class="metric-value-wrap">
-                <span class="metric-value" id="metricAvgTicket">6,71 €</span>
-                <span class="metric-badge green">↑ +5%</span>
+                <span class="metric-value" id="metricAvgTicket">0,00 €</span>
+                <span class="metric-badge green" id="metricAvgTicketBadge">--</span>
               </div>
             </div>
 
@@ -583,7 +602,7 @@
                 <div class="metric-icon-box red">⚠️</div>
               </div>
               <div class="metric-value-wrap">
-                <span class="metric-value" id="metricAlerts">4</span>
+                <span class="metric-value" id="metricAlerts">0</span>
                 <a class="metric-link" onclick="switchView('inventory')" data-i18n="seeStock">Vedi stock →</a>
               </div>
             </div>
@@ -597,7 +616,7 @@
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <h3 class="card-title" data-i18n="hourlySales">Vendite per fascia oraria</h3>
                   <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; padding:2px 8px;" id="hourlyPeakBadge">
-                    🔥 Picco: 19:00 (380 €)
+                    Nessuna vendita
                   </span>
                 </div>
 
@@ -613,7 +632,7 @@
               <!-- Selected Hour Detail Bar (Instant touch info for mobile) -->
               <div id="hourlySelectedDetail" style="padding:6px 12px; margin-bottom:10px; background:var(--bg-card-secondary); border-radius:var(--radius-sm); font-size:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border-color);">
                 <span style="color:var(--text-muted); font-size:11.5px;">Tocca una colonna per i dettagli:</span>
-                <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Ore 19:00 ➔ 380 € (Picco giornaliero)</strong>
+                <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Nessuna comanda registrata</strong>
               </div>
 
               <div class="bar-chart-container">
@@ -643,61 +662,17 @@
               </div>
               <div class="donut-chart-container">
                 <div class="donut-svg-wrap">
-                  <svg class="donut-svg" width="140" height="140" viewBox="0 0 42 42">
+                  <svg class="donut-svg" id="categoryDonutSvg" width="140" height="140" viewBox="0 0 42 42">
                     <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border-color)" stroke-width="5"></circle>
-                    <!-- Bevande 42% -->
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#3B82F6" stroke-width="5" stroke-dasharray="42 58" stroke-dashoffset="0"></circle>
-                    <!-- Caffe 28% -->
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#F59E0B" stroke-width="5" stroke-dasharray="28 72" stroke-dashoffset="-42"></circle>
-                    <!-- Cocktail 15% -->
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#10B981" stroke-width="5" stroke-dasharray="15 85" stroke-dashoffset="-70"></circle>
-                    <!-- Cibo 10% -->
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EC4899" stroke-width="5" stroke-dasharray="10 90" stroke-dashoffset="-85"></circle>
-                    <!-- Altro 5% -->
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#8B5CF6" stroke-width="5" stroke-dasharray="5 95" stroke-dashoffset="-95"></circle>
                   </svg>
                   <div class="donut-center-text">
-                    <div class="donut-total">1.248 €</div>
-                    <div class="donut-sub" data-i18n="total">Totale</div>
+                    <div class="donut-total" id="categoryDonutTotal">0,00 €</div>
+                    <div class="donut-sub" id="categoryDonutSub" data-i18n="total">Totale</div>
                   </div>
                 </div>
 
-                <div class="donut-legend">
-                  <div class="legend-item">
-                    <div class="legend-left">
-                      <span class="legend-color-dot" style="background:#3B82F6;"></span>
-                      <span data-i18n="catDrinks">Bevande</span>
-                    </div>
-                    <span class="legend-percent">42%</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="legend-left">
-                      <span class="legend-color-dot" style="background:#F59E0B;"></span>
-                      <span data-i18n="catCoffee">Caffè</span>
-                    </div>
-                    <span class="legend-percent">28%</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="legend-left">
-                      <span class="legend-color-dot" style="background:#10B981;"></span>
-                      <span data-i18n="catCocktails">Cocktail</span>
-                    </div>
-                    <span class="legend-percent">15%</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="legend-left">
-                      <span class="legend-color-dot" style="background:#EC4899;"></span>
-                      <span data-i18n="catFood">Cibo</span>
-                    </div>
-                    <span class="legend-percent">10%</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="legend-left">
-                      <span class="legend-color-dot" style="background:#8B5CF6;"></span>
-                      <span>Altro</span>
-                    </div>
-                    <span class="legend-percent">5%</span>
-                  </div>
+                <div class="donut-legend" id="categoryDonutLegend">
+                  <!-- Dynamically rendered via app.js -->
                 </div>
               </div>
             </div>
