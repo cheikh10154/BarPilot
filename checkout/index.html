@@ -153,7 +153,7 @@
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                 <div>
                   <label class="pro-field-label">Data di scadenza</label>
-                  <input type="text" id="checkoutCardExpiry" class="pro-input" placeholder="MM / AA" maxlength="5" autocomplete="cc-exp">
+                  <input type="text" id="checkoutCardExpiry" class="pro-input" placeholder="MM / AA" maxlength="9" autocomplete="cc-exp">
                 </div>
                 <div>
                   <label class="pro-field-label">CVC</label>
@@ -447,11 +447,11 @@
         updateCardBrandBadge();
       }
 
-      // Format expiry MM / AA
+      // Format expiry MM / AA o MM / AAAA
       const expInput = document.getElementById("checkoutCardExpiry");
       if (expInput) {
         expInput.addEventListener("input", (e) => {
-          let v = e.target.value.replace(/\D/g, '').substring(0, 4);
+          let v = e.target.value.replace(/\D/g, '').substring(0, 6);
           if (v.length > 2) {
             e.target.value = v.substring(0, 2) + ' / ' + v.substring(2);
           } else {
@@ -551,18 +551,19 @@
         return { valid: false, error: "Inserisci un numero di carta valido (minimo 15-16 cifre)." };
       }
 
-      const expMatch = expRaw.match(/^(\d{2})\s*\/?\s*(\d{2})$/);
+      const expMatch = expRaw.match(/^(\d{1,2})\s*\/?\s*(\d{2,4})$/);
       if (!expMatch) {
-        return { valid: false, error: "Inserisci una data di scadenza valida nel formato MM / AA (es: 12 / 28)." };
+        return { valid: false, error: "Inserisci una data di scadenza valida (es: 12 / 28 o 12 / 2028)." };
       }
       const expMonth = parseInt(expMatch[1], 10);
-      const expYear = parseInt(expMatch[2], 10);
+      let expYear = parseInt(expMatch[2], 10);
       if (expMonth < 1 || expMonth > 12) {
         return { valid: false, error: "Mese di scadenza non valido. Inserisci un mese tra 01 e 12." };
       }
-      const currentYear2Digits = parseInt(new Date().getFullYear().toString().slice(-2), 10);
+      const currentFullYear = new Date().getFullYear();
+      const fullExpYear = expYear < 100 ? (2000 + expYear) : expYear;
       const currentMonth = new Date().getMonth() + 1;
-      if (expYear < currentYear2Digits || (expYear === currentYear2Digits && expMonth < currentMonth)) {
+      if (fullExpYear < currentFullYear || (fullExpYear === currentFullYear && expMonth < currentMonth)) {
         return { valid: false, error: "La carta inserita risulta scaduta." };
       }
 
@@ -579,7 +580,7 @@
         data: {
           number: cardRaw,
           exp_month: expMonth,
-          exp_year: 2000 + expYear,
+          exp_year: fullExpYear,
           cvc: cvcRaw,
           name: holderRaw
         }

@@ -4743,12 +4743,12 @@ function openCheckoutModal(isForcedMandatory = false) {
   }
   updateCardBrandBadge();
 
-  // Format expiry MM / AA
+  // Format expiry MM / AA o MM / AAAA
   const expInput = document.getElementById("checkoutCardExpiry");
   if (expInput && !expInput._hasListener) {
     expInput._hasListener = true;
     expInput.addEventListener("input", (e) => {
-      let v = e.target.value.replace(/\D/g, '').substring(0, 4);
+      let v = e.target.value.replace(/\D/g, '').substring(0, 6);
       if (v.length > 2) {
         e.target.value = v.substring(0, 2) + ' / ' + v.substring(2);
       } else {
@@ -6499,21 +6499,22 @@ async function handleProCheckoutSubmit(e) {
       return;
     }
 
-    const expMatch = expRaw.match(/^(\d{2})\s*\/?\s*(\d{2})$/);
+    const expMatch = expRaw.match(/^(\d{1,2})\s*\/?\s*(\d{2,4})$/);
     if (!expMatch) {
-      showToast("⚠️ Data di scadenza non valida. Usa il formato MM / AA.");
+      showToast("⚠️ Data di scadenza non valida (es: 12 / 28 o 12 / 2028).");
       if (expiryInput) expiryInput.focus();
       return;
     }
     const expMonth = parseInt(expMatch[1], 10);
-    const expYear = parseInt(expMatch[2], 10);
+    let expYear = parseInt(expMatch[2], 10);
     if (expMonth < 1 || expMonth > 12) {
       showToast("⚠️ Mese di scadenza non valido (01-12).");
       return;
     }
-    const currentYear2Digits = parseInt(new Date().getFullYear().toString().slice(-2), 10);
+    const currentFullYear = new Date().getFullYear();
+    const fullExpYear = expYear < 100 ? (2000 + expYear) : expYear;
     const currentMonth = new Date().getMonth() + 1;
-    if (expYear < currentYear2Digits || (expYear === currentYear2Digits && expMonth < currentMonth)) {
+    if (fullExpYear < currentFullYear || (fullExpYear === currentFullYear && expMonth < currentMonth)) {
       showToast("⚠️ La carta inserita risulta scaduta.");
       return;
     }
@@ -6545,7 +6546,7 @@ async function handleProCheckoutSubmit(e) {
         result = await verifyFn({
           number: cardRaw,
           exp_month: expMonth,
-          exp_year: 2000 + expYear,
+          exp_year: fullExpYear,
           cvc: cvcRaw,
           name: holderRaw
         });
