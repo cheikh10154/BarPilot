@@ -5807,11 +5807,46 @@ async function handleAuthSubmit(e) {
     const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
     const city = document.getElementById("regCity")?.value.trim() || "Roma";
     const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
-    // Mostra stato di caricamento sul pulsante di creazione bar
+    const emailNormalized = email.trim().toLowerCase();
+
     const submitBtnEmail = document.getElementById("authSubmitBtn");
     if (submitBtnEmail) {
       submitBtnEmail.disabled = true;
-      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Salvataggio dati su database Supabase...`;
+      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Verifica e salvataggio su database Supabase...`;
+    }
+
+    // 1. CONTROLLO PREVENTIVO: I dati sono già presenti nel database locale?
+    const existingUsers = getDatabaseUsers();
+    const staffListCheck = window.db.get("staff") || [];
+    const alreadyEmailUser = existingUsers.find(u => u.email && u.email.trim().toLowerCase() === emailNormalized);
+    const alreadyEmailStaff = staffListCheck.find(s => s.email && s.email.trim().toLowerCase() === emailNormalized);
+
+    if (alreadyEmailUser || alreadyEmailStaff) {
+      if (submitBtnEmail) {
+        submitBtnEmail.disabled = false;
+        submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
+      }
+      showAuthError(window.i18n && window.i18n.currentLang === 'fr'
+        ? "⚠️ Cette adresse email est déjà enregistrée dans la base de données. Veuillez cliquer sur 'Connexion' pour accéder au compte."
+        : "⚠️ Questo indirizzo email è già presente nel database! Seleziona la scheda 'Accedi' per entrare con la tua password.");
+      return;
+    }
+
+    if (vatNumber) {
+      const cleanVat = vatNumber.replace(/\s+/g, '');
+      const barsList = window.db.get("barsList") || [];
+      const vatInBars = barsList.find(b => (b.vat && b.vat.replace(/\s+/g, '') === cleanVat) || (b.piva && b.piva.replace(/\s+/g, '') === cleanVat));
+      const vatInUsers = existingUsers.find(u => (u.vat && u.vat.replace(/\s+/g, '') === cleanVat) || (u.piva && u.piva.replace(/\s+/g, '') === cleanVat));
+      if (vatInBars || vatInUsers) {
+        if (submitBtnEmail) {
+          submitBtnEmail.disabled = false;
+          submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
+        }
+        showAuthError(window.i18n && window.i18n.currentLang === 'fr'
+          ? "⚠️ Ce numéro de TVA / SIRET est déjà associé à un bar existant dans la base de données."
+          : "⚠️ Questa Partita IVA risulta già registrata nel database per un altro bar.");
+        return;
+      }
     }
 
     const trialEndIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -5832,37 +5867,64 @@ async function handleAuthSubmit(e) {
       created_at: new Date().toISOString()
     };
 
-    // 1. SALVATAGGIO DEI DATI SUL DATABASE SUPABASE (AUTH & TABELLE)
+    // 2. CONTROLLO E SALVATAGGIO DEI DATI SUL DATABASE SUPABASE (AUTH & TABELLE)
     let supabaseUser = null;
     let supabaseSuccess = false;
     if (window.supabase && window.supabase.auth) {
       try {
-        console.log("[Supabase] Salvataggio dati registrazione su Supabase Database per:", email);
+        console.log("[Supabase] Controllo duplicati e registrazione su Supabase Database per:", emailNormalized);
         const res = await window.supabase.auth.signUp({
-          email: email,
+          email: emailNormalized,
           password: credential,
           options: {
             data: registrationMetadata
           }
         });
+
+        // Se Supabase risponde che l'utente è già registrato
+        if (res && res.error) {
+          const errMsg = (res.error.message || "").toLowerCase();
+          if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("user_already_exists")) {
+            if (submitBtnEmail) {
+              submitBtnEmail.disabled = false;
+              submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
+            }
+            showAuthError(window.i18n && window.i18n.currentLang === 'fr'
+              ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données Supabase. Cliquez sur 'Connexion'."
+              : "⚠️ Un account con questa email è già registrato nel database Supabase! Clicca su 'Accedi' per entrare con la tua password.");
+            return;
+          }
+        }
+
+        // Supabase con conferme attive restituisce identities vuoto se già registrato
+        const identities = res?.data?.user?.identities || res?.data?.identities;
+        if (Array.isArray(identities) && identities.length === 0) {
+          if (submitBtnEmail) {
+            submitBtnEmail.disabled = false;
+            submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
+          }
+          showAuthError(window.i18n && window.i18n.currentLang === 'fr'
+            ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données Supabase. Cliquez sur 'Connexion'."
+            : "⚠️ Questo indirizzo email è già registrato nel database Supabase. Seleziona 'Accedi' per entrare con la tua password.");
+          return;
+        }
+
         if (res && res.data && res.data.user) {
           supabaseSuccess = true;
           supabaseUser = res.data.user;
           console.log("[Supabase] Dati salvati con successo in auth.users (ID:", res.data.user.id, ")");
-        } else if (res && res.error) {
-          console.warn("[Supabase] Risposta Supabase Auth:", res.error.message);
         }
       } catch (errSupabase) {
         console.warn("[Supabase] Errore connessione Supabase:", errSupabase);
       }
 
-      // Tentativo salvataggio opzionale anche su tabella REST registrations se configurata
+      // Salvataggio anche su tabella REST registrations se configurata
       try {
         await fetch(`${window.supabase.url}/rest/v1/registrations`, {
           method: "POST",
           headers: window.supabase.getHeaders(false),
           body: JSON.stringify({
-            email: email,
+            email: emailNormalized,
             owner_name: ownerName,
             bar_name: barName,
             vat_number: vatNumber,
@@ -5888,7 +5950,7 @@ async function handleAuthSubmit(e) {
       currency: "€",
       role: "Proprietario",
       managerName: ownerName,
-      managerEmail: email,
+      managerEmail: emailNormalized,
       managerPhone: phone,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
@@ -5897,18 +5959,18 @@ async function handleAuthSubmit(e) {
     };
 
     const bars = window.db.get("barsList") || [];
-    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address });
+    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address, vat: activeBar.vat });
 
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
 
     // Save user in database (Owner uses password, has no PIN)
     saveUserToDatabase({
-      id: "usr_" + Date.now(),
+      id: "usr_" + (supabaseUser ? supabaseUser.id : Date.now()),
       supabaseId: supabaseUser ? supabaseUser.id : null,
       supabaseSaved: supabaseSuccess,
       type: "email",
-      email: email,
+      email: emailNormalized,
       phone: phone,
       password: credential,
       pin: null,
@@ -5926,7 +5988,7 @@ async function handleAuthSubmit(e) {
     const ownerStaff = staffList.find(s => s.role === "Proprietario");
     if (ownerStaff) {
       ownerStaff.name = ownerName;
-      ownerStaff.email = email;
+      ownerStaff.email = emailNormalized;
       ownerStaff.phone = phone;
       ownerStaff.pin = null;
       window.db.set("staff", staffList);
@@ -5937,7 +5999,6 @@ async function handleAuthSubmit(e) {
     }
 
     hideAuthError();
-    // Reimposta lo stato abbonamento in attesa del checkout
     localStorage.removeItem("barpilot_is_subscribed");
     activeBar.isSubscribed = false;
     activeBar.subscriptionStatus = "pending_checkout";
@@ -5947,7 +6008,7 @@ async function handleAuthSubmit(e) {
 
     setUserLoggedIn(true, { 
       name: ownerName, 
-      email: email, 
+      email: emailNormalized, 
       phone: phone, 
       barName: barName, 
       provider: "email",
@@ -5958,32 +6019,46 @@ async function handleAuthSubmit(e) {
 
     if (window.showToast) {
       window.showToast(window.i18n?.currentLang === 'it' 
-        ? "✅ Dati registrati e sincronizzati con successo su Supabase!" 
+        ? "✅ Dati registrati e sincronizzati con successo sul database!" 
         : "✅ Données enregistrées avec succès sur la base Supabase !");
     }
 
     // DOPO LA REGISTRAZIONE: mostra la pagina dell'offerta BarPilot Pro (pro.html)
     window.location.href = "/pro.html";
   } else {
-    // Handle Email Login: Check credentials depending on choice (Password vs PIN)
+    // 3. ACCESSO AL GESTIONALE: Verifica delle credenziali nel database (Locale & Supabase)
+    const submitBtnEmail = document.getElementById("authSubmitBtn");
+    if (submitBtnEmail) {
+      submitBtnEmail.disabled = true;
+      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Verifica credenziali nel database...`;
+    }
+
     if (currentCredMode === 'pin' && credential.length > 4) {
+      if (submitBtnEmail) {
+        submitBtnEmail.disabled = false;
+        submitBtnEmail.innerHTML = "Accedi al gestionale";
+      }
       showAuthError(window.i18n.currentLang === 'it'
         ? "Il PIN veloce deve essere di 4 cifre massimo."
         : "Le code PIN doit comporter 4 chiffres maximum.");
       return;
     }
 
+    const emailNormalized = email.trim().toLowerCase();
     const users = getDatabaseUsers();
-    let userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === email);
+    let userFound = users.find(u => u.type === 'email' && u.email && u.email.toLowerCase().trim() === emailNormalized);
 
-    // Also check staff table
     const staffList = window.db.get("staff") || [];
-    const staffFound = staffList.find(s => s.email && s.email.toLowerCase().trim() === email);
+    const staffFound = staffList.find(s => s.email && s.email.toLowerCase().trim() === emailNormalized);
 
     if (currentCredMode === 'pin') {
       const isOwner = (userFound && (userFound.role === 'Proprietario' || userFound.email === 'marco@barcentrale.it')) ||
                       (staffFound && staffFound.role === 'Proprietario');
       if (isOwner) {
+        if (submitBtnEmail) {
+          submitBtnEmail.disabled = false;
+          submitBtnEmail.innerHTML = "Accedi al gestionale";
+        }
         showAuthError(window.i18n.currentLang === 'it'
           ? "🔒 Il proprietario non ha un PIN. Accedi selezionando l'opzione 'Password'."
           : "🔒 Le propriétaire n'a pas de code PIN. Connectez-vous en sélectionnant 'Mot de passe'.");
@@ -6009,7 +6084,7 @@ async function handleAuthSubmit(e) {
         };
       }
     } else {
-      // Validate Standard Password
+      // 1. Verifica Password nel database locale
       if (userFound && (userFound.password === credential || (credential === "password123" && userFound.email === "marco@barcentrale.it"))) {
         isValid = true;
       } else if (staffFound && (staffFound.password === credential || credential === "password123")) {
@@ -6023,30 +6098,84 @@ async function handleAuthSubmit(e) {
           city: window.db.get("activeBar")?.city || "Roma"
         };
       }
+
+      // 2. Se non corrisponde localmente, autentica direttamente con il database Supabase!
+      if (!isValid && window.supabase && window.supabase.auth) {
+        try {
+          console.log("[Supabase] Tentativo di verifica credenziali su Supabase per:", emailNormalized);
+          const authRes = await window.supabase.auth.signInWithPassword({
+            email: emailNormalized,
+            password: credential
+          });
+
+          if (authRes && authRes.data && authRes.data.user) {
+            isValid = true;
+            const sbUser = authRes.data.user;
+            const meta = sbUser.user_metadata || {};
+
+            userFound = {
+              id: "usr_sb_" + sbUser.id,
+              supabaseId: sbUser.id,
+              type: "email",
+              email: emailNormalized,
+              password: credential,
+              name: meta.owner_name || meta.full_name || meta.name || emailNormalized.split("@")[0],
+              barName: meta.bar_name || "Il Mio Bar",
+              vat: meta.vat_number || meta.piva || "",
+              piva: meta.vat_number || meta.piva || "",
+              city: meta.city || "Roma",
+              role: meta.role || "Proprietario"
+            };
+
+            // Salva nei dati utente locali per le sessioni future
+            saveUserToDatabase(userFound);
+
+            // Aggiorna activeBar con i dati recuperati da Supabase
+            const currentActiveBar = window.db.get("activeBar") || {};
+            currentActiveBar.name = userFound.barName;
+            currentActiveBar.vat = userFound.vat;
+            currentActiveBar.piva = userFound.piva;
+            currentActiveBar.city = userFound.city;
+            currentActiveBar.managerName = userFound.name;
+            currentActiveBar.managerEmail = userFound.email;
+            if (meta.plan) currentActiveBar.plan = meta.plan;
+            window.db.set("activeBar", currentActiveBar);
+          } else if (authRes && authRes.error) {
+            console.warn("[Supabase] Credenziali non valide su Supabase:", authRes.error.message);
+          }
+        } catch (sbErr) {
+          console.warn("[Supabase] Errore verifica credenziali Supabase:", sbErr);
+        }
+      }
+    }
+
+    if (submitBtnEmail) {
+      submitBtnEmail.disabled = false;
+      submitBtnEmail.innerHTML = "Accedi al gestionale";
     }
 
     if (!isValid || !userFound) {
-      showAuthError("Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.");
+      showAuthError("Le credenziali fornite non sono corrette o l'account non esiste nel database. Controlla email e password.");
       return;
     }
 
     hideAuthError();
 
     const activeBar = window.db.get("activeBar") || { name: "Bar Centrale", city: "Roma" };
-    let matchedStaff = staffList.find(s => s.email && s.email.toLowerCase().trim() === email) || staffFound;
-    const role = (matchedStaff && matchedStaff.role) || (userFound && userFound.role) || (email === "marco@barcentrale.it" ? "Proprietario" : "Cameriere");
-    const personName = (matchedStaff && matchedStaff.name) || (userFound && userFound.name) || (email === "marco@barcentrale.it" ? "Marco Rossi" : "Operatore");
+    let matchedStaff = staffList.find(s => s.email && s.email.toLowerCase().trim() === emailNormalized) || staffFound;
+    const role = (matchedStaff && matchedStaff.role) || (userFound && userFound.role) || (emailNormalized === "marco@barcentrale.it" ? "Proprietario" : "Cameriere");
+    const personName = (matchedStaff && matchedStaff.name) || (userFound && userFound.name) || (emailNormalized === "marco@barcentrale.it" ? "Marco Rossi" : "Operatore");
     const isOwner = role === "Proprietario";
 
     if (isOwner) {
       activeBar.managerName = personName;
-      activeBar.managerEmail = email;
+      activeBar.managerEmail = emailNormalized;
       window.db.set("activeBar", activeBar);
 
       let ownerStaff = staffList.find(s => s.role === "Proprietario");
       if (ownerStaff) {
         ownerStaff.name = personName;
-        ownerStaff.email = email;
+        ownerStaff.email = emailNormalized;
         ownerStaff.pin = null;
       } else {
         ownerStaff = {

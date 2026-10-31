@@ -193,6 +193,12 @@ class BarPilotSupabaseClient {
         return { data: null, error: new Error(data.error_description || data.msg || data.message || "Errore di registrazione") };
       }
 
+      // Supabase restituisce un array 'identities' vuoto se l'utente risulta già registrato
+      const userIdentities = data?.user?.identities || data?.identities;
+      if (Array.isArray(userIdentities) && userIdentities.length === 0) {
+        return { data: null, error: new Error("User already registered") };
+      }
+
       if (data.access_token) {
         this.session = data;
         localStorage.setItem("barpilot_supabase_session", JSON.stringify(data));
