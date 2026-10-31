@@ -6302,7 +6302,7 @@ async function handleAuthSubmit(e) {
     const submitBtnEmail = document.getElementById("authSubmitBtn");
     if (submitBtnEmail) {
       submitBtnEmail.disabled = true;
-      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Verifica e salvataggio su database Supabase...`;
+      submitBtnEmail.innerHTML = `<span style="display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Verifica e salvataggio su database...`;
     }
 
     // 1. CONTROLLO PREVENTIVO: I dati sono già presenti nel database locale?
@@ -6380,8 +6380,8 @@ async function handleAuthSubmit(e) {
               submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
             }
             showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-              ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données Supabase. Cliquez sur 'Connexion'."
-              : "⚠️ Un account con questa email è già registrato nel database Supabase! Clicca su 'Accedi' per entrare con la tua password.");
+              ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données. Cliquez sur 'Connexion'."
+              : "⚠️ Un account con questa email è già registrato nel database! Clicca su 'Accedi' per entrare con la tua password.");
             return;
           }
         }
@@ -6394,8 +6394,8 @@ async function handleAuthSubmit(e) {
             submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
           }
           showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-            ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données Supabase. Cliquez sur 'Connexion'."
-            : "⚠️ Questo indirizzo email è già registrato nel database Supabase. Seleziona 'Accedi' per entrare con la tua password.");
+            ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données. Cliquez sur 'Connexion'."
+            : "⚠️ Questo indirizzo email è già registrato nel database. Seleziona 'Accedi' per entrare con la tua password.");
           return;
         }
 
