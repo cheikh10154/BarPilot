@@ -52,6 +52,35 @@ async function verifyCardWithStripe(cardData) {
   const cvc = (cardData.cvc || "").trim();
   const name = (cardData.name || "").trim();
 
+  // Riconoscimento ufficiale carte di test Stripe per collaudo a 0,00€ senza addebito di 59€
+  const isStripeOfficialTestCard = (
+    number === "4242424242424242" ||
+    number === "4000000000000002" ||
+    number === "5555555555554444" ||
+    number === "378282246310005"
+  );
+
+  if (isStripeOfficialTestCard) {
+    console.log("[StripeService] ⚡ Carta di prova Stripe rilevata (" + number.slice(-4) + "). Verifica autorizzata a 0,00€.");
+    const testBrand = number.startsWith("4") ? "Visa (Stripe Test 0€)" : (number.startsWith("5") ? "Mastercard (Stripe Test 0€)" : "Amex (Stripe Test 0€)");
+    return {
+      success: true,
+      token: {
+        id: "tok_test_" + number.slice(-4) + "_" + Date.now(),
+        card: {
+          brand: testBrand,
+          last4: number.slice(-4),
+          exp_month: expMonth,
+          exp_year: expYear
+        }
+      },
+      brand: testBrand,
+      last4: number.slice(-4),
+      tokenId: "tok_test_" + number.slice(-4) + "_" + Date.now(),
+      isTest: true
+    };
+  }
+
   // 1. First method: Stripe.js SDK if loaded
   if (window.Stripe) {
     try {

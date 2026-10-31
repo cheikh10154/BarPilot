@@ -2488,7 +2488,12 @@
             <!-- Card Input Fields Expanded -->
             <div class="checkout-pro-method-body" id="proMethodBodyCard">
               <div style="margin-bottom: 10px;">
-                <label class="pro-field-label">Numero della carta</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="pro-field-label" style="margin-bottom:0;">Numero della carta</label>
+                  <button type="button" onclick="fillTestCard()" style="background:#EEF2FF; color:#4F46E5; border:1px solid #C7D2FE; border-radius:6px; font-size:11px; font-weight:700; padding:2px 8px; cursor:pointer;" title="Compila automaticamente i dati della carta di prova Stripe per testare a 0,00€">
+                    ⚡ Carta di prova Stripe (0,00€)
+                  </button>
+                </div>
                 <div class="pro-input-wrap">
                   <input type="text" id="checkoutCardNumber" class="pro-input" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number">
                   <span id="checkoutCardBrandBadge" class="pro-input-right-badge" style="color:#9CA3AF; font-size:13px; background:transparent; border:none; padding:2px 4px;">💳</span>

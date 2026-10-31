@@ -6412,6 +6412,24 @@ window.switchCheckoutPaymentMethod = switchCheckoutPaymentMethod;
 window.handleStripeCheckoutSubmit = handleStripeCheckoutSubmit;
 
 
+function fillTestCard() {
+  const cardInput = document.getElementById("checkoutCardNumber");
+  const expiryInput = document.getElementById("checkoutCardExpiry");
+  const cvcInput = document.getElementById("checkoutCardCvc");
+  const holderInput = document.getElementById("checkoutCardHolder");
+
+  if (cardInput) {
+    cardInput.value = "4242 4242 4242 4242";
+    cardInput.dispatchEvent(new Event("input"));
+  }
+  if (expiryInput) expiryInput.value = "12 / 28";
+  if (cvcInput) cvcInput.value = "123";
+  if (holderInput) holderInput.value = "Test Stripe BarPilot (0,00€)";
+
+  showToast("⚡ Carta di prova Stripe compilata (4242 •••• 4242). Clicca su 'Avvia l\'abbonamento' per verificare a 0,00€.");
+}
+window.fillTestCard = fillTestCard;
+
 // ==========================================================================
 // Pixel-Perfect Pro Checkout Controllers
 // ==========================================================================
