@@ -382,6 +382,36 @@ runTest('Allerta magazzino: conteggio dinamico prodotti con disponibilità <= so
   assert.strictEqual(stats.alertCount, 2, 'Must report exactly 2 alert items');
 });
 
+// --------------------------------------------------------------------------
+// TEST 16: Ripristino dati dimostrativi in modalità DEMO
+// --------------------------------------------------------------------------
+runTest('Modalità DEMO: ripristina tutti i dati dimostrativi come prima (1.248 €, 186 comande, picco 19:00)', () => {
+  localStorage.setItem('barpilot_is_demo', 'true');
+  const demoBar = {
+    id: 'bar_01',
+    name: 'Bar Centrale (Demo)',
+    isDemo: true,
+    isSubscribed: true
+  };
+  window.db.set('activeBar', demoBar);
+
+  const demoStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(demoStats.isDemo, true, 'isDemo must be true');
+  assert.strictEqual(demoStats.revenue, 1248.00, 'Demo revenue must be 1.248,00 €');
+  assert.strictEqual(demoStats.ordersCount, 186, 'Demo orders count must be 186');
+  assert.strictEqual(demoStats.avgTicket, 6.71, 'Demo average ticket must be 6.71 €');
+  assert.strictEqual(demoStats.alertCount, 4, 'Demo alert count must be 4');
+  assert.strictEqual(demoStats.peakHour, '19:00', 'Demo peak hour must be 19:00');
+  assert.strictEqual(demoStats.peakVal, 380, 'Demo peak value must be 380 €');
+  assert.strictEqual(demoStats.hourlySales.length, 15, 'Demo must have 15 hourly slots');
+  assert.strictEqual(demoStats.categorySales.length, 5, 'Demo must have 5 category slices');
+  assert.strictEqual(demoStats.totalCatAmount, 1248.00, 'Demo category total must be 1248.00 €');
+
+  const demoTables = window.db.get('tables');
+  const occupiedTables = demoTables.filter(t => t.status === 'occupied' || t.status === 'to_pay');
+  assert(occupiedTables.length > 0, 'Demo tables must include occupied demonstration tables');
+});
+
 console.log('\n================================================================');
 console.log(`🎉 TEST COMPLETED: ${testsPassed} of ${totalTests} passed successfully!`);
 console.log('================================================================');

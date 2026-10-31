@@ -456,7 +456,7 @@ class BarPilotStorage {
 
     if (key === "orders") {
       if (this.isDemo()) {
-        if (!this.data.demoOrders) {
+        if (!this.data.demoOrders || !Array.isArray(this.data.demoOrders) || this.data.demoOrders.length === 0) {
           this.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
         }
         return this.data.demoOrders;
@@ -474,7 +474,7 @@ class BarPilotStorage {
 
     if (key === "tables") {
       if (this.isDemo()) {
-        if (!this.data.demoTables) {
+        if (!this.data.demoTables || !Array.isArray(this.data.demoTables) || this.data.demoTables.length === 0) {
           this.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
         }
         return this.data.demoTables;
@@ -499,29 +499,33 @@ class BarPilotStorage {
     }
 
     if (key === "products") {
-      const prods = (this.data.products || initialData.products).map(p => ({ ...p }));
-      if (!this.isDemo()) {
-        // Compute real sales count from active bar's orders
-        const orders = this.get("orders") || [];
-        const countMap = {};
-        orders.forEach(ord => {
-          const s = (ord.status || "").toLowerCase();
-          if (s !== "cancelled" && s !== "draft") {
-            if (Array.isArray(ord.items)) {
-              ord.items.forEach(it => {
-                countMap[it.id] = (countMap[it.id] || 0) + (Number(it.qty) || 0);
-              });
-            }
-          }
-        });
-        prods.forEach(p => {
-          p.salesCount = countMap[p.id] || 0;
-        });
+      if (this.isDemo()) {
+        return (this.data.products || initialData.products).map(p => ({ ...p }));
       }
+      const prods = (this.data.products || initialData.products).map(p => ({ ...p }));
+      // Compute real sales count from active bar's orders
+      const orders = this.get("orders") || [];
+      const countMap = {};
+      orders.forEach(ord => {
+        const s = (ord.status || "").toLowerCase();
+        if (s !== "cancelled" && s !== "draft") {
+          if (Array.isArray(ord.items)) {
+            ord.items.forEach(it => {
+              countMap[it.id] = (countMap[it.id] || 0) + (Number(it.qty) || 0);
+            });
+          }
+        }
+      });
+      prods.forEach(p => {
+        p.salesCount = countMap[p.id] || 0;
+      });
       return prods;
     }
 
     if (key === "metrics") {
+      if (this.isDemo()) {
+        return this.data.metrics || initialData.metrics;
+      }
       if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
         const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
         const stats = window.calculateDashboardStatistics(period);
@@ -539,6 +543,9 @@ class BarPilotStorage {
     }
 
     if (key === "hourlySales") {
+      if (this.isDemo()) {
+        return this.data.hourlySales || initialData.hourlySales;
+      }
       if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
         const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
         const stats = window.calculateDashboardStatistics(period);
@@ -548,6 +555,9 @@ class BarPilotStorage {
     }
 
     if (key === "categorySales") {
+      if (this.isDemo()) {
+        return this.data.categorySales || initialData.categorySales;
+      }
       if (typeof window !== "undefined" && typeof window.calculateDashboardStatistics === "function") {
         const period = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
         const stats = window.calculateDashboardStatistics(period);

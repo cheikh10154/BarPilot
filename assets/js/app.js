@@ -678,6 +678,95 @@ function calculateDashboardStatistics(period = "today") {
   const activeBar = (window.db ? window.db.get("activeBar") : null) || {};
   const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
 
+  // SE MODALITÀ DEMO: Ripristina tutti i dati dimostrativi completi come prima (1.248 €, 186 comande, picco 19:00, ecc.)
+  if (isDemo) {
+    const demoMetrics = (window.db && window.db.data && window.db.data.metrics) || initialData.metrics;
+    const demoHourly = (window.db && window.db.data && window.db.data.hourlySales) || initialData.hourlySales;
+    const demoCategories = (window.db && window.db.data && window.db.data.categorySales) || initialData.categorySales;
+    const demoOrders = (window.db ? window.db.get("orders") : initialData.orders) || [];
+    const demoProducts = (window.db ? window.db.get("products") : initialData.products) || [];
+
+    let revenue = demoMetrics.revenue || 1248.00;
+    let ordersCount = demoMetrics.ordersCount || 186;
+    let avgTicket = demoMetrics.avgTicket || 6.71;
+    let alertCount = demoMetrics.alertCount || 4;
+    let revDeltaText = demoMetrics.revenueChange || "+12%";
+    let ordDeltaText = demoMetrics.ordersChange || "+8%";
+    let avgDeltaText = demoMetrics.avgTicketChange || "+5%";
+
+    if (period === "yesterday") {
+      revenue = 1114.00;
+      ordersCount = 172;
+      avgTicket = 6.48;
+      revDeltaText = "+7%";
+      ordDeltaText = "+5%";
+      avgDeltaText = "+2%";
+    } else if (period === "week") {
+      revenue = 8736.00;
+      ordersCount = 1302;
+      avgTicket = 6.71;
+      revDeltaText = "+14%";
+      ordDeltaText = "+10%";
+      avgDeltaText = "+4%";
+    } else if (period === "month") {
+      revenue = 36450.00;
+      ordersCount = 5430;
+      avgTicket = 6.71;
+      revDeltaText = "+18%";
+      ordDeltaText = "+12%";
+      avgDeltaText = "+5%";
+    } else if (period === "30days") {
+      revenue = 37240.00;
+      ordersCount = 5550;
+      avgTicket = 6.71;
+      revDeltaText = "+16%";
+      ordDeltaText = "+11%";
+      avgDeltaText = "+4%";
+    } else if (period === "all") {
+      revenue = 148500.00;
+      ordersCount = 22130;
+      avgTicket = 6.71;
+      revDeltaText = "+22%";
+      ordDeltaText = "+15%";
+      avgDeltaText = "+6%";
+    }
+
+    const peakHour = "19:00";
+    const peakVal = 380;
+
+    const topProducts = [...demoProducts]
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        salesCount: p.salesCount || 10,
+        revenue: Math.round(((p.salesCount || 10) * (Number(p.price) || 0)) * 100) / 100,
+        price: Number(p.price) || 0
+      }))
+      .sort((a, b) => b.salesCount - a.salesCount);
+
+    const recentOrders = [...demoOrders].slice(0, 10);
+
+    return {
+      period,
+      revenue,
+      revenueDelta: { type: "positive", text: revDeltaText, label: "+134 € rispetto al periodo precedente (simulato)" },
+      ordersCount,
+      ordersDelta: { type: "positive", text: ordDeltaText, label: "+14 comande rispetto a ieri (simulato)" },
+      avgTicket,
+      avgTicketDelta: { type: "positive", text: avgDeltaText, label: "+0,32 € rispetto a ieri (simulato)" },
+      alertCount,
+      hourlySales: demoHourly,
+      peakHour,
+      peakVal,
+      categorySales: demoCategories,
+      totalCatAmount: revenue,
+      topProducts,
+      recentOrders,
+      isDemo: true
+    };
+  }
+
   // 1. Retrieve all orders for current context
   const allOrders = (window.db ? window.db.get("orders") : []) || [];
 
@@ -1030,6 +1119,17 @@ function renderHourlySalesChart() {
       peakBadge.style.display = "";
     } else {
       peakBadge.textContent = "Nessuna vendita";
+    }
+  }
+
+  const selectedDetailEl = document.getElementById("hourlySelectedText");
+  if (selectedDetailEl && !selectedHourlyItem) {
+    if (stats.isDemo) {
+      selectedDetailEl.innerHTML = `Ore 19:00 ➔ 380 € <span style="font-size:11px; font-weight:600; opacity:0.85;">(Picco giornaliero)</span>`;
+    } else if (stats.peakVal > 0) {
+      selectedDetailEl.innerHTML = `Ore ${stats.peakHour} ➔ ${stats.peakVal.toFixed(2)} € <span style="font-size:11px; font-weight:600; opacity:0.85;">(Picco giornaliero)</span>`;
+    } else {
+      selectedDetailEl.innerHTML = `Nessuna comanda registrata`;
     }
   }
 
@@ -6748,6 +6848,19 @@ function quickLoginDemo() {
 
   const storiesOverlay = document.getElementById("storiesOverlay");
   if (storiesOverlay) storiesOverlay.classList.add("hidden");
+
+  // Ripristina tutti i dati dimostrativi originali
+  if (window.db && window.db.data && typeof initialData !== "undefined") {
+    window.db.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
+    window.db.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
+    window.db.data.orders = window.db.data.demoOrders;
+    window.db.data.tables = window.db.data.demoTables;
+    window.db.data.products = JSON.parse(JSON.stringify(initialData.products));
+    window.db.data.metrics = JSON.parse(JSON.stringify(initialData.metrics));
+    window.db.data.hourlySales = JSON.parse(JSON.stringify(initialData.hourlySales));
+    window.db.data.categorySales = JSON.parse(JSON.stringify(initialData.categorySales));
+    window.db.persist();
+  }
 
   const staffList = (window.db ? window.db.get("staff") : []) || [];
   const ownerStaff = staffList.find(s => s.role === "Proprietario") || {
