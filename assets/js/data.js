@@ -431,12 +431,15 @@ class BarPilotStorage {
 
   isDemo() {
     try {
+      const activeBar = this.data && this.data.activeBar;
+      if (activeBar && activeBar.isDemo === false) {
+        return false;
+      }
       if (typeof window !== "undefined") {
-        if (typeof window.isDemoMode === "function" && window.isDemoMode()) return true;
+        if (typeof window.isDemoMode === "function") return window.isDemoMode();
         if (localStorage.getItem("barpilot_is_demo") === "true") return true;
         if (sessionStorage.getItem("barpilot_demo_active") === "true") return true;
       }
-      const activeBar = this.data && this.data.activeBar;
       if (activeBar && (activeBar.isDemo === true || (activeBar.id === "bar_01" && String(activeBar.name).includes("Demo")))) {
         return true;
       }

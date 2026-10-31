@@ -234,6 +234,8 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isDemoMode() {
   try {
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    if (bar && bar.isDemo === false) return false;
     return localStorage.getItem("barpilot_is_demo") === "true";
   } catch (e) {
     return false;
@@ -6544,12 +6546,33 @@ async function handleAuthSubmit(e) {
       managerPhone: phone,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
+      isDemo: false,
       trialDaysRemaining: 14,
       trialEndDate: trialEndIso
     };
 
+    // Spegni modalità demo e azzera tutti i dati operativi del nuovo bar
+    localStorage.setItem("barpilot_is_demo", "false");
+    sessionStorage.removeItem("barpilot_demo_active");
+
+    if (window.db && window.db.data) {
+      if (!window.db.data.liveOrders) window.db.data.liveOrders = {};
+      window.db.data.liveOrders[activeBar.id] = [];
+
+      if (!window.db.data.liveTables) window.db.data.liveTables = {};
+      window.db.data.liveTables[activeBar.id] = (initialData.tables || []).map(t => ({
+        ...t,
+        status: "free",
+        amount: 0,
+        time: 0,
+        orderId: null,
+        alert: null
+      }));
+      window.db.persist();
+    }
+
     const bars = window.db.get("barsList") || [];
-    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address, vat: activeBar.vat });
+    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address, vat: activeBar.vat, isDemo: false });
 
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
@@ -6602,6 +6625,7 @@ async function handleAuthSubmit(e) {
       phone: phone, 
       barName: barName, 
       provider: "email",
+      isDemo: false,
       supabaseId: supabaseUser ? supabaseUser.id : null
     });
     closeAuthScreen();
@@ -6764,7 +6788,57 @@ async function handleAuthSubmit(e) {
 
     hideAuthError();
 
-    const activeBar = window.db.get("activeBar") || { name: "Bar Centrale", city: "Roma" };
+    // 1. Disattiva modalità demo per l'accesso a un bar reale
+    localStorage.setItem("barpilot_is_demo", "false");
+    sessionStorage.removeItem("barpilot_demo_active");
+
+    const barsList = window.db.get("barsList") || [];
+    let activeBar = window.db.get("activeBar") || { name: "Bar Centrale", city: "Roma" };
+
+    // Trova o crea il bar reale associato all'utente
+    if (userFound && userFound.barName && userFound.barName !== "Bar Centrale (Demo)") {
+      let foundBar = barsList.find(b => b.name === userFound.barName || (userFound.vat && b.vat === userFound.vat));
+      if (!foundBar) {
+        foundBar = {
+          id: "bar_" + (userFound.supabaseId || userFound.id || Date.now()),
+          name: userFound.barName,
+          city: userFound.city || "Roma",
+          address: userFound.address || `Via Principale, 1 - ${userFound.city || "Roma"}`,
+          vat: userFound.vat || "",
+          piva: userFound.vat || "",
+          isDemo: false
+        };
+        barsList.push(foundBar);
+        window.db.set("barsList", barsList);
+      }
+      foundBar.isDemo = false;
+      activeBar = foundBar;
+    } else {
+      activeBar.isDemo = false;
+    }
+    window.db.set("activeBar", activeBar);
+
+    // 2. Se è un nuovo bar, resetta e isola tutti i dati operativi (partono da 0)
+    if (window.db && window.db.data) {
+      if (!window.db.data.liveOrders) window.db.data.liveOrders = {};
+      if (!window.db.data.liveOrders[activeBar.id]) {
+        window.db.data.liveOrders[activeBar.id] = [];
+      }
+
+      if (!window.db.data.liveTables) window.db.data.liveTables = {};
+      if (!window.db.data.liveTables[activeBar.id]) {
+        window.db.data.liveTables[activeBar.id] = (initialData.tables || []).map(t => ({
+          ...t,
+          status: "free",
+          amount: 0,
+          time: 0,
+          orderId: null,
+          alert: null
+        }));
+      }
+      window.db.persist();
+    }
+
     let matchedStaff = staffList.find(s => s.email && s.email.toLowerCase().trim() === emailNormalized) || staffFound;
     const role = (matchedStaff && matchedStaff.role) || (userFound && userFound.role) || (emailNormalized === "marco@barcentrale.it" ? "Proprietario" : "Cameriere");
     const personName = (matchedStaff && matchedStaff.name) || (userFound && userFound.name) || (emailNormalized === "marco@barcentrale.it" ? "Marco Rossi" : "Operatore");
@@ -6818,7 +6892,8 @@ async function handleAuthSubmit(e) {
       email: email,
       role: role,
       barName: activeBar.name,
-      provider: "email"
+      provider: "email",
+      isDemo: false
     });
     closeAuthScreen();
     renderApp();

@@ -412,6 +412,72 @@ runTest('Modalità DEMO: ripristina tutti i dati dimostrativi come prima (1.248 
   assert(occupiedTables.length > 0, 'Demo tables must include occupied demonstration tables');
 });
 
+// --------------------------------------------------------------------------
+// TEST 17: Creazione nuovo bar azzera tutti i dati operativi al primo accesso
+// e mantiene i metodi di calcolo dinamici senza toccare la demo
+// --------------------------------------------------------------------------
+runTest('Creazione nuovo bar azzera tutti i dati operativi al primo accesso e mantiene i calcoli dinamici', () => {
+  // Simula la creazione di un nuovo bar da parte dell'utente
+  const freshBar = {
+    id: 'bar_creato_nuovo_' + Date.now(),
+    name: 'Il Nuovo Bar Aperto',
+    city: 'Firenze',
+    isDemo: false
+  };
+
+  // Spegne demo mode
+  localStorage.setItem('barpilot_is_demo', 'false');
+  window.db.set('activeBar', freshBar);
+
+  // Al primo accesso: tutti i dati operativi devono essere a zero
+  const initialStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(initialStats.isDemo, false, 'Bar must not be in demo mode');
+  assert.strictEqual(initialStats.revenue, 0.00, 'Fresh bar revenue must be exactly 0.00 €');
+  assert.strictEqual(initialStats.ordersCount, 0, 'Fresh bar orders count must be 0');
+  assert.strictEqual(initialStats.avgTicket, 0.00, 'Fresh bar avg ticket must be 0.00 €');
+  assert.strictEqual(initialStats.recentOrders.length, 0, 'Fresh bar must have 0 recent orders');
+  assert.strictEqual(initialStats.topProducts.length, 0, 'Fresh bar must have 0 top products');
+  assert.strictEqual(initialStats.totalCatAmount, 0.00, 'Fresh bar category amount must be 0.00 €');
+
+  // I tavoli devono essere tutti liberi
+  const tables = window.db.get('tables');
+  assert(tables.every(t => t.status === 'free'), 'All tables must start as free');
+
+  // Verifica che i metodi di calcolo rimangano attivi registrando una vendita reale
+  const now = new Date();
+  const orderSale = {
+    id: 9999,
+    barId: freshBar.id,
+    isDemo: false,
+    table: 'Tavolo 01',
+    server: 'Nuovo Gestore',
+    status: 'closed',
+    createdAt: now.toISOString(),
+    items: [
+      { id: 1, name: 'Espresso', qty: 3, price: 1.50, category: 'coffee' }
+    ],
+    total: 4.50
+  };
+  const currentOrders = window.db.get('orders');
+  currentOrders.push(orderSale);
+  window.db.set('orders', currentOrders);
+
+  const updatedStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(updatedStats.revenue, 4.50, 'Calculation method must correctly compute 3 x 1.50 = 4.50 €');
+  assert.strictEqual(updatedStats.ordersCount, 1, 'Orders count must dynamically update to 1');
+  assert.strictEqual(updatedStats.avgTicket, 4.50, 'Average ticket must dynamically update to 4.50 €');
+  assert.strictEqual(updatedStats.topProducts[0].name, 'Espresso', 'Top product must be Espresso');
+  assert.strictEqual(updatedStats.topProducts[0].salesCount, 3, 'Espresso sales count must be 3');
+
+  // Verifica che la pagina demo NON sia stata alterata
+  localStorage.setItem('barpilot_is_demo', 'true');
+  const demoBarCheck = { id: 'bar_01', name: 'Bar Centrale (Demo)', isDemo: true };
+  window.db.set('activeBar', demoBarCheck);
+  const demoStatsAgain = window.calculateDashboardStatistics('today');
+  assert.strictEqual(demoStatsAgain.revenue, 1248.00, 'Demo page revenue must stay exactly 1248.00 € as before');
+  assert.strictEqual(demoStatsAgain.ordersCount, 186, 'Demo page orders must stay exactly 186 as before');
+});
+
 console.log('\n================================================================');
 console.log(`🎉 TEST COMPLETED: ${testsPassed} of ${totalTests} passed successfully!`);
 console.log('================================================================');
