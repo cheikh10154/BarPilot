@@ -65,6 +65,10 @@
   ],
   "routes": [
     {
+      "src": "^/api/send-welcome-email/?$",
+      "dest": "/api/send-welcome-email.js"
+    },
+    {
       "src": "^/api/stripe-webhook/?$",
       "dest": "/api/stripe-webhook.js"
     },

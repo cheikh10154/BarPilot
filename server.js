@@ -41,6 +41,19 @@ const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
   let pathname = decodeURIComponent(parsedUrl.pathname);
 
+  // API Route Dispatcher
+  if (pathname === '/api/send-welcome-email' || pathname === '/api/send-welcome-email.js') {
+    try {
+      const welcomeHandler = require('./api/send-welcome-email.js');
+      const handlerFn = welcomeHandler.default || welcomeHandler;
+      return handlerFn(req, res);
+    } catch (e) {
+      console.error('[Server] API send-welcome-email error:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
   // Normalize path & prevent directory traversal
   let safePath = path.normalize(path.join(ROOT_DIR, pathname));
   if (!safePath.startsWith(ROOT_DIR)) {

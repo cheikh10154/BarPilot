@@ -6238,6 +6238,39 @@ function handleSocialLogin(provider) {
   }
 }
 
+// Servizio di invio email di benvenuto quando un utente registra il suo Bar
+async function sendWelcomeEmail({ email, ownerName, barName, city, phone }) {
+  try {
+    console.log(`[Email] Invio email di benvenuto per bar "${barName}" a: ${email}`);
+    const res = await fetch("/api/send-welcome-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email,
+        ownerName,
+        barName,
+        city,
+        phone,
+        appUrl: window.location.origin
+      })
+    });
+    const result = await res.json().catch(() => null);
+    if (res.ok && result) {
+      console.log("[Email] ✅ Email di benvenuto inviata con successo:", result);
+      return result;
+    } else {
+      console.warn("[Email] ⚠️ Servizio email risposta:", result);
+      return null;
+    }
+  } catch (err) {
+    console.warn("[Email] ⚠️ Eccezione durante invio email di benvenuto:", err);
+    return null;
+  }
+}
+window.sendWelcomeEmail = sendWelcomeEmail;
+
 async function handleAuthSubmit(e) {
   e.preventDefault();
   hideAuthError();
@@ -6474,10 +6507,23 @@ async function handleAuthSubmit(e) {
     closeAuthScreen();
     renderApp();
 
+    // Invia email di benvenuto al nuovo gestore del bar registrato
+    try {
+      await sendWelcomeEmail({
+        email: emailNormalized,
+        ownerName: ownerName,
+        barName: barName,
+        city: city,
+        phone: phone
+      });
+    } catch (e) {
+      console.warn("[Welcome Email] Errore non bloccante invio email:", e);
+    }
+
     if (window.showToast) {
       window.showToast(window.i18n?.currentLang === 'it' 
-        ? "✅ Dati registrati e sincronizzati con successo sul database!" 
-        : "✅ Données enregistrées avec succès sur la base Supabase !");
+        ? "✅ Bar registrato ed email di benvenuto inviata con successo!" 
+        : "✅ Bar enregistré et email de bienvenue envoyé avec succès !");
     }
 
     // DOPO LA REGISTRAZIONE: mostra la pagina dell'offerta BarPilot Pro (pro.html)
