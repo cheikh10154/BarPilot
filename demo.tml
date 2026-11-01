@@ -74,7 +74,7 @@
             <img src="assets/images/logo.png" alt="BarPilot">
             <span>BarPilot Stories</span>
           </div>
-          <button class="story-skip-btn" id="btnSkipStories" onclick="quickLoginDemo()" style="display:inline-flex; align-items:center; gap:4px; font-weight:800; cursor:pointer;" title="Accedi subito alla Demo">⚡ Prova Demo Gratuita</button>
+          <button class="story-skip-btn" id="btnSkipStories" data-i18n="skip">Salta</button>
         </div>
       </div>
 
