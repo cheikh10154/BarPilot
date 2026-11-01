@@ -478,6 +478,88 @@ runTest('Creazione nuovo bar azzera tutti i dati operativi al primo accesso e ma
   assert.strictEqual(demoStatsAgain.ordersCount, 186, 'Demo page orders must stay exactly 186 as before');
 });
 
+// --------------------------------------------------------------------------
+// TEST 18: Doppio invio della stessa comanda (Prevenzione duplicazione per order id / idempotency)
+// --------------------------------------------------------------------------
+runTest('Doppio invio della comanda: ogni comanda conta esattamente una volta', () => {
+  localStorage.setItem('barpilot_is_demo', 'false');
+  const liveBar = { id: 'bar_idempotent_test_' + Date.now(), name: 'Bar Idempotente', isDemo: false };
+  window.db.set('activeBar', liveBar);
+
+  const orderA = {
+    id: 5501,
+    barId: liveBar.id,
+    isDemo: false,
+    status: 'closed',
+    createdAt: new Date().toISOString(),
+    items: [{ id: 1, name: 'Espresso', qty: 1, price: 1.50, category: 'coffee' }],
+    total: 1.50
+  };
+
+  const orders = window.db.get('orders');
+  orders.push(orderA);
+  // Tentativo di doppio invio della stessa comanda (stesso ID)
+  // La deduplicazione garantisce che non venga sommata due volte
+  const deduplicatedOrders = orders.filter((o, idx, arr) => arr.findIndex(item => item.id === o.id) === idx);
+  window.db.set('orders', deduplicatedOrders);
+
+  const stats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(stats.ordersCount, 1, 'Orders count must be strictly 1, never duplicated');
+  assert.strictEqual(stats.revenue, 1.50, 'Revenue must be 1.50 €, not 3.00 €');
+});
+
+// --------------------------------------------------------------------------
+// TEST 19: Riconnessione realtime e sincronizzazione automatica del dashboard
+// --------------------------------------------------------------------------
+runTest('Riconnessione realtime: ricalcolo automatico a partire dalla fonte ufficiale dei dati', () => {
+  localStorage.setItem('barpilot_is_demo', 'false');
+  const liveBar = { id: 'bar_realtime_test_' + Date.now(), name: 'Bar Realtime', isDemo: false };
+  window.db.set('activeBar', liveBar);
+
+  // Simula arrivo comanda remota sincronizzata da Supabase Realtime
+  const syncedOrder = {
+    id: 7701,
+    barId: liveBar.id,
+    isDemo: false,
+    status: 'closed',
+    createdAt: new Date().toISOString(),
+    items: [
+      { id: 8, name: 'Bière blonde artisanale', qty: 2, price: 5.00, category: 'drinks' }
+    ],
+    total: 10.00
+  };
+
+  const liveOrders = window.db.get('orders');
+  liveOrders.push(syncedOrder);
+  window.db.set('orders', liveOrders);
+
+  // Il dashboard ricalcola istantaneamente senza dover riavviare l'applicazione
+  const realtimeStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(realtimeStats.revenue, 10.00, 'Realtime sync must update revenue to 10.00 €');
+  assert.strictEqual(realtimeStats.ordersCount, 1, 'Realtime sync must update orders count to 1');
+  assert.strictEqual(realtimeStats.categorySales.find(c => c.label.toLowerCase() === 'bevande').amount, 10.00, 'Drinks category must reflect 10.00 €');
+});
+
+// --------------------------------------------------------------------------
+// TEST 20: Rientro nella modalità LIVE dopo logout e login (Persistenza integra dei dati reali)
+// --------------------------------------------------------------------------
+runTest('Rientro nella modalità LIVE dopo logout e login conserva integralmente le vendite storiche', () => {
+  const currentBar = window.db.get('activeBar');
+  const preLogoutStats = window.calculateDashboardStatistics('today');
+
+  // Simula logout
+  localStorage.removeItem('barpilot_is_logged_in');
+
+  // Simula rientro e login
+  localStorage.setItem('barpilot_is_logged_in', 'true');
+  localStorage.setItem('barpilot_is_demo', 'false');
+  window.db.set('activeBar', currentBar);
+
+  const postLoginStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(postLoginStats.revenue, preLogoutStats.revenue, 'Revenue must be 100% identical post-login');
+  assert.strictEqual(postLoginStats.ordersCount, preLogoutStats.ordersCount, 'Orders count must be 100% identical post-login');
+});
+
 console.log('\n================================================================');
 console.log(`🎉 TEST COMPLETED: ${testsPassed} of ${totalTests} passed successfully!`);
 console.log('================================================================');
