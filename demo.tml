@@ -1,0 +1,3078 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FF7A00">
+  <title>BarPilot - Demo Bar Centrale (Dati dimostrativi precaricati)</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/images/logo.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <!-- Instant Session Cache Check & Demo Mode Pre-Init -->
+  <script>
+    (function() {
+      try {
+        localStorage.setItem("barpilot_is_demo", "true");
+        localStorage.setItem("barpilot_is_subscribed", "true");
+        localStorage.setItem("barpilot_is_logged_in", "true");
+        sessionStorage.setItem("barpilot_demo_active", "true");
+        document.documentElement.classList.add("user-authenticated");
+      } catch (e) {}
+    })();
+  </script>
+  <!-- Stripe.js & Official Google Pay SDK -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <script async src="https://pay.google.com/gp/p/js/pay.js" onload="window.onGooglePayLoaded && window.onGooglePayLoaded()"></script>
+</head>
+<body>
+
+  <!-- Top Persistent Demo Banner -->
+  <div class="demo-persistent-banner" style="background: linear-gradient(90deg, #FF7A00 0%, #EA580C 100%); color: #fff; padding: 10px 18px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; z-index: 99999; box-shadow: 0 4px 15px rgba(255,122,0,0.35); position: sticky; top: 0;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:16px;">⚡</span>
+      <span>MODALITÀ DIMOSTRATIVA — Bar Centrale (Dati dimostrativi: 1.248,00 € vendite · 186 comande · 6,71 € scontrino medio)</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button type="button" onclick="if(typeof resetDemoData==='function'){resetDemoData();}else{location.reload();}" style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer;">🔄 Ripristina Dati Demo</button>
+      <a href="index.html" style="background:#fff; color:#EA580C; padding:5px 14px; border-radius:6px; text-decoration:none; font-weight:800; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">Accedi al tuo Bar Reale (LIVE) ➔</a>
+    </div>
+  </div>
+
+  <!-- 1. ANIMATED SPLASH SCREEN (3 SECONDS) -->
+  <div class="splash-overlay hidden" id="splashScreen">
+    <div class="splash-center">
+      <div class="splash-logo-wrap">
+        <div class="splash-glow-ring"></div>
+        <img src="assets/images/logo.png" alt="BarPilot" class="splash-logo-img">
+      </div>
+      <h1 class="splash-title">Bar<span>Pilot</span></h1>
+      <p class="splash-tagline" data-i18n="slogan">Il tuo bar. Il tuo controllo. La tua crescita.</p>
+      
+      <div class="splash-loader-bar">
+        <div class="splash-loader-fill" id="splashLoaderFill"></div>
+      </div>
+      <p style="font-size:11px; color:#64748B; margin-top:10px;" data-i18n="splashPreparing">Inizializzazione in corso...</p>
+    </div>
+  </div>
+
+  <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->
+  <div class="stories-overlay hidden" id="storiesOverlay">
+    <div class="stories-viewport" id="storiesViewport">
+      
+      <!-- Progress Bar with 5 Segments -->
+      <div class="story-header">
+        <div class="story-progress-segments">
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill0"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill1"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill2"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill3"></div></div>
+          <div class="story-segment-bar"><div class="story-segment-fill" id="storyFill4"></div></div>
+        </div>
+
+        <div class="story-top-info">
+          <div class="story-brand-pill">
+            <img src="assets/images/logo.png" alt="BarPilot">
+            <span>BarPilot Stories</span>
+          </div>
+          <button class="story-skip-btn" id="btnSkipStories" onclick="quickLoginDemo()" style="display:inline-flex; align-items:center; gap:4px; font-weight:800; cursor:pointer;" title="Accedi subito alla Demo">⚡ Prova Demo Gratuita</button>
+        </div>
+      </div>
+
+      <!-- Left / Right Tap zones -->
+      <div class="story-tap-area story-tap-left" id="storyTapLeft"></div>
+      <div class="story-tap-area story-tap-right" id="storyTapRight"></div>
+
+      <!-- Stories Track with 5 Slides -->
+      <div class="stories-track" id="storiesTrack">
+        
+        <!-- Story 1: Comande -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-ticket">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-weight:800; color:#FF7A00;">#1045 · Tavolo 04</span>
+                <span style="background:rgba(255,122,0,0.15); color:#FF7A00; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">⚡ 10s</span>
+              </div>
+              <div style="font-size:13px; line-height:1.6; color:#CBD5E1;">
+                <div>✓ 2x Cappuccino</div>
+                <div>✓ 1x Croissant burro</div>
+                <div>✓ 1x Espresso Arabica</div>
+              </div>
+              <div style="border-top:1px dashed #334155; margin-top:10px; padding-top:8px; display:flex; justify-content:space-between; font-weight:800;">
+                <span>Totale</span>
+                <span style="color:#10B981;">6,10 €</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story1Badge">01 · VELOCITÀ ASSOLUTA</span>
+            <h2 class="story-title" data-i18n="story1Title">Comande fulminee in 10 secondi</h2>
+            <p class="story-desc" data-i18n="story1Desc">I tuoi camerieri prendono le comande dallo smartphone con 2 tocchi. Il comptoir riceve le comande all'istante: zero errori, clienti serviti al doppio della velocità.</p>
+            <span class="story-highlight-pill" data-i18n="story1Pill">⚡ 50% di tempo risparmiato per tavolo</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 2: Plan de Salle -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box">
+              <div class="story-anim-floor">
+                <div class="story-floor-item active1">
+                  <strong style="font-size:14px;">T01</strong>
+                  <div style="font-size:11px; color:#10B981; font-weight:700;">Libero</div>
+                </div>
+                <div class="story-floor-item active2">
+                  <strong style="font-size:14px;">T02</strong>
+                  <div style="font-size:11px; color:#FF8A00; font-weight:700;">14,50 €</div>
+                </div>
+                <div class="story-floor-item active3">
+                  <strong style="font-size:14px;">T04</strong>
+                  <div style="font-size:11px; color:#3B82F6; font-weight:700;">Da pagare</div>
+                </div>
+                <div class="story-floor-item active4">
+                  <strong style="font-size:14px;">T07</strong>
+                  <div style="font-size:11px; color:#8B5CF6; font-weight:700;">Prenotato</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story2Badge">02 · CONTROLLO SALA</span>
+            <h2 class="story-title" data-i18n="story2Title">Plan de salle dinamico & interattivo</h2>
+            <p class="story-desc" data-i18n="story2Desc">Visualizza ogni tavolo a colpo d'occhio: libero, occupato, conto da pagare o prenotato. Conosci la durata esatta di permanenza e il conto accumulato in tempo reale.</p>
+            <span class="story-highlight-pill" data-i18n="story2Pill">🪑 Monitoraggio completo da smartphone e tablet</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 3: KDS Barman -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-kds">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:14px; font-weight:800; color:#FFFFFF;">Comptoir · #1042</span>
+                <span style="background:#EF4444; color:#FFF; font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">⏱️ 2 min</span>
+              </div>
+              <div style="font-size:13px; color:#94A3B8; margin-bottom:12px;">
+                2x Spritz Aperol · 1x Bière blonde
+              </div>
+              <div style="background:#3B82F6; color:#FFF; padding:8px; border-radius:8px; text-align:center; font-size:12px; font-weight:700;">
+                ✓ Segna come pronta
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story3Badge">03 · COMPTOIR SENZA CONFUSIONE</span>
+            <h2 class="story-title" data-i18n="story3Title">KDS Barman in tempo reale</h2>
+            <p class="story-desc" data-i18n="story3Desc">Schermo da banco touch: mai più scontrini di carta persi o cocktail sbagliati. Il barman segna le bevande in preparazione e pronte con un solo tocco.</p>
+            <span class="story-highlight-pill" data-i18n="story3Pill">🍸 Flusso di lavoro fluido e sincronizzato</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 4: Giacenze -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-stock">
+              <div class="stock-bar-row">
+                <span>☕ Caffè Arabica</span>
+                <span style="color:#10B981; font-weight:700;">4.0 kg (OK)</span>
+              </div>
+              <div class="stock-bar-row">
+                <span>🥛 Latte fresco</span>
+                <span style="color:#EF4444; font-weight:700;">3 L (In allerta)</span>
+              </div>
+              <div class="stock-bar-row">
+                <span>🍹 Aperol</span>
+                <span style="color:#10B981; font-weight:700;">2.5 L (OK)</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story4Badge">04 · ZERO SPRECHI</span>
+            <h2 class="story-title" data-i18n="story4Title">Giacenze & Ricette Cocktail automatiche</h2>
+            <p class="story-desc" data-i18n="story4Desc">Vendi un Mojito o un Cappuccino? Il sistema scarica automaticamente le dosi esatte di caffè, latte, rum e menta dal magazzino, avvisandoti prima che finiscano.</p>
+            <span class="story-highlight-pill" data-i18n="story4Pill">📦 Allarmi di riordino intelligenti</span>
+          </div>
+          <div class="story-action-bottom">
+            <button class="btn-story-next" onclick="goToNextStory()" data-i18n="storyNextBtn">Avanti</button>
+          </div>
+        </div>
+
+        <!-- Story 5: AI & Profits -->
+        <div class="story-slide">
+          <div class="story-graphic-wrap">
+            <div class="story-graphic-box story-anim-ai">
+              <div style="font-size:12px; font-weight:700; color:#FF7A00; margin-bottom:6px;">💬 BarPilot AI:</div>
+              <p style="font-size:12px; color:#E2E8F0; line-height:1.4;">
+                "Oggi margine stimato a <strong>438 €</strong> (+12%). Attenzione: scorte di latte basse per il servizio del mattino."
+              </p>
+            </div>
+          </div>
+          <div class="story-text-box">
+            <span class="story-badge-pill" data-i18n="story5Badge">05 · CO-PILOTA DI PROFITTO</span>
+            <h2 class="story-title" data-i18n="story5Title">BarPilot AI & Analisi di Redditività</h2>
+            <p class="story-desc" data-i18n="story5Desc">Monitora margini netti, prodotti più venduti e ricevi suggerimenti intelligenti sulle scorte direttamente dal tuo assistente virtuale di bar management.</p>
+            <span class="story-highlight-pill" data-i18n="story5Pill">📈 +18% di marginalità media stimata</span>
+          </div>
+          <div class="story-action-bottom" style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#10B981; box-shadow:0 6px 20px rgba(16,185,129,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
+            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. AUTHENTICATION & REGISTRATION SCREEN (GOOGLE, FB, EMAIL) -->
+  <div class="auth-overlay hidden" id="authOverlay">
+    <div class="auth-card">
+      <!-- Language Switcher in Auth Screen (IT / FR) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span class="auth-trial-pill" data-i18n="authBadgeTrial">14 GIORNI DI PROVA GRATUITA INCLUSI</span>
+        <div class="auth-lang-picker">
+          <button type="button" class="lang-btn auth-lang-btn active" data-lang="it" onclick="window.i18n.setLang('it')" title="Italiano">
+            🇮🇹 IT
+          </button>
+          <button type="button" class="lang-btn auth-lang-btn" data-lang="fr" onclick="window.i18n.setLang('fr')" title="Français">
+            🇫🇷 FR
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-top-brand" style="margin-top:0;">
+        <img src="assets/images/logo.png" alt="BarPilot" class="auth-logo-badge">
+        <h2 class="auth-title" data-i18n="authMainTitle">Entra in BarPilot</h2>
+        <p class="auth-subtitle" data-i18n="authMainSub">Il software di gestione intelligente per bar, pub, caffè e lounge</p>
+      </div>
+
+      <!-- Auth Tab Switch (Login vs Register) -->
+      <div class="auth-tab-switch">
+        <button class="auth-tab-btn active" id="tabBtnLogin" onclick="switchAuthTab('login')" data-i18n="tabLogin">Accedi</button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="switchAuthTab('register')" data-i18n="tabRegister">Registra il tuo Bar</button>
+      </div>
+
+      <!-- Red Error Alert Box for invalid credentials -->
+      <div id="authAlertError" class="auth-error-alert" style="display:none;" role="alert">
+        <span class="auth-error-icon">⚠️</span>
+        <span id="authAlertErrorText" class="auth-error-text" data-i18n="invalidCredentials">Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.</span>
+      </div>
+
+      <!-- Login Form (Email Mode) -->
+      <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
+        <!-- Bar, Owner, City & Phone fields (for Registration only) -->
+        <div id="registerExtraFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>
+            <input type="text" class="form-input" id="regBarName" placeholder="Es: Bar Centrale" data-i18n-placeholder="barNamePlaceholder" value="" oninput="hideAuthError()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="vatLabel">Partita IVA / Cod. Fiscale</label>
+            <input type="text" class="form-input" id="regVat" placeholder="Es: IT12345678901" data-i18n-placeholder="vatPlaceholder" value="" oninput="hideAuthError()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="ownerNameLabel">Il tuo Nome e Cognome</label>
+            <input type="text" class="form-input" id="regOwnerName" placeholder="Es: Marco Rossi" data-i18n-placeholder="ownerNamePlaceholder" value="" oninput="hideAuthError()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="cityLabel">Città</label>
+            <input type="text" class="form-input" id="regCity" placeholder="Es: Roma / Nice" data-i18n-placeholder="cityPlaceholder" value="" oninput="hideAuthError()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="phoneLabel">Numero di telefono</label>
+            <input type="tel" class="form-input" id="regPhone" placeholder="Es: +39 333 987 6543" data-i18n-placeholder="phonePlaceholder" value="" oninput="hideAuthError()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="emailLabel">Email gestore / cameriere</label>
+          <input type="email" class="form-input" id="authEmail" placeholder="marco@barcentrale.it" data-i18n-placeholder="emailPlaceholder" value="" oninput="hideAuthError()" required>
+        </div>
+
+        <!-- Choice between Password or Fast PIN -->
+        <div class="cred-mode-switch" id="credModeSwitch">
+          <button type="button" class="cred-mode-btn active" id="btnModePassword" onclick="setAuthCredentialMode('password')">
+            🔒 <span data-i18n="credChoicePassword">Password</span>
+          </button>
+          <button type="button" class="cred-mode-btn" id="btnModePin" onclick="setAuthCredentialMode('pin')">
+            ⚡ <span data-i18n="credChoicePin">PIN veloce (max 4 cifre)</span>
+          </button>
+        </div>
+
+        <div class="form-group" id="authCredentialGroup">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="form-label" id="authPasswordLabel" data-i18n="passwordOnlyLabel">Password</label>
+            <a href="#" id="authForgotPassLink" onclick="openPasswordRecoveryModal(); return false;" style="font-size:11px; color:var(--primary); text-decoration:none;" data-i18n="forgotPass">Password dimenticata?</a>
+          </div>
+          <div class="password-input-wrap">
+            <input type="password" class="form-input" id="authPassword" placeholder="••••••••" data-i18n-placeholder="passwordPlaceholder" value="" oninput="handlePasswordInput(this)" required>
+            <button type="button" id="btnTogglePasswordVisibility" class="btn-toggle-eye" onclick="togglePasswordVisibility()" data-i18n-title="showPassword" title="Mostra password">
+              <span id="eyeIcon">👁️</span>
+            </button>
+          </div>
+
+          <!-- Real-Time Password Requirements Checklist -->
+          <div id="passwordRulesBox" class="password-rules-box" style="display:none;">
+            <div style="font-weight:700; color:var(--text-muted); margin-bottom:2px;" data-i18n="pwdRulesTitle">
+              Criteri di sicurezza password:
+            </div>
+            <div class="pwd-rule-item" id="ruleMinLength">
+              <span class="rule-icon" id="iconMinLength">✖</span>
+              <span data-i18n="pwdRuleMinLength">Minimo 8 caratteri</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleUppercase">
+              <span class="rule-icon" id="iconUppercase">✖</span>
+              <span data-i18n="pwdRuleUppercase">Almeno una lettera maiuscola (A-Z)</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleNumber">
+              <span class="rule-icon" id="iconNumber">✖</span>
+              <span data-i18n="pwdRuleNumber">Almeno un numero (0-9)</span>
+            </div>
+            <div class="pwd-rule-item" id="ruleSpecial">
+              <span class="rule-icon" id="iconSpecial">✖</span>
+              <span data-i18n="pwdRuleSpecial">Almeno un carattere speciale (!@#$%^&*...)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; font-size:12px; color:var(--text-muted);">
+          <input type="checkbox" id="authRemember" checked style="accent-color:var(--primary); cursor:pointer;">
+          <label for="authRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
+          Accedi al gestionale
+        </button>
+      </form>
+
+      <!-- 1-Click Demo Account Quick Access -->
+      <div class="demo-account-box" style="margin-top:14px; background:rgba(255,122,0,0.08); border:1.5px solid rgba(255,122,0,0.22); border-radius:12px; padding:12px; text-align:center;">
+        <span style="font-size:11.5px; font-weight:700; color:var(--text-main);" data-i18n="demoQuickLogin">Vuoi testare il gestionale senza registrarti?</span>
+        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" style="margin-top:6px; width:100%; height:40px; background:#FF7A00; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;" data-i18n="demoQuickBtn">
+          ⚡ Entra Subito nella Demo (100% Libera)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Top 14-day Free Trial Notice Banner -->
+  <div class="trial-banner" id="trialBanner">
+    <div class="trial-banner-left">
+      <span>🚀</span>
+      <span data-i18n="trialBanner" data-i18n-params='{"days":"14"}'>Periodo di prova: 14 giorni rimasti</span>
+    </div>
+    <button class="trial-cta-btn" onclick="switchView('subscriptions')" data-i18n="trialActivate">Passa a Pro</button>
+  </div>
+
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="appSidebar">
+      
+      <!-- Brand & Logo -->
+      <div class="brand-header">
+        <img src="assets/images/logo.png" alt="BarPilot Logo" class="brand-logo-img">
+        <div class="brand-title-wrap">
+          <span class="brand-title">Bar<span>Pilot</span></span>
+        </div>
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeSidebar()" aria-label="Chiudi menu" title="Chiudi menu">✕</button>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-item-icon">📊</span>
+          <span data-i18n="navDashboard">Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-view="orders">
+          <span class="nav-item-icon">🧾</span>
+          <span data-i18n="navOrders">Comande</span>
+        </button>
+
+        <button class="nav-item" data-view="floor">
+          <span class="nav-item-icon">🪑</span>
+          <span data-i18n="navFloorPlan">Plan de salle</span>
+        </button>
+
+        <button class="nav-item" data-view="kds">
+          <span class="nav-item-icon">🍳</span>
+          <span data-i18n="navKDS">Preparazione</span>
+        </button>
+
+        <button class="nav-item" data-view="products">
+          <span class="nav-item-icon">☕</span>
+          <span data-i18n="navProducts">Prodotti</span>
+        </button>
+
+        <button class="nav-item" data-view="inventory">
+          <span class="nav-item-icon">📦</span>
+          <span data-i18n="navInventory">Inventario</span>
+        </button>
+
+        <button class="nav-item" data-view="suppliers">
+          <span class="nav-item-icon">🚚</span>
+          <span data-i18n="navSuppliers">Fornitori</span>
+        </button>
+
+        <button class="nav-item" data-view="staff">
+          <span class="nav-item-icon">👥</span>
+          <span data-i18n="navStaff">Personale</span>
+        </button>
+
+        <button class="nav-item" data-view="reports">
+          <span class="nav-item-icon">📈</span>
+          <span data-i18n="navReports">Rapporti</span>
+        </button>
+
+        <button class="nav-item" data-view="subscriptions">
+          <span class="nav-item-icon">💳</span>
+          <span data-i18n="navSubscriptions">Abbonamenti</span>
+          <span class="nav-badge-pro">14j</span>
+        </button>
+
+        <button class="nav-item" data-view="settings">
+          <span class="nav-item-icon">⚙️</span>
+          <span data-i18n="navSettings">Impostazioni</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        
+        <!-- User Profile Card & Quick Actions -->
+        <div class="user-profile-card">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" id="sidebarUserAvatar" alt="Operatore" onclick="openChangeAvatarModal()" style="cursor:pointer;" title="Clicca per cambiare foto profilo">
+          <div class="user-info" onclick="openStaffPinModal()" style="cursor:pointer;" title="Clicca per cambiare operatore col PIN">
+            <span class="user-name" id="sidebarUserName">Marco Rossi</span>
+            <span class="user-role" id="sidebarUserRole" data-i18n="roleOwner">Proprietario</span>
+          </div>
+          <button type="button" class="btn-sidebar-switch-pin" onclick="openStaffPinModal()" title="Cambio dipendente veloce (PIN)">
+            🔢
+          </button>
+          <button type="button" class="btn-sidebar-logout" onclick="logoutUser()" title="Disconnettiti dal gestionale">
+            🚪 <span data-i18n="logout">Esci</span>
+          </button>
+        </div>
+
+        <button class="ctrl-btn" onclick="initStoriesOnboarding()" style="width:100%; justify-content:center; gap:6px;">
+          <span>📱</span>
+          <span>Rivedi Storie di Benvenuto</span>
+        </button>
+
+        <!-- Theme & Language Toggles -->
+        <div class="sidebar-controls">
+          <button class="ctrl-btn" id="themeToggleBtn">
+            <span id="themeToggleIcon">☀️</span>
+            <span id="themeToggleText">Light</span>
+          </button>
+
+          <div class="lang-switch">
+            <button class="lang-btn active" data-lang="it">IT</button>
+            <button class="lang-btn" data-lang="fr">FR</button>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Mobile Sidebar Backdrop (Click outside to close) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="mobileMenuBtn" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div>
+            <h1 class="greeting-title">
+              <span id="greetingTitleWrap" data-i18n="greeting" data-i18n-params='{"name":"Marco"}'>Buongiorno, <span id="userGreetingName">Marco</span> 👋</span>
+            </h1>
+            <p class="greeting-subtitle" data-i18n="greetingSub">Ecco cosa sta succedendo nel tuo bar oggi</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="date-pill" id="liveDatePill">
+            <span>📅</span>
+            <span id="liveDateText">--</span>
+          </div>
+          <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
+            🔔
+          </button>
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" id="topbarUserAvatar" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" onclick="openChangeAvatarModal()" alt="Profilo" title="Clicca per cambiare foto profilo">
+        </div>
+      </header>
+
+      <!-- Page Views Container -->
+      <main class="page-content">
+
+        <!-- ========================================================
+             1. DASHBOARD VIEW (Strictly matching design screenshot)
+             ======================================================== -->
+        <section class="view-panel active" id="view-dashboard">
+          
+          <!-- Subscription Required Strict Lock for Dashboard -->
+          <div id="dashboardSubLockBanner" class="dashboard-strict-lock-container" style="display:none;">
+            <div style="font-size:52px; margin-bottom:12px;">🔒</div>
+            <h3 style="font-size:24px; font-weight:800; color:#FFFFFF; margin-bottom:10px;">Accesso Dashboard Bloccato</h3>
+            <p style="font-size:14px; color:#94A3B8; max-width:480px; line-height:1.55; margin-bottom:24px;">
+              L'accesso alla Dashboard e a tutti i dati del locale è riservato agli abbonati con pagamento confermato dal sistema.<br>
+              Completa l'abbonamento con Google Pay, Carta o Stripe per sbloccare la Dashboard.
+            </p>
+            <a href="/checkout.html" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-weight:800; font-size:15px; background:#FF7A00; text-decoration:none; border-radius:12px; box-shadow:0 8px 24px rgba(255,122,0,0.35);">
+              <span>🔒</span> <span>Completa e Conferma il Pagamento</span> <span>➔</span>
+            </a>
+          </div>
+
+          <!-- Dashboard Global Period Filter & Live Status Toolbar -->
+          <div class="dashboard-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Periodo:</span>
+              <div class="period-pills-wrap" id="dashboardPeriodPills" style="display:inline-flex; background:var(--bg-card); padding:3px; border-radius:10px; border:1px solid var(--border-color); gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-period-pill active" data-period="today" onclick="setDashboardPeriod('today')">Oggi</button>
+                <button type="button" class="btn-period-pill" data-period="yesterday" onclick="setDashboardPeriod('yesterday')">Ieri</button>
+                <button type="button" class="btn-period-pill" data-period="week" onclick="setDashboardPeriod('week')">Questa settimana</button>
+                <button type="button" class="btn-period-pill" data-period="month" onclick="setDashboardPeriod('month')">Questo mese</button>
+                <button type="button" class="btn-period-pill" data-period="30days" onclick="setDashboardPeriod('30days')">Ultimi 30 giorni</button>
+                <button type="button" class="btn-period-pill" data-period="all" onclick="setDashboardPeriod('all')">Tutto</button>
+              </div>
+            </div>
+            <div id="dashboardLiveBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.3);">
+              <span style="width:7px; height:7px; border-radius:50%; background:#10B981; display:inline-block;"></span>
+              <span id="dashboardModeLabel">Dati Live Reali</span>
+            </div>
+          </div>
+
+          <!-- KPI Metrics Cards Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricRevenue" title="Dato gestionale vendite non fiscale">Vendite registrate <small style="font-size:10.5px; opacity:0.75; font-weight:normal;">(gestionale)</small></span>
+                <div class="metric-icon-box orange">📊</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricRevenue">0,00 €</span>
+                <span class="metric-badge green" id="metricRevenueBadge">--</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricOrders">Comande</span>
+                <div class="metric-icon-box blue">📄</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricOrders">0</span>
+                <span class="metric-badge green" id="metricOrdersBadge">--</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricAvgTicket">Scontrino medio</span>
+                <div class="metric-icon-box green">👥</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricAvgTicket">0,00 €</span>
+                <span class="metric-badge green" id="metricAvgTicketBadge">--</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label" data-i18n="metricAlerts">Prodotti in allerta</span>
+                <div class="metric-icon-box red">⚠️</div>
+              </div>
+              <div class="metric-value-wrap">
+                <span class="metric-value" id="metricAlerts">0</span>
+                <a class="metric-link" onclick="switchView('inventory')" data-i18n="seeStock">Vedi stock →</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-grid">
+            <!-- Hourly Sales Bar Chart -->
+            <div class="card" id="hourlySalesCard">
+              <div class="card-header" style="flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <h3 class="card-title" data-i18n="hourlySales">Vendite per fascia oraria</h3>
+                  <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:10.5px; font-weight:800; padding:2px 8px;" id="hourlyPeakBadge">
+                    Nessuna vendita
+                  </span>
+                </div>
+
+                <!-- Responsive Time Slot Filter Buttons -->
+                <div class="hourly-slot-filters">
+                  <button type="button" class="btn-slot-filter active" id="slotFilterAll" onclick="filterHourlySlot('all')">Tutte (15h)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterMorning" onclick="filterHourlySlot('morning')">Mattina (08-13)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterAfternoon" onclick="filterHourlySlot('afternoon')">Pomeriggio (14-17)</button>
+                  <button type="button" class="btn-slot-filter" id="slotFilterEvening" onclick="filterHourlySlot('evening')">Sera (18-22)</button>
+                </div>
+              </div>
+
+              <!-- Selected Hour Detail Bar (Instant touch info for mobile) -->
+              <div id="hourlySelectedDetail" style="padding:6px 12px; margin-bottom:10px; background:var(--bg-card-secondary); border-radius:var(--radius-sm); font-size:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border-color);">
+                <span style="color:var(--text-muted); font-size:11.5px;">Tocca una colonna per i dettagli:</span>
+                <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Nessuna comanda registrata</strong>
+              </div>
+
+              <div class="bar-chart-container">
+                <div class="chart-y-axis" id="hourlyYAxis">
+                  <span>400€</span>
+                  <span>300€</span>
+                  <span>200€</span>
+                  <span>100€</span>
+                  <span>0€</span>
+                </div>
+                <div class="chart-bars-scroll">
+                  <div class="chart-bars-wrap slot-all" id="hourlyBarsWrap">
+                    <!-- Generated via app.js -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="chart-scroll-hint show-hint" id="chartScrollHint">
+                <span>↔️ Scorri in orizzontale per vedere tutte le ore</span>
+              </div>
+            </div>
+
+            <!-- Category Sales Donut Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="categorySales">Vendite per categoria</h3>
+              </div>
+              <div class="donut-chart-container">
+                <div class="donut-svg-wrap">
+                  <svg class="donut-svg" id="categoryDonutSvg" width="140" height="140" viewBox="0 0 42 42">
+                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border-color)" stroke-width="5"></circle>
+                  </svg>
+                  <div class="donut-center-text">
+                    <div class="donut-total" id="categoryDonutTotal">0,00 €</div>
+                    <div class="donut-sub" id="categoryDonutSub" data-i18n="total">Totale</div>
+                  </div>
+                </div>
+
+                <div class="donut-legend" id="categoryDonutLegend">
+                  <!-- Dynamically rendered via app.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Tables Grid -->
+          <div class="bottom-tables-grid">
+            
+            <!-- Comande recenti Table -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="recentOrders">Comande recenti</h3>
+                <a class="card-action" onclick="switchView('orders')" data-i18n="viewAll">Vedi tutte →</a>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th data-i18n="tableLabel">Tavolo</th>
+                      <th>Articoli</th>
+                      <th data-i18n="total">Totale</th>
+                      <th data-i18n="status">Stato</th>
+                      <th data-i18n="time">Tempo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentOrdersTableBody">
+                    <!-- Loaded dynamically via app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Prodotti piu venduti Table -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="topProducts">Prodotti più venduti</h3>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="today">Oggi</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Prodotto</th>
+                      <th style="text-align:center;" data-i18n="quantity">Q.tà</th>
+                      <th style="text-align:right;" data-i18n="total">Totale</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bestSellersTableBody">
+                    <!-- Loaded dynamically via app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ========================================================
+             2. ORDER TAKING VIEW ("Nuova comanda" Mobile Mockup)
+             ======================================================== -->
+        <section class="view-panel" id="view-orders">
+          <div class="order-screen-layout">
+            
+            <!-- Left Catalog Pane -->
+            <div class="order-catalog-pane">
+              
+              <div class="order-top-controls">
+                <div>
+                  <h2 style="font-size:18px; font-weight:800;" data-i18n="newOrderTitle">Nuova comanda</h2>
+                  <p style="font-size:12px; color:var(--text-muted);" data-i18n="orderModeServer">Modalità cameriere · Servizio in corso</p>
+                </div>
+
+                <div class="table-picker-box">
+                  <select class="select-table-input" id="orderTableSelect">
+                    <option value="Tavolo 04">Tavolo 04 (4 pers.)</option>
+                    <option value="Tavolo 01">Tavolo 01 (2 pers.)</option>
+                    <option value="Tavolo 02">Tavolo 02 (2 pers.)</option>
+                    <option value="Tavolo 03">Tavolo 03 (4 pers.)</option>
+                    <option value="Tavolo 05">Tavolo 05 (Terrazza)</option>
+                    <option value="Tavolo 08">Tavolo 08 (Terrazza)</option>
+                    <option value="Comptoir">Comptoir / Banco</option>
+                    <option value="VIP 01">Spazio VIP</option>
+                  </select>
+                  <button class="btn-icon-plus" onclick="switchView('floor')" title="Scegli dalla piantina">+</button>
+                </div>
+              </div>
+
+              <!-- Category filter pills -->
+              <div class="category-filter-pills">
+                <button class="cat-pill active" data-cat="all" data-i18n="catAll">Tutti</button>
+                <button class="cat-pill" data-cat="coffee" data-i18n="catCoffee">Caffè</button>
+                <button class="cat-pill" data-cat="drinks" data-i18n="catDrinks">Bevande</button>
+                <button class="cat-pill" data-cat="cocktail" data-i18n="catCocktails">Cocktail</button>
+                <button class="cat-pill" data-cat="food" data-i18n="catFood">Cibo</button>
+                <button class="cat-pill" data-cat="snacks" data-i18n="catSnacks">Snack</button>
+              </div>
+
+              <!-- Product cards grid -->
+              <div class="products-catalog-grid" id="orderCatalogGrid">
+                <!-- Filled via app.js -->
+              </div>
+
+            </div>
+
+            <!-- Right Cart / Order Pad -->
+            <div class="order-cart-pane">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-size:16px; font-weight:800;" data-i18n="operationalBill">Addition opérationnelle</h3>
+                <span style="font-size:12px; color:var(--text-muted);"><span id="cartItemsCount">3</span> <span data-i18n="itemsCount">articoli</span></span>
+              </div>
+
+              <div class="cart-items-list" id="cartItemsList">
+                <!-- Cart items rendered by app.js -->
+              </div>
+
+              <div class="cart-footer">
+                <div class="cart-total-row">
+                  <span class="cart-total-label" data-i18n="total">Totale</span>
+                  <span class="cart-total-val" id="cartTotalVal">8,90 €</span>
+                </div>
+                <div class="cart-actions-grid">
+                  <button class="btn-secondary" id="btnSaveDraft" data-i18n="saveDraft">Salva bozza</button>
+                  <button class="btn-primary" id="btnSendOrder" data-i18n="sendOrder">Invia comanda</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================================
+             3. PLAN DE SALLE / FLOOR PLAN VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-floor">
+          <div class="floor-plan-container">
+            
+            <div class="floor-tabs-bar">
+              <div class="category-filter-pills" style="margin-bottom:0;">
+                <button class="cat-pill floor-pill active" data-area="all" data-i18n="floorAll">Tutti</button>
+                <button class="cat-pill floor-pill" data-area="interno" data-i18n="floorInside">Interno</button>
+                <button class="cat-pill floor-pill" data-area="terrazza" data-i18n="floorTerrace">Terrazza</button>
+                <button class="cat-pill floor-pill" data-area="comptoir" data-i18n="floorCounter">Comptoir</button>
+                <button class="cat-pill floor-pill" data-area="vip" data-i18n="floorVIP">VIP</button>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <div class="floor-legend">
+                  <div class="legend-badge">
+                    <span class="legend-dot free"></span>
+                    <span data-i18n="statusFree">Libero</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot occupied"></span>
+                    <span data-i18n="statusOccupied">Occupata</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot topay"></span>
+                    <span data-i18n="statusToPay">Da pagare</span>
+                  </div>
+                  <div class="legend-badge">
+                    <span class="legend-dot reserved"></span>
+                    <span data-i18n="statusReserved">Prenotata</span>
+                  </div>
+                </div>
+
+                <!-- Owner Only Add Table Button -->
+                <button type="button" class="btn-primary" id="btnAddFloorTable" onclick="openAddTableModal()" style="display:none; font-size:12px; padding:7px 14px; align-items:center; gap:6px;">
+                  <span>+</span> <span data-i18n="addTable">Aggiungi Tavolo</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Floor Map Canvas -->
+            <div class="floor-room-canvas" id="floorRoomCanvas">
+              <!-- Rendered via app.js with tables T01 to T09 -->
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================================
+             4. KDS / BARMAN PREPARATION VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-kds">
+          <div class="kds-container">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h2 style="font-size:20px; font-weight:800;" data-i18n="kdsTitle">Preparazione · Comptoir</h2>
+                <p style="font-size:12px; color:var(--text-muted);" data-i18n="kdsSubtitle">Kitchen Display System in tempo reale</p>
+              </div>
+
+              <div class="category-filter-pills" style="margin-bottom:0;">
+                <button class="cat-pill kds-tab-pill active" data-kds-filter="all" data-i18n="filterAll">Tutte</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="to_prep" data-i18n="filterToPrepare">Da preparare</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="in_prep" data-i18n="filterInPrep">In preparazione</button>
+                <button class="cat-pill kds-tab-pill" data-kds-filter="ready" data-i18n="filterReady">Pronte</button>
+              </div>
+            </div>
+
+            <div class="kds-tickets-grid" id="kdsTicketsGrid">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             5. PRODOTTI / PRODUCTS CATALOG VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-products">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="navProducts">Prodotti</h3>
+                <p style="font-size:12px; color:var(--text-muted);">Catalogo bar, prezzi di vendita e margini</p>
+              </div>
+              <button class="btn-primary" id="btnAddNewProduct" style="padding:8px 16px; font-size:13px;" onclick="openAddProductModal()" data-i18n="addProduct">+ Nuovo prodotto</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Prodotto</th>
+                    <th data-i18n="price">Prezzo</th>
+                    <th>Costo stimato</th>
+                    <th>Margine</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             6. INVENTARIO / INVENTORY STOCKS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-inventory">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="inventoryTitle">Inventario materie prime</h3>
+                <p style="font-size:12px; color:var(--text-muted);" data-i18n="recipes">Giacenze teoriche e deduzioni automatiche per cocktail e caffè</p>
+              </div>
+              <button class="btn-primary" id="btnAddNewIngredient" style="padding:8px 16px; font-size:13px; display:none;" onclick="openAddIngredientModal()" data-i18n="addIngredient">+ Nuovo ingrediente</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Ingrediente</th>
+                    <th data-i18n="theoreticalStock">Giacenza teorica</th>
+                    <th data-i18n="reorderLevel">Soglia minima</th>
+                    <th>Costo unitario</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="navSuppliers">Fornitore</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             7. FORNITORI / SUPPLIERS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-suppliers">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h2 style="font-size:20px; font-weight:800;" data-i18n="navSuppliers">Fornitori</h2>
+            <button class="btn-primary" id="btnAddNewSupplier" style="padding:8px 16px; font-size:13px; display:none;" onclick="openAddSupplierModal()" data-i18n="addSupplier">+ Nuovo fornitore</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;" id="suppliersListWrap">
+            <!-- Rendered via app.js -->
+          </div>
+        </section>
+
+        <!-- ========================================================
+             8. PERSONALE / STAFF VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-staff">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="navStaff">Personale</h3>
+              <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="openAddStaffModal()" data-i18n="inviteStaff">+ Aggiungi dipendente</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Dipendente</th>
+                    <th>Ruolo</th>
+                    <th>PIN Accesso</th>
+                    <th data-i18n="status">Stato</th>
+                    <th data-i18n="actions">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                  <!-- Rendered via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             9. RAPPORTI / ANALYTICS VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-reports">
+          <!-- Top Bar with Title and Active Date Range -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; margin:0;" data-i18n="navReports">Rapporti & Statistiche</h2>
+              <span style="font-size:12.5px; color:var(--text-muted);" id="reportsDateRangeText">Caricamento periodo...</span>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn-secondary" style="padding:7px 14px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" onclick="exportReportsCsv()">
+                <span>📥</span> <span>Esporta CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Time Range Selector Box -->
+          <div id="reportsCustomRangeBox" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:20px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">🗓️</span>
+                <strong style="font-size:14px; color:var(--text-main);">Seleziona Intervallo Temporale Grafico:</strong>
+                <span id="reportsActiveRangeBadge" style="background:var(--primary-glow); color:var(--primary); font-size:11.5px; font-weight:800; padding:3px 10px; border-radius:6px; border:1px solid rgba(255,107,0,0.3);">
+                  Ultimi 7 Giorni
+                </span>
+              </div>
+
+              <!-- Quick Presets -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-range-chip" id="chipPresetToday" onclick="applyReportPreset('today')">Oggi</button>
+                <button type="button" class="btn-range-chip" id="chipPresetYesterday" onclick="applyReportPreset('yesterday')">Ieri</button>
+                <button type="button" class="btn-range-chip active" id="chipPreset7" onclick="applyReportPreset('7days')">Ultimi 7 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPreset14" onclick="applyReportPreset('14days')">Ultimi 14 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPreset30" onclick="applyReportPreset('30days')">Ultimi 30 gg</button>
+                <button type="button" class="btn-range-chip" id="chipPresetMonth" onclick="applyReportPreset('thisMonth')">Questo Mese</button>
+                <button type="button" class="btn-range-chip" id="chipPresetLastMonth" onclick="applyReportPreset('lastMonth')">Mese Scorso</button>
+              </div>
+            </div>
+
+            <!-- Date Pickers (Da / A) in Italian DD/MM/YYYY format and Calendar Table Controls -->
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding-top:10px; border-top:1px dashed var(--border-color);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="reportStartDateIT" style="font-size:12.5px; color:var(--text-muted); font-weight:700;">
+                  📅 Da Data <span style="font-size:10.5px; opacity:0.8;">(GG/MM/AAAA)</span>:
+                </label>
+                <input type="text" id="reportStartDateIT" class="cal-date-input-it" placeholder="GG/MM/AAAA" maxlength="10" autocomplete="off" oninput="handleManualDateInput('start', this)" onchange="applyCustomDateRangeFromIT()">
+                <!-- Fallback hidden native input -->
+                <input type="date" id="reportStartDate" style="display:none;" onchange="syncNativeToITDate()">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="reportEndDateIT" style="font-size:12.5px; color:var(--text-muted); font-weight:700;">
+                  📅 A Data <span style="font-size:10.5px; opacity:0.8;">(GG/MM/AAAA)</span>:
+                </label>
+                <input type="text" id="reportEndDateIT" class="cal-date-input-it" placeholder="GG/MM/AAAA" maxlength="10" autocomplete="off" oninput="handleManualDateInput('end', this)" onchange="applyCustomDateRangeFromIT()">
+                <!-- Fallback hidden native input -->
+                <input type="date" id="reportEndDate" style="display:none;" onchange="syncNativeToITDate()">
+              </div>
+
+              <button type="button" class="btn-secondary" id="btnToggleCalendarTable" style="padding:7px 14px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" onclick="toggleReportsCalendarTable()">
+                <span>🗓️</span> <span id="btnToggleCalendarText">Nascondi Tabella</span>
+              </button>
+
+              <button type="button" class="btn-primary" style="padding:8px 16px; font-size:12.5px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:6px;" onclick="applyCustomDateRangeFromIT()">
+                <span>⚡</span> <span>Applica al Grafico</span>
+              </button>
+
+              <div id="reportsRangeDaysCount" style="font-size:12px; color:var(--text-muted); margin-left:auto; font-weight:600;">
+                Visualizzazione: 7 giorni selezionati
+              </div>
+            </div>
+
+            <!-- Interactive Calendar Selection Table Component -->
+            <div id="reportsCalendarContainer" style="display:block; padding-top:6px;">
+              <div class="reports-calendar-wrapper" style="max-width:100%; width:100%; background:var(--bg-card); box-sizing:border-box;">
+                <div class="reports-calendar-header">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="cal-nav-btn" onclick="navCalendarMonth(-1)" title="Mese Precedente">‹</button>
+                    <div class="reports-calendar-title" id="reportsCalCurrentMonthLabel">
+                      <span>🗓️</span> <span>Ottobre 2026</span>
+                    </div>
+                    <button type="button" class="cal-nav-btn" onclick="navCalendarMonth(1)" title="Mese Successivo">›</button>
+                    <button type="button" class="btn-range-chip" style="font-size:10.5px; padding:3px 8px; margin-left:6px;" onclick="navCalendarMonth(0)">Oggi</button>
+                  </div>
+
+                  <div style="font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:12px;">
+                    <span id="calSelectionStatusHint" style="color:var(--primary); font-weight:700;">💡 Clicca sulla tabella per selezionare Da Data e A Data</span>
+                  </div>
+                </div>
+
+                <!-- Calendar Grid Table -->
+                <div style="overflow-x:auto;">
+                  <table class="reports-calendar-table">
+                    <thead>
+                      <tr>
+                        <th>Lun</th>
+                        <th>Mar</th>
+                        <th>Mer</th>
+                        <th>Gio</th>
+                        <th>Ven</th>
+                        <th class="weekend-header">Sab</th>
+                        <th class="weekend-header">Dom</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reportsCalendarTbody">
+                      <!-- Rendered dynamically by renderReportsCalendarTable() -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Legend & Fast Helpers -->
+                <div class="calendar-legend">
+                  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <span style="display:inline-flex; align-items:center; gap:4px;">
+                      <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--primary);"></span>
+                      <span>Da Data / A Data</span>
+                    </span>
+                    <span style="display:inline-flex; align-items:center; gap:4px;">
+                      <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:rgba(255,107,0,0.25);"></span>
+                      <span>Intervallo Selezionato</span>
+                    </span>
+                    <span style="display:inline-flex; align-items:center; gap:4px;">
+                      <span style="display:inline-block; width:12px; height:12px; border-radius:3px; border:1.5px solid var(--primary);"></span>
+                      <span>Oggi</span>
+                    </span>
+                  </div>
+                  <div style="font-size:11px; color:var(--text-muted);">
+                    Formato: <strong style="color:var(--text-main);">giorno/mese/anno (GG/MM/AAAA)</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:20px;">
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Incasso Totale</div>
+              <div style="font-size:26px; font-weight:900; color:var(--primary); margin:6px 0 2px;" id="reportsKpiRevenue">-- €</div>
+              <div style="font-size:11.5px; color:var(--status-free); font-weight:600;" id="reportsKpiGrowth">+12% vs periodo prec.</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Comande Servite</div>
+              <div style="font-size:26px; font-weight:900; color:var(--text-main); margin:6px 0 2px;" id="reportsKpiOrders">--</div>
+              <div style="font-size:11.5px; color:var(--text-muted);" id="reportsKpiOrdersSub">-- al giorno</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Scontrino Medio</div>
+              <div style="font-size:26px; font-weight:900; color:var(--text-main); margin:6px 0 2px;" id="reportsKpiAvgTicket">-- €</div>
+              <div style="font-size:11.5px; color:var(--status-free); font-weight:600;">+5.2% fidelizzazione</div>
+            </div>
+
+            <div class="card" style="padding:16px;">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Picco di Vendita</div>
+              <div style="font-size:20px; font-weight:900; color:var(--text-main); margin:8px 0 2px;" id="reportsKpiPeak">--</div>
+              <div style="font-size:11.5px; color:var(--text-muted);" id="reportsKpiPeakSub">Momento di massimo afflusso</div>
+            </div>
+          </div>
+
+          <!-- Main Chart Card with X and Y Axes -->
+          <div class="card" style="margin-bottom:20px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:800; margin:0;" id="reportsChartTitle">Andamento Fatturato</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin:3px 0 0;" id="reportsChartSubtitle">Grafico cronologico con asse valori (€) e asse date</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-muted);">
+                  <span style="width:10px; height:10px; border-radius:50%; background:var(--primary); display:inline-block;"></span>
+                  <span>Fatturato (€)</span>
+                </div>
+                <button type="button" class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="exportReportsCsv()">
+                  📥 Esporta CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Interactive SVG Chart with X and Y axes -->
+            <div style="width:100%; overflow-x:auto;">
+              <div style="min-width:540px; position:relative;">
+                <svg id="reportsCurveSvg" width="100%" height="280" viewBox="0 0 640 260" preserveAspectRatio="none" style="overflow:visible; display:block;">
+                  <!-- Rendered dynamically by renderReportsChart() -->
+                </svg>
+              </div>
+            </div>
+
+            <!-- Selected point tooltip / details bar -->
+            <div id="reportsPointDetailBar" style="margin-top:14px; padding:10px 14px; background:var(--bg-card-secondary); border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+              <span id="reportsPointDetailText">💡 Clicca o passa con il mouse sui punti della curva per visualizzare i dettagli orari o giornalieri.</span>
+            </div>
+          </div>
+
+          <!-- Breakdown Details Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" style="font-size:15px; font-weight:800;">Dettaglio Vendite del Periodo</h3>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Data / Intervallo</th>
+                    <th>Fatturato (€)</th>
+                    <th>Comande</th>
+                    <th>Scontrino Medio</th>
+                    <th>Incidenza %</th>
+                  </tr>
+                </thead>
+                <tbody id="reportsTableBody">
+                  <!-- Rendered dynamically by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             10. ABBONAMENTI & 14-DAY TRIAL VIEW
+             ======================================================== -->
+        <section class="view-panel" id="view-subscriptions">
+          <div style="text-align:center; max-width:680px; margin: 0 auto 30px;">
+            <h2 style="font-size:26px; font-weight:900;" data-i18n="subTitle">Offerte di abbonamento BarPilot</h2>
+            <p style="font-size:14px; color:var(--text-muted); margin-top:8px;" data-i18n="subSubtitle">
+              14 giorni di prova gratuita, senza impegno, disdici quando vuoi
+            </p>
+          </div>
+
+          <!-- Subscription Plans Grid -->
+          <div class="plans-grid" id="plansGridWrap">
+            <!-- Rendered by app.js -->
+          </div>
+
+          <!-- Revenue Simulator for BarPilot Founders -->
+          <div class="simulator-box">
+            <h3 style="font-size:18px; font-weight:800; margin-bottom:6px;" data-i18n="revenueSimulator">Simulatore di ricavi SaaS</h3>
+            <p style="font-size:12px; color:var(--text-muted);">Calcola il tuo fatturato ricorrente SaaS (MRR / ARR) con 100 bar pilota</p>
+            
+            <input type="range" min="5" max="500" value="100" class="slider-ctrl" id="simBarsCount">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="barsCount">Numero di bar abbonati</span>
+                <div style="font-size:24px; font-weight:800;" id="simBarsDisplay">100</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="monthlyRevenue">Ricavo mensile stimato</span>
+                <div style="font-size:24px; font-weight:800; color:var(--primary);" id="simMonthlyRev">5.900 €</div>
+              </div>
+              <div>
+                <span style="font-size:12px; color:var(--text-muted);" data-i18n="annualRevenue">Ricavo annuale stimato</span>
+                <div style="font-size:24px; font-weight:800; color:var(--status-free);" id="simAnnualRev">70.800 €</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+             11. IMPOSTAZIONI / SETTINGS VIEW (EXPANDED DASHBOARD)
+             ======================================================== -->
+        <section class="view-panel" id="view-settings">
+          <div class="settings-container">
+            
+            <div>
+              <h2 style="font-size:22px; font-weight:800;" data-i18n="settingsTitle">Impostazioni & Configurazione Bar</h2>
+              <p style="font-size:13px; color:var(--text-muted); margin-top:2px;" data-i18n="settingsSub">
+                Personalizza il funzionamento del tuo locale, stampanti, tasse e menu
+              </p>
+            </div>
+
+            <!-- Settings Tabs Nav -->
+            <div class="settings-tabs-nav">
+              <button class="settings-tab-btn active" onclick="switchSettingsTab('general')">
+                <span>🏢</span> <span data-i18n="settingsTabGeneral">Locale & Fiscale</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('service')">
+                <span>🛎️</span> <span data-i18n="settingsTabService">Servizio & Cassa</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('printers')">
+                <span>🖨️</span> <span data-i18n="settingsTabPrinters">Stampanti & KDS</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('stock')">
+                <span>📦</span> <span data-i18n="settingsTabStock">Giacenze & Alert</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('qr')">
+                <span>📱</span> <span data-i18n="settingsTabQr">Menu QR Code</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('backup')">
+                <span>🔒</span> <span data-i18n="settingsTabBackup">Backup & Sicurezza</span>
+              </button>
+              <button class="settings-tab-btn" onclick="switchSettingsTab('payments')">
+                <span>💳</span> <span data-i18n="settingsTabPayments">Google Pay & Wallet</span>
+              </button>
+            </div>
+
+            <!-- Pane 1: Locale & Fiscale -->
+            <div class="settings-pane active" id="pane-settings-general">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Dati Identificativi dell'Esercizio</h3>
+                  <p class="settings-card-desc">Informazioni legali e indirizzo stampati sul pre-conto</p>
+                </div>
+
+                <div class="settings-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Nome stabilimento (Insegna)</label>
+                    <input type="text" class="form-input" id="setBarName" value="Bar Centrale">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="legalNameLabel">Ragione Sociale</label>
+                    <input type="text" class="form-input" value="Bar Centrale Roma S.r.l.">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="vatLabel">Partita IVA / Cod. Fiscale</label>
+                    <input type="text" class="form-input" value="IT 12345678901">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="phoneBarLabel">Telefono del Bar</label>
+                    <input type="text" class="form-input" value="+39 06 678 9123">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Indirizzo completo</label>
+                  <input type="text" class="form-input" value="Via del Corso, 142 - 00186 Roma (RM)">
+                </div>
+
+                <div class="settings-grid-2">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="currencyLabel">Valuta Principale</label>
+                    <select class="form-input" id="setCurrency">
+                      <option value="EUR" selected>EUR (€) - Euro</option>
+                      <option value="CHF">CHF (CHF) - Franco Svizzero</option>
+                      <option value="USD">USD ($) - Dollaro USA</option>
+                      <option value="GBP">GBP (£) - Sterlina UK</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="timezoneLabel">Fuso Orario</label>
+                    <select class="form-input">
+                      <option value="Europe/Rome" selected>Europe/Rome (GMT+1 / GMT+2)</option>
+                      <option value="Europe/Paris">Europe/Paris (GMT+1 / GMT+2)</option>
+                      <option value="Europe/Zurich">Europe/Zurich</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveGeneralSettings()" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 2: Servizio & Cassa -->
+            <div class="settings-pane" id="pane-settings-service">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Regole di Servizio & Tariffe</h3>
+                  <p class="settings-card-desc">Personalizza il coperto, arrotondamento e aliquote</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="coverChargeLabel">Coperto / Servizio al tavolo</span>
+                    <span class="switch-sub" data-i18n="coverChargeDesc">Aggiungi automaticamente il coperto a persona su ogni comanda al tavolo</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="number" step="0.5" value="1.50" style="width:75px; text-align:right;" class="form-input"> <span>€</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" checked id="toggleCoverCharge">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="smartHourLabel">Menu orario intelligente (Caffè mattino / Cocktail sera)</span>
+                    <span class="switch-sub" data-i18n="smartHourDesc">Mostra automaticamente i prodotti più venduti in base all'ora del giorno</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleSmartMenu">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="allowTipsLabel">Abilita richiesta mance / pourboire al pagamento</span>
+                    <span class="switch-sub">Consente ai clienti di aggiungere il 5%, 10% o importo libero</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="defaultVatLabel">Aliquota IVA Predefinita</label>
+                    <select class="form-input">
+                      <option value="10" selected>10% - Somministrazione alimenti e bevande (Bar standard)</option>
+                      <option value="22">22% - Aliquota ordinaria / Alcolici da asporto</option>
+                      <option value="4">4% - Generi di prima necessità / Pane</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Arrotondamento resto cassa</label>
+                    <select class="form-input">
+                      <option value="none" selected>Nessuno (Cent esatto)</option>
+                      <option value="5cents">Arrotonda ai 0,05 € più vicini</option>
+                      <option value="10cents">Arrotonda ai 0,10 € più vicini</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast(window.i18n.t('settingsSavedNotice'))" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 3: Stampanti & KDS -->
+            <div class="settings-pane" id="pane-settings-printers">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Schermo Barman & Periferiche di Stampa</h3>
+                  <p class="settings-card-desc">Configurazione allarmi sonori e stampanti termiche</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="soundNotifLabel">Avviso sonoro all'arrivo di nuove comande</span>
+                    <span class="switch-sub" data-i18n="soundNotifDesc">Emetti un suono al comptoir quando il cameriere invia un ordine</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="ctrl-btn" onclick="testNotificationSound()">🔔 Prova suono</button>
+                    <label class="toggle-switch">
+                      <input type="checkbox" checked id="toggleSoundNotif">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="autoPrintReceiptLabel">Stampa automatica comanda su invio</span>
+                    <span class="switch-sub">Invia la comanda direttamente alla stampante termica del banco</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggleAutoPrint">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="printerIpLabel">Indirizzo IP Stampante Termica (ESC/POS)</label>
+                    <input type="text" class="form-input" value="192.168.1.150:9100" placeholder="192.168.1.150:9100">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="prepAlertTimeLabel">Minuti per allarme ritardo comanda</label>
+                    <select class="form-input">
+                      <option value="3">3 minuti (Fast espresso bar)</option>
+                      <option value="5" selected>5 minuti (Standard)</option>
+                      <option value="10">10 minuti (Cocktail lounge)</option>
+                      <option value="15">15 minuti</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni stampanti salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 4: Giacenze & Alert -->
+            <div class="settings-pane" id="pane-settings-stock">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Gestione Intelligente Magazzino</h3>
+                  <p class="settings-card-desc">Regole di scarico merci e soglie di alert</p>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="autoStockDeductLabel">Scarico automatico ingredienti secondo ricette</span>
+                    <span class="switch-sub" data-i18n="autoStockDeductDesc">Deduci le dosi esatte di caffè, latte, rum e bibite ad ogni comanda</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleAutoStockDeduct">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="allowNegativeStockLabel">Consenti vendite anche con giacenza a zero</span>
+                    <span class="switch-sub" data-i18n="allowNegativeStockDesc">Evita di bloccare i camerieri durante le ore di punta se il magazzino non è ancora caricato</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleAllowNegativeStock">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-grid-2" style="margin-top:16px;">
+                  <div class="form-group">
+                    <label class="form-label" data-i18n="emailNotifLabel">Email per Notifiche e Report Scorte</label>
+                    <input type="email" class="form-input" value="magazzino@barcentrale.it">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Frequenza report automatico scorte</label>
+                    <select class="form-input">
+                      <option value="daily" selected>Ogni sera alla chiusura (23:00)</option>
+                      <option value="weekly">Ogni lunedì mattina</option>
+                      <option value="realtime">Immediata non appena un prodotto entra in allerta</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni magazzino salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 5: Menu QR Code -->
+            <div class="settings-pane" id="pane-settings-qr">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Menu Digitale & Ordinazione da Tavolo</h3>
+                  <p class="settings-card-desc">Offri il menu contactless con QR Code posizionato sui tavoli</p>
+                </div>
+
+                <div class="qr-preview-box">
+                  <div class="qr-graphic">
+                    <!-- SVG Vector QR Code -->
+                    <svg viewBox="0 0 100 100" fill="#0F172A">
+                      <rect x="0" y="0" width="30" height="30" rx="4" />
+                      <rect x="5" y="5" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="9" y="9" width="12" height="12" />
+                      <rect x="70" y="0" width="30" height="30" rx="4" />
+                      <rect x="75" y="5" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="79" y="9" width="12" height="12" />
+                      <rect x="0" y="70" width="30" height="30" rx="4" />
+                      <rect x="5" y="75" width="20" height="20" fill="#FFFFFF" />
+                      <rect x="9" y="79" width="12" height="12" />
+                      <rect x="36" y="8" width="8" height="8" />
+                      <rect x="50" y="14" width="8" height="8" />
+                      <rect x="38" y="38" width="24" height="24" rx="2" fill="#FF7A00" />
+                      <rect x="70" y="44" width="10" height="10" />
+                      <rect x="85" y="70" width="14" height="14" />
+                      <rect x="44" y="75" width="12" height="12" />
+                    </svg>
+                  </div>
+                  <div style="flex:1;">
+                    <label class="form-label" data-i18n="qrMenuUrlLabel">Link pubblico del tuo Menu QR Code</label>
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                      <input type="text" class="form-input" value="https://barpilot.app/menu/bar_centrale" readonly style="flex:1; background:var(--bg-card); font-weight:700; color:var(--primary);">
+                      <button class="btn-secondary" onclick="copyQrLink()">📋 Copia</button>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px;">
+                      <button class="btn-primary" style="font-size:12px; padding:8px 14px;" onclick="downloadQrPdf()">⬇️ Scarica QR PDF da Stampare</button>
+                      <button class="btn-secondary" style="font-size:12px; padding:8px 14px;" onclick="window.open('https://barpilot.app', '_blank')">👁️ Anteprima Menu</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-switch-row" style="margin-top:20px;">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="qrDirectOrderLabel">Consenti ordinazione diretta dal tavolo via QR</span>
+                    <span class="switch-sub" data-i18n="qrDirectOrderDesc">I clienti possono inviare la comanda dal proprio smartphone</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked id="toggleQrDirectOrder">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-switch-row">
+                  <div class="switch-info">
+                    <span class="switch-label" data-i18n="qrAllergensLabel">Mostra tabella allergeni e calorie nel menu</span>
+                    <span class="switch-sub">Conformità normativa per trasparenza ingredienti alimentari</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <button class="btn-primary" onclick="showToast('Impostazioni QR Code salvate')" data-i18n="save">Salva modifiche</button>
+              </div>
+            </div>
+
+            <!-- Pane 6: Backup & Sicurezza -->
+            <div class="settings-pane" id="pane-settings-backup">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <h3 class="settings-card-title">Protezione Dati, Esportazioni & Ripristino</h3>
+                  <p class="settings-card-desc">Esporta i dati contabili o salva una copia di sicurezza</p>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <!-- Active Session & Logout Card -->
+                  <div style="background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                        <span>🔐</span> Sessione di Accesso Attiva
+                      </h4>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        L'accesso al tuo bar rimane memorizzato su questo dispositivo finché non ti disconnetti manualmente.
+                      </p>
+                    </div>
+                    <button type="button" onclick="logoutUser()" class="btn-secondary" style="padding:8px 14px; font-size:12px; font-weight:700; color:#EF4444; border-color:rgba(239,68,68,0.3); display:inline-flex; align-items:center; gap:6px;">
+                      🚪 <span data-i18n="logout">Esci</span>
+                    </button>
+                  </div>
+
+            <!-- Pane: Google Pay & Wallet Configuration -->
+            <div class="settings-pane" id="pane-settings-payments">
+              <div class="settings-card">
+                <div class="settings-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                  <div>
+                    <h3 class="settings-card-title">Configurazione Google Pay & Google Wallet</h3>
+                    <p class="settings-card-desc">Gateway Stripe Live con tokenizzazione sicura certificata PCI-DSS Level 1</p>
+                  </div>
+                  <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--status-free); font-weight:800; font-size:11.5px; padding:4px 10px; border-radius:20px; border:1px solid rgba(16, 185, 129, 0.3);">
+                    🟢 GATEWAY LIVE ATTIVO
+                  </span>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:18px;">
+                  <!-- Live Credentials Info Banner -->
+                  <div style="background:linear-gradient(135deg, rgba(0, 210, 255, 0.08) 0%, rgba(1, 135, 95, 0.08) 100%); border:1px solid rgba(0, 210, 255, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:flex-start; gap:14px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:#000; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                      <svg viewBox="0 0 512 512" width="22" height="22">
+                        <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+                        <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+                        <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+                        <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+                      </svg>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:14px; font-weight:800; color:var(--text-main);">Google Pay & Wallet connesso a Stripe</div>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.45;">
+                        I pagamenti dell'offerta unica a 59 €/mese con 14 giorni di prova gratuita vengono elaborati tramite Google Pay e le carte custodite nel Google Wallet del cliente.
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Form Fields -->
+                  <div class="form-group">
+                    <label class="form-label" style="font-weight:700;">Chiave Pubblica Stripe (Live Publishable Key)</label>
+                    <input type="text" id="settingStripePk" class="form-input" value="pk_live_51RpuNaPFZ2dvD2cO2aMB8ykdkfN970rUiWQhtakMi4KaXvzfbcxkcE5UmT3lZJe84VT9hxhs3WkOQ5nmVkaeOhYh00dPBFjQ4d" style="font-family:monospace; font-size:12.5px; letter-spacing:0.3px;">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Chiave Stripe ufficiale configurata per il tuo account.</span>
+                  </div>
+
+                  
+                  <div class="form-group">
+                    <label class="form-label" style="font-weight:700;">Link Ufficiale Stripe Checkout (Payment Link)</label>
+                    <input type="url" id="settingStripeUrl" class="form-input" value="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it" style="font-family:monospace; font-size:12.5px;">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Link di pagamento diretto Stripe con 14 giorni di prova gratuita inclusi (59 €/mese).</span>
+                  </div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                      <label class="form-label" style="font-weight:700;">ID Profilo Pagamenti Google (Merchant ID)</label>
+                      <input type="text" id="settingGoogleMerchantId" class="form-input" value="0225-1603-6390" style="font-family:monospace; font-size:13px; font-weight:700;">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-weight:700;">Ambiente Gateway</label>
+                      <select id="settingGooglePayEnv" class="form-select" style="font-size:13px; font-weight:700;">
+                        <option value="PRODUCTION" selected>🟢 PRODUZIONE (Live - Carte Reali)</option>
+                        <option value="TEST">🟡 TEST (Sandbox Google Pay)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Supported Methods Badges -->
+                  <div>
+                    <label class="form-label" style="font-weight:700; margin-bottom:8px;">Metodi & Circuiti Abilitati nel Wallet</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Visa</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Mastercard</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 American Express</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">💳 Postepay & Carte Debito</span>
+                      <span class="badge" style="background:var(--bg-card-secondary); border:1px solid var(--border-color); color:var(--text-main); font-size:11.5px; padding:4px 10px;">📱 Google Wallet / G Pay</span>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div style="display:flex; gap:12px; margin-top:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn-primary" onclick="savePaymentGatewaySettings()" style="padding:10px 20px; font-size:13px; font-weight:800;">
+                      💾 Salva Modifiche Gateway
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="testGooglePayPayment()" style="padding:10px 20px; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                      ⚡ Prova Pagamento Google Pay (1-Tap)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pane: Advanced Backup & Export Settings -->
+            <div class="settings-pane" id="pane-settings-export">
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">Esportazioni & Backup</h3>
+                    <p class="settings-card-desc">Salvataggio archivi e documenti fiscali</p>
+                  </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800;">📊 Esportazione Vendite per Commercialista</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Scarica tutte le comande, totali e IVA suddivisa in formato CSV o Excel</p>
+                    </div>
+                    <button class="btn-primary" style="padding:8px 14px; font-size:12px;" onclick="exportSalesCsv()">
+                      ⬇️ Esporta CSV
+                    </button>
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card-secondary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border-color);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800;">💾 Salvataggio Backup Completo</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Salva prodotti, ricette, tavoli e fornitori in un unico file JSON</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="downloadBackupJson()">
+                        ⬇️ Backup JSON
+                      </button>
+                      <button class="btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="restoreBackupJson()">
+                        ⬆️ Ripristina
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(239,68,68,0.06); padding:16px; border-radius:var(--radius-lg); border:1px dashed var(--status-alert);">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800; color:var(--status-alert);">⚠️ Ripristino Dati di Fabbrica (Demo)</h4>
+                      <p style="font-size:12px; color:var(--text-muted);">Reimposta l'applicazione ai dati di partenza (Bar Centrale)</p>
+                    </div>
+                    <button class="btn-secondary" style="padding:8px 14px; font-size:12px; border-color:var(--status-alert); color:var(--status-alert);" onclick="resetDemoData()">
+                      🔄 Reset Demo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- Password Recovery Modal (Supabase Auth) -->
+  <div class="modal-overlay" id="passwordRecoveryModal">
+    <div class="modal-box" style="max-width: 420px; width: 92%; padding: 26px 24px; border-radius: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">🔑</span>
+          <h3 style="font-size:17px; font-weight:800; color:var(--text-main);">Recupero Password</h3>
+        </div>
+        <button type="button" class="modal-close-icon-btn" onclick="closePasswordRecoveryModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:16px;">
+        Inserisci l'indirizzo email del tuo account BarPilot. Ti invieremo un link sicuro tramite Supabase per reimpostare la tua password.
+      </p>
+      <form id="passwordRecoveryForm" onsubmit="handlePasswordRecoverySubmit(event)">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Email registrata</label>
+          <input type="email" id="recoveryEmailInput" class="form-input" placeholder="titolare@bar.it" required>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closePasswordRecoveryModal()" style="flex:1; padding:10px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="recoverySubmitBtn" style="flex:1; padding:10px;">Invia Link →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal (In-App Custom Dialog) -->
+  <div class="modal-overlay" id="logoutConfirmModal">
+    <div class="modal-box" style="max-width: 410px; width: 92%; text-align: center; padding: 28px 24px; border-radius: 22px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 2px solid rgba(239, 68, 68, 0.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; color: #EF4444; box-shadow: 0 0 20px rgba(239,68,68,0.2);">
+        🚪
+      </div>
+
+      <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;" data-i18n="logoutModalTitle">
+        Vuoi davvero uscire?
+      </h3>
+
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 22px;" data-i18n="logoutModalDesc">
+        Sei sicuro di voler effettuare la disconnessione dal tuo locale? Per rientrare dovrai effettuare nuovamente l'accesso.
+      </p>
+
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="btn-secondary" onclick="closeLogoutModal()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px;" data-i18n="cancel">
+          Annulla
+        </button>
+        <button type="button" class="btn-primary" onclick="confirmLogoutAction()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px; background: #EF4444; border-color: #EF4444; box-shadow: 0 4px 14px rgba(239,68,68,0.35);" data-i18n="confirmLogout">
+          Sì, Esci
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-tenant Bar Login / Switcher Modal -->
+  <div class="modal-overlay" id="barModalOverlay">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:18px; font-weight:800;" data-i18n="loginTitle">Accedi al tuo bar</h3>
+        <button class="modal-close-icon-btn" id="closeBarModal" onclick="document.getElementById('barModalOverlay').classList.remove('active')" aria-label="Chiudi finestra" title="Chiudi finestra">✕</button>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;" data-i18n="loginSubtitle">
+        Seleziona il tuo stabilimento ed entra nel gestionale
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="barSelectLabel">Seleziona il locale</label>
+        <select class="form-input" id="modalBarSelect">
+          <option value="bar_01">Bar Centrale (Roma)</option>
+          <option value="bar_02">Milano Lounge & Cocktail (Milano)</option>
+          <option value="bar_03">Café de Paris (Nice)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="emailLabel">Email gestore / cameriere</label>
+        <input type="email" class="form-input" placeholder="es: marco@barcentrale.it" value="">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="passwordLabel">Password o PIN veloce (max 4 cifre)</label>
+        <input type="password" maxlength="4" inputmode="numeric" class="form-input" placeholder="••••" value="" style="letter-spacing:4px;">
+      </div>
+
+      <button class="btn-primary" style="width:100%; margin-top:10px;" id="confirmBarSwitch" data-i18n="enterApp">
+        Accedi a BarPilot
+      </button>
+
+      <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:14px;" data-i18n="demoCredentials">
+        Credenziali demo precompilate per test rapido
+      </p>
+    </div>
+  </div>
+
+  <!-- Staff Quick PIN Switcher Modal -->
+  <div class="modal-overlay" id="staffPinModal">
+    <div class="modal-box staff-pin-modal-box">
+      <div class="staff-pin-header">
+        <div>
+          <h3 class="staff-pin-title">🔢 Cambio Operatore Rapido</h3>
+          <p class="staff-pin-subtitle">Seleziona il profilo e digita il tuo PIN a 4 cifre</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeStaffPinModal()" aria-label="Chiudi finestra" title="Chiudi finestra">✕</button>
+      </div>
+
+      <!-- Staff List Selector Row -->
+      <div class="staff-pills-row" id="staffPinSelectorRow">
+        <!-- Rendered via app.js -->
+      </div>
+
+      <!-- Selected Staff Profile Card -->
+      <div class="staff-pin-active-card" id="staffPinActiveCard">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" id="staffPinActiveAvatar" class="staff-pin-avatar" alt="Dipendente">
+        <div style="flex:1;">
+          <div class="staff-pin-active-name" id="staffPinActiveName">Marco Rossi</div>
+          <div class="staff-pin-active-role" id="staffPinActiveRole">Proprietario</div>
+        </div>
+        <span class="staff-pin-hint-badge" id="staffPinDemoHint">PIN: 1234</span>
+      </div>
+
+      <!-- PIN Dots Display -->
+      <div class="pin-dots-wrap" id="pinDotsWrap">
+        <span class="pin-dot" id="pinDot0"></span>
+        <span class="pin-dot" id="pinDot1"></span>
+        <span class="pin-dot" id="pinDot2"></span>
+        <span class="pin-dot" id="pinDot3"></span>
+      </div>
+      <div id="pinErrorMsg" class="pin-error-text" style="display:none;">⚠️ PIN errato. Riprova.</div>
+
+      <!-- Touch Numpad Grid -->
+      <div class="numpad-grid">
+        <button type="button" class="numpad-key" onclick="enterPinDigit('1')">1</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('2')">2</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('3')">3</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('4')">4</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('5')">5</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('6')">6</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('7')">7</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('8')">8</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('9')">9</button>
+        <button type="button" class="numpad-key numpad-action" onclick="clearPin()">✕</button>
+        <button type="button" class="numpad-key" onclick="enterPinDigit('0')">0</button>
+        <button type="button" class="numpad-key numpad-action" onclick="deletePinDigit()">⌫</button>
+      </div>
+
+      <div class="staff-pin-footer-info">
+        <span>💡 Oppure digita i numeri da tastiera fisica</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Product Modal (Exclusive to Proprietario) -->
+  <div class="modal-overlay" id="addProductModal">
+    <div class="modal-box" style="max-width:560px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;" id="productModalTitle">
+            <span>☕</span> <span>Nuovo Prodotto Bar</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="productModalSubtitle">Aggiungi una nuova bevanda o cocktail con foto e opzioni (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddProductModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addProductForm" onsubmit="handleAddProductSubmit(event)">
+        <input type="hidden" id="editProductId" value="">
+
+        <!-- Product Photo Uploader Section -->
+        <div style="background:var(--bg-card-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px; margin-bottom:16px;">
+          <label class="form-label" style="margin-bottom:8px; font-weight:800; display:flex; align-items:center; gap:6px;">
+            <span>📸</span> <span>Foto del Prodotto</span>
+          </label>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="position:relative; width:84px; height:84px; border-radius:14px; overflow:hidden; border:2px solid var(--primary); background:var(--bg-card); flex-shrink:0; box-shadow:0 4px 12px rgba(255,122,0,0.2);">
+              <img id="productImagePreview" src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" style="width:100%; height:100%; object-fit:cover;" alt="Anteprima Prodotto">
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <label class="btn-primary" style="font-size:11.5px; padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                  📷 Carica dal dispositivo
+                  <input type="file" id="productFileInput" accept="image/*" style="display:none;" onchange="handleProductFileUpload(event)">
+                </label>
+                <button type="button" class="btn-secondary" style="font-size:11.5px; padding:7px 12px;" onclick="toggleProductPresets()">
+                  🖼️ Preset foto
+                </button>
+              </div>
+              <input type="url" class="form-input" id="newProdImage" placeholder="Oppure incolla URL foto (https://...)" value="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=300&fit=crop" oninput="updateProductImagePreview(this.value)" style="font-size:11px; padding:6px 10px;">
+            </div>
+          </div>
+
+          <!-- Collapsible Photo Preset Grid -->
+          <div id="productPresetContainer" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-color);">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">Scegli una foto rapida dal catalogo bar:</div>
+            <div class="product-preset-grid" id="productPresetGrid">
+              <!-- Dynamically populated presets -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Product Information -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Nome Prodotto</label>
+          <input type="text" class="form-input" id="newProdName" placeholder="Es: Spritz Hugo, Caffè Macchiato, Birra IPA" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="newProdCategory" style="background:var(--bg-card); cursor:pointer;">
+              <option value="coffee">☕ Caffè & Colazione</option>
+              <option value="cocktails">🍹 Cocktails & Long Drinks</option>
+              <option value="drinks">🍺 Bevande & Birre</option>
+              <option value="food">🥪 Snack & Food</option>
+              <option value="wine">🍷 Vini & Bollicine</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prezzo di vendita (€)</label>
+            <input type="number" step="0.10" min="0.10" class="form-input" id="newProdPrice" placeholder="5.50" required oninput="recalcProductMargin()">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group">
+            <label class="form-label">Costo stimato / Ingredienti (€)</label>
+            <input type="number" step="0.10" min="0" class="form-input" id="newProdCost" placeholder="1.20" required oninput="recalcProductMargin()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Margine stimato</label>
+            <div style="height:38px; display:flex; align-items:center;">
+              <span id="newProdMarginBadge" style="background:rgba(34,197,94,0.15); color:#22C55E; border:1px solid rgba(34,197,94,0.3); font-weight:800; padding:5px 12px; border-radius:8px; font-size:13px;">
+                Margine: 78%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Altre Opzioni: Fiscale, KDS, Disponibilità -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="form-group">
+            <label class="form-label">Aliquota IVA</label>
+            <select class="form-input" id="newProdVat" style="background:var(--bg-card); cursor:pointer;">
+              <option value="10">10% (Bar standard)</option>
+              <option value="22">22% (Alcolici/Asporto)</option>
+              <option value="4">4% (Prima necessità)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Postazione KDS</label>
+            <select class="form-input" id="newProdStation" style="background:var(--bg-card); cursor:pointer;">
+              <option value="comptoir">🍸 Comptoir / Bar</option>
+              <option value="coffee">☕ Macchina Caffè</option>
+              <option value="kitchen">🍳 Cucina / Snack</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stato Iniziale</label>
+            <select class="form-input" id="newProdStatus" style="background:var(--bg-card); cursor:pointer;">
+              <option value="active">🟢 Disponibile</option>
+              <option value="out_of_stock">🔴 Esaurito</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Allergeni & Tag nutrizionali -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" style="margin-bottom:6px;">Allergeni & Opzioni dietetiche</label>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <label class="allergen-pill-checkbox" id="lblAllergenGluten">
+              <input type="checkbox" name="productAllergens" value="glutine" onchange="toggleAllergenClass(this)">
+              <span>🌾 Glutine</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenLactose">
+              <input type="checkbox" name="productAllergens" value="lattosio" onchange="toggleAllergenClass(this)">
+              <span>🥛 Lattosio</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenNuts">
+              <input type="checkbox" name="productAllergens" value="frutta_guscio" onchange="toggleAllergenClass(this)">
+              <span>🥜 Frutta guscio</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenAlcohol">
+              <input type="checkbox" name="productAllergens" value="alcol" onchange="toggleAllergenClass(this)">
+              <span>🍷 Alcolico</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenVegan">
+              <input type="checkbox" name="productAllergens" value="vegano" onchange="toggleAllergenClass(this)">
+              <span>🌱 Vegano</span>
+            </label>
+            <label class="allergen-pill-checkbox" id="lblAllergenBio">
+              <input type="checkbox" name="productAllergens" value="bio" onchange="toggleAllergenClass(this)">
+              <span>🌿 Bio</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Descrizione & Ricetta -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Descrizione / Note per il Menu</label>
+          <input type="text" class="form-input" id="newProdDesc" placeholder="Es: Miscela artigianale, servito con fetta d'arancia o decorazione">
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Dose / Ricetta base (per il Barman)</label>
+          <input type="text" class="form-input" id="newProdRecipe" placeholder="Es: 6cl Prosecco, 4cl Aperol, 2cl Soda, ghiaccio">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddProductModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="productModalSubmitBtn" style="flex:1; padding:11px;">+ Salva nel Catalogo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Product Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteProductModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span>Elimina Prodotto</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteProductModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color); display:flex; align-items:center; gap:14px;">
+        <img id="deleteProductThumb" src="" style="width:52px; height:52px; border-radius:10px; object-fit:cover; border:1px solid var(--border-color);" alt="Prodotto">
+        <div>
+          <div style="font-size:14px; font-weight:800; color:var(--text-main);" id="deleteProductName">Nome Prodotto</div>
+          <div style="font-size:12px; color:var(--text-muted);" id="deleteProductInfo">Categoria · 0.00 €</div>
+        </div>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px; line-height:1.45;">
+        Sei sicuro di voler eliminare questo prodotto dal catalogo del bar? Non sarà più visibile nel catalogo comande del personale.
+      </p>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteProductModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-danger" onclick="confirmDeleteProductAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Ingredient Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="addIngredientModal">
+    <div class="modal-box" style="max-width:520px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;" id="ingredientModalTitle">
+            <span>🌿</span> <span>Nuovo Ingrediente</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="ingredientModalSubtitle">Aggiungi una materia prima all'inventario con scorte e costi (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddIngredientModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addIngredientForm" onsubmit="handleAddIngredientSubmit(event)">
+        <input type="hidden" id="editIngredientId" value="">
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Nome Ingrediente / Materia Prima</label>
+          <input type="text" class="form-input" id="newIngName" placeholder="Es: Gin Bombay, Caffè Arabica, Menta fresca, Latte intero" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-input" id="newIngCategory" style="background:var(--bg-card); cursor:pointer;">
+              <option value="Caffetteria">☕ Caffetteria & Colazione</option>
+              <option value="Spiriti & Alcolici">🍸 Spiriti & Alcolici</option>
+              <option value="Latticini & Freschi">🥛 Latticini & Freschi</option>
+              <option value="Bevande & Birre">🍺 Bevande & Birre</option>
+              <option value="Frutta & Botaniche">🍋 Frutta & Botaniche</option>
+              <option value="Sciroppi & Zuccheri">🍯 Sciroppi & Dolcificanti</option>
+              <option value="Alimentari & Snack">🥪 Alimentari & Snack</option>
+              <option value="Packaging & Consumabili">📦 Packaging & Bicchieri</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unità di Misura</label>
+            <select class="form-input" id="newIngUnit" style="background:var(--bg-card); cursor:pointer;">
+              <option value="kg">kg (Chilogrammi)</option>
+              <option value="g">g (Grammi)</option>
+              <option value="L">L (Litri)</option>
+              <option value="cl">cl (Centilitri)</option>
+              <option value="ml">ml (Millilitri)</option>
+              <option value="bott.">bott. (Bottiglie)</option>
+              <option value="pz">pz (Pezzi / Unità)</option>
+              <option value="lattina">lattina (Lattine)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Giacenza Iniziale</label>
+            <input type="number" step="0.01" min="0" class="form-input" id="newIngQty" placeholder="10.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Soglia Minima (Alert)</label>
+            <input type="number" step="0.01" min="0" class="form-input" id="newIngReorder" placeholder="2.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Costo Unitario (€)</label>
+            <input type="number" step="0.05" min="0" class="form-input" id="newIngCost" placeholder="4.50" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Fornitore Predefinito</label>
+          <div style="display:flex; gap:8px;">
+            <select class="form-input" id="newIngSupplierSelect" style="background:var(--bg-card); cursor:pointer; flex:1;" onchange="handleSupplierSelectChange(this.value)">
+              <!-- Populated dynamically via suppliers in db + custom option -->
+            </select>
+            <input type="text" class="form-input" id="newIngSupplierCustom" placeholder="Altro fornitore..." style="flex:1; display:none;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Note / Allergeni / Posizione</label>
+          <input type="text" class="form-input" id="newIngNotes" placeholder="Es: Frigorifero banco bar, Lotto 24, Contiene lattosio">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddIngredientModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="ingredientModalSubmitBtn" style="flex:1; padding:11px;">+ Salva nell'Inventario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Ingredient Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteIngredientModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span>Elimina Ingrediente</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteIngredientModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color);">
+        <p style="font-size:13.5px; line-height:1.5; margin-bottom:6px;">
+          Sei sicuro di voler eliminare l'ingrediente <strong id="deleteIngredientName" style="color:var(--text-main); font-weight:800;"></strong> dall'inventario?
+        </p>
+        <p style="font-size:11.5px; color:var(--text-muted);" id="deleteIngredientInfo">
+          Giacenza attuale: 0
+        </p>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:18px; line-height:1.45;">
+        Attenzione: rimuovendo questa materia prima non verranno più scalate le relative dosi dalle ricette dei cocktail e caffè.
+      </p>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteIngredientModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-danger" onclick="confirmDeleteIngredientAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Supplier Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="addSupplierModal">
+    <div class="modal-box" style="max-width:520px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;" id="supplierModalTitle">
+            <span>🚚</span> <span>Nuovo Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="supplierModalSubtitle">Registra un fornitore con catalogo prodotti e contatti (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddSupplierModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addSupplierForm" onsubmit="handleAddSupplierSubmit(event)">
+        <input type="hidden" id="editSupplierId" value="">
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Ragione Sociale / Nome Fornitore</label>
+          <input type="text" class="form-input" id="newSupName" placeholder="Es: Caffè Vergnano, Campari, Metro Italia" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Categoria Fornitura</label>
+            <select class="form-input" id="newSupCategory" style="background:var(--bg-card); cursor:pointer;">
+              <option value="Caffetteria & Macchine">☕ Caffetteria & Macchine</option>
+              <option value="Spiriti & Alcolici">🍸 Spiriti & Alcolici</option>
+              <option value="Bevande & Soft Drinks">🍺 Bevande & Soft Drinks</option>
+              <option value="Latticini & Freschi">🥛 Latticini & Freschi</option>
+              <option value="Food & Drogheria">🥫 Food & Drogheria</option>
+              <option value="Pasticceria & Surgelati">🥐 Pasticceria & Forno</option>
+              <option value="Packaging & Detergenza">📦 Packaging & Pulizie</option>
+              <option value="Generale">🏢 Altro / Generale</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Referente Commerciale</label>
+            <input type="text" class="form-input" id="newSupContact" placeholder="Es: Marco Rossi">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Telefono / WhatsApp Ordini</label>
+            <input type="tel" class="form-input" id="newSupPhone" placeholder="+39 02 1234567" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Ordini</label>
+            <input type="email" class="form-input" id="newSupEmail" placeholder="ordini@fornitore.it" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Articoli Forniti (separati da virgola)</label>
+          <input type="text" class="form-input" id="newSupProducts" placeholder="Es: Caffè Arabica, Tazze, Filtri macchina, Latte fresco">
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Note / Condizioni di Consegna</label>
+          <input type="text" class="form-input" id="newSupNotes" placeholder="Es: Consegna il martedì mattina, minimo d'ordine 80€">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddSupplierModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="supplierModalSubmitBtn" style="flex:1; padding:11px;">+ Salva Fornitore</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Supplier Confirmation Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteSupplierModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span>Elimina Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteSupplierModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color);">
+        <p style="font-size:13.5px; line-height:1.5; margin-bottom:6px;">
+          Sei sicuro di voler rimuovere il fornitore <strong id="deleteSupplierName" style="color:var(--text-main); font-weight:800;"></strong>?
+        </p>
+        <p style="font-size:11.5px; color:var(--text-muted);" id="deleteSupplierInfo">
+          Contatti e catalogo associato verranno eliminati.
+        </p>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteSupplierModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-danger" onclick="confirmDeleteSupplierAction()" style="flex:1; padding:11px;">🗑️ Elimina Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Purchase Order Modal (Nuovo Ordine Fornitore) -->
+  <div class="modal-overlay" id="supplierOrderModal">
+    <div class="modal-box" style="max-width:540px; width:92%; max-height:92vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+            <span>📦</span> <span id="supplierOrderModalTitle">Nuovo Ordine Fornitore</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="supplierOrderModalSubtitle">Genera buono d'ordine, invia via email o WhatsApp</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeSupplierOrderModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="font-size:14px; font-weight:800; color:var(--text-main);" id="orderSupplierName">Fornitore</div>
+          <div style="font-size:11.5px; color:var(--text-muted);" id="orderSupplierContact">📞 Contatto · ✉️ Email</div>
+        </div>
+        <span class="badge" style="background:var(--primary-glow); color:var(--primary); font-size:11px; font-weight:700;">Buono d'Ordine</span>
+      </div>
+
+      <form id="supplierOrderForm" onsubmit="handleSendSupplierOrder(event)">
+        <input type="hidden" id="orderSupplierId" value="">
+
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="form-label" style="margin-bottom:0;">Articoli da Ordinare</label>
+            <button type="button" class="btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="addOrderRow()">+ Aggiungi riga</button>
+          </div>
+          <div id="orderItemsContainer" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div class="form-group">
+            <label class="form-label">Data Consegna Richiesta</label>
+            <select class="form-input" id="orderDeliveryUrgency" style="background:var(--bg-card); cursor:pointer;">
+              <option value="Prima data utile">Prima data utile (Standard)</option>
+              <option value="Entro domani mattina">Entro domani mattina (Urgente)</option>
+              <option value="Entro fine settimana">Entro fine settimana</option>
+              <option value="Prossimo lunedì">Prossimo lunedì</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Canale di Invio</label>
+            <select class="form-input" id="orderChannel" style="background:var(--bg-card); cursor:pointer;">
+              <option value="both">✉️ Email & 📱 WhatsApp</option>
+              <option value="email">✉️ Solo Email</option>
+              <option value="whatsapp">📱 Solo WhatsApp</option>
+              <option value="internal">📄 Solo Registrazione Interna</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Note / Istruzioni Speciali per la Consegna</label>
+          <textarea class="form-input" id="orderDeliveryNotes" rows="2" placeholder="Es: Consegna tassativa prima delle ore 11:00, scarico dal retro del bar..." style="resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeSupplierOrderModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">🚀 Conferma e Invia Ordine</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+    <!-- Subscription Checkout Modal (Pixel-Perfect Matching Uploaded Design) -->
+  <div class="modal-overlay" id="subscriptionCheckoutModal">
+    <div class="modal-box checkout-pro-box">
+      <!-- Top Brand Header with Close X -->
+      <div class="checkout-pro-header">
+        <div class="checkout-pro-logo">
+          <img src="/assets/images/barpilot-logo-app.png" alt="BarPilot" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain;">
+          <span>Bar<strong>Pilot</strong></span>
+        </div>
+      </div>
+
+      <!-- Title & Price Subtitle -->
+      <h2 class="checkout-pro-title">Completa l'abbonamento</h2>
+      <p class="checkout-pro-subtitle" id="checkoutProPlanSubtitle">BarPilot Pro — 59 € / mese &bull; 14 giorni gratis</p>
+
+      <!-- Active Bar Summary Card -->
+      <div class="checkout-pro-bar-card">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img src="/assets/images/barpilot-logo-app.png" id="checkoutProBarImg" class="checkout-pro-bar-img" alt="BarPilot Pro" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+          <div>
+            <div class="checkout-pro-bar-name" style="display: flex; align-items: center; gap: 6px;">
+              <span id="checkoutProBarName" style="font-size: 15px; font-weight: 800; color: #111827;">Abbonamento</span>
+              <span class="checkout-pro-pill" id="checkoutProPlanBadge">Pro</span>
+            </div>
+            <span class="checkout-pro-trial-badge" id="checkoutProTrialBadge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: #047857; background: #D1FAE5; padding: 2px 8px; border-radius: 6px; border: 1px solid #A7F3D0; margin-top: 3px;">
+              <span>✓</span> 14 giorni di Prova
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trial & Billing Timeline Information Box -->
+      <div class="checkout-pro-timeline-box" style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12.5px; line-height:1.5;">
+        <div style="display:flex; align-items:flex-start; gap:9px; margin-bottom:8px;">
+          <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#10B981; margin-top:5px; flex-shrink:0; box-shadow:0 0 0 3px rgba(16,185,129,0.2);"></span>
+          <span style="color:#111827;"><strong>Oggi :</strong> 0,00€ — Accesso completo immediato</span>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:9px;">
+          <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#2563EB; margin-top:5px; flex-shrink:0; box-shadow:0 0 0 3px rgba(37,99,235,0.2);"></span>
+          <span style="color:#111827;" id="checkoutProTimelineFutureText">Dal <strong id="checkoutProTimelineDateModal">--</strong> : <strong>Il primo pagamento di 59,00€ succede in automatico se non viene disdetto.</strong></span>
+        </div>
+      </div>
+
+      <!-- Express Google Pay Black Button -->
+      <button type="button" class="btn-gpay-pill-black" id="btnGPayExpressTop" onclick="openGooglePlayModal()" aria-label="Paga con Google Pay">
+        <img src="/assets/images/google-pay-button.png" class="btn-gpay-img" alt="Google Pay">
+      </button>
+
+      <!-- Divider "oppure" -->
+      <div class="checkout-pro-divider">
+        <span>oppure</span>
+      </div>
+
+      <!-- Payment Methods Accordion Form -->
+      <form id="proCheckoutMainForm" onsubmit="handleProCheckoutSubmit(event)">
+                <div class="checkout-pro-methods-wrap">
+          
+          <!-- METHOD 1: Carta di credito o debito (Active by default) -->
+          <div class="checkout-pro-method-row active" id="proMethodRowCard">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('card')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <svg width="20" height="16" viewBox="0 0 24 18" fill="none">
+                  <rect x="1" y="2" width="22" height="14" rx="3" stroke="#111827" stroke-width="2"/>
+                  <path d="M1 6h22" stroke="#111827" stroke-width="2"/>
+                  <rect x="4" y="11" width="4" height="2" rx="0.5" fill="#111827"/>
+                </svg>
+              </div>
+              <span class="pro-method-title">Carta di credito o debito</span>
+              <div class="pro-badges-row">
+                <span class="pro-badge-card" style="color:#00579F; font-size:10px; font-weight:900;">VISA</span>
+                <span class="pro-badge-card" style="padding:1px 3px;">
+                  <svg width="18" height="11" viewBox="0 0 24 15">
+                    <circle cx="7" cy="7.5" r="6.5" fill="#EB001B"/>
+                    <circle cx="17" cy="7.5" r="6.5" fill="#F79E1B" fill-opacity="0.85"/>
+                  </svg>
+                </span>
+                <span class="pro-badge-card" style="background:#006FCF; color:#fff; font-size:8px; border-color:#006FCF;">AMEX</span>
+                <span class="pro-badge-card" style="color:#FF6000; font-size:8px;">DISCOVER</span>
+                <span class="pro-badge-card" style="font-size:10px;">💳</span>
+              </div>
+            </div>
+
+            <!-- Card Input Fields Expanded -->
+            <div class="checkout-pro-method-body" id="proMethodBodyCard">
+              <div style="margin-bottom: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="pro-field-label" style="margin-bottom:0;">Numero della carta</label>
+                  <button type="button" onclick="fillTestCard()" style="background:#EEF2FF; color:#4F46E5; border:1px solid #C7D2FE; border-radius:6px; font-size:11px; font-weight:700; padding:2px 8px; cursor:pointer;" title="Compila automaticamente i dati della carta di prova Stripe per testare a 0,00€">
+                    ⚡ Carta di prova Stripe (0,00€)
+                  </button>
+                </div>
+                <div class="pro-input-wrap">
+                  <input type="text" id="checkoutCardNumber" class="pro-input" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number">
+                  <span id="checkoutCardBrandBadge" class="pro-input-right-badge" style="color:#9CA3AF; font-size:13px; background:transparent; border:none; padding:2px 4px;">💳</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                  <label class="pro-field-label">Data di scadenza</label>
+                  <input type="text" id="checkoutCardExpiry" class="pro-input" placeholder="MM / AA" maxlength="9" autocomplete="cc-exp">
+                </div>
+                <div>
+                  <label class="pro-field-label">CVC</label>
+                  <div class="pro-input-wrap">
+                    <input type="password" id="checkoutCardCvc" class="pro-input" placeholder="123" maxlength="4" autocomplete="cc-csc">
+                    <span class="pro-input-right-badge" style="background:#E5E7EB; border-radius:3px; padding:1px 4px; font-size:9px; font-weight:700; color:#374151;">123</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 8px;">
+                <label class="pro-field-label">Nome sul conto</label>
+                <input type="text" id="checkoutCardHolder" class="pro-input" placeholder="Marco Rossi" autocomplete="cc-name">
+              </div>
+
+              <!-- Save Card Checkbox -->
+              <div class="pro-checkbox-wrap" onclick="toggleProSaveCard()">
+                <div class="pro-custom-checkbox" id="proSaveCardCheck">✓</div>
+                <span class="pro-checkbox-label">Salva questa carta per i prossimi pagamenti</span>
+                <span style="color:#9CA3AF; font-size:13px;" title="I tuoi dati vengono crittografati in totale sicurezza secondo gli standard PCI-DSS via Stripe.">ⓘ</span>
+              </div>
+
+              <!-- Quick direct link to Stripe option -->
+              <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #E5E7EB; font-size:11.5px; color:#6B7280; display:flex; justify-content:space-between; align-items:center;">
+                <span>Gateway protetto: <strong style="color:#635BFF;">Stripe Live</strong></span>
+                <a href="javascript:void(0)" onclick="selectProPaymentMethod('stripe')" style="color:#635BFF; font-weight:700; text-decoration:none;">Usa il Link di Accesso Client ➔</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- METHOD 2: Stripe Checkout (Link di Accesso Client Ufficiale) -->
+          <div class="checkout-pro-method-row" id="proMethodRowStripe">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('stripe')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <span style="background:#635BFF; color:#fff; border-radius:4px; font-weight:900; font-size:11px; padding:1px 5px; display:inline-block;">S</span>
+              </div>
+              <span class="pro-method-title">Stripe Checkout</span>
+              <span class="pro-badge-card" style="font-size:9px; color:#635BFF; border-color:rgba(99,91,255,0.3); background:rgba(99,91,255,0.06); font-weight:800;">LINK CLIENT DIRETTO</span>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyStripe">
+              <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; line-height:1.45; color:#374151;">
+                <div style="margin-bottom:6px;">
+                  <span style="color:#6B7280; font-size:11px; display:block; margin-bottom:2px;">🔗 Link di accesso client Stripe ufficiale:</span>
+                  <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it" target="_blank" id="checkoutProStripeLinkPreview" style="color:#635BFF; font-weight:700; word-break:break-all; text-decoration:underline;">https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it</a>
+                </div>
+                <div style="font-size:11.5px; color:#6B7280;">
+                  Reindirizzamento protetto alla pagina ufficiale Stripe con <strong>14 giorni di prova gratuita a 0,00 €</strong> e rinnovo a 59 €/mese.
+                </div>
+              </div>
+              <button type="button" class="btn-primary" onclick="handleStripeCheckoutSubmit()" style="background:#635BFF; border-color:#635BFF; width:100%; height:44px; border-radius:10px; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <span>⚡</span> <span>Apri Stripe Checkout Ufficiale (14 gg gratis) ↗</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- METHOD 3: Google Pay (Merchant ID: 0225-1603-6390) -->
+          <div class="checkout-pro-method-row" id="proMethodRowGoogle">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('google')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <span style="background:#000; color:#fff; border-radius:3px; padding:1px 4px; font-size:9.5px; font-weight:800; display:inline-flex; align-items:center;"><span style="color:#4285F4;">G</span>Pay</span>
+              </div>
+              <span class="pro-method-title">Google Pay</span>
+              <span class="pro-badge-card" style="font-size:9px; color:#10B981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.06); font-weight:700;">ID: 0225-1603-6390</span>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyGoogle">
+              <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; line-height:1.45; color:#374151;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="color:#6B7280;">Google Merchant ID:</span>
+                  <strong style="color:#111827; font-family:monospace;" id="checkoutProGoogleMerchantDisplay">0225-1603-6390</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="color:#6B7280;">Gateway di pagamento:</span>
+                  <strong style="color:#635BFF;">Stripe Live Gateway</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span style="color:#6B7280;">Ambiente Google:</span>
+                  <strong style="color:#10B981;">🟢 PRODUZIONE (Google Wallet)</strong>
+                </div>
+              </div>
+              <button type="button" class="btn-gpay-pill-black" onclick="openGooglePlayModal()" style="height:48px; margin-top:10px;">
+                <img src="/assets/images/google-pay-button.png" class="btn-gpay-img" alt="Google Pay">
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Submit Button: Orange with Padlock & Arrow -->
+        <button type="submit" class="btn-checkout-pro-cta" id="btnProSubmit">
+          <span style="font-size: 15px;">🔒</span>
+          <span>Avvia l'abbonamento</span>
+          <span style="font-size: 15px;">➔</span>
+        </button>
+      </form>
+
+      <!-- Terms & Privacy Links -->
+      <div class="checkout-pro-footer-terms">
+        Confermando, accetti i nostri <a href="javascript:void(0)" onclick="showToast('Termini di servizio BarPilot consultabili online.');">Termini di servizio</a> e l'<a href="javascript:void(0)" onclick="showToast('Informativa sulla privacy conforme GDPR.');">Informativa sulla privacy</a>.
+      </div>
+
+      <!-- Bottom Bar: Powered by stripe & Security -->
+      <div class="checkout-pro-bottom-bar">
+        <div>
+          Powered by <a href="https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it" target="_blank" style="color:#635BFF; font-weight:900; font-size:12.5px; text-decoration:none;" title="Apri Link di Accesso Client Stripe in Italiano">stripe ↗</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <svg width="13" height="15" viewBox="0 0 16 18" fill="none">
+            <path d="M8 1L1 3.5V8.5C1 12.8 4 16.5 8 17.5C12 16.5 15 12.8 15 8.5V3.5L8 1Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.5 8.5L7.2 10.2L10.5 6.8" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Pagamenti sicuri e crittografati</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+    <!-- Google Play In-App Purchase Modal Sheet -->
+  <div class="modal-overlay" id="googlePlayModal">
+    <div class="modal-box gplay-sheet-box">
+      <!-- Header: Google Play Brand & Account -->
+      <div class="gplay-sheet-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 512 512" width="22" height="22">
+            <path d="M47.7 22.8c-3.1 3.4-5 8.4-5 14.8v436.8c0 6.4 1.9 11.4 5 14.8l1.3 1.2L278.4 261v-6L49 21.6l-1.3 1.2z" fill="#00D2FF"/>
+            <path d="M355.2 337.8l-76.8-76.8v-6l76.8-76.8 1.8 1 91 51.7c26 14.8 26 38.9 0 53.7l-91 51.7-1.8 1.5z" fill="#FFCE00"/>
+            <path d="M278.4 255L47.7 489.2c4.4 4.7 11.6 5.3 19.8 0.6l289.5-164.5-78.6-69.8v-0.5z" fill="#FF3333"/>
+            <path d="M278.4 257.5l78.6-69.8-289.5-164.5c-8.2-4.7-15.4-4.1-19.8 0.6L278.4 257.5z" fill="#00E676"/>
+          </svg>
+          <span style="font-size:15px; font-weight:800; color:var(--text-main); letter-spacing:-0.2px;">Google Play</span>
+        </div>
+        <div class="gplay-account-pill">
+          <span class="gplay-acc-avatar">M</span>
+          <span class="gplay-acc-email" id="gplayUserEmail">marco.rossi@gmail.com</span>
+        </div>
+      </div>
+
+      <!-- App details row -->
+      <div class="gplay-app-row">
+        <img src="assets/images/logo.png" alt="BarPilot" class="gplay-app-icon" onerror="this.src='assets/images/icons/icon-192x192.png'">
+        <div>
+          <div style="font-size:15px; font-weight:800; color:var(--text-main);">BarPilot Pro — Tutto Incluso</div>
+          <div style="font-size:12px; color:var(--text-muted);">BarPilot Inc. · Gestione Bar & Ristoranti</div>
+        </div>
+      </div>
+
+      <!-- Price & Auto-debit breakdown -->
+      <div class="gplay-price-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+          <div>
+            <span class="gplay-trial-tag">PROVA GRATUITA 14 GIORNI</span>
+            <div style="font-size:15px; font-weight:800; color:var(--text-main); margin-top:4px;">Piano Mensile Tutto Incluso</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:22px; font-weight:900; color:#00D2FF;">59,00 € <span style="font-size:11px; font-weight:600; color:var(--text-muted);">/ mese</span></div>
+            <div style="font-size:12px; font-weight:800; color:var(--status-free);">0,00 € oggi</div>
+          </div>
+        </div>
+
+        <div class="gplay-timeline">
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot"></div>
+            <div style="font-size:12px; color:var(--text-main);"><strong id="gplayDateToday">Oggi :</strong> 0,00 € — Accesso completo immediato</div>
+          </div>
+          <div class="gplay-timeline-step">
+            <div class="gplay-dot gplay-dot-future"></div>
+            <div style="font-size:12px; color:var(--text-main);">
+              <strong id="gplayDateFuture">Fra 14 giorni :</strong> Il primo pagamento di <strong>59,00 €</strong> succede in automatico se non viene disdetto.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method Row -->
+      <div class="gplay-method-row">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="gplay-method-badge">
+            <span style="font-weight:900; color:#fff; font-size:11px;">G Pay</span>
+          </div>
+          <div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-main);">Google Pay • Mastercard •••• 4242</div>
+            <div style="font-size:11px; color:var(--text-muted);">Saldo Google Play o metodo predefinito</div>
+          </div>
+        </div>
+        <span style="font-size:11px; color:var(--primary); font-weight:700;">Modifica</span>
+      </div>
+
+      <!-- Disclaimer clause -->
+      <div class="gplay-legal-text">
+        L'abbonamento si rinnoverà automaticamente al costo di 59,00 € al mese fino a disdetta. Puoi disdire in qualsiasi momento nelle impostazioni di Google Play o direttamente da BarPilot. Se disdici durante i 14 giorni di prova gratuita, non ti verrà addebitato alcun importo.
+      </div>
+
+      <!-- CTA Button: 1-Tap Subscribe -->
+      <div style="margin-top:18px;">
+        <button type="button" class="btn-gplay-confirm" id="btnGPlayConfirm" onclick="confirmGooglePlaySubscription()">
+          <span class="btn-gplay-text">Abbonati con 1 tocco</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Add / Invite Staff Member Modal -->
+  <div class="modal-overlay" id="addStaffModal">
+    <div class="modal-box" style="max-width:460px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">👥 Aggiungi Membro Personale</h3>
+          <p style="font-size:12px; color:var(--text-muted);">Assegna un ruolo e un PIN di accesso rapido a 4 cifre</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddStaffModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addStaffForm" onsubmit="handleAddStaffSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Nome e Cognome</label>
+          <input type="text" class="form-input" id="newStaffName" placeholder="Es: Matteo Verdi" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ruolo operativo</label>
+          <select class="form-input" id="newStaffRole">
+            <option value="Cameriere">Cameriere (Tavoli, Comande, Consegne)</option>
+            <option value="Barman">Barman (KDS Banco, Preparazione, Ricette)</option>
+            <option value="Manager">Manager (Supervisione bar)</option>
+            <option value="Proprietario">Proprietario (Amministratore completo)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email aziendale</label>
+          <input type="email" class="form-input" id="newStaffEmail" placeholder="matteo@barcentrale.it" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">PIN a 4 cifre (per accesso rapido tablet)</label>
+          <input type="text" pattern="\d{4}" maxlength="4" class="form-input" id="newStaffPin" placeholder="Es: 5555" style="letter-spacing:6px; font-weight:800; font-size:18px; text-align:center;" required>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-secondary" onclick="closeAddStaffModal()" style="flex:1; padding:11px;">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">+ Salva Dipendente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Staff Confirmation Modal (Exclusive to Owner) -->
+  <div class="modal-overlay" id="deleteStaffConfirmModal">
+    <div class="modal-box" style="max-width: 420px; width: 92%; text-align: center; padding: 28px 24px; border-radius: 22px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 2px solid rgba(239, 68, 68, 0.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; color: #EF4444; box-shadow: 0 0 20px rgba(239,68,68,0.2);">
+        🗑️
+      </div>
+
+      <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+        Elimina Dipendente
+      </h3>
+
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+        Sei sicuro di voler eliminare <strong id="deleteStaffTargetName" style="color:var(--text-main);">--</strong> (<span id="deleteStaffTargetRole" style="font-weight:600; color:var(--primary);">--</span>)?
+      </p>
+
+      <div style="font-size: 11.5px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 9px 12px; border-radius: 10px; margin-bottom: 22px; line-height: 1.45; text-align: left;">
+        ⚠️ <strong>Attenzione:</strong> Questa azione è riservata esclusivamente al proprietario. Il dipendente verrà rimosso dal personale e le sue credenziali di accesso (PIN ed email) verranno revocate immediatamente.
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteStaffModal()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px;">
+          Annulla
+        </button>
+        <button type="button" class="btn-primary" onclick="confirmDeleteStaffAction()" style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 12px; background: #EF4444; border-color: #EF4444; box-shadow: 0 4px 14px rgba(239,68,68,0.35);">
+          Sì, Elimina
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Welcome Onboarding Email Modal -->
+  <div class="modal-overlay" id="staffWelcomeEmailModal">
+    <div class="modal-box email-preview-modal-box">
+      <!-- Simulated Email Client Header Bar -->
+      <div class="email-envelope-header">
+        <div class="email-envelope-title-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="email-status-badge">✉️ Email Inviata con Successo</span>
+            <span style="font-size:11px; color:var(--text-muted);">Inbox Delivery · OK</span>
+          </div>
+          <button class="modal-close-icon-btn" onclick="closeStaffWelcomeEmailModal()" aria-label="Chiudi finestra">✕</button>
+        </div>
+        <div class="email-meta-grid">
+          <div class="email-meta-item">
+            <span class="email-meta-label">A:</span>
+            <span class="email-meta-value" id="welcomeEmailTo">--</span>
+          </div>
+          <div class="email-meta-item">
+            <span class="email-meta-label">Da:</span>
+            <span class="email-meta-value" id="welcomeEmailFrom">BarPilot &lt;noreply@barpilot.app&gt;</span>
+          </div>
+          <div class="email-meta-item">
+            <span class="email-meta-label">Oggetto:</span>
+            <span class="email-meta-value" id="welcomeEmailSubject" style="font-weight:700; color:var(--primary);">🎉 Benvenuto nel team! Le tue credenziali BarPilot</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stylized HTML Email Card Template -->
+      <div class="email-body-scroll-container">
+        <div class="email-card-paper">
+          <!-- Logo & Brand Header -->
+          <div class="email-brand-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="assets/images/logo.png" alt="BarPilot Logo" class="email-brand-logo">
+              <div>
+                <h2 class="email-brand-name">Bar<span>Pilot</span></h2>
+                <p class="email-brand-tagline">Il tuo bar. Il tuo controllo. La tua crescita.</p>
+              </div>
+            </div>
+            <span class="email-role-badge" id="welcomeEmailRoleBadge">Cameriere</span>
+          </div>
+
+          <!-- Greeting & Role Message -->
+          <div class="email-content-block">
+            <h3 class="email-greeting-title" id="welcomeEmailGreeting">Ciao Matteo, benvenuto nel team! 👋</h3>
+            <p class="email-greeting-desc" id="welcomeEmailIntro">
+              Sei stato aggiunto ufficialmente come membro del personale per <strong id="welcomeEmailBarName">Bar Centrale</strong> con il ruolo di <strong id="welcomeEmailRoleName">Cameriere</strong>.
+            </p>
+          </div>
+
+          <!-- Credentials Glow Box -->
+          <div class="email-credentials-box">
+            <div class="email-cred-header">
+              <span>🔐 LE TUE CREDENZIALI DI ACCESSO</span>
+              <span style="font-size:10px; background:rgba(255,122,0,0.15); padding:2px 6px; border-radius:4px;">Strettamente Personali</span>
+            </div>
+            <div class="email-cred-row">
+              <span class="email-cred-label">✉️ Email di accesso:</span>
+              <code class="email-cred-code" id="welcomeEmailCredEmail">--</code>
+            </div>
+            <div class="email-cred-row">
+              <span class="email-cred-label">🔑 PIN veloce tablet:</span>
+              <div class="email-pin-display-wrap">
+                <span class="email-pin-big" id="welcomeEmailCredPin">1234</span>
+                <span class="email-pin-tag">4 cifre</span>
+              </div>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-top:10px; line-height:1.45;">
+              💡 Sul tablet del bar seleziona <strong>"PIN veloce"</strong>, inserisci il tuo codice a 4 cifre e accederai direttamente alla schermata operativa del tuo ruolo.
+            </p>
+          </div>
+
+          <!-- Access Link Button -->
+          <div style="text-align:center; margin: 22px 0;">
+            <a href="#" id="welcomeEmailAccessLink" class="email-cta-btn" target="_blank">
+              🚀 Accedi a BarPilot
+            </a>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:8px; word-break:break-all;" id="welcomeEmailUrlText">
+              Link di accesso rapido: https://cheikh10154.github.io/BarPilot/
+            </div>
+          </div>
+
+          <!-- Profile Photo Personalization Section -->
+          <div class="email-avatar-section">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="" id="welcomeEmailAvatarPreview" class="email-avatar-img" alt="Foto Profilo">
+              <div>
+                <h4 style="font-size:13px; font-weight:800; margin-bottom:2px;">La tua foto profilo</h4>
+                <p style="font-size:11px; color:var(--text-muted);">Personalizza il tuo avatar per farti riconoscere subito nei tavoli e nelle comande</p>
+              </div>
+            </div>
+            <button type="button" class="btn-email-change-avatar" onclick="openAvatarModalFromWelcome()">
+              📷 Cambia foto profilo
+            </button>
+          </div>
+
+          <!-- Onboarding 3-Steps Guide -->
+          <div class="email-steps-guide">
+            <div class="email-step-item">
+              <div class="email-step-num">1</div>
+              <div>
+                <strong style="font-size:12px;">Apri il link</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Da smartphone o tablet</p>
+              </div>
+            </div>
+            <div class="email-step-item">
+              <div class="email-step-num">2</div>
+              <div>
+                <strong style="font-size:12px;">Digita il PIN</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Sblocca il tuo profilo</p>
+              </div>
+            </div>
+            <div class="email-step-item">
+              <div class="email-step-num">3</div>
+              <div>
+                <strong style="font-size:12px;">Sei pronto!</strong>
+                <p style="font-size:11px; color:var(--text-muted);">Inizia il tuo turno</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Footer -->
+          <div class="email-footer-brand">
+            <p style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">
+              Questa notifica è stata generata automaticamente dal gestionale di <strong style="color:var(--text-main);">BarPilot</strong>.
+            </p>
+            <p style="font-size:10px; color:var(--text-muted); opacity:0.7;">
+              © BarPilot POS · Locale: <span id="welcomeEmailBarCity">Bar Centrale</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer for Owner -->
+      <div class="email-actions-footer">
+        <button type="button" class="btn-secondary" onclick="copyWelcomeEmailDetails()" style="font-size:12px; padding:9px 14px;">
+          📋 Copia Testo & PIN
+        </button>
+        <a id="welcomeEmailMailtoBtn" href="#" class="btn-secondary" style="font-size:12px; padding:9px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+          ✉️ Invia con Client Email
+        </a>
+        <button type="button" class="btn-primary" onclick="closeStaffWelcomeEmailModal()" style="font-size:12px; padding:9px 18px; margin-left:auto;">
+          ✓ Fatto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Profile Picture Modal -->
+  <div class="modal-overlay" id="changeAvatarModal">
+    <div class="modal-box" style="max-width:480px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">🖼️ Personalizza Foto Profilo</h3>
+          <p style="font-size:12px; color:var(--text-muted);" id="changeAvatarModalSubtitle">Carica una foto dal dispositivo, inserisci un URL o scegli dalla galleria</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeChangeAvatarModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <!-- Live Avatar Preview -->
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="position:relative; display:inline-block;">
+          <img src="" id="avatarCurrentPreview" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--primary); box-shadow:0 4px 15px rgba(255,122,0,0.25);" alt="Anteprima">
+          <span style="position:absolute; bottom:0; right:0; background:var(--primary); color:#FFF; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; border:2px solid var(--bg-card);">📷</span>
+        </div>
+        <div style="font-weight:700; font-size:15px; margin-top:8px;" id="changeAvatarTargetName">Nome Dipendente</div>
+        <div style="font-size:12px; color:var(--text-muted);" id="changeAvatarTargetRole">Ruolo</div>
+      </div>
+
+      <!-- Option 1: File Upload from Device -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Carica dal dispositivo (Telefono o PC)</label>
+        <input type="file" id="avatarFileInput" accept="image/*" class="form-input" style="padding:8px;" onchange="handleAvatarFileUpload(event)">
+      </div>
+
+      <!-- Option 2: Image URL -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Oppure incolla URL immagine web</label>
+        <input type="url" id="avatarUrlInput" class="form-input" placeholder="https://images.unsplash.com/..." oninput="handleAvatarUrlInput(this.value)">
+      </div>
+
+      <!-- Option 3: Presets -->
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Oppure scegli un avatar predefinito:</label>
+        <div class="avatar-preset-grid" id="avatarPresetGrid">
+          <!-- Dynamically populated presets -->
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeChangeAvatarModal()" style="flex:1; padding:11px;">Annulla</button>
+        <button type="button" class="btn-primary" onclick="saveSelectedAvatar()" style="flex:1; padding:11px;">💾 Salva Foto Profilo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Table Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="addTableModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
+            <span>🪑</span> <span data-i18n="addTableModalTitle">Aggiungi Nuovo Tavolo</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" data-i18n="addTableModalSubtitle">Configura un nuovo tavolo nella piantina di sala (Solo Proprietario)</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeAddTableModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <form id="addTableForm" onsubmit="handleAddTableSubmit(event)">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" data-i18n="tableIdLabel">Identificativo / Sigla Tavolo</label>
+          <input type="text" id="newTableId" class="form-input" placeholder="es. T10 o T11" required maxlength="15" autocomplete="off">
+          <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Inserisci una sigla univoca (es. T10, T11, Bancone 2).</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" data-i18n="tableAreaLabel">Area / Sala</label>
+          <select id="newTableArea" class="form-input" style="background:var(--bg-card); cursor:pointer;">
+            <option value="interno">Interno (Sala Principale)</option>
+            <option value="terrazza">Terrazza / Dehors</option>
+            <option value="comptoir">Comptoir / Bancone</option>
+            <option value="vip">Spazio VIP / Privé</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label" data-i18n="tableCapacityLabel">Posti a sedere (Capienza)</label>
+          <input type="number" id="newTableCapacity" class="form-input" min="1" max="50" value="4" required>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeAddTableModal()" style="flex:1; padding:11px;" data-i18n="btnCancel">Annulla</button>
+          <button type="submit" class="btn-primary" style="flex:1; padding:11px;">💾 <span data-i18n="btnAddTableConfirm">Crea Tavolo</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Table Modal (Solo Proprietario) -->
+  <div class="modal-overlay" id="deleteTableModal">
+    <div class="modal-box" style="max-width:440px; width:92%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:800; color:var(--status-alert); display:flex; align-items:center; gap:8px;">
+            <span>🗑️</span> <span data-i18n="deleteTableTitle">Elimina Tavolo</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);" data-i18n="deleteTableSubtitle">Azione riservata esclusivamente al proprietario</p>
+        </div>
+        <button class="modal-close-icon-btn" onclick="closeDeleteTableModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+
+      <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; border:1px solid var(--border-color);">
+        <p style="font-size:13.5px; line-height:1.5; margin-bottom:8px;">
+          Sei sicuro di voler rimuovere il tavolo <strong id="deleteTableTargetId" style="color:var(--text-main); font-weight:800; font-size:15px;"></strong> dalla piantina?
+        </p>
+        <div id="deleteTableWarning" style="display:none; margin-top:8px; padding:8px 12px; border-radius:6px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#EF4444; font-size:12px; font-weight:700;">
+          ⚠️ Attenzione: questo tavolo ha un conto o una comanda attiva!
+        </div>
+        <p style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">
+          L'operazione rimuoverà il tavolo dal Plan de salle e dalla selezione comande.
+        </p>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteTableModal()" style="flex:1; padding:11px;" data-i18n="btnCancel">Annulla</button>
+        <button type="button" class="btn-danger" id="btnConfirmDeleteTable" onclick="confirmDeleteTableAction()" style="flex:1; padding:11px;">
+          🗑️ <span data-i18n="btnConfirmDelete">Elimina Definitivamente</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/supabaseClient.js"></script>
+  <script>
+    window.BARPILOT_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
+    window.BARPILOT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
+  </script>
+  <script src="assets/js/googlePayService.js"></script>
+  <script src="assets/js/stripePaymentService.js"></script>
+  <script src="assets/js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('BarPilot ServiceWorker registered:', reg.scope))
+          .catch(err => console.log('ServiceWorker registration failed:', err));
+      });
+    }
+  </script>
+
+  <!-- Auto-Initialize Full Demo Data on Page Load -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        localStorage.setItem("barpilot_is_demo", "true");
+        localStorage.setItem("barpilot_is_subscribed", "true");
+        localStorage.setItem("barpilot_is_logged_in", "true");
+        sessionStorage.setItem("barpilot_demo_active", "true");
+      } catch (e) {}
+      setTimeout(() => {
+        if (typeof quickLoginDemo === 'function') {
+          quickLoginDemo();
+        }
+      }, 50);
+    });
+  </script>
+
+</body>
+</html>
