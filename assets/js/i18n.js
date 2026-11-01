@@ -222,9 +222,12 @@ const i18nData = {
     filterToPrepare: "Da preparare",
     filterInPrep: "In preparazione",
     filterReady: "Pronte",
+    filterServed: "Servite",
+    filterPaid: "Pagate",
     startPrepBtn: "Inizia preparazione",
     markReadyBtn: "Segna come pronta",
     markServedBtn: "Segna come servita",
+    markPaidBtn: "Segna come pagato",
     kdsItemDone: "Fatto",
 
     // Products & Inventory
@@ -558,9 +561,12 @@ const i18nData = {
     filterToPrepare: "À préparer",
     filterInPrep: "En préparation",
     filterReady: "Prêtes",
+    filterServed: "Servies",
+    filterPaid: "Payées",
     startPrepBtn: "Démarrer préparation",
     markReadyBtn: "Marquer comme prête",
     markServedBtn: "Marquer comme servie",
+    markPaidBtn: "Marquer comme payé",
     kdsItemDone: "Fait",
 
     // Products & Inventory

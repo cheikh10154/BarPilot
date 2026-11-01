@@ -1333,9 +1333,20 @@ function renderDashboard() {
       recentOrdersTbody.innerHTML = stats.recentOrders.slice(0, 5).map(ord => {
         const itemsSummary = (ord.items || []).map(it => `${it.qty} ${(it.name || "").toLowerCase()}`).join(", ") || "Comanda senza articoli";
         const s = String(ord.status || "").toLowerCase().trim();
+        const isPaid = s === "paid" || s === "closed" || ord.isPaid === true;
         let statusBadgeHtml = "";
-        if (s === "served" || s === "closed" || s === "paid" || s === "completed") {
-          statusBadgeHtml = `<span class="table-badge badge-served" style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">✓ Servita</span>`;
+
+        if (isPaid) {
+          statusBadgeHtml = `<span class="table-badge badge-paid" style="background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); font-weight:700;">💳 Pagato</span>`;
+        } else if (s === "served" || s === "servita") {
+          statusBadgeHtml = `
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="table-badge badge-served" style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">✓ Servita</span>
+              <button type="button" class="btn-mark-paid-badge" onclick="event.stopPropagation(); changeOrderStatus(${ord.id}, 'paid')" title="Comanda servita. Clicca per confermare incasso/pagamento">
+                💳 Segna Pagato
+              </button>
+            </div>
+          `;
         } else {
           statusBadgeHtml = `
             <button type="button" class="btn-mark-served-badge" onclick="event.stopPropagation(); changeOrderStatus(${ord.id}, 'served')" title="Comanda in corso. Clicca per confermare e segnare come servita">
@@ -1350,8 +1361,10 @@ function renderDashboard() {
           timeAgo = diffMin < 60 ? `${diffMin} min` : `${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
         }
 
+        const nextActionStatus = (!s || s === "prep" || s === "ready") ? 'served' : (s === "served" ? 'paid' : 'paid');
+
         return `
-          <tr style="cursor:pointer;" onclick="changeOrderStatus(${ord.id}, 'served')" title="Clicca sulla riga per segnare comanda #${ord.id} come servita">
+          <tr style="cursor:pointer;" onclick="changeOrderStatus(${ord.id}, '${nextActionStatus}')" title="Clicca sulla riga per avanzare lo stato della comanda #${ord.id}">
             <td style="font-weight:700; color:var(--primary);">#${ord.id}</td>
             <td style="font-weight:600;">${ord.table || "Bancone"}</td>
             <td style="color:var(--text-muted); max-width:240px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${itemsSummary}</td>
@@ -1835,53 +1848,138 @@ function syncOrderTableSelect() {
 // Kitchen Display System (KDS)
 // --------------------------------------------------------------------------
 function renderKDS() {
-  const orders = window.db.get("orders");
+  const orders = (window.db ? window.db.get("orders") : []) || [];
   const kdsContainer = document.getElementById("kdsTicketsGrid");
   if (!kdsContainer) return;
 
+  const currentFilter = appState.kdsFilter || "all";
   let filtered = orders;
-  if (appState.kdsFilter === "to_prep") filtered = orders.filter(o => o.status === "prep" && o.time.includes("1 min"));
-  else if (appState.kdsFilter === "in_prep") filtered = orders.filter(o => o.status === "prep");
-  else if (appState.kdsFilter === "ready") filtered = orders.filter(o => o.status === "ready");
 
-  kdsContainer.innerHTML = filtered.map(o => {
-    let actionBtn = "";
-    if (o.status === "prep") {
-      actionBtn = `
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <button class="kds-btn-action kds-btn-ready" style="flex:1;" onclick="changeOrderStatus(${o.id}, 'ready')">${window.i18n.t("markReadyBtn")}</button>
-          <button class="kds-btn-action kds-btn-served" style="flex:1.3; background:#10B981; color:#fff;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n.t("markServedBtn")}</button>
-        </div>
-      `;
-    } else if (o.status === "ready") {
-      actionBtn = `<button class="kds-btn-action kds-btn-served" style="background:#10B981; color:#fff; width:100%;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n.t("markServedBtn")}</button>`;
-    } else {
-      actionBtn = `<button class="kds-btn-action kds-btn-start" style="opacity:0.85; pointer-events:none; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); width:100%;">✓ ${window.i18n.t("statusServed")}</button>`;
-    }
+  if (currentFilter === "to_prep") {
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return (s === "to_prep") || (s === "prep" && (o.time && (o.time.includes("1 min") || o.time.includes("2 min") || o.time.includes("3 min"))));
+    });
+  } else if (currentFilter === "in_prep") {
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return s === "prep" || s === "in_prep";
+    });
+  } else if (currentFilter === "ready") {
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return s === "ready" || s === "pronta";
+    });
+  } else if (currentFilter === "served") {
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return (s === "served" || s === "servita") && !o.isPaid;
+    });
+  } else if (currentFilter === "paid") {
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return s === "paid" || s === "closed" || o.isPaid === true;
+    });
+  } else {
+    // "all": tutte le comande escluse solo le bozze o cancellate
+    filtered = orders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return s !== "draft" && s !== "cancelled";
+    });
+  }
 
-    return `
-      <div class="kds-ticket">
-        <div class="kds-ticket-header">
-          <span class="kds-ticket-num">#${o.id}</span>
-          <span class="kds-ticket-timer">${o.time}</span>
-        </div>
-        <div class="kds-ticket-table">${o.table} · <span style="font-size:12px; color:var(--text-muted);">${o.server}</span></div>
-        <ul class="kds-ticket-items">
-          ${o.items.map(it => `
-            <li class="kds-item-row">
-              <span><span class="kds-item-qty">${it.qty}×</span> ${it.name}</span>
-              <span style="font-size:11px; color:var(--text-muted);">${(it.qty * it.price).toFixed(2)} €</span>
-            </li>
-          `).join("")}
-        </ul>
-        ${actionBtn}
+  if (filtered.length === 0) {
+    kdsContainer.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align:center; padding:48px 16px; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius-lg); border:1px dashed var(--border-color);">
+        <div style="font-size:32px; margin-bottom:8px;">☕</div>
+        <h4 style="font-size:15px; font-weight:800; margin:0 0 4px 0; color:var(--text-main);">Nessuna comanda in questa sezione</h4>
+        <p style="font-size:12px; margin:0; opacity:0.8;">Tutte le comande in tempo reale saranno sincronizzate qui.</p>
       </div>
     `;
-  }).join("");
+  } else {
+    kdsContainer.innerHTML = filtered.map(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      const isPaid = s === "paid" || s === "closed" || o.isPaid === true;
+      const isServed = s === "served" || s === "servita" || isPaid;
+
+      let statusPill = "";
+      if (isPaid) {
+        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#3B82F6; color:#fff; letter-spacing:0.3px;">💳 PAGATO</span>`;
+      } else if (isServed) {
+        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#10B981; color:#fff; letter-spacing:0.3px;">✓ SERVITA (DA SALDARE)</span>`;
+      } else if (s === "ready" || s === "pronta") {
+        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#F59E0B; color:#fff; letter-spacing:0.3px;">⚡ PRONTA</span>`;
+      } else {
+        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:rgba(255,122,0,0.18); color:#FF7A00; border:1px solid rgba(255,122,0,0.3); letter-spacing:0.3px;">⏳ IN PREP</span>`;
+      }
+
+      let actionBtn = "";
+      if (!isServed) {
+        if (s === "prep" || s === "to_prep" || s === "in_prep") {
+          actionBtn = `
+            <div style="display:flex; gap:6px; margin-top:10px;">
+              <button type="button" class="kds-btn-action kds-btn-ready" style="flex:1;" onclick="changeOrderStatus(${o.id}, 'ready')">${window.i18n ? window.i18n.t("markReadyBtn") : "Pronta"}</button>
+              <button type="button" class="kds-btn-action kds-btn-served" style="flex:1.2; background:#10B981; color:#fff;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n ? window.i18n.t("markServedBtn") : "Servita"}</button>
+            </div>
+          `;
+        } else if (s === "ready" || s === "pronta") {
+          actionBtn = `
+            <div style="display:flex; gap:6px; margin-top:10px;">
+              <button type="button" class="kds-btn-action kds-btn-served" style="background:#10B981; color:#fff; flex:1.2;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n ? window.i18n.t("markServedBtn") : "Servita"}</button>
+              <button type="button" class="kds-btn-action kds-btn-paid" style="background:#3B82F6; color:#fff; flex:1;" onclick="changeOrderStatus(${o.id}, 'paid')">💳 ${window.i18n ? window.i18n.t("markPaidBtn") : "Pagato"}</button>
+            </div>
+          `;
+        }
+      } else {
+        // Dopo il Servita c'è Pagato! Così il barman sa se è pagato o no
+        if (!isPaid) {
+          actionBtn = `
+            <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
+              <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); font-weight:700; font-size:12px;">✓ Servita</span>
+              <button type="button" class="kds-btn-action kds-btn-paid" style="flex:1.3; background:#3B82F6; color:#fff; font-weight:800; box-shadow:0 3px 10px rgba(59,130,246,0.35);" onclick="changeOrderStatus(${o.id}, 'paid')">💳 Segna Pagato</button>
+            </div>
+          `;
+        } else {
+          actionBtn = `
+            <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
+              <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); font-weight:700; font-size:12px;">✓ Servita</span>
+              <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); border-radius:var(--radius-md); font-weight:800; font-size:12px;">💳 Pagato</span>
+            </div>
+          `;
+        }
+      }
+
+      return `
+        <div class="kds-ticket" style="${isPaid ? 'border-color:rgba(59,130,246,0.4); background:linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 100%);' : ''}">
+          <div class="kds-ticket-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="kds-ticket-num">#${o.id}</span>
+              ${statusPill}
+            </div>
+            <span class="kds-ticket-timer">${o.time || "Adesso"}</span>
+          </div>
+          <div class="kds-ticket-table">${o.table || "Banco"} · <span style="font-size:12px; color:var(--text-muted);">${o.server || "Cameriere"}</span></div>
+          <ul class="kds-ticket-items">
+            ${(o.items || []).map(it => `
+              <li class="kds-item-row">
+                <span><span class="kds-item-qty">${it.qty}×</span> ${it.name}</span>
+                <span style="font-size:11px; color:var(--text-muted);">${(it.qty * it.price).toFixed(2)} €</span>
+              </li>
+            `).join("")}
+          </ul>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:800; padding:6px 0 2px; border-top:1px dashed var(--border-color); margin-top:6px;">
+            <span>Totale:</span>
+            <span style="color:${isPaid ? '#3B82F6' : 'var(--primary)'}; font-size:13px;">${(Number(o.total) || 0).toFixed(2)} €</span>
+          </div>
+          ${actionBtn}
+        </div>
+      `;
+    }).join("");
+  }
 
   // Setup KDS tab pills
   document.querySelectorAll(".kds-tab-pill").forEach(tab => {
-    tab.classList.toggle("active", tab.getAttribute("data-kds-filter") === appState.kdsFilter);
+    tab.classList.toggle("active", tab.getAttribute("data-kds-filter") === currentFilter);
     tab.onclick = () => {
       appState.kdsFilter = tab.getAttribute("data-kds-filter");
       renderKDS();
@@ -1895,8 +1993,12 @@ function changeOrderStatus(orderId, newStatus) {
   if (ord) {
     ord.status = newStatus;
     if (newStatus === "served" || newStatus === "closed" || newStatus === "paid") {
-      ord.closedAt = new Date().toISOString();
+      ord.closedAt = ord.closedAt || new Date().toISOString();
       ord.userServed = true;
+    }
+    if (newStatus === "paid") {
+      ord.isPaid = true;
+      ord.paidAt = new Date().toISOString();
     }
     if (newStatus === "cancelled") {
       ord.cancelledAt = new Date().toISOString();
@@ -1920,7 +2022,13 @@ function changeOrderStatus(orderId, newStatus) {
     renderDashboard();
     renderFloorPlan();
 
-    if (newStatus === "served") {
+    if (newStatus === "paid") {
+      triggerKpiBoxPulse();
+      const isFr = window.i18n && window.i18n.currentLang === "fr";
+      showToast(isFr 
+        ? `💳 Commande #${orderId} marquée comme PAYÉE !` 
+        : `💳 Comanda #${orderId} segnata come PAGATA!`);
+    } else if (newStatus === "served") {
       triggerKpiBoxPulse();
       const isFr = window.i18n && window.i18n.currentLang === "fr";
       showToast(isFr 

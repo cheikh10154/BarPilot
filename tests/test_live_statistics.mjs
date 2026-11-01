@@ -603,6 +603,17 @@ runTest('Comanda in preparazione non aumenta il venduto; quando segnata come ser
   assert.strictEqual(servedStats.ordersCount, baseOrders + 1, 'Comande count must increase by 1 upon being served');
   const expectedAvgTicket = Math.round((servedStats.revenue / servedStats.ordersCount) * 100) / 100;
   assert.strictEqual(servedStats.avgTicket, expectedAvgTicket, 'Scontrino medio must be properly recalculated');
+
+  // Transizione a "paid" (dopo "Servita", il barman preme "Segna Pagato")
+  targetOrder.status = 'paid';
+  targetOrder.isPaid = true;
+  targetOrder.paidAt = new Date().toISOString();
+  window.db.set('orders', orders);
+
+  const paidStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(paidStats.revenue, servedStats.revenue, 'Vendite registrate must maintain revenue in paid status');
+  assert.strictEqual(paidStats.ordersCount, servedStats.ordersCount, 'Comande count must maintain count in paid status');
+  assert.strictEqual(paidStats.avgTicket, servedStats.avgTicket, 'Avg ticket must be preserved in paid status');
 });
 
 console.log('\n================================================================');
