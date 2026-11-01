@@ -44,6 +44,19 @@
     </div>
   </div>
 
+  <script>
+    // Fail-safe di emergenza per lo Splash Screen:
+    // garantisce che dopo massimo 1.5 secondi l'overlay di caricamento sia SEMPRE nascosto
+    setTimeout(function() {
+      try {
+        var sp = document.getElementById("splashScreen");
+        if (sp && !sp.classList.contains("hidden")) {
+          sp.classList.add("hidden");
+        }
+      } catch (_) {}
+    }, 1500);
+  </script>
+
   <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->
   <div class="stories-overlay hidden" id="storiesOverlay">
     <div class="stories-viewport" id="storiesViewport">

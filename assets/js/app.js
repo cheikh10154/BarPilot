@@ -11,74 +11,97 @@ function escapeHtml(str) {
 window.escapeHtml = escapeHtml;
 
 // BarPilot Core Application Logic
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Theme Initialization
-  const currentTheme = localStorage.getItem("barpilot_theme") || "dark";
-  document.documentElement.setAttribute("data-theme", currentTheme);
-  updateThemeButton(currentTheme);
+function initBarPilotApp() {
+  try {
+    // 1. Theme Initialization
+    const currentTheme = localStorage.getItem("barpilot_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    if (typeof updateThemeButton === "function") updateThemeButton(currentTheme);
 
-  // 2. Language Initialization
-  window.i18n.applyTranslations();
+    // 2. Language Initialization
+    if (window.i18n && typeof window.i18n.applyTranslations === "function") {
+      window.i18n.applyTranslations();
+    }
 
-  // Restore saved session details into activeBar
-  if (isUserLoggedIn()) {
-    try {
-      const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-      if (savedUser) {
-        const bar = window.db.get("activeBar");
-        if (savedUser.name) bar.managerName = savedUser.name;
-        if (savedUser.barName) bar.name = savedUser.barName;
-        window.db.set("activeBar", bar);
-      }
-    } catch (e) {}
+    // Restore saved session details into activeBar
+    if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+        if (savedUser && window.db) {
+          const bar = window.db.get("activeBar") || {};
+          if (savedUser.name) bar.managerName = savedUser.name;
+          if (savedUser.barName) bar.name = savedUser.barName;
+          window.db.set("activeBar", bar);
+        }
+      } catch (e) {}
+    }
+
+    // 3. Initialize Active Staff Member
+    if (typeof initActiveStaff === "function") initActiveStaff();
+
+    // 4. Render Initial State
+    if (typeof renderApp === "function") renderApp();
+
+    // Initialize Real-Time Clock & Date Controller
+    if (typeof initLiveDateTime === "function") initLiveDateTime();
+
+    // 4. Setup Event Listeners
+    if (typeof setupNavigation === "function") setupNavigation();
+    if (typeof setupThemeToggle === "function") setupThemeToggle();
+    if (typeof setupLanguageToggle === "function") setupLanguageToggle();
+    if (typeof setupCartEvents === "function") setupCartEvents();
+    if (typeof setupSimulator === "function") setupSimulator();
+    if (typeof setupModals === "function") setupModals();
+
+  } catch (err) {
+    console.error("[BarPilot] Errore avvio:", err);
+  } finally {
+    // 5. Trigger Splash Animation (garantisce sempre la rimozione di 'Inizializzazione in corso...')
+    if (typeof initSplashScreen === "function") {
+      initSplashScreen();
+    } else {
+      const sp = document.getElementById("splashScreen");
+      if (sp) sp.classList.add("hidden");
+    }
+    if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
   }
 
-  // 3. Initialize Active Staff Member
-  initActiveStaff();
-
-  // 4. Render Initial State
-  renderApp();
-
-  // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno)
-  initLiveDateTime();
-
-  // 4. Setup Event Listeners
-  setupNavigation();
-  setupThemeToggle();
-  setupLanguageToggle();
-  setupCartEvents();
-  setupSimulator();
-  setupModals();
-
-  // 5. Trigger Splash Animation (no forced checkout popup)
-  initSplashScreen();
-  closeCheckoutModal(true);
   // Direct Link Hash Router & URL Router (e.g. /demo, ?demo=true, #demo)
-  const handleHashRouting = () => {
-    const hash = (window.location.hash || "").toLowerCase();
-    const search = (window.location.search || "").toLowerCase();
-    const pathname = (window.location.pathname || "").toLowerCase();
+  try {
+    const handleHashRouting = () => {
+      const hash = (window.location.hash || "").toLowerCase();
+      const search = (window.location.search || "").toLowerCase();
+      const pathname = (window.location.pathname || "").toLowerCase();
 
-    // Check if demo is requested via URL (/demo, ?demo, #demo)
-    if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html")) {
-      quickLoginDemo();
-      return;
-    }
-
-    if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
-      if (!isDemoMode()) {
-        switchView("subscriptions");
-        setTimeout(() => openCheckoutModal(true), 200);
+      // Check if demo is requested via URL (/demo, ?demo, #demo)
+      if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html")) {
+        if (typeof quickLoginDemo === "function") quickLoginDemo();
+        return;
       }
-    } else if (hash.startsWith("#view-")) {
-      const v = hash.replace("#view-", "");
-      switchView(v);
-    }
-  };
-  handleHashRouting();
-  window.addEventListener("hashchange", handleHashRouting);
 
-});
+      if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
+        if (typeof isDemoMode === "function" && !isDemoMode()) {
+          switchView("subscriptions");
+          setTimeout(() => openCheckoutModal(true), 200);
+        }
+      } else if (hash.startsWith("#view-")) {
+        const v = hash.replace("#view-", "");
+        switchView(v);
+      }
+    };
+    handleHashRouting();
+    window.addEventListener("hashchange", handleHashRouting);
+  } catch (routeErr) {
+    console.warn("[BarPilot] Routing error:", routeErr);
+  }
+}
+
+// Avvio immediato e sicuro: supporta sia se il DOM è ancora in caricamento sia se è già pronto!
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBarPilotApp);
+} else {
+  initBarPilotApp();
+}
 
 // App State
 let appState = {
@@ -251,6 +274,10 @@ function isUserSubscribed() {
     }
     const stored = localStorage.getItem("barpilot_is_subscribed");
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    // Prova gratuita attiva di 14 giorni inclusa alla creazione:
+    if (bar && (bar.status === "active_trial" || (bar.trialDaysRemaining && bar.trialDaysRemaining > 0))) {
+      return true;
+    }
     if (stored === "true" && bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true)) {
       return true;
     }
@@ -638,14 +665,14 @@ function updateGreeting(name) {
 window.updateGreeting = updateGreeting;
 
 function renderActiveBar() {
-  const bar = window.db.get("activeBar");
+  const bar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", trialDaysRemaining: 14, managerName: "Marco Rossi" };
   const barNameEl = document.getElementById("activeBarName");
   const barSwitcherText = document.getElementById("barSwitcherText");
   const trialDaysEl = document.getElementById("trialDaysCount");
 
-  if (barNameEl) barNameEl.textContent = bar.name;
-  if (barSwitcherText) barSwitcherText.textContent = bar.name;
-  if (trialDaysEl) trialDaysEl.textContent = bar.trialDaysRemaining;
+  if (barNameEl) barNameEl.textContent = bar.name || "Bar Centrale";
+  if (barSwitcherText) barSwitcherText.textContent = bar.name || "Bar Centrale";
+  if (trialDaysEl) trialDaysEl.textContent = (bar.trialDaysRemaining !== undefined && bar.trialDaysRemaining !== null) ? bar.trialDaysRemaining : 14;
 
   // L'utente attivo nella sidebar e nel saluto riflette currentStaff con il suo ruolo specifico
   if (currentStaff) {
@@ -6143,35 +6170,26 @@ function initSplashScreen() {
   }
 
   // CHECK PERSISTENT SESSION:
-  // If the user is already authenticated and subscribed, keep stories and auth screen HIDDEN!
-  if (isUserLoggedIn() && isUserSubscribed()) {
+  // If the user is authenticated, dismiss splash and open the dashboard!
+  if (isUserLoggedIn()) {
     if (storiesOverlay) storiesOverlay.classList.add("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
 
     const dismissSplash = () => {
       if (splashTimer) clearTimeout(splashTimer);
-      splash.classList.add("hidden");
+      if (splash) splash.classList.add("hidden");
+      if (typeof updateDashboardLockState === "function") updateDashboardLockState();
+      if (typeof switchView === "function") switchView("dashboard");
     };
 
     if (skipBtn) {
       skipBtn.addEventListener("click", dismissSplash);
     }
 
-    // Smooth transition directly to dashboard
+    // Smooth transition directly to dashboard (1s)
     splashTimer = setTimeout(() => {
       dismissSplash();
-    }, 1200);
-    return;
-  }
-
-  // LOGGED IN USER BUT NOT YET SUBSCRIBED:
-  // Strict gatekeeping - immediately send to checkout to confirm payment
-  if (isUserLoggedIn() && !isUserSubscribed()) {
-    if (splashTimer) clearTimeout(splashTimer);
-    if (splash) splash.classList.add("hidden");
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-    window.location.href = "/checkout.html";
+    }, 1000);
     return;
   }
 
