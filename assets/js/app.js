@@ -688,9 +688,17 @@ function calculateDashboardStatistics(period = "today") {
     const demoOrders = (window.db ? window.db.get("orders") : initialData.orders) || [];
     const demoProducts = (window.db ? window.db.get("products") : initialData.products) || [];
 
-    let revenue = demoMetrics.revenue || 1248.00;
-    let ordersCount = demoMetrics.ordersCount || 186;
-    let avgTicket = demoMetrics.avgTicket || 6.71;
+    // Incrementi dinamici per ordini segnati come serviti in sessione demo
+    const userServedOrders = demoOrders.filter(o => {
+      const s = String(o.status || "").toLowerCase().trim();
+      return (s === "served" || s === "closed" || s === "paid") && (o.userServed === true || o.isNewlyAdded);
+    });
+    const extraRevenue = userServedOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const extraOrdersCount = userServedOrders.length;
+
+    let revenue = Math.round(((demoMetrics.revenue || 1248.00) + extraRevenue) * 100) / 100;
+    let ordersCount = (demoMetrics.ordersCount || 186) + extraOrdersCount;
+    let avgTicket = ordersCount > 0 ? Math.round((revenue / ordersCount) * 100) / 100 : 6.71;
     let alertCount = demoMetrics.alertCount || 4;
     let revDeltaText = demoMetrics.revenueChange || "+12%";
     let ordDeltaText = demoMetrics.ordersChange || "+8%";
@@ -820,12 +828,13 @@ function calculateDashboardStatistics(period = "today") {
     prevEndMs = 0;
   }
 
-  // 3. Filter valid confirmed orders (exclude draft and cancelled)
+  // 3. Filter valid confirmed orders (only served, closed, paid, completed count in confirmed sales)
   function isValidOrder(ord) {
     if (!ord) return false;
     const s = String(ord.status || "").toLowerCase().trim();
-    if (s === "cancelled" || s === "draft" || s === "annullata" || s === "bozza") return false;
-    return true;
+    if (s === "cancelled" || s === "draft" || s === "annullata" || s === "bozza" || s === "prep" || s === "in_prep" || s === "to_prep" || s === "ready") return false;
+    if (s === "served" || s === "closed" || s === "paid" || s === "completed" || s === "servita") return true;
+    return false;
   }
 
   function getOrderTimestamp(ord) {
@@ -1017,8 +1026,12 @@ function calculateDashboardStatistics(period = "today") {
       return a.name.localeCompare(b.name);
     });
 
-  // 12. Recent Orders (FASE 9)
-  const recentOrders = [...validOrdersInPeriod]
+  // 12. Recent Orders (FASE 9) - Mostra tutte le comande registrate (prep, ready, served)
+  const recentOrders = allOrders
+    .filter(ord => {
+      const s = String(ord.status || "").toLowerCase().trim();
+      return s !== "draft" && s !== "cancelled";
+    })
     .sort((a, b) => getOrderTimestamp(b) - getOrderTimestamp(a))
     .slice(0, 10);
 
@@ -1180,6 +1193,19 @@ window.filterHourlySlot = filterHourlySlot;
 window.selectHourlyBar = selectHourlyBar;
 window.renderHourlySalesChart = renderHourlySalesChart;
 
+function triggerKpiBoxPulse() {
+  const cards = document.querySelectorAll(".metrics-grid .metric-card");
+  cards.forEach(card => {
+    card.classList.remove("kpi-box-highlight");
+    void card.offsetWidth;
+    card.classList.add("kpi-box-highlight");
+    setTimeout(() => {
+      card.classList.remove("kpi-box-highlight");
+    }, 1200);
+  });
+}
+window.triggerKpiBoxPulse = triggerKpiBoxPulse;
+
 function renderDashboard() {
   const currentPeriod = (typeof appState !== "undefined" && appState.dashboardPeriod) ? appState.dashboardPeriod : "today";
   const stats = calculateDashboardStatistics(currentPeriod);
@@ -1306,11 +1332,17 @@ function renderDashboard() {
     } else {
       recentOrdersTbody.innerHTML = stats.recentOrders.slice(0, 5).map(ord => {
         const itemsSummary = (ord.items || []).map(it => `${it.qty} ${(it.name || "").toLowerCase()}`).join(", ") || "Comanda senza articoli";
-        let badgeClass = "badge-prep";
-        let statusKey = "statusPrep";
-        if (ord.status === "ready") { badgeClass = "badge-ready"; statusKey = "statusReady"; }
-        if (ord.status === "served") { badgeClass = "badge-served"; statusKey = "statusServed"; }
-        if (ord.status === "closed" || ord.status === "paid") { badgeClass = "badge-served"; statusKey = "statusServed"; }
+        const s = String(ord.status || "").toLowerCase().trim();
+        let statusBadgeHtml = "";
+        if (s === "served" || s === "closed" || s === "paid" || s === "completed") {
+          statusBadgeHtml = `<span class="table-badge badge-served" style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">✓ Servita</span>`;
+        } else {
+          statusBadgeHtml = `
+            <button type="button" class="btn-mark-served-badge" onclick="event.stopPropagation(); changeOrderStatus(${ord.id}, 'served')" title="Comanda in corso. Clicca per confermare e segnare come servita">
+              ⚡ Segna come servita
+            </button>
+          `;
+        }
 
         let timeAgo = ord.time || "Poco fa";
         if (ord.createdAt) {
@@ -1319,12 +1351,12 @@ function renderDashboard() {
         }
 
         return `
-          <tr>
+          <tr style="cursor:pointer;" onclick="changeOrderStatus(${ord.id}, 'served')" title="Clicca sulla riga per segnare comanda #${ord.id} come servita">
             <td style="font-weight:700; color:var(--primary);">#${ord.id}</td>
             <td style="font-weight:600;">${ord.table || "Bancone"}</td>
             <td style="color:var(--text-muted); max-width:240px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${itemsSummary}</td>
             <td style="font-weight:700;">${(Number(ord.total) || 0).toFixed(2)} €</td>
-            <td><span class="table-badge ${badgeClass}">${window.i18n ? window.i18n.t(statusKey) : ord.status}</span></td>
+            <td onclick="event.stopPropagation();">${statusBadgeHtml}</td>
             <td style="color:var(--text-muted); font-size:12px;">${timeAgo}</td>
           </tr>
         `;
@@ -1815,11 +1847,16 @@ function renderKDS() {
   kdsContainer.innerHTML = filtered.map(o => {
     let actionBtn = "";
     if (o.status === "prep") {
-      actionBtn = `<button class="kds-btn-action kds-btn-ready" onclick="changeOrderStatus(${o.id}, 'ready')">${window.i18n.t("markReadyBtn")}</button>`;
+      actionBtn = `
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="kds-btn-action kds-btn-ready" style="flex:1;" onclick="changeOrderStatus(${o.id}, 'ready')">${window.i18n.t("markReadyBtn")}</button>
+          <button class="kds-btn-action kds-btn-served" style="flex:1.3; background:#10B981; color:#fff;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n.t("markServedBtn")}</button>
+        </div>
+      `;
     } else if (o.status === "ready") {
-      actionBtn = `<button class="kds-btn-action kds-btn-served" onclick="changeOrderStatus(${o.id}, 'served')">${window.i18n.t("markServedBtn")}</button>`;
+      actionBtn = `<button class="kds-btn-action kds-btn-served" style="background:#10B981; color:#fff; width:100%;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n.t("markServedBtn")}</button>`;
     } else {
-      actionBtn = `<button class="kds-btn-action kds-btn-start" style="opacity:0.6; pointer-events:none;">${window.i18n.t("statusServed")}</button>`;
+      actionBtn = `<button class="kds-btn-action kds-btn-start" style="opacity:0.85; pointer-events:none; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); width:100%;">✓ ${window.i18n.t("statusServed")}</button>`;
     }
 
     return `
@@ -1859,6 +1896,7 @@ function changeOrderStatus(orderId, newStatus) {
     ord.status = newStatus;
     if (newStatus === "served" || newStatus === "closed" || newStatus === "paid") {
       ord.closedAt = new Date().toISOString();
+      ord.userServed = true;
     }
     if (newStatus === "cancelled") {
       ord.cancelledAt = new Date().toISOString();
@@ -1881,7 +1919,16 @@ function changeOrderStatus(orderId, newStatus) {
     renderKDS();
     renderDashboard();
     renderFloorPlan();
-    showToast(`Comanda #${orderId} aggiornata: ${newStatus.toUpperCase()}`);
+
+    if (newStatus === "served") {
+      triggerKpiBoxPulse();
+      const isFr = window.i18n && window.i18n.currentLang === "fr";
+      showToast(isFr 
+        ? `✅ Commande #${orderId} servie ! Ventes, commandes et panier moyen mis à jour.` 
+        : `✅ Comanda #${orderId} servita! Vendite, comande e scontrino medio aggiornati.`);
+    } else {
+      showToast(`Comanda #${orderId} aggiornata: ${newStatus.toUpperCase()}`);
+    }
   }
 }
 

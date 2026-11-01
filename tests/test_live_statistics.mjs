@@ -132,7 +132,7 @@ runTest('SCENARIO FONDAMENTALE: Registrazione prima vendita reale (2 espresso + 
     isDemo: false,
     table: 'Tavolo 04',
     server: 'Marco Rossi',
-    status: 'prep',
+    status: 'served',
     createdAt: now.toISOString(),
     items: [
       { id: 1, name: 'Espresso', qty: 2, price: 1.50, category: 'coffee' },
@@ -558,6 +558,51 @@ runTest('Rientro nella modalità LIVE dopo logout e login conserva integralmente
   const postLoginStats = window.calculateDashboardStatistics('today');
   assert.strictEqual(postLoginStats.revenue, preLogoutStats.revenue, 'Revenue must be 100% identical post-login');
   assert.strictEqual(postLoginStats.ordersCount, preLogoutStats.ordersCount, 'Orders count must be 100% identical post-login');
+});
+
+// --------------------------------------------------------------------------
+// TEST 21: Transizione dinamica da "prep" a "served" senza ricaricare la pagina
+// Le caselle vendite registrate, comande e scontrino medio si aggiornano istantaneamente
+// --------------------------------------------------------------------------
+runTest('Comanda in preparazione non aumenta il venduto; quando segnata come servita, aggiorna istantaneamente vendite, comande e scontrino medio', () => {
+  const currentBar = window.db.get('activeBar');
+  const baseStats = window.calculateDashboardStatistics('today');
+  const baseRevenue = baseStats.revenue;
+  const baseOrders = baseStats.ordersCount;
+
+  const orders = window.db.get('orders');
+  const pendingOrder = {
+    id: 9901,
+    barId: currentBar.id,
+    isDemo: false,
+    status: 'prep',
+    createdAt: new Date().toISOString(),
+    items: [
+      { id: 1, name: 'Espresso', qty: 2, price: 1.50, category: 'coffee' }
+    ],
+    total: 3.00
+  };
+
+  orders.unshift(pendingOrder);
+  window.db.set('orders', orders);
+
+  // In prep: non deve essere calcolata nelle vendite confermate, ma deve apparire nelle comande recenti
+  const prepStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(prepStats.revenue, baseRevenue, 'In status prep, revenue must not increase prematurely');
+  assert.strictEqual(prepStats.ordersCount, baseOrders, 'In status prep, ordersCount must not increase prematurely');
+  assert(prepStats.recentOrders.some(o => o.id === 9901), 'Order in prep must still appear in recent orders');
+
+  // Transizione a "served" (come quando l'utente preme "Segna come servita")
+  const targetOrder = orders.find(o => o.id === 9901);
+  targetOrder.status = 'served';
+  targetOrder.closedAt = new Date().toISOString();
+  window.db.set('orders', orders);
+
+  const servedStats = window.calculateDashboardStatistics('today');
+  assert.strictEqual(servedStats.revenue, Math.round((baseRevenue + 3.00) * 100) / 100, 'Vendite registrate must increase by 3.00 € upon being served');
+  assert.strictEqual(servedStats.ordersCount, baseOrders + 1, 'Comande count must increase by 1 upon being served');
+  const expectedAvgTicket = Math.round((servedStats.revenue / servedStats.ordersCount) * 100) / 100;
+  assert.strictEqual(servedStats.avgTicket, expectedAvgTicket, 'Scontrino medio must be properly recalculated');
 });
 
 console.log('\n================================================================');
