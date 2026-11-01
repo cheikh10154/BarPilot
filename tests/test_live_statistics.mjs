@@ -604,7 +604,7 @@ runTest('Comanda in preparazione non aumenta il venduto; quando segnata come ser
   const expectedAvgTicket = Math.round((servedStats.revenue / servedStats.ordersCount) * 100) / 100;
   assert.strictEqual(servedStats.avgTicket, expectedAvgTicket, 'Scontrino medio must be properly recalculated');
 
-  // Transizione a "paid" (dopo "Servita", il barman preme "Segna Pagato")
+  // Transizione a "paid" (dopo "Servita", il barman preme "Segna Pagata")
   targetOrder.status = 'paid';
   targetOrder.isPaid = true;
   targetOrder.paidAt = new Date().toISOString();

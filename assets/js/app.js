@@ -1337,13 +1337,13 @@ function renderDashboard() {
         let statusBadgeHtml = "";
 
         if (isPaid) {
-          statusBadgeHtml = `<span class="table-badge badge-paid" style="background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); font-weight:700;">💳 Pagato</span>`;
+          statusBadgeHtml = `<span class="table-badge badge-paid" style="background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); font-weight:700;">💳 Pagata</span>`;
         } else if (s === "served" || s === "servita") {
           statusBadgeHtml = `
             <div style="display:inline-flex; align-items:center; gap:6px;">
               <span class="table-badge badge-served" style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">✓ Servita</span>
               <button type="button" class="btn-mark-paid-badge" onclick="event.stopPropagation(); changeOrderStatus(${ord.id}, 'paid')" title="Comanda servita. Clicca per confermare incasso/pagamento">
-                💳 Segna Pagato
+                💳 Segna Pagata
               </button>
             </div>
           `;
@@ -1904,7 +1904,7 @@ function renderKDS() {
 
       let statusPill = "";
       if (isPaid) {
-        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#3B82F6; color:#fff; letter-spacing:0.3px;">💳 PAGATO</span>`;
+        statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#3B82F6; color:#fff; letter-spacing:0.3px;">💳 PAGATA</span>`;
       } else if (isServed) {
         statusPill = `<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#10B981; color:#fff; letter-spacing:0.3px;">✓ SERVITA (DA SALDARE)</span>`;
       } else if (s === "ready" || s === "pronta") {
@@ -1926,24 +1926,24 @@ function renderKDS() {
           actionBtn = `
             <div style="display:flex; gap:6px; margin-top:10px;">
               <button type="button" class="kds-btn-action kds-btn-served" style="background:#10B981; color:#fff; flex:1.2;" onclick="changeOrderStatus(${o.id}, 'served')">✓ ${window.i18n ? window.i18n.t("markServedBtn") : "Servita"}</button>
-              <button type="button" class="kds-btn-action kds-btn-paid" style="background:#3B82F6; color:#fff; flex:1;" onclick="changeOrderStatus(${o.id}, 'paid')">💳 ${window.i18n ? window.i18n.t("markPaidBtn") : "Pagato"}</button>
+              <button type="button" class="kds-btn-action kds-btn-paid" style="background:#3B82F6; color:#fff; flex:1;" onclick="changeOrderStatus(${o.id}, 'paid')">💳 ${window.i18n ? window.i18n.t("markPaidBtn") : "Pagata"}</button>
             </div>
           `;
         }
       } else {
-        // Dopo il Servita c'è Pagato! Così il barman sa se è pagato o no
+        // Dopo il Servita c'è Pagata! Così il barman sa se è pagata o no
         if (!isPaid) {
           actionBtn = `
             <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
               <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); font-weight:700; font-size:12px;">✓ Servita</span>
-              <button type="button" class="kds-btn-action kds-btn-paid" style="flex:1.3; background:#3B82F6; color:#fff; font-weight:800; box-shadow:0 3px 10px rgba(59,130,246,0.35);" onclick="changeOrderStatus(${o.id}, 'paid')">💳 Segna Pagato</button>
+              <button type="button" class="kds-btn-action kds-btn-paid" style="flex:1.3; background:#3B82F6; color:#fff; font-weight:800; box-shadow:0 3px 10px rgba(59,130,246,0.35);" onclick="changeOrderStatus(${o.id}, 'paid')">💳 Segna Pagata</button>
             </div>
           `;
         } else {
           actionBtn = `
             <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
               <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); font-weight:700; font-size:12px;">✓ Servita</span>
-              <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); border-radius:var(--radius-md); font-weight:800; font-size:12px;">💳 Pagato</span>
+              <span style="flex:1; text-align:center; padding:9px 6px; background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); border-radius:var(--radius-md); font-weight:800; font-size:12px;">💳 Pagata</span>
             </div>
           `;
         }

@@ -227,7 +227,7 @@ const i18nData = {
     startPrepBtn: "Inizia preparazione",
     markReadyBtn: "Segna come pronta",
     markServedBtn: "Segna come servita",
-    markPaidBtn: "Segna come pagato",
+    markPaidBtn: "Segna come pagata",
     kdsItemDone: "Fatto",
 
     // Products & Inventory
@@ -566,7 +566,7 @@ const i18nData = {
     startPrepBtn: "Démarrer préparation",
     markReadyBtn: "Marquer comme prête",
     markServedBtn: "Marquer comme servie",
-    markPaidBtn: "Marquer comme payé",
+    markPaidBtn: "Marquer comme payée",
     kdsItemDone: "Fait",
 
     // Products & Inventory
