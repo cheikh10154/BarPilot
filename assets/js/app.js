@@ -11,74 +11,95 @@ function escapeHtml(str) {
 window.escapeHtml = escapeHtml;
 
 // BarPilot Core Application Logic
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Theme Initialization
-  const currentTheme = localStorage.getItem("barpilot_theme") || "dark";
-  document.documentElement.setAttribute("data-theme", currentTheme);
-  updateThemeButton(currentTheme);
+function initBarPilotApp() {
+  try {
+    // 1. Theme Initialization
+    const currentTheme = localStorage.getItem("barpilot_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    if (typeof updateThemeButton === "function") updateThemeButton(currentTheme);
 
-  // 2. Language Initialization
-  window.i18n.applyTranslations();
+    // 2. Language Initialization
+    if (window.i18n && typeof window.i18n.applyTranslations === "function") {
+      window.i18n.applyTranslations();
+    }
 
-  // Restore saved session details into activeBar
-  if (isUserLoggedIn()) {
-    try {
-      const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-      if (savedUser) {
-        const bar = window.db.get("activeBar");
-        if (savedUser.name) bar.managerName = savedUser.name;
-        if (savedUser.barName) bar.name = savedUser.barName;
-        window.db.set("activeBar", bar);
-      }
-    } catch (e) {}
+    // Restore saved session details into activeBar
+    if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+        if (savedUser && window.db) {
+          const bar = window.db.get("activeBar") || {};
+          if (savedUser.name) bar.managerName = savedUser.name;
+          if (savedUser.barName) bar.name = savedUser.barName;
+          window.db.set("activeBar", bar);
+        }
+      } catch (e) {}
+    }
+
+    // 3. Initialize Active Staff Member
+    if (typeof initActiveStaff === "function") initActiveStaff();
+
+    // 4. Render Initial State
+    if (typeof renderApp === "function") renderApp();
+
+    // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno)
+    if (typeof initLiveDateTime === "function") initLiveDateTime();
+
+    // 4. Setup Event Listeners
+    if (typeof setupNavigation === "function") setupNavigation();
+    if (typeof setupThemeToggle === "function") setupThemeToggle();
+    if (typeof setupLanguageToggle === "function") setupLanguageToggle();
+    if (typeof setupCartEvents === "function") setupCartEvents();
+    if (typeof setupSimulator === "function") setupSimulator();
+    if (typeof setupModals === "function") setupModals();
+
+  } catch (err) {
+    console.error("[BarPilot] Errore avvio:", err);
+  } finally {
+    // 5. Trigger Splash Animation (garantisce sempre l'avvio delle Storie o del flusso)
+    if (typeof initSplashScreen === "function") {
+      initSplashScreen();
+    } else {
+      const sp = document.getElementById("splashScreen");
+      if (sp) sp.classList.add("hidden");
+      if (typeof initStoriesOnboarding === "function") initStoriesOnboarding();
+    }
+    if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
   }
 
-  // 3. Initialize Active Staff Member
-  initActiveStaff();
-
-  // 4. Render Initial State
-  renderApp();
-
-  // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno)
-  initLiveDateTime();
-
-  // 4. Setup Event Listeners
-  setupNavigation();
-  setupThemeToggle();
-  setupLanguageToggle();
-  setupCartEvents();
-  setupSimulator();
-  setupModals();
-
-  // 5. Trigger Splash Animation (no forced checkout popup)
-  initSplashScreen();
-  closeCheckoutModal(true);
   // Direct Link Hash Router & URL Router (e.g. /demo, ?demo=true, #demo)
-  const handleHashRouting = () => {
-    const hash = (window.location.hash || "").toLowerCase();
-    const search = (window.location.search || "").toLowerCase();
-    const pathname = (window.location.pathname || "").toLowerCase();
+  try {
+    const handleHashRouting = () => {
+      const hash = (window.location.hash || "").toLowerCase();
+      const search = (window.location.search || "").toLowerCase();
+      const pathname = (window.location.pathname || "").toLowerCase();
 
-    // Check if demo is requested via URL (/demo, ?demo, #demo)
-    if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html")) {
-      quickLoginDemo();
-      return;
-    }
-
-    if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
-      if (!isDemoMode()) {
-        switchView("subscriptions");
-        setTimeout(() => openCheckoutModal(true), 200);
+      // Check if demo is requested via URL (/demo, ?demo, #demo)
+      if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html") || pathname.includes("demo.tml")) {
+        quickLoginDemo();
+        return;
       }
-    } else if (hash.startsWith("#view-")) {
-      const v = hash.replace("#view-", "");
-      switchView(v);
-    }
-  };
-  handleHashRouting();
-  window.addEventListener("hashchange", handleHashRouting);
 
-});
+      if (hash === "#checkout" || hash === "#abbonamento" || hash === "#paga") {
+        if (!isDemoMode()) {
+          switchView("subscriptions");
+          setTimeout(() => openCheckoutModal(true), 200);
+        }
+      } else if (hash.startsWith("#view-")) {
+        const v = hash.replace("#view-", "");
+        switchView(v);
+      }
+    };
+    handleHashRouting();
+    window.addEventListener("hashchange", handleHashRouting);
+  } catch (e) {}
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBarPilotApp);
+} else {
+  initBarPilotApp();
+}
 
 // App State
 let appState = {
@@ -234,8 +255,16 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isDemoMode() {
   try {
+    const path = (window.location.pathname || "").toLowerCase();
+    if (path.endsWith("demo.html") || path.endsWith("demo.tml") || window.location.search.includes("demo=true") || window.location.hash === "#demo") {
+      return true;
+    }
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
     if (bar && bar.isDemo === false) return false;
+    // Su index.html o root, la modalità demo non deve scavalcare l'onboarding e il login
+    if (path.endsWith("index.html") || path === "" || path.endsWith("/")) {
+      return false;
+    }
     return localStorage.getItem("barpilot_is_demo") === "true";
   } catch (e) {
     return false;
@@ -638,14 +667,14 @@ function updateGreeting(name) {
 window.updateGreeting = updateGreeting;
 
 function renderActiveBar() {
-  const bar = window.db.get("activeBar");
+  const bar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", trialDaysRemaining: 14, managerName: "Marco Rossi" };
   const barNameEl = document.getElementById("activeBarName");
   const barSwitcherText = document.getElementById("barSwitcherText");
   const trialDaysEl = document.getElementById("trialDaysCount");
 
-  if (barNameEl) barNameEl.textContent = bar.name;
-  if (barSwitcherText) barSwitcherText.textContent = bar.name;
-  if (trialDaysEl) trialDaysEl.textContent = bar.trialDaysRemaining;
+  if (barNameEl) barNameEl.textContent = bar.name || "Bar Centrale";
+  if (barSwitcherText) barSwitcherText.textContent = bar.name || "Bar Centrale";
+  if (trialDaysEl) trialDaysEl.textContent = (bar.trialDaysRemaining !== undefined && bar.trialDaysRemaining !== null) ? bar.trialDaysRemaining : 14;
 
   // L'utente attivo nella sidebar e nel saluto riflette currentStaff con il suo ruolo specifico
   if (currentStaff) {
@@ -5977,58 +6006,23 @@ function initSplashScreen() {
   if (!splash) return;
 
   // Ensure checkout modal is closed on start
-  closeCheckoutModal(true);
+  if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
 
   // IN DEMO MODE: Keep demo page 100% free, unblocked, and directly open!
-  if (isDemoMode()) {
+  if (typeof isDemoMode === "function" && isDemoMode()) {
     if (splashTimer) clearTimeout(splashTimer);
     if (splash) splash.classList.add("hidden");
     if (storiesOverlay) storiesOverlay.classList.add("hidden");
     if (authOverlay) authOverlay.classList.add("hidden");
-    closeCheckoutModal(true);
-    closeGooglePlayModal(true);
-    updateDashboardLockState();
+    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
     return;
   }
 
-  // CHECK PERSISTENT SESSION:
-  // If the user is already authenticated and subscribed, keep stories and auth screen HIDDEN!
-  if (isUserLoggedIn() && isUserSubscribed()) {
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-
-    const dismissSplash = () => {
-      if (splashTimer) clearTimeout(splashTimer);
-      splash.classList.add("hidden");
-    };
-
-    if (skipBtn) {
-      skipBtn.addEventListener("click", dismissSplash);
-    }
-
-    // Smooth transition directly to dashboard
-    splashTimer = setTimeout(() => {
-      dismissSplash();
-    }, 1200);
-    return;
-  }
-
-  // LOGGED IN USER BUT NOT YET SUBSCRIBED:
-  // Strict gatekeeping - immediately send to checkout to confirm payment
-  if (isUserLoggedIn() && !isUserSubscribed()) {
-    if (splashTimer) clearTimeout(splashTimer);
-    if (splash) splash.classList.add("hidden");
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-    window.location.href = "/checkout.html";
-    return;
-  }
-
-  // FIRST-TIME OR LOGGED OUT USER:
+  // STANDARD ONBOARDING FLOW FOR INDEX.HTML:
   // After the loading menu splash, launch stories onboarding, then login/register screen!
   const dismissSplash = () => {
     if (splashTimer) clearTimeout(splashTimer);
-    splash.classList.add("hidden");
+    if (splash) splash.classList.add("hidden");
     initStoriesOnboarding();
   };
 
@@ -6051,14 +6045,21 @@ const storyDurationMs = 5000; // 5s per story auto-play
 let storyInterval = null;
 let storyElapsed = 0;
 let isStoryPaused = false;
+let storiesEventsBound = false;
 
 function initStoriesOnboarding() {
   const storiesOverlay = document.getElementById("storiesOverlay");
   if (!storiesOverlay) return;
 
   storiesOverlay.classList.remove("hidden");
+  storiesOverlay.style.display = "flex";
   currentStory = 0;
+  isStoryPaused = false;
   goToStory(0);
+
+  // Bind events once to prevent multiple duplicate listeners
+  if (storiesEventsBound) return;
+  storiesEventsBound = true;
 
   // Setup tap areas
   const tapLeft = document.getElementById("storyTapLeft");
@@ -6067,34 +6068,36 @@ function initStoriesOnboarding() {
   const viewport = document.getElementById("storiesViewport");
 
   if (tapLeft) {
-    tapLeft.onclick = () => {
+    tapLeft.onclick = (e) => {
+      e.stopPropagation();
       goToPrevStory();
     };
   }
 
   if (tapRight) {
-    tapRight.onclick = () => {
+    tapRight.onclick = (e) => {
+      e.stopPropagation();
       goToNextStory();
     };
   }
 
   if (skipBtn) {
-    skipBtn.onclick = () => {
-      finishStoriesAndGoToAuth();
+    skipBtn.onclick = (e) => {
+      e.stopPropagation();
+      finishStoriesAndGoToAuth("login");
     };
   }
 
-  // Hold to pause story
+  // Hold to pause story (with guaranteed release on up/leave/cancel)
   if (viewport) {
-    viewport.addEventListener("pointerdown", () => {
+    viewport.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button") || e.target.closest(".story-skip-btn")) return;
       isStoryPaused = true;
     });
-    viewport.addEventListener("pointerup", () => {
-      isStoryPaused = false;
-    });
-    viewport.addEventListener("pointerleave", () => {
-      isStoryPaused = false;
-    });
+    const resumeStory = () => { isStoryPaused = false; };
+    viewport.addEventListener("pointerup", resumeStory);
+    viewport.addEventListener("pointerleave", resumeStory);
+    viewport.addEventListener("pointercancel", resumeStory);
 
     // Touch swipe left/right
     let touchStartX = 0;
@@ -6131,22 +6134,19 @@ function initStoriesOnboarding() {
 
 function goToStory(index) {
   if (index >= totalStories) {
-    finishStoriesAndGoToAuth();
+    finishStoriesAndGoToAuth("login");
     return;
   }
   if (index < 0) index = 0;
 
   currentStory = index;
   storyElapsed = 0;
+  isStoryPaused = false;
 
-  // Mostra "Salta" solo a partire dalla seconda pagina delle storie (Story 2+)
+  // "Salta" è sempre visibile e cliccabile in qualsiasi storia
   const skipBtn = document.getElementById("btnSkipStories");
   if (skipBtn) {
-    if (currentStory === 0) {
-      skipBtn.style.display = "none";
-    } else {
-      skipBtn.style.display = "inline-flex";
-    }
+    skipBtn.style.display = "inline-flex";
   }
 
   // Move slide track
@@ -6161,8 +6161,6 @@ function goToStory(index) {
     if (fillEl) {
       if (i < currentStory) {
         fillEl.style.width = "100%";
-      } else if (i > currentStory) {
-        fillEl.style.width = "0%";
       } else {
         fillEl.style.width = "0%";
       }
@@ -6191,10 +6189,12 @@ function goToStory(index) {
 }
 
 function goToNextStory() {
+  isStoryPaused = false;
   goToStory(currentStory + 1);
 }
 
 function goToPrevStory() {
+  isStoryPaused = false;
   if (currentStory > 0) {
     goToStory(currentStory - 1);
   } else {
@@ -6202,14 +6202,26 @@ function goToPrevStory() {
   }
 }
 
-function finishStoriesAndGoToAuth() {
-  if (storyInterval) clearInterval(storyInterval);
+function finishStoriesAndGoToAuth(targetTab = "login") {
+  if (storyInterval) {
+    clearInterval(storyInterval);
+    storyInterval = null;
+  }
   const storiesOverlay = document.getElementById("storiesOverlay");
-  if (storiesOverlay) storiesOverlay.classList.add("hidden");
+  if (storiesOverlay) {
+    storiesOverlay.classList.add("hidden");
+    storiesOverlay.style.display = "none";
+  }
 
   // Open authentication & registration screen
-  openAuthScreen();
+  openAuthScreen(targetTab);
 }
+
+window.initStoriesOnboarding = initStoriesOnboarding;
+window.goToStory = goToStory;
+window.goToNextStory = goToNextStory;
+window.goToPrevStory = goToPrevStory;
+window.finishStoriesAndGoToAuth = finishStoriesAndGoToAuth;
 
 // ==========================================================================
 // 3. AUTHENTICATION & REGISTRATION (GOOGLE, FACEBOOK, EMAIL)
@@ -6293,7 +6305,7 @@ function hideAuthError() {
 window.showAuthError = showAuthError;
 window.hideAuthError = hideAuthError;
 
-function openAuthScreen() {
+function openAuthScreen(tab) {
   document.documentElement.classList.remove("user-authenticated");
   const authOverlay = document.getElementById("authOverlay");
   if (authOverlay) {
@@ -6301,7 +6313,11 @@ function openAuthScreen() {
     authOverlay.style.display = "flex";
   }
   hideAuthError();
-  switchAuthTab(currentAuthTab);
+  if (tab && typeof switchAuthTab === "function") {
+    switchAuthTab(tab);
+  } else if (typeof switchAuthTab === "function") {
+    switchAuthTab(currentAuthTab || 'login');
+  }
 }
 
 function closeAuthScreen() {
@@ -6312,6 +6328,9 @@ function closeAuthScreen() {
   }
   hideAuthError();
 }
+
+window.openAuthScreen = openAuthScreen;
+window.closeAuthScreen = closeAuthScreen;
 
 let currentCredMode = 'password';
 

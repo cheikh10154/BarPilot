@@ -44,6 +44,31 @@
     </div>
   </div>
 
+  <script>
+    // Fail-safe di emergenza per lo Splash Screen:
+    // garantisce che dopo massimo 1.5 secondi l'overlay di caricamento sia SEMPRE rimosso
+    // e che vengano avviate le Storie
+    setTimeout(function() {
+      try {
+        var sp = document.getElementById("splashScreen");
+        if (sp && !sp.classList.contains("hidden")) {
+          sp.classList.add("hidden");
+        }
+        var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
+        var stories = document.getElementById("storiesOverlay");
+        var auth = document.getElementById("authOverlay");
+        if (!isDemo && stories && stories.classList.contains("hidden") && auth && auth.classList.contains("hidden")) {
+          if (typeof initStoriesOnboarding === "function") {
+            initStoriesOnboarding();
+          } else {
+            stories.classList.remove("hidden");
+            stories.style.display = "flex";
+          }
+        }
+      } catch (_) {}
+    }, 1500);
+  </script>
+
   <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->
   <div class="stories-overlay hidden" id="storiesOverlay">
     <div class="stories-viewport" id="storiesViewport">
@@ -213,7 +238,7 @@
           </div>
           <div class="story-action-bottom" style="display:flex; flex-direction:column; gap:8px;">
             <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#10B981; box-shadow:0 6px 20px rgba(16,185,129,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
-            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
+            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth('register')" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
           </div>
         </div>
 

@@ -2334,6 +2334,9 @@ html.user-authenticated #authOverlay {
 
 .story-slide {
   min-width: 100%;
+  width: 100%;
+  flex-shrink: 0;
+  flex-grow: 0;
   height: 100%;
   padding: 80px 24px 28px;
   display: flex;
@@ -2483,7 +2486,8 @@ html.user-authenticated #authOverlay {
 
 .story-action-bottom {
   margin-top: 18px;
-  z-index: 25;
+  position: relative;
+  z-index: 30;
 }
 
 .btn-story-next {
