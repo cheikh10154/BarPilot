@@ -343,13 +343,6 @@ class BarPilotSupabaseClient {
           redirect_to: options.redirectTo || `${window.location.origin}/index.html`
         })
       });
-        method: "POST",
-        headers: this.getHeaders(false),
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          redirect_to: options.redirectTo || `${window.location.origin}/reset-password`
-        })
-      });
 
       const data = await res.json();
       if (!res.ok) {

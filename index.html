@@ -257,7 +257,7 @@
       </div>
 
       <!-- Login Form (Email Mode) -->
-      <form id="authEmailForm" onsubmit="handleAuthSubmit(event)">
+      <form id="authEmailForm" novalidate onsubmit="handleAuthSubmit(event); return false;">
         <!-- Bar, Owner, City & Phone fields (for Registration only) -->
         <div id="registerExtraFields" style="display:none;">
           <div class="form-group">
@@ -338,7 +338,7 @@
           <label for="authRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
         </div>
 
-        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
+        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" onclick="handleAuthSubmit(event)" data-i18n="submitLogin">
           Accedi al gestionale
         </button>
       </form>

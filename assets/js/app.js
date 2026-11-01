@@ -6447,6 +6447,13 @@ function showAuthError(msg) {
   if (errText) errText.innerHTML = textToDisplay;
   if (errBox) {
     errBox.style.display = "flex";
+    try {
+      errBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_) {}
+  }
+  if (typeof window.showToast === "function") {
+    const plainText = textToDisplay.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
+    window.showToast(plainText.length > 100 ? plainText.substring(0, 100) + "..." : plainText);
   }
 }
 
@@ -6697,11 +6704,20 @@ async function sendWelcomeEmail({ email, ownerName, barName, city, phone }) {
 }
 window.sendWelcomeEmail = sendWelcomeEmail;
 
+let isAuthSubmitting = false;
+
 async function handleAuthSubmit(e) {
-  e.preventDefault();
+  if (e) {
+    try { e.preventDefault(); } catch (_) {}
+    try { e.stopPropagation(); } catch (_) {}
+  }
+  if (isAuthSubmitting) return;
+  isAuthSubmitting = true;
   hideAuthError();
-  const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
-  const credential = (document.getElementById("authPassword")?.value || "").trim();
+
+  try {
+    const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
+    const credential = (document.getElementById("authPassword")?.value || "").trim();
 
   if (!email || !credential) {
     showAuthError(window.i18n.currentLang === 'it' 
@@ -7255,8 +7271,19 @@ async function handleAuthSubmit(e) {
       return;
     }
     switchView("dashboard");
+  } catch (err) {
+    console.error("[Auth] Errore imprevisto handleAuthSubmit:", err);
+    const submitBtnEmail = document.getElementById("authSubmitBtn");
+    if (submitBtnEmail) {
+      submitBtnEmail.disabled = false;
+      submitBtnEmail.innerHTML = currentAuthTab === 'register' ? "Crea un bar e attiva 14 giorni di prova" : "Accedi al gestionale";
+    }
+    showAuthError("Si è verificato un errore durante l'autenticazione. Riprova.");
+  } finally {
+    isAuthSubmitting = false;
   }
 }
+window.handleAuthSubmit = handleAuthSubmit;
 
 function quickLoginDemo() {
   hideAuthError();
