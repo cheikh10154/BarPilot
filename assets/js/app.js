@@ -234,7 +234,9 @@ function setupNavigation() {
       const modal = document.getElementById("barModalOverlay");
       if (modal) modal.classList.remove("active");
       closeLogoutModal();
-      closeAuthScreen();
+      if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+        closeAuthScreen();
+      }
     }
   });
 
@@ -257,8 +259,16 @@ function setupNavigation() {
 // --------------------------------------------------------------------------
 function isDemoMode() {
   try {
+    const path = (window.location.pathname || "").toLowerCase();
+    if (path.endsWith("demo.html") || path.endsWith("demo.tml") || window.location.search.includes("demo=true")) {
+      return true;
+    }
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
     if (bar && bar.isDemo === false) return false;
+    // Su index.html o root, la modalità demo non deve scavalcare l'onboarding e il login
+    if (path.endsWith("index.html") || path === "" || path.endsWith("/")) {
+      return false;
+    }
     return localStorage.getItem("barpilot_is_demo") === "true";
   } catch (e) {
     return false;
@@ -5773,12 +5783,14 @@ function setupModals() {
     });
   }
 
-  // Click outside auth card on auth backdrop closes it
+  // Click outside auth card on auth backdrop closes it only if user is already logged in
   const authOverlay = document.getElementById("authOverlay");
   if (authOverlay) {
     authOverlay.addEventListener("click", (e) => {
       if (e.target === authOverlay) {
-        closeAuthScreen();
+        if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+          closeAuthScreen();
+        }
       }
     });
   }
@@ -6169,35 +6181,11 @@ function initSplashScreen() {
     return;
   }
 
-  // CHECK PERSISTENT SESSION:
-  // If the user is authenticated, dismiss splash and open the dashboard!
-  if (isUserLoggedIn()) {
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-
-    const dismissSplash = () => {
-      if (splashTimer) clearTimeout(splashTimer);
-      if (splash) splash.classList.add("hidden");
-      if (typeof updateDashboardLockState === "function") updateDashboardLockState();
-      if (typeof switchView === "function") switchView("dashboard");
-    };
-
-    if (skipBtn) {
-      skipBtn.addEventListener("click", dismissSplash);
-    }
-
-    // Smooth transition directly to dashboard (1s)
-    splashTimer = setTimeout(() => {
-      dismissSplash();
-    }, 1000);
-    return;
-  }
-
-  // FIRST-TIME OR LOGGED OUT USER:
+  // STANDARD ONBOARDING FLOW FOR INDEX.HTML:
   // After the loading menu splash, launch stories onboarding, then login/register screen!
   const dismissSplash = () => {
     if (splashTimer) clearTimeout(splashTimer);
-    splash.classList.add("hidden");
+    if (splash) splash.classList.add("hidden");
     initStoriesOnboarding();
   };
 
@@ -6308,14 +6296,10 @@ function goToStory(index) {
   currentStory = index;
   storyElapsed = 0;
 
-  // Mostra "Salta" solo a partire dalla seconda pagina delle storie (Story 2+)
+  // Mostra "Salta" sempre visibile e cliccabile in qualsiasi storia
   const skipBtn = document.getElementById("btnSkipStories");
   if (skipBtn) {
-    if (currentStory === 0) {
-      skipBtn.style.display = "none";
-    } else {
-      skipBtn.style.display = "inline-flex";
-    }
+    skipBtn.style.display = "inline-flex";
   }
 
   // Move slide track

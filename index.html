@@ -47,11 +47,22 @@
   <script>
     // Fail-safe di emergenza per lo Splash Screen:
     // garantisce che dopo massimo 1.5 secondi l'overlay di caricamento sia SEMPRE nascosto
+    // e che vengano mostrate le Storie di onboarding
     setTimeout(function() {
       try {
         var sp = document.getElementById("splashScreen");
         if (sp && !sp.classList.contains("hidden")) {
           sp.classList.add("hidden");
+        }
+        var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
+        var stories = document.getElementById("storiesOverlay");
+        var auth = document.getElementById("authOverlay");
+        if (!isDemo && stories && stories.classList.contains("hidden") && auth && auth.classList.contains("hidden")) {
+          if (typeof initStoriesOnboarding === "function") {
+            initStoriesOnboarding();
+          } else {
+            stories.classList.remove("hidden");
+          }
         }
       } catch (_) {}
     }, 1500);
