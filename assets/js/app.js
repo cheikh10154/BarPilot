@@ -6697,8 +6697,14 @@ async function handleAuthSubmit(e) {
         : "✅ Bar enregistré et email de bienvenue envoyé avec succès !");
     }
 
-    // DOPO LA REGISTRAZIONE: mostra la pagina dell'offerta BarPilot Pro (pro.html)
-    window.location.href = "/pro.html";
+    // DOPO LA REGISTRAZIONE: reindirizza alla pagina index.html per accedere al gestionale reale
+    const currentPath = (window.location.pathname || "").toLowerCase();
+    if (currentPath.endsWith("demo.html") || currentPath.endsWith("demo.tml") || (!currentPath.endsWith("index.html") && currentPath !== "/" && !currentPath.endsWith("/"))) {
+      window.location.href = "index.html#view-dashboard";
+      return;
+    } else {
+      switchView("dashboard");
+    }
   } else {
     // 3. ACCESSO AL GESTIONALE: Verifica delle credenziali nel database (Locale & Supabase)
     const submitBtnEmail = document.getElementById("authSubmitBtn");
@@ -6944,7 +6950,6 @@ async function handleAuthSubmit(e) {
     });
     closeAuthScreen();
     renderApp();
-    switchView("dashboard");
 
     showToast(window.i18n.currentLang === 'it'
       ? (isOwner 
@@ -6953,6 +6958,14 @@ async function handleAuthSubmit(e) {
       : (isOwner 
           ? `👑 Bienvenue ${personName}, accès Propriétaire.` 
           : `👤 Connexion réussie en tant que ${role} : Bienvenue ${personName} !`));
+
+    // ACCESSO AL GESTIONALE: reindirizza sempre alla pagina index.html
+    const curPath = (window.location.pathname || "").toLowerCase();
+    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || (!curPath.endsWith("index.html") && curPath !== "/" && !curPath.endsWith("/"))) {
+      window.location.href = "index.html#view-dashboard";
+      return;
+    }
+    switchView("dashboard");
   }
 }
 
@@ -6961,6 +6974,14 @@ function quickLoginDemo() {
   localStorage.setItem("barpilot_is_demo", "true");
   localStorage.setItem("barpilot_is_subscribed", "true");
   localStorage.setItem("barpilot_is_logged_in", "true");
+  sessionStorage.setItem("barpilot_demo_active", "true");
+
+  // Reindirizza chi preme su "Entra con Bar Centrale (Demo)" su /demo.html
+  const currentPath = (window.location.pathname || "").toLowerCase();
+  if (!currentPath.endsWith("demo.html") && !currentPath.endsWith("demo.tml")) {
+    window.location.href = "demo.html";
+    return;
+  }
 
   closeCheckoutModal(true);
   closeGooglePlayModal(true);
