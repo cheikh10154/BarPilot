@@ -4172,15 +4172,19 @@ function confirmDeleteStaffAction() {
 
 
 // --------------------------------------------------------------------------
-// Password Recovery Controller (Supabase Auth)
+// Password Recovery & Email Activation Controller (Supabase Auth)
 // --------------------------------------------------------------------------
-function openPasswordRecoveryModal() {
+function openPasswordRecoveryModal(prefillEmail) {
   const modal = document.getElementById("passwordRecoveryModal");
   if (modal) {
     const emailField = document.getElementById("authEmail");
     const recInput = document.getElementById("recoveryEmailInput");
-    if (recInput && emailField && emailField.value) {
-      recInput.value = emailField.value;
+    if (recInput) {
+      if (prefillEmail) {
+        recInput.value = prefillEmail;
+      } else if (emailField && emailField.value) {
+        recInput.value = emailField.value.trim();
+      }
     }
     modal.classList.add("active");
   }
@@ -4198,27 +4202,148 @@ async function handlePasswordRecoverySubmit(e) {
   if (!email) return;
 
   const btn = document.getElementById("recoverySubmitBtn");
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px; vertical-align:middle;"></span> Invio...`;
+  }
 
   try {
+    const currentOrigin = window.location.origin;
+    const currentPath = window.location.pathname.replace(/\/+$/, "") || "/index.html";
+    const redirectUrl = `${currentOrigin}${currentPath}`;
+
     if (window.supabase && window.supabase.auth) {
-      await window.supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/reset-password"
+      const res = await window.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
       });
+      if (res && res.error) {
+        console.warn("[Password Recovery] Errore Supabase:", res.error);
+      }
     }
     closePasswordRecoveryModal();
-    showToast(`✉️ Link di recupero inviato con successo a ${email}! Controlla la tua posta.`);
+    showToast(`✉️ Se l'email ${email} è presente nei nostri archivi, riceverai a breve il link per reimpostare la tua password.`);
   } catch (err) {
     showToast("⚠️ Impossibile inviare il link di recupero al momento. Riprova più tardi.");
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = "Invia Link →";
+    }
   }
+}
+
+async function resendConfirmationEmail(email) {
+  const targetEmail = (email || document.getElementById("authEmail")?.value || "").trim().toLowerCase();
+  if (!targetEmail) {
+    if (window.showToast) window.showToast("⚠️ Inserisci prima il tuo indirizzo email.");
+    return;
+  }
+
+  if (window.showToast) window.showToast(`📩 Invio link di conferma a ${targetEmail}...`);
+
+  try {
+    if (window.supabase && typeof window.supabase.resendConfirmationEmail === "function") {
+      const res = await window.supabase.resendConfirmationEmail(targetEmail);
+      if (res && res.error) {
+        const msg = (res.error.message || "").toLowerCase();
+        if (msg.includes("rate limit") || res.error.code === "over_email_send_rate_limit" || res.error.status === 429) {
+          if (window.showToast) window.showToast("⏳ Limite di sicurezza Supabase per l'invio email raggiunto. Attendi qualche minuto prima di riprovare.");
+        } else {
+          if (window.showToast) window.showToast(`⚠️ Impossibile inviare l'email: ${res.error.message || "Errore sconosciuto"}`);
+        }
+      } else {
+        if (window.showToast) window.showToast(`✉️ Link di conferma inviato a ${targetEmail}! Controlla la posta (anche la cartella Spam).`);
+      }
+    } else {
+      if (window.showToast) window.showToast(`✉️ Email di attivazione inviata a ${targetEmail}.`);
+    }
+  } catch (err) {
+    console.warn("[Resend Confirmation] Errore:", err);
+    if (window.showToast) window.showToast("⚠️ Errore durante l'invio dell'email. Riprova tra poco.");
+  }
+}
+
+function openNewPasswordModal(email) {
+  const modal = document.getElementById("newPasswordModal");
+  if (modal) {
+    const emailInfo = document.getElementById("newPasswordEmailDisplay");
+    if (emailInfo) emailInfo.textContent = email || "";
+    modal.classList.add("active");
+  }
+}
+
+function closeNewPasswordModal() {
+  const modal = document.getElementById("newPasswordModal");
+  if (modal) modal.classList.remove("active");
+}
+
+async function handleNewPasswordSubmit(e) {
+  e.preventDefault();
+  const p1 = (document.getElementById("newPasswordInput")?.value || "").trim();
+  const p2 = (document.getElementById("confirmNewPasswordInput")?.value || "").trim();
+  const btn = document.getElementById("saveNewPasswordBtn");
+
+  if (!p1 || !p2) {
+    if (window.showToast) window.showToast("⚠️ Inserisci e conferma la nuova password.");
+    return;
+  }
+
+  if (p1 !== p2) {
+    if (window.showToast) window.showToast("⚠️ Le password inserite non coincidono.");
+    return;
+  }
+
+  if (p1.length < 8) {
+    if (window.showToast) window.showToast("⚠️ La password deve contenere almeno 8 caratteri.");
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Salvataggio...";
+  }
+
+  try {
+    if (window.supabase && typeof window.supabase.updateUser === "function") {
+      const res = await window.supabase.updateUser({ password: p1 });
+      if (res && res.error) {
+        if (window.showToast) window.showToast(`⚠️ Errore aggiornamento password: ${res.error.message || "Riprova"}`);
+        return;
+      }
+    }
+
+    closeNewPasswordModal();
+    if (window.showToast) window.showToast("🎉 Nuova password salvata con successo! Ora puoi accedere.");
+    if (typeof window.openAuthScreen === "function") window.openAuthScreen("login");
+  } catch (err) {
+    if (window.showToast) window.showToast("⚠️ Impossibile salvare la password al momento.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Salva Nuova Password";
+    }
+  }
+}
+
+function switchToLoginWithEmail(email) {
+  if (typeof switchAuthTab === "function") switchAuthTab("login");
+  const emailInput = document.getElementById("authEmail");
+  if (emailInput && email) {
+    emailInput.value = email;
+  }
+  const passInput = document.getElementById("authPassword");
+  if (passInput) passInput.focus();
 }
 
 // Global Exports
 window.openPasswordRecoveryModal = openPasswordRecoveryModal;
 window.closePasswordRecoveryModal = closePasswordRecoveryModal;
 window.handlePasswordRecoverySubmit = handlePasswordRecoverySubmit;
+window.resendConfirmationEmail = resendConfirmationEmail;
+window.openNewPasswordModal = openNewPasswordModal;
+window.closeNewPasswordModal = closeNewPasswordModal;
+window.handleNewPasswordSubmit = handleNewPasswordSubmit;
+window.switchToLoginWithEmail = switchToLoginWithEmail;
 window.openDeleteStaffModal = openDeleteStaffModal;
 window.closeDeleteStaffModal = closeDeleteStaffModal;
 window.confirmDeleteStaffAction = confirmDeleteStaffAction;
@@ -6252,33 +6377,47 @@ function getDatabaseUsers() {
     }
   }
 
-  // Merge with localStorage registered users if any
+  // Merge with localStorage registered users if any, updating existing records
   try {
     const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
-    regList.forEach(ru => {
-      const exists = dbUsers.some(u => {
-        if (ru.type === "email" && u.type === "email" && ru.email && u.email) {
-          return ru.email.toLowerCase().trim() === u.email.toLowerCase().trim();
+    if (Array.isArray(regList)) {
+      regList.forEach(ru => {
+        if (!ru || !ru.email) return;
+        const ruEmail = ru.email.toLowerCase().trim();
+        const existingIdx = dbUsers.findIndex(u => u.email && u.email.toLowerCase().trim() === ruEmail);
+        if (existingIdx >= 0) {
+          dbUsers[existingIdx] = { ...dbUsers[existingIdx], ...ru };
+        } else {
+          dbUsers.push(ru);
         }
-        return false;
       });
-      if (!exists) {
-        dbUsers.push(ru);
-      }
-    });
+    }
   } catch (e) {}
 
   return dbUsers;
 }
 
 function saveUserToDatabase(userObj) {
+  if (!userObj || !userObj.email) return;
+  const emailNorm = userObj.email.toLowerCase().trim();
   const users = getDatabaseUsers();
-  users.push(userObj);
+  const existingIdx = users.findIndex(u => u.email && u.email.toLowerCase().trim() === emailNorm);
+  if (existingIdx >= 0) {
+    users[existingIdx] = { ...users[existingIdx], ...userObj };
+  } else {
+    users.push(userObj);
+  }
   window.db.set("users", users);
 
   try {
-    const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
-    regList.push(userObj);
+    let regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+    if (!Array.isArray(regList)) regList = [];
+    const regIdx = regList.findIndex(u => u.email && u.email.toLowerCase().trim() === emailNorm);
+    if (regIdx >= 0) {
+      regList[regIdx] = { ...regList[regIdx], ...userObj };
+    } else {
+      regList.push(userObj);
+    }
     localStorage.setItem("barpilot_registered_users", JSON.stringify(regList));
   } catch (e) {}
 }
@@ -6291,7 +6430,7 @@ function showAuthError(msg) {
     : "Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.";
 
   const textToDisplay = msg || defaultMsg;
-  if (errText) errText.textContent = textToDisplay;
+  if (errText) errText.innerHTML = textToDisplay;
   if (errBox) {
     errBox.style.display = "flex";
   }
@@ -6656,8 +6795,8 @@ async function handleAuthSubmit(e) {
               submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
             }
             showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-              ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données. Cliquez sur 'Connexion'."
-              : "⚠️ Un account con questa email è già registrato nel database! Clicca su 'Accedi' per entrare con la tua password.");
+              ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:600; padding:6px 12px;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border-radius:6px; padding:6px 12px;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Renvoyer la confirmation</button></div>`
+              : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
             return;
           }
         }
@@ -6670,8 +6809,8 @@ async function handleAuthSubmit(e) {
             submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
           }
           showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-            ? "⚠️ Un compte avec cette adresse email existe déjà dans la base de données. Cliquez sur 'Connexion'."
-            : "⚠️ Questo indirizzo email è già registrato nel database. Seleziona 'Accedi' per entrare con la tua password.");
+            ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:600; padding:6px 12px;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border-radius:6px; padding:6px 12px;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Renvoyer la confirmation</button></div>`
+            : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
           return;
         }
 
@@ -6907,6 +7046,7 @@ async function handleAuthSubmit(e) {
       }
 
       // 2. Se non corrisponde localmente, autentica direttamente con il database Supabase!
+      let sbAuthError = null;
       if (!isValid && window.supabase && window.supabase.auth) {
         try {
           console.log("[Supabase] Tentativo di verifica credenziali su Supabase per:", emailNormalized);
@@ -6948,10 +7088,12 @@ async function handleAuthSubmit(e) {
             if (meta.plan) currentActiveBar.plan = meta.plan;
             window.db.set("activeBar", currentActiveBar);
           } else if (authRes && authRes.error) {
-            console.warn("[Supabase] Credenziali non valide su Supabase:", authRes.error.message);
+            sbAuthError = authRes.error;
+            console.warn("[Supabase] Credenziali non valide o errore Supabase:", authRes.error);
           }
         } catch (sbErr) {
           console.warn("[Supabase] Errore verifica credenziali Supabase:", sbErr);
+          sbAuthError = sbErr;
         }
       }
     }
@@ -6962,7 +7104,16 @@ async function handleAuthSubmit(e) {
     }
 
     if (!isValid || !userFound) {
-      showAuthError("Le credenziali fornite non sono corrette o l'account non esiste nel database. Controlla email e password.");
+      const errMsg = (sbAuthError?.message || sbAuthError?.error_description || "").toLowerCase();
+      const errCode = sbAuthError?.code || "";
+
+      if (errMsg.includes("email not confirmed") || errCode === "email_not_confirmed") {
+        showAuthError(`⚠️ L'indirizzo email <strong>${emailNormalized}</strong> è registrato ma non è ancora stato confermato.<br><span style="font-size:12.5px; opacity:0.9; display:block; margin:6px 0 10px 0;">Per motivi di sicurezza, Supabase richiede di confermare l'email prima di accedere. Controlla la tua casella di posta (inclusa la cartella <strong>Spam / Posta Indesiderata</strong>).</span><div style="display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#FF7A00; color:#fff; font-weight:700; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
+      } else if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
+        showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Attendi qualche minuto prima di richiedere un altro link.`);
+      } else {
+        showAuthError(`Le credenziali fornite non sono corrette oppure l'email non è stata ancora confermata.<br><span style="font-size:12px; opacity:0.85; display:block; margin:6px 0 10px 0;">Controlla email e password. Se ti sei registrato di recente, verifica prima la tua casella di posta per confermare l'account.</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia link di conferma</button><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="openPasswordRecoveryModal('${emailNormalized}')">🔑 Password dimenticata?</button></div>`);
+      }
       return;
     }
 

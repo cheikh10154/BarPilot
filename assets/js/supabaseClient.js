@@ -45,6 +45,7 @@ class BarPilotSupabaseClient {
       const refreshToken = params.get("refresh_token");
       const expiresIn = params.get("expires_in");
       const tokenType = params.get("token_type") || "bearer";
+      const authType = params.get("type"); // "signup", "recovery", "email_change", etc.
 
       if (accessToken) {
         if (window.history && window.history.replaceState) {
@@ -68,17 +69,61 @@ class BarPilotSupabaseClient {
             user
           };
           localStorage.setItem("barpilot_supabase_session", JSON.stringify(this.session));
-          console.log("[SupabaseAuth] OAuth session established for:", user.email);
+          console.log("[SupabaseAuth] Session established for:", user.email, "type:", authType);
 
-          const fullName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split("@")[0] : "Utente Google");
-          const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=4285F4&color=fff`;
+          const fullName = user.user_metadata?.owner_name || user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split("@")[0] : "Utente");
+          const barName = user.user_metadata?.bar_name || "Il Mio Bar";
+          const city = user.user_metadata?.city || "Roma";
+          const vat = user.user_metadata?.vat_number || user.user_metadata?.piva || "";
+          const phone = user.user_metadata?.phone || "";
 
-          if (window.googleAuth && typeof window.googleAuth.loginWithGoogleProfile === "function") {
-            window.googleAuth.loginWithGoogleProfile({
-              name: fullName,
-              email: user.email,
-              picture: avatarUrl
-            });
+          // Se è recovery (reimpostazione password da link email)
+          if (authType === "recovery") {
+            if (typeof window.openNewPasswordModal === "function") {
+              window.openNewPasswordModal(user.email);
+            }
+            return;
+          }
+
+          // Se è signup / conferma email completata da link email
+          const userObj = {
+            id: "usr_sb_" + user.id,
+            supabaseId: user.id,
+            type: "email",
+            email: user.email.toLowerCase().trim(),
+            name: fullName,
+            barName: barName,
+            vat: vat,
+            piva: vat,
+            city: city,
+            phone: phone,
+            role: "Proprietario"
+          };
+
+          if (typeof window.saveUserToDatabase === "function") {
+            window.saveUserToDatabase(userObj);
+          }
+
+          if (typeof window.setUserLoggedIn === "function") {
+            window.setUserLoggedIn(true, userObj);
+          }
+
+          if (window.db) {
+            const bar = window.db.get("activeBar") || {};
+            bar.name = barName;
+            bar.city = city;
+            bar.vat = vat;
+            bar.managerName = fullName;
+            bar.managerEmail = user.email.toLowerCase().trim();
+            bar.isDemo = false;
+            window.db.set("activeBar", bar);
+          }
+
+          if (typeof window.closeAuthScreen === "function") window.closeAuthScreen();
+          if (typeof window.renderApp === "function") window.renderApp();
+          if (typeof window.switchView === "function") window.switchView("dashboard");
+          if (typeof window.showToast === "function") {
+            window.showToast("🎉 Email confermata con successo! Accesso completato.");
           }
         }
       }
@@ -152,7 +197,13 @@ class BarPilotSupabaseClient {
 
       const data = await res.json();
       if (!res.ok) {
-        return { data: null, error: new Error(data.error_description || data.msg || data.message || "Errore di accesso") };
+        const errorDesc = data.error_description || data.msg || data.message || "Errore di accesso";
+        const errorCode = data.error_code || data.code || data.error || "";
+        const err = new Error(errorDesc);
+        err.code = errorCode;
+        err.status = res.status;
+        err.raw = data;
+        return { data: null, error: err };
       }
 
       this.session = data;
@@ -178,25 +229,36 @@ class BarPilotSupabaseClient {
     }
 
     try {
+      const payload = {
+        email: email.trim().toLowerCase(),
+        password,
+        data: options?.data || {}
+      };
+
       const res = await fetch(`${this.url}/auth/v1/signup`, {
         method: "POST",
         headers: this.getHeaders(false),
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-          data: options?.data || {}
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
       if (!res.ok) {
-        return { data: null, error: new Error(data.error_description || data.msg || data.message || "Errore di registrazione") };
+        const errorDesc = data.error_description || data.msg || data.message || "Errore di registrazione";
+        const errorCode = data.error_code || data.code || data.error || "";
+        const err = new Error(errorDesc);
+        err.code = errorCode;
+        err.status = res.status;
+        err.raw = data;
+        return { data: null, error: err };
       }
 
       // Supabase restituisce un array 'identities' vuoto se l'utente risulta già registrato
       const userIdentities = data?.user?.identities || data?.identities;
       if (Array.isArray(userIdentities) && userIdentities.length === 0) {
-        return { data: null, error: new Error("User already registered") };
+        const err = new Error("User already registered");
+        err.code = "user_already_exists";
+        err.status = 400;
+        return { data: null, error: err };
       }
 
       if (data.access_token) {
@@ -210,7 +272,66 @@ class BarPilotSupabaseClient {
     }
   }
 
-  // 4. Password Recovery Request
+  // 4. Resend Confirmation Email
+  async resendConfirmationEmail(email) {
+    if (!this.isConfigured) return { data: {}, error: null };
+    try {
+      const res = await fetch(`${this.url}/auth/v1/resend`, {
+        method: "POST",
+        headers: this.getHeaders(false),
+        body: JSON.stringify({
+          type: "signup",
+          email: email.trim().toLowerCase(),
+          options: {
+            email_redirect_to: `${window.location.origin}/index.html`
+          }
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const errorDesc = data.error_description || data.msg || data.message || "Errore invio email di conferma";
+        const err = new Error(errorDesc);
+        err.code = data.error_code || data.code || "";
+        err.status = res.status;
+        return { data: null, error: err };
+      }
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  }
+
+  // 5. Verify OTP Code
+  async verifyOtp(email, token, type = "signup") {
+    if (!this.isConfigured) return { data: {}, error: null };
+    try {
+      const res = await fetch(`${this.url}/auth/v1/verify`, {
+        method: "POST",
+        headers: this.getHeaders(false),
+        body: JSON.stringify({
+          type,
+          token: token.trim(),
+          email: email.trim().toLowerCase()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const errorDesc = data.error_description || data.msg || data.message || "Codice di verifica non valido";
+        const err = new Error(errorDesc);
+        err.code = data.error_code || data.code || "";
+        return { data: null, error: err };
+      }
+      if (data.access_token) {
+        this.session = data;
+        localStorage.setItem("barpilot_supabase_session", JSON.stringify(data));
+      }
+      return { data: { user: data.user, session: data }, error: null };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  }
+
+  // 6. Password Recovery Request
   async resetPasswordForEmail(email, options = {}) {
     if (!this.isConfigured) {
       return { data: {}, error: null };
@@ -222,7 +343,7 @@ class BarPilotSupabaseClient {
         headers: this.getHeaders(false),
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          redirect_to: options.redirectTo || `${window.location.origin}/reset-password`
+          redirect_to: options.redirectTo || `${window.location.origin}/index.html`
         })
       });
 
@@ -353,6 +474,8 @@ window.supabase.auth = {
   signInWithOAuth: (opts) => window.supabase.signInWithOAuth(opts),
   signInWithPassword: (creds) => window.supabase.signInWithPassword(creds),
   signUp: (creds) => window.supabase.signUp(creds),
+  resendConfirmationEmail: (email) => window.supabase.resendConfirmationEmail(email),
+  verifyOtp: (opts) => window.supabase.verifyOtp(opts?.email, opts?.token, opts?.type),
   resetPasswordForEmail: (email, opts) => window.supabase.resetPasswordForEmail(email, opts),
   updateUser: (updates) => window.supabase.updateUser(updates),
   signOut: () => window.supabase.signOut(),
