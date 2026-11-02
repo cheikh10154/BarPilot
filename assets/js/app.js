@@ -232,7 +232,9 @@ function setupNavigation() {
       const modal = document.getElementById("barModalOverlay");
       if (modal) modal.classList.remove("active");
       closeLogoutModal();
-      closeAuthScreen();
+      if (localStorage.getItem("barpilot_is_logged_in") === "true") {
+        closeAuthScreen();
+      }
     }
   });
 
@@ -5898,12 +5900,13 @@ function setupModals() {
     });
   }
 
-  // Click outside auth card on auth backdrop closes it
+  // Click outside auth card: non fa niente (la schermata di login/registrazione non si chiude)
   const authOverlay = document.getElementById("authOverlay");
   if (authOverlay) {
     authOverlay.addEventListener("click", (e) => {
       if (e.target === authOverlay) {
-        closeAuthScreen();
+        e.preventDefault();
+        e.stopPropagation();
       }
     });
   }
