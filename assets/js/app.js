@@ -4172,22 +4172,12 @@ function confirmDeleteStaffAction() {
 
 
 // --------------------------------------------------------------------------
-// Password Recovery & Email Activation Controller (Supabase Auth)
+// Password Recovery & Email Activation Controller (Supabase Auth & Direct Reset)
 // --------------------------------------------------------------------------
 function openPasswordRecoveryModal(prefillEmail) {
-  const modal = document.getElementById("passwordRecoveryModal");
-  if (modal) {
-    const emailField = document.getElementById("authEmail");
-    const recInput = document.getElementById("recoveryEmailInput");
-    if (recInput) {
-      if (prefillEmail) {
-        recInput.value = prefillEmail;
-      } else if (emailField && emailField.value) {
-        recInput.value = emailField.value.trim();
-      }
-    }
-    modal.classList.add("active");
-  }
+  const emailField = document.getElementById("authEmail");
+  const targetEmail = (prefillEmail || (emailField ? emailField.value.trim() : "")).toLowerCase();
+  openNewPasswordModal(targetEmail);
 }
 
 function closePasswordRecoveryModal() {
@@ -4196,40 +4186,13 @@ function closePasswordRecoveryModal() {
 }
 
 async function handlePasswordRecoverySubmit(e) {
-  e.preventDefault();
+  if (e && typeof e.preventDefault === "function") e.preventDefault();
   const input = document.getElementById("recoveryEmailInput");
   const email = input ? input.value.trim().toLowerCase() : "";
   if (!email) return;
 
-  const btn = document.getElementById("recoverySubmitBtn");
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px; vertical-align:middle;"></span> Invio...`;
-  }
-
-  try {
-    const currentOrigin = window.location.origin;
-    const currentPath = window.location.pathname.replace(/\/+$/, "") || "/index.html";
-    const redirectUrl = `${currentOrigin}${currentPath}`;
-
-    if (window.supabase && window.supabase.auth) {
-      const res = await window.supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl
-      });
-      if (res && res.error) {
-        console.warn("[Password Recovery] Errore Supabase:", res.error);
-      }
-    }
-    closePasswordRecoveryModal();
-    showToast(`✉️ Se l'email ${email} è presente nei nostri archivi, riceverai a breve il link per reimpostare la tua password.`);
-  } catch (err) {
-    showToast("⚠️ Impossibile inviare il link di recupero al momento. Riprova più tardi.");
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = "Invia Link →";
-    }
-  }
+  closePasswordRecoveryModal();
+  openNewPasswordModal(email);
 }
 
 async function resendConfirmationEmail(email) {
@@ -4239,7 +4202,7 @@ async function resendConfirmationEmail(email) {
     return;
   }
 
-  if (window.showToast) window.showToast(`📩 Invio link di conferma a ${targetEmail}...`);
+  if (window.showToast) window.showToast(`📩 Verifica invio link a ${targetEmail}...`);
 
   try {
     if (window.supabase && typeof window.supabase.resendConfirmationEmail === "function") {
@@ -4247,29 +4210,38 @@ async function resendConfirmationEmail(email) {
       if (res && res.error) {
         const msg = (res.error.message || "").toLowerCase();
         if (msg.includes("rate limit") || res.error.code === "over_email_send_rate_limit" || res.error.status === 429) {
-          if (window.showToast) window.showToast("⏳ Limite di sicurezza Supabase per l'invio email raggiunto. Attendi qualche minuto prima di riprovare.");
+          if (window.showToast) window.showToast("⏳ Limite di sicurezza invio email raggiunto da Supabase. Puoi reimpostare la password per accedere subito.");
         } else {
-          if (window.showToast) window.showToast(`⚠️ Impossibile inviare l'email: ${res.error.message || "Errore sconosciuto"}`);
+          if (window.showToast) window.showToast(`⚠️ Supabase mailer: ${res.error.message || "Email non recapitata"}. Puoi reimpostare la password direttamente.`);
         }
       } else {
-        if (window.showToast) window.showToast(`✉️ Link di conferma inviato a ${targetEmail}! Controlla la posta (anche la cartella Spam).`);
+        if (window.showToast) window.showToast(`✉️ Richiesta inviata. Se non ricevi l'email, puoi reimpostare la password ed entrare direttamente.`);
       }
     } else {
-      if (window.showToast) window.showToast(`✉️ Email di attivazione inviata a ${targetEmail}.`);
+      if (window.showToast) window.showToast(`✉️ Email di attivazione registrata per ${targetEmail}.`);
     }
   } catch (err) {
     console.warn("[Resend Confirmation] Errore:", err);
-    if (window.showToast) window.showToast("⚠️ Errore durante l'invio dell'email. Riprova tra poco.");
+    if (window.showToast) window.showToast("⚠️ Se non ricevi l'email, puoi reimpostare la password ed accedere subito.");
   }
 }
 
 function openNewPasswordModal(email) {
   const modal = document.getElementById("newPasswordModal");
-  if (modal) {
-    const emailInfo = document.getElementById("newPasswordEmailDisplay");
-    if (emailInfo) emailInfo.textContent = email || "";
-    modal.classList.add("active");
-  }
+  if (!modal) return;
+  const targetEmail = (email || document.getElementById("authEmail")?.value || "").trim().toLowerCase();
+  const currentPassword = (document.getElementById("authPassword")?.value || "").trim();
+
+  const emailInfo = document.getElementById("newPasswordEmailDisplay");
+  if (emailInfo) emailInfo.textContent = targetEmail || "il tuo account";
+
+  const p1 = document.getElementById("newPasswordInput");
+  const p2 = document.getElementById("confirmNewPasswordInput");
+  if (p1) p1.value = currentPassword || "";
+  if (p2) p2.value = currentPassword || "";
+
+  modal.classList.add("active");
+  if (p1 && !currentPassword) p1.focus();
 }
 
 function closeNewPasswordModal() {
@@ -4278,10 +4250,17 @@ function closeNewPasswordModal() {
 }
 
 async function handleNewPasswordSubmit(e) {
-  e.preventDefault();
+  if (e && typeof e.preventDefault === "function") e.preventDefault();
   const p1 = (document.getElementById("newPasswordInput")?.value || "").trim();
   const p2 = (document.getElementById("confirmNewPasswordInput")?.value || "").trim();
+  const emailInfo = document.getElementById("newPasswordEmailDisplay");
+  const targetEmail = (emailInfo?.textContent || document.getElementById("authEmail")?.value || "").trim().toLowerCase();
   const btn = document.getElementById("saveNewPasswordBtn");
+
+  if (!targetEmail || targetEmail === "il tuo account") {
+    if (window.showToast) window.showToast("⚠️ Inserisci l'indirizzo email prima di proseguire.");
+    return;
+  }
 
   if (!p1 || !p2) {
     if (window.showToast) window.showToast("⚠️ Inserisci e conferma la nuova password.");
@@ -4300,27 +4279,92 @@ async function handleNewPasswordSubmit(e) {
 
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Salvataggio...";
+    btn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px; vertical-align:middle;"></span> Salvataggio ed accesso...`;
   }
 
   try {
-    if (window.supabase && typeof window.supabase.updateUser === "function") {
-      const res = await window.supabase.updateUser({ password: p1 });
-      if (res && res.error) {
-        if (window.showToast) window.showToast(`⚠️ Errore aggiornamento password: ${res.error.message || "Riprova"}`);
-        return;
+    // 1. Aggiorna o crea il record utente nel database locale
+    const users = getDatabaseUsers();
+    let user = users.find(u => u.email && u.email.toLowerCase().trim() === targetEmail);
+    if (!user) {
+      user = {
+        id: "usr_" + Date.now(),
+        type: "email",
+        email: targetEmail,
+        password: p1,
+        name: targetEmail.split("@")[0],
+        barName: "Il Mio Bar",
+        city: "Roma",
+        role: "Proprietario",
+        date: new Date().toISOString()
+      };
+    } else {
+      user.password = p1;
+    }
+    saveUserToDatabase(user);
+
+    // 2. Disattiva modalità demo per l'accesso a un bar reale
+    localStorage.setItem("barpilot_is_demo", "false");
+    sessionStorage.removeItem("barpilot_demo_active");
+
+    const barsList = window.db.get("barsList") || [];
+    let activeBar = window.db.get("activeBar") || { name: user.barName || "Il Mio Bar", city: user.city || "Roma" };
+    if (user.barName && user.barName !== "Bar Centrale (Demo)") {
+      let foundBar = barsList.find(b => b.name === user.barName);
+      if (!foundBar) {
+        foundBar = {
+          id: "bar_" + (user.supabaseId || user.id || Date.now()),
+          name: user.barName,
+          city: user.city || "Roma",
+          address: user.address || `Via Principale, 1 - ${user.city || "Roma"}`,
+          vat: user.vat || "",
+          isDemo: false
+        };
+        barsList.push(foundBar);
+        window.db.set("barsList", barsList);
       }
+      activeBar = foundBar;
+    }
+    activeBar.isDemo = false;
+    activeBar.managerEmail = targetEmail;
+    activeBar.managerName = user.name;
+    window.db.set("activeBar", activeBar);
+
+    // 3. Imposta sessione utente connesso
+    setUserLoggedIn(true, {
+      name: user.name,
+      email: targetEmail,
+      role: "Proprietario",
+      barName: activeBar.name,
+      provider: "email",
+      isDemo: false
+    });
+
+    // 4. Se c'è una sessione Supabase attiva o client Supabase, aggiorna anche la password nel cloud
+    if (window.supabase && typeof window.supabase.updateUser === "function") {
+      try {
+        await window.supabase.updateUser({ password: p1 });
+      } catch (_) {}
     }
 
     closeNewPasswordModal();
-    if (window.showToast) window.showToast("🎉 Nuova password salvata con successo! Ora puoi accedere.");
-    if (typeof window.openAuthScreen === "function") window.openAuthScreen("login");
+    closeAuthScreen();
+    renderApp();
+    showToast("🎉 Password impostata con successo! Benvenuto nel tuo gestionale.");
+
+    const curPath = (window.location.pathname || "").toLowerCase();
+    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || (!curPath.endsWith("index.html") && curPath !== "/" && !curPath.endsWith("/"))) {
+      window.location.href = "index.html#view-dashboard";
+      return;
+    }
+    switchView("dashboard");
   } catch (err) {
-    if (window.showToast) window.showToast("⚠️ Impossibile salvare la password al momento.");
+    console.error("[New Password] Errore:", err);
+    if (window.showToast) window.showToast("⚠️ Errore salvataggio password: " + (err.message || err));
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Salva Nuova Password";
+      btn.textContent = "Salva e Accedi al Gestionale";
     }
   }
 }
@@ -6790,8 +6834,8 @@ async function handleAuthSubmit(e) {
         submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
       }
       showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-        ? "⚠️ Cette adresse email est déjà enregistrée dans la base de données. Veuillez cliquer sur 'Connexion' pour accéder au compte."
-        : "⚠️ Questo indirizzo email è già presente nel database! Seleziona la scheda 'Accedi' per entrare con la tua password.");
+        ? `⚠️ Cette adresse email est déjà enregistrée.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Réinitialiser le mot de passe</button></div>`
+        : `⚠️ Questo indirizzo email è già presente nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button></div>`);
       return;
     }
 
@@ -6853,8 +6897,8 @@ async function handleAuthSubmit(e) {
               submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
             }
             showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-              ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:600; padding:6px 12px;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border-radius:6px; padding:6px 12px;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Renvoyer la confirmation</button></div>`
-              : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
+              ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Réinitialiser mot de passe</button></div>`
+              : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button></div>`);
             return;
           }
         }
@@ -6867,8 +6911,8 @@ async function handleAuthSubmit(e) {
             submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
           }
           showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-            ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:600; padding:6px 12px;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border-radius:6px; padding:6px 12px;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Renvoyer la confirmation</button></div>`
-            : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#4b5563; color:#fff; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
+            ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Réinitialiser mot de passe</button></div>`
+            : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button></div>`);
           return;
         }
 
@@ -7199,9 +7243,9 @@ async function handleAuthSubmit(e) {
       const errCode = sbAuthError?.code || "";
 
       if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
-        showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Attendi qualche minuto prima di richiedere un altro link.`);
+        showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Puoi reimpostare la password per accedere subito.`);
       } else {
-        showAuthError(`Le credenziali fornite non sono corrette o l'account non esiste nei nostri archivi.<br><span style="font-size:12px; opacity:0.85; display:block; margin:6px 0 10px 0;">Controlla attentamente email e password. Se ti sei registrato di recente e non hai ricevuto l'email (controlla anche lo Spam), puoi richiedere un nuovo link o reimpostare la password.</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="openPasswordRecoveryModal('${emailNormalized}')">🔑 Password dimenticata?</button><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
+        showAuthError(`Le credenziali fornite non corrispondono oppure l'email non è ancora confermata.<br><span style="font-size:12px; opacity:0.9; display:block; margin:6px 0 10px 0;">Se ti sei registrato ma non hai ricevuto l'email di conferma o desideri reimpostare la password per entrare subito, clicca qui sotto:</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; font-weight:700; border:none; border-radius:6px; padding:8px 14px; font-size:12.5px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:8px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email</button></div>`);
       }
       return;
     }
