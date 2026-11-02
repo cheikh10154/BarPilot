@@ -278,9 +278,38 @@ function isUserSubscribed() {
     if (localStorage.getItem("barpilot_is_demo") === "true" || isDemoMode()) {
       return true;
     }
-    const stored = localStorage.getItem("barpilot_is_subscribed");
+    const storedSub = localStorage.getItem("barpilot_is_subscribed") === "true";
+    const confirmedSub = localStorage.getItem("barpilot_subscription_confirmed") === "true";
+
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    if (stored === "true" && bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true)) {
+    const barActive = Boolean(bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true || bar.paymentConfirmed === true));
+
+    // Check subscribed lists
+    let subEmails = [];
+    let subBars = [];
+    try {
+      subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
+      subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
+    } catch (_) {}
+
+    let loggedUser = null;
+    try {
+      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+    } catch (_) {}
+
+    const userEmail = (loggedUser?.email || bar?.managerEmail || "").toLowerCase().trim();
+    const isEmailInSubList = Boolean(userEmail && subEmails.includes(userEmail));
+    const isBarInSubList = Boolean((bar?.id && subBars.includes(bar.id)) || (bar?.name && subBars.includes(bar.name)));
+
+    if (storedSub || confirmedSub || barActive || isEmailInSubList || isBarInSubList) {
+      if (!storedSub) localStorage.setItem("barpilot_is_subscribed", "true");
+      if (!confirmedSub) localStorage.setItem("barpilot_subscription_confirmed", "true");
+      if (bar && (!bar.isSubscribed || bar.subscriptionStatus !== "active")) {
+        bar.isSubscribed = true;
+        bar.subscriptionStatus = "active";
+        bar.paymentConfirmed = true;
+        if (window.db) window.db.set("activeBar", bar);
+      }
       return true;
     }
     return false;
@@ -352,13 +381,63 @@ function activateSubscription(method = "google_pay") {
   bar.plan = "BarPilot Pro 59€";
   bar.isSubscribed = true;
   bar.subscriptionStatus = "active";
+  bar.paymentConfirmed = true;
   bar.subscriptionMethod = method;
+  bar.confirmedAt = new Date().toISOString();
   bar.trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
   if (window.db) {
     window.db.set("activeBar", bar);
+    const barsList = window.db.get("barsList") || [];
+    const bIdx = barsList.findIndex(b => (b.id && b.id === bar.id) || (b.name && b.name === bar.name));
+    if (bIdx >= 0) {
+      barsList[bIdx] = { ...barsList[bIdx], ...bar };
+    } else if (bar.name) {
+      barsList.push(bar);
+    }
+    window.db.set("barsList", barsList);
   }
+
+  // Persistent storage flags
   localStorage.setItem("barpilot_is_subscribed", "true");
+  localStorage.setItem("barpilot_subscription_confirmed", "true");
+
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
+
+  const userEmail = (loggedUser?.email || bar.managerEmail || "").toLowerCase().trim();
+  if (userEmail) {
+    try {
+      const subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
+      if (!subEmails.includes(userEmail)) {
+        subEmails.push(userEmail);
+        localStorage.setItem("barpilot_subscribed_emails", JSON.stringify(subEmails));
+      }
+    } catch (_) {}
+  }
+
+  if (bar.id || bar.name) {
+    try {
+      const subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
+      if (bar.id && !subBars.includes(bar.id)) subBars.push(bar.id);
+      if (bar.name && !subBars.includes(bar.name)) subBars.push(bar.name);
+      localStorage.setItem("barpilot_subscribed_bars", JSON.stringify(subBars));
+    } catch (_) {}
+  }
+
+  try {
+    const users = getDatabaseUsers();
+    if (userEmail) {
+      const u = users.find(x => x.email && x.email.toLowerCase().trim() === userEmail);
+      if (u) {
+        u.isSubscribed = true;
+        u.subscriptionStatus = "active";
+        saveUserToDatabase(u);
+      }
+    }
+  } catch (_) {}
 
   // Force close checkout modals now that payment is confirmed
   closeGooglePlayModal(true);
@@ -369,10 +448,6 @@ function activateSubscription(method = "google_pay") {
   renderActiveBar();
   updateDashboardLockState();
 
-  let loggedUser = null;
-  try {
-    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-  } catch (e) {}
   const userName = (loggedUser && loggedUser.name) || bar.managerName || "Gestore";
 
   // Redirect to dashboard and give warm welcome!
@@ -386,8 +461,8 @@ function activateSubscription(method = "google_pay") {
 }
 
 function openGooglePlayModal() {
-  // If in demo mode, never open the payment window
-  if (isDemoMode()) {
+  // If in demo mode or already subscribed, never open the payment window
+  if (isDemoMode() || isUserSubscribed()) {
     closeCheckoutModal(true);
     closeGooglePlayModal(true);
     return;
@@ -4309,6 +4384,21 @@ async function handleNewPasswordSubmit(e) {
 
     const barsList = window.db.get("barsList") || [];
     let activeBar = window.db.get("activeBar") || { name: user.barName || "Il Mio Bar", city: user.city || "Roma" };
+
+    // Check if subscription was previously confirmed
+    let subEmails = [];
+    let subBars = [];
+    try {
+      subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
+      subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
+    } catch (_) {}
+    const isSubscribedGlobally = localStorage.getItem("barpilot_is_subscribed") === "true" || 
+                                 localStorage.getItem("barpilot_subscription_confirmed") === "true";
+    const isEmailSubscribed = subEmails.includes(targetEmail);
+    const isBarSubscribed = subBars.includes(user.barName) || subBars.includes(activeBar?.id) || subBars.includes(activeBar?.name);
+    const shouldBeSubscribed = isSubscribedGlobally || isEmailSubscribed || isBarSubscribed || 
+                               user.isSubscribed === true || activeBar?.isSubscribed === true;
+
     if (user.barName && user.barName !== "Bar Centrale (Demo)") {
       let foundBar = barsList.find(b => b.name === user.barName);
       if (!foundBar) {
@@ -4321,13 +4411,28 @@ async function handleNewPasswordSubmit(e) {
           isDemo: false
         };
         barsList.push(foundBar);
-        window.db.set("barsList", barsList);
+      }
+      foundBar.isDemo = false;
+      if (shouldBeSubscribed) {
+        foundBar.isSubscribed = true;
+        foundBar.subscriptionStatus = "active";
+        foundBar.paymentConfirmed = true;
       }
       activeBar = foundBar;
+      window.db.set("barsList", barsList);
     }
     activeBar.isDemo = false;
     activeBar.managerEmail = targetEmail;
     activeBar.managerName = user.name;
+    if (shouldBeSubscribed) {
+      activeBar.isSubscribed = true;
+      activeBar.subscriptionStatus = "active";
+      activeBar.paymentConfirmed = true;
+      localStorage.setItem("barpilot_is_subscribed", "true");
+      localStorage.setItem("barpilot_subscription_confirmed", "true");
+      closeCheckoutModal(true);
+      closeGooglePlayModal(true);
+    }
     window.db.set("activeBar", activeBar);
 
     // 3. Imposta sessione utente connesso
@@ -5484,8 +5589,8 @@ function selectPlan(planName) {
 }
 
 function openCheckoutModal(isForcedMandatory = false) {
-  // If in demo mode: demo page is 100% free and open, never open checkout!
-  if (isDemoMode()) {
+  // If in demo mode or already subscribed: never open checkout modal!
+  if (isDemoMode() || isUserSubscribed()) {
     closeCheckoutModal(true);
     closeGooglePlayModal(true);
     return;
@@ -7027,9 +7132,16 @@ async function handleAuthSubmit(e) {
     }
 
     hideAuthError();
-    localStorage.removeItem("barpilot_is_subscribed");
-    activeBar.isSubscribed = false;
-    activeBar.subscriptionStatus = "pending_checkout";
+    const wasSubscribed = localStorage.getItem("barpilot_is_subscribed") === "true" || 
+                          localStorage.getItem("barpilot_subscription_confirmed") === "true";
+    if (!wasSubscribed) {
+      activeBar.isSubscribed = false;
+      activeBar.subscriptionStatus = "pending_checkout";
+    } else {
+      activeBar.isSubscribed = true;
+      activeBar.subscriptionStatus = "active";
+      activeBar.paymentConfirmed = true;
+    }
     if (window.db) {
       window.db.set("activeBar", activeBar);
     }
@@ -7259,6 +7371,21 @@ async function handleAuthSubmit(e) {
     const barsList = window.db.get("barsList") || [];
     let activeBar = window.db.get("activeBar") || { name: "Bar Centrale", city: "Roma" };
 
+    // Check if subscription was previously confirmed
+    let subEmails = [];
+    let subBars = [];
+    try {
+      subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
+      subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
+    } catch (_) {}
+    const isSubscribedGlobally = localStorage.getItem("barpilot_is_subscribed") === "true" || 
+                                 localStorage.getItem("barpilot_subscription_confirmed") === "true";
+    const isEmailSubscribed = subEmails.includes(emailNormalized);
+    const isBarSubscribed = subBars.includes(userFound?.barName) || subBars.includes(activeBar?.id) || subBars.includes(activeBar?.name);
+
+    const shouldBeSubscribed = isSubscribedGlobally || isEmailSubscribed || isBarSubscribed || 
+                               userFound?.isSubscribed === true || activeBar?.isSubscribed === true;
+
     // Trova o crea il bar reale associato all'utente
     if (userFound && userFound.barName && userFound.barName !== "Bar Centrale (Demo)") {
       let foundBar = barsList.find(b => b.name === userFound.barName || (userFound.vat && b.vat === userFound.vat));
@@ -7273,12 +7400,27 @@ async function handleAuthSubmit(e) {
           isDemo: false
         };
         barsList.push(foundBar);
-        window.db.set("barsList", barsList);
       }
       foundBar.isDemo = false;
+      if (shouldBeSubscribed) {
+        foundBar.isSubscribed = true;
+        foundBar.subscriptionStatus = "active";
+        foundBar.paymentConfirmed = true;
+      }
       activeBar = foundBar;
+      window.db.set("barsList", barsList);
     } else {
       activeBar.isDemo = false;
+    }
+
+    if (shouldBeSubscribed) {
+      activeBar.isSubscribed = true;
+      activeBar.subscriptionStatus = "active";
+      activeBar.paymentConfirmed = true;
+      localStorage.setItem("barpilot_is_subscribed", "true");
+      localStorage.setItem("barpilot_subscription_confirmed", "true");
+      closeCheckoutModal(true);
+      closeGooglePlayModal(true);
     }
     window.db.set("activeBar", activeBar);
 

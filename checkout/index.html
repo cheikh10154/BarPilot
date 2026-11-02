@@ -307,6 +307,14 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      // Se l'utente o il bar ha già un abbonamento confermato, entra direttamente nella Dashboard senza richiedere pagamento
+      const isSub = localStorage.getItem("barpilot_is_subscribed") === "true" || 
+                    localStorage.getItem("barpilot_subscription_confirmed") === "true";
+      if (isSub) {
+        window.location.replace("/index.html#view-dashboard");
+        return;
+      }
+
       // Ensure Stripe preview is always in Italian
       const stripePreview = document.getElementById("checkoutProStripeLinkPreview");
       if (stripePreview) {
@@ -599,9 +607,43 @@
       bar.trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
       if (window.db) {
         window.db.set("activeBar", bar);
+        const barsList = window.db.get("barsList") || [];
+        const bIdx = barsList.findIndex(b => (b.id && b.id === bar.id) || (b.name && b.name === bar.name));
+        if (bIdx >= 0) {
+          barsList[bIdx] = { ...barsList[bIdx], ...bar };
+        } else if (bar.name) {
+          barsList.push(bar);
+        }
+        window.db.set("barsList", barsList);
       }
       localStorage.setItem("barpilot_is_subscribed", "true");
+      localStorage.setItem("barpilot_subscription_confirmed", "true");
       localStorage.setItem("barpilot_is_logged_in", "true");
+
+      let loggedUser = null;
+      try {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (e) {}
+
+      const userEmail = (loggedUser?.email || bar.managerEmail || "").toLowerCase().trim();
+      if (userEmail) {
+        try {
+          const subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
+          if (!subEmails.includes(userEmail)) {
+            subEmails.push(userEmail);
+            localStorage.setItem("barpilot_subscribed_emails", JSON.stringify(subEmails));
+          }
+        } catch (_) {}
+      }
+
+      if (bar.id || bar.name) {
+        try {
+          const subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
+          if (bar.id && !subBars.includes(bar.id)) subBars.push(bar.id);
+          if (bar.name && !subBars.includes(bar.name)) subBars.push(bar.name);
+          localStorage.setItem("barpilot_subscribed_bars", JSON.stringify(subBars));
+        } catch (_) {}
+      }
 
       const modal = document.getElementById('checkoutSuccessModal');
       const txnSpan = document.getElementById('successModalTxnId');

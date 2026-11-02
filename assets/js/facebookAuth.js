@@ -108,9 +108,11 @@ class FacebookAuthManager {
     bar.avatar = profile.picture;
     bar.authProvider = "facebook";
     bar.isDemo = false;
-    const hasExistingSub = localStorage.getItem("barpilot_is_subscribed") === "true";
+    const hasExistingSub = localStorage.getItem("barpilot_is_subscribed") === "true" ||
+                           localStorage.getItem("barpilot_subscription_confirmed") === "true";
     bar.isSubscribed = hasExistingSub;
     bar.subscriptionStatus = hasExistingSub ? "active" : "unsubscribed";
+    if (hasExistingSub) bar.paymentConfirmed = true;
     if (window.db) window.db.set("activeBar", bar);
 
     // Update UI elements
