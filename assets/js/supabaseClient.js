@@ -14,8 +14,8 @@ function translateSupabaseMessage(rawDesc, rawCode, context = "") {
   const desc = (rawDesc || "").toLowerCase().trim();
   const code = (rawCode || "").toLowerCase().trim();
 
-  if (desc.includes("invalid login credentials") || desc.includes("invalid_grant") || code === "invalid_grant") {
-    return "Le credenziali fornite non sono corrette o l'account non è ancora confermato.";
+  if (desc.includes("invalid login credentials") || desc.includes("invalid_grant") || code === "invalid_grant" || desc.includes("invalid_credentials") || code === "invalid_credentials") {
+    return "Le credenziali fornite non sono corrette o l'account non esiste nel database. Controlla email e password.";
   }
   if (desc.includes("email not confirmed") || code === "email_not_confirmed") {
     return "L'indirizzo email non è ancora stato confermato. Controlla la posta (incluso Spam) o reimposta la password per accedere.";
@@ -227,13 +227,9 @@ class BarPilotSupabaseClient {
     const { email, password } = credentials;
 
     if (!this.isConfigured) {
-      // Local fallback / mock validation
       return {
-        data: {
-          user: { id: "usr_mock", email, user_metadata: { full_name: email.split("@")[0] } },
-          session: { access_token: "mock_jwt_token", user: { id: "usr_mock", email } }
-        },
-        error: null
+        data: null,
+        error: new Error("Il database Supabase non è configurato. Contatta l'amministratore.")
       };
     }
 

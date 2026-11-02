@@ -349,7 +349,13 @@
           <label for="authRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
         </div>
 
-        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
+        <!-- Direct Visible Error Alert Box right above the submit button -->
+        <div id="authAlertErrorBottom" class="auth-error-alert" style="display:none; margin-bottom:14px;" role="alert">
+          <span class="auth-error-icon">⚠️</span>
+          <span id="authAlertErrorTextBottom" class="auth-error-text"></span>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" onclick="handleAuthSubmit(event)" data-i18n="submitLogin">
           Accedi al gestionale
         </button>
       </form>
@@ -1770,6 +1776,36 @@
         <div style="display:flex; gap:10px;">
           <button type="button" class="btn-secondary" onclick="closePasswordRecoveryModal()" style="flex:1; padding:10px;">Annulla</button>
           <button type="submit" class="btn-primary" id="recoverySubmitBtn" style="flex:1; padding:10px;">Invia Link →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- New Password Modal (Supabase Password Reset) -->
+  <div class="modal-overlay" id="newPasswordModal">
+    <div class="modal-box" style="max-width: 440px; width: 92%; padding: 26px 24px; border-radius: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">🔒</span>
+          <h3 style="font-size:17px; font-weight:800; color:var(--text-main);">Reimposta Password e Accedi</h3>
+        </div>
+        <button type="button" class="modal-close-icon-btn" onclick="closeNewPasswordModal()" aria-label="Chiudi finestra">✕</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:14px;">
+        Imposta la password per l'account <strong id="newPasswordEmailDisplay" style="color:var(--text-main);"></strong> per accedere direttamente al gestionale senza attendere l'email:
+      </p>
+      <form id="newPasswordForm" onsubmit="handleNewPasswordSubmit(event)">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Nuova Password</label>
+          <input type="password" id="newPasswordInput" class="form-input" placeholder="Almeno 8 caratteri" required autocomplete="new-password">
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Conferma Nuova Password</label>
+          <input type="password" id="confirmNewPasswordInput" class="form-input" placeholder="Ripeti la password" required autocomplete="new-password">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeNewPasswordModal()" style="flex:1; padding:10px;">Annulla</button>
+          <button type="submit" class="btn-primary" id="saveNewPasswordBtn" style="flex:1.4; padding:10px; font-weight:700;">Salva e Accedi al Gestionale</button>
         </div>
       </form>
     </div>

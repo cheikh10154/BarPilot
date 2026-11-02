@@ -6534,9 +6534,14 @@ function getDatabaseUsers() {
 
   // Merge with localStorage registered users if any, updating existing records
   try {
-    const regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
+    let regList = JSON.parse(localStorage.getItem("barpilot_registered_users") || "[]");
     if (Array.isArray(regList)) {
-      regList.forEach(ru => {
+      // Remove phantom unverified accounts that may have been saved by earlier bypasses
+      const cleanedList = regList.filter(ru => ru && ru.email && !ru.id?.startsWith("usr_sb_confirmed_"));
+      if (cleanedList.length !== regList.length) {
+        localStorage.setItem("barpilot_registered_users", JSON.stringify(cleanedList));
+      }
+      cleanedList.forEach(ru => {
         if (!ru || !ru.email) return;
         const ruEmail = ru.email.toLowerCase().trim();
         const existingIdx = dbUsers.findIndex(u => u.email && u.email.toLowerCase().trim() === ruEmail);
@@ -7306,9 +7311,10 @@ async function handleAuthSubmit(e) {
             window.db.set("activeBar", currentActiveBar);
           } else if (authRes && authRes.error) {
             sbAuthError = authRes.error;
-            const errMsg = (authRes.error.message || authRes.error.error_description || "").toLowerCase();
-            const errCode = authRes.error.code || "";
-            if (errMsg.includes("email not confirmed") || errMsg.includes("non è ancora") || errCode === "email_not_confirmed") {
+            const rawMsg = (authRes.error.rawMessage || authRes.error.message || "").toLowerCase();
+            const errCode = (authRes.error.code || authRes.error.raw?.code || authRes.error.raw?.error_code || "").toLowerCase();
+            // Verifica rigorosa: solo se Supabase restituisce esplicitamente email_not_confirmed
+            if (errCode === "email_not_confirmed" || (rawMsg.includes("email not confirmed") && !rawMsg.includes("invalid"))) {
               sbEmailUnconfirmed = true;
             }
             console.warn("[Supabase] Credenziali o errore Supabase:", authRes.error);
@@ -7318,31 +7324,6 @@ async function handleAuthSubmit(e) {
           sbAuthError = sbErr;
         }
       }
-
-      // Se Supabase restituisce "Email not confirmed", significa che:
-      // 1) L'account dell'utente esiste in Supabase auth.users
-      // 2) La password inserita dall'utente è CORRETTA (altrimenti Supabase risponde "Invalid login credentials")
-      // Poiché l'email di conferma potrebbe non arrivare a causa dei limiti di invio del server Supabase o di filtri antispam,
-      // consentiamo all'utente registrato di accedere subito al gestionale.
-      if (!isValid && sbEmailUnconfirmed) {
-        console.log("[Supabase] Credenziali confermate da Supabase (in attesa link conferma):", emailNormalized);
-        isValid = true;
-        if (!userFound) {
-          userFound = {
-            id: "usr_sb_confirmed_" + Date.now(),
-            type: "email",
-            email: emailNormalized,
-            password: credential,
-            name: emailNormalized.split("@")[0],
-            barName: "Il Mio Bar",
-            city: "Roma",
-            role: "Proprietario"
-          };
-        } else {
-          userFound.password = credential;
-        }
-        saveUserToDatabase(userFound);
-      }
     }
 
     if (submitBtnEmail) {
@@ -7350,14 +7331,17 @@ async function handleAuthSubmit(e) {
       submitBtnEmail.innerHTML = "Accedi al gestionale";
     }
 
+    // Se l'utente non è valido o non è stato verificato nel database (Supabase o locale), BLOCCA L'ACCESSO!
     if (!isValid || !userFound) {
       const errMsg = (sbAuthError?.message || sbAuthError?.error_description || "").toLowerCase();
       const errCode = sbAuthError?.code || "";
 
-      if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
-        showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Puoi reimpostare la password per accedere subito.`);
+      if (sbEmailUnconfirmed) {
+        showAuthError(`📧 L'indirizzo email non è ancora stato confermato.<br><span style="font-size:12px; opacity:0.9; display:block; margin:6px 0 10px 0;">Controlla la tua casella di posta (incluso Spam) oppure reinvia l'email o reimposta la password:</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; font-weight:700; border:none; border-radius:6px; padding:8px 14px; font-size:12.5px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password</button><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:8px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email</button></div>`);
+      } else if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
+        showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Attendi qualche minuto prima di riprovare.`);
       } else {
-        showAuthError(`Le credenziali fornite non corrispondono oppure l'email non è ancora confermata.<br><span style="font-size:12px; opacity:0.9; display:block; margin:6px 0 10px 0;">Se ti sei registrato ma non hai ricevuto l'email di conferma o desideri reimpostare la password per entrare subito, clicca qui sotto:</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; font-weight:700; border:none; border-radius:6px; padding:8px 14px; font-size:12.5px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:8px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email</button></div>`);
+        showAuthError(`❌ Le credenziali fornite non sono corrette o l'account non esiste nel database.<br><span style="font-size:12px; opacity:0.9; display:block; margin:6px 0 10px 0;">Controlla email e password oppure crea un nuovo account:</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#FF7A00; color:#fff; font-weight:700; border:none; border-radius:6px; padding:8px 14px; font-size:12.5px; cursor:pointer;" onclick="switchAuthTab('register')">🚀 Registrati ora</button><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; font-weight:700; border:none; border-radius:6px; padding:8px 14px; font-size:12.5px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Hai dimenticato la password?</button></div>`);
       }
       return;
     }
