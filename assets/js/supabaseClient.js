@@ -278,6 +278,8 @@ class BarPilotSupabaseClient {
     try {
       const ownerVal = options?.data?.display_name || options?.data?.owner_name || options?.data?.full_name || options?.data?.name || "";
       const phoneVal = options?.data?.phone || options?.data?.Phone || "";
+      const vatVal = options?.data?.["Partita IVA"] || options?.data?.partita_iva || options?.data?.vat_number || options?.data?.piva || "";
+      const cityVal = options?.data?.["Città"] || options?.data?.citta || options?.data?.city || "";
       const payload = {
         email: email.trim().toLowerCase(),
         password,
@@ -290,6 +292,13 @@ class BarPilotSupabaseClient {
           name: ownerVal,
           phone: phoneVal,
           Phone: phoneVal,
+          "Partita IVA": vatVal,
+          partita_iva: vatVal,
+          vat_number: vatVal,
+          piva: vatVal,
+          "Città": cityVal,
+          citta: cityVal,
+          city: cityVal,
           ...(options?.data || {})
         }
       };

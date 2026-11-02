@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.bars (
   phone TEXT,
   address TEXT,
   city TEXT,
+  "Città" TEXT,
   plan TEXT DEFAULT 'Pro',
   status TEXT DEFAULT 'active', -- active, trial, late, canceled
   next_invoice TEXT,
@@ -22,8 +23,13 @@ CREATE TABLE IF NOT EXISTS public.bars (
   avatar TEXT,
   photo TEXT,
   piva TEXT,
+  "Partita IVA" TEXT,
   notes TEXT
 );
+
+-- Assicura l'esistenza delle colonne Partita IVA e Città su database esistenti
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS "Partita IVA" TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS "Città" TEXT;
 
 -- 2. Invoices Table
 CREATE TABLE IF NOT EXISTS public.invoices (
