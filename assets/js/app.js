@@ -6968,13 +6968,18 @@ async function handleAuthSubmit(e) {
 
     const trialEndIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const registrationMetadata = {
+      display_name: ownerName,
+      full_name: ownerName,
+      name: ownerName,
+      owner_name: ownerName,
+      phone: phone,
+      Phone: phone,
+      phone_number: phone,
       bar_name: barName,
       vat_number: vatNumber,
       piva: vatNumber,
-      owner_name: ownerName,
       city: city,
       address: `Via Principale, 1 - ${city}`,
-      phone: phone,
       plan: "BarPilot Pro 59€",
       trial_days: 14,
       trial_start_date: new Date().toISOString(),
@@ -7043,10 +7048,14 @@ async function handleAuthSubmit(e) {
           body: JSON.stringify({
             email: emailNormalized,
             owner_name: ownerName,
+            display_name: ownerName,
+            full_name: ownerName,
+            name: ownerName,
             bar_name: barName,
             vat_number: vatNumber,
             city: city,
             phone: phone,
+            Phone: phone,
             plan: "BarPilot Pro 59€",
             trial_days: 14,
             created_at: new Date().toISOString()

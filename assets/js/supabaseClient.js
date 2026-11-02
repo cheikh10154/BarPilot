@@ -276,6 +276,8 @@ class BarPilotSupabaseClient {
     }
 
     try {
+      const ownerVal = options?.data?.display_name || options?.data?.owner_name || options?.data?.full_name || options?.data?.name || "";
+      const phoneVal = options?.data?.phone || options?.data?.Phone || "";
       const payload = {
         email: email.trim().toLowerCase(),
         password,
@@ -283,6 +285,11 @@ class BarPilotSupabaseClient {
           locale: "it",
           lang: "it",
           language: "it",
+          display_name: ownerVal,
+          full_name: ownerVal,
+          name: ownerVal,
+          phone: phoneVal,
+          Phone: phoneVal,
           ...(options?.data || {})
         }
       };
