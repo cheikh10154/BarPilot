@@ -9,6 +9,55 @@ const SUPABASE_CONFIG = {
   anonKey: window.BARPILOT_SUPABASE_KEY || localStorage.getItem("barpilot_supabase_key") || DEFAULT_SUPABASE_KEY,
 };
 
+// Traduttore universale dei messaggi Supabase Auth in italiano corrente
+function translateSupabaseMessage(rawDesc, rawCode, context = "") {
+  const desc = (rawDesc || "").toLowerCase().trim();
+  const code = (rawCode || "").toLowerCase().trim();
+
+  if (desc.includes("invalid login credentials") || desc.includes("invalid_grant") || code === "invalid_grant") {
+    return "Le credenziali fornite non sono corrette o l'account non è ancora confermato.";
+  }
+  if (desc.includes("email not confirmed") || code === "email_not_confirmed") {
+    return "L'indirizzo email non è ancora stato confermato. Controlla la posta (incluso Spam) o reimposta la password per accedere.";
+  }
+  if (desc.includes("user already registered") || desc.includes("already exists") || desc.includes("user_already_exists") || code === "user_already_exists") {
+    return "Questo indirizzo email è già registrato nel database.";
+  }
+  if (desc.includes("password should be at least") || desc.includes("password is too short")) {
+    return "La password deve contenere almeno 8 caratteri con maiuscola, numero e simbolo.";
+  }
+  if (desc.includes("rate limit") || desc.includes("over_email_send_rate_limit") || desc.includes("for security purposes") || code === "over_email_send_rate_limit") {
+    return "Limite temporaneo invio email raggiunto da Supabase. Attendi un momento prima di richiedere un altro link.";
+  }
+  if (desc.includes("user not found")) {
+    return "Nessun account trovato con questo indirizzo email.";
+  }
+  if (desc.includes("token has expired") || desc.includes("invalid or has expired") || desc.includes("otp expired")) {
+    return "Il link o il codice di verifica è scaduto o non è più valido. Richiedine uno nuovo.";
+  }
+  if (desc.includes("invalid format") || desc.includes("unable to validate email")) {
+    return "L'indirizzo email specificato non ha un formato valido.";
+  }
+  if (desc.includes("auth session missing") || desc.includes("nessuna sessione attiva")) {
+    return "Nessuna sessione di autenticazione attiva.";
+  }
+  if (desc.includes("signup requires a valid password")) {
+    return "La registrazione richiede una password valida.";
+  }
+  if (desc.includes("email provider is disabled")) {
+    return "Il servizio di autenticazione email è temporaneamente non disponibile.";
+  }
+
+  if (context === "login") return rawDesc ? rawDesc : "Errore durante l'accesso. Verifica le credenziali.";
+  if (context === "signup") return rawDesc ? rawDesc : "Errore durante la registrazione.";
+  if (context === "recovery") return rawDesc ? rawDesc : "Errore durante la richiesta di recupero password.";
+  if (context === "resend") return rawDesc ? rawDesc : "Errore durante l'invio dell'email di conferma.";
+  if (context === "update") return rawDesc ? rawDesc : "Errore durante l'aggiornamento dell'account.";
+
+  return rawDesc || "Operazione con il database non riuscita.";
+}
+window.translateSupabaseMessage = translateSupabaseMessage;
+
 class BarPilotSupabaseClient {
   constructor(url, anonKey) {
     this.url = (url || DEFAULT_SUPABASE_URL).replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
@@ -199,8 +248,10 @@ class BarPilotSupabaseClient {
       if (!res.ok) {
         const errorDesc = data.error_description || data.msg || data.message || "Errore di accesso";
         const errorCode = data.error_code || data.code || data.error || "";
-        const err = new Error(errorDesc);
+        const itDesc = translateSupabaseMessage(errorDesc, errorCode, "login");
+        const err = new Error(itDesc);
         err.code = errorCode;
+        err.rawMessage = errorDesc;
         err.status = res.status;
         err.raw = data;
         return { data: null, error: err };
@@ -232,7 +283,12 @@ class BarPilotSupabaseClient {
       const payload = {
         email: email.trim().toLowerCase(),
         password,
-        data: options?.data || {}
+        data: {
+          locale: "it",
+          lang: "it",
+          language: "it",
+          ...(options?.data || {})
+        }
       };
 
       const res = await fetch(`${this.url}/auth/v1/signup`, {
@@ -245,8 +301,10 @@ class BarPilotSupabaseClient {
       if (!res.ok) {
         const errorDesc = data.error_description || data.msg || data.message || "Errore di registrazione";
         const errorCode = data.error_code || data.code || data.error || "";
-        const err = new Error(errorDesc);
+        const itDesc = translateSupabaseMessage(errorDesc, errorCode, "signup");
+        const err = new Error(itDesc);
         err.code = errorCode;
+        err.rawMessage = errorDesc;
         err.status = res.status;
         err.raw = data;
         return { data: null, error: err };
@@ -255,8 +313,10 @@ class BarPilotSupabaseClient {
       // Supabase restituisce un array 'identities' vuoto se l'utente risulta già registrato
       const userIdentities = data?.user?.identities || data?.identities;
       if (Array.isArray(userIdentities) && userIdentities.length === 0) {
-        const err = new Error("User already registered");
+        const itDesc = translateSupabaseMessage("User already registered", "user_already_exists", "signup");
+        const err = new Error(itDesc);
         err.code = "user_already_exists";
+        err.rawMessage = "User already registered";
         err.status = 400;
         return { data: null, error: err };
       }
@@ -290,8 +350,11 @@ class BarPilotSupabaseClient {
       const data = await res.json();
       if (!res.ok) {
         const errorDesc = data.error_description || data.msg || data.message || "Errore invio email di conferma";
-        const err = new Error(errorDesc);
-        err.code = data.error_code || data.code || "";
+        const errorCode = data.error_code || data.code || "";
+        const itDesc = translateSupabaseMessage(errorDesc, errorCode, "resend");
+        const err = new Error(itDesc);
+        err.code = errorCode;
+        err.rawMessage = errorDesc;
         err.status = res.status;
         return { data: null, error: err };
       }
@@ -317,8 +380,11 @@ class BarPilotSupabaseClient {
       const data = await res.json();
       if (!res.ok) {
         const errorDesc = data.error_description || data.msg || data.message || "Codice di verifica non valido";
-        const err = new Error(errorDesc);
-        err.code = data.error_code || data.code || "";
+        const errorCode = data.error_code || data.code || "";
+        const itDesc = translateSupabaseMessage(errorDesc, errorCode, "verify");
+        const err = new Error(itDesc);
+        err.code = errorCode;
+        err.rawMessage = errorDesc;
         return { data: null, error: err };
       }
       if (data.access_token) {
@@ -349,7 +415,11 @@ class BarPilotSupabaseClient {
 
       const data = await res.json();
       if (!res.ok) {
-        return { data: null, error: new Error(data.message || data.msg || "Errore invio email di recupero") };
+        const rawMsg = data.message || data.msg || data.error_description || "Errore invio email di recupero";
+        const itDesc = translateSupabaseMessage(rawMsg, data.code || data.error_code || "", "recovery");
+        const err = new Error(itDesc);
+        err.rawMessage = rawMsg;
+        return { data: null, error: err };
       }
       return { data, error: null };
     } catch (err) {
@@ -357,7 +427,7 @@ class BarPilotSupabaseClient {
     }
   }
 
-  // 5. Update Password
+  // 7. Update Password
   async updateUser(updates) {
     if (!this.session?.access_token) {
       return { data: null, error: new Error("Nessuna sessione attiva") };
@@ -372,7 +442,11 @@ class BarPilotSupabaseClient {
 
       const data = await res.json();
       if (!res.ok) {
-        return { data: null, error: new Error(data.message || "Errore aggiornamento utente") };
+        const rawMsg = data.message || data.msg || data.error_description || "Errore aggiornamento utente";
+        const itDesc = translateSupabaseMessage(rawMsg, data.code || "", "update");
+        const err = new Error(itDesc);
+        err.rawMessage = rawMsg;
+        return { data: null, error: err };
       }
       return { data, error: null };
     } catch (err) {

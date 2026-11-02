@@ -4212,7 +4212,7 @@ async function resendConfirmationEmail(email) {
         if (msg.includes("rate limit") || res.error.code === "over_email_send_rate_limit" || res.error.status === 429) {
           if (window.showToast) window.showToast("⏳ Limite di sicurezza invio email raggiunto da Supabase. Puoi reimpostare la password per accedere subito.");
         } else {
-          if (window.showToast) window.showToast(`⚠️ Supabase mailer: ${res.error.message || "Email non recapitata"}. Puoi reimpostare la password direttamente.`);
+          if (window.showToast) window.showToast(`⚠️ ${res.error.message || "Invio non riuscito"}. Puoi reimpostare la password per accedere subito.`);
         }
       } else {
         if (window.showToast) window.showToast(`✉️ Richiesta inviata. Se non ricevi l'email, puoi reimpostare la password ed entrare direttamente.`);
@@ -6891,7 +6891,7 @@ async function handleAuthSubmit(e) {
         // Se Supabase risponde che l'utente è già registrato
         if (res && res.error) {
           const errMsg = (res.error.message || "").toLowerCase();
-          if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("user_already_exists")) {
+          if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("user_already_exists") || errMsg.includes("già registrato") || errMsg.includes("già presente")) {
             if (submitBtnEmail) {
               submitBtnEmail.disabled = false;
               submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
@@ -7196,7 +7196,7 @@ async function handleAuthSubmit(e) {
             sbAuthError = authRes.error;
             const errMsg = (authRes.error.message || authRes.error.error_description || "").toLowerCase();
             const errCode = authRes.error.code || "";
-            if (errMsg.includes("email not confirmed") || errCode === "email_not_confirmed") {
+            if (errMsg.includes("email not confirmed") || errMsg.includes("non è ancora") || errCode === "email_not_confirmed") {
               sbEmailUnconfirmed = true;
             }
             console.warn("[Supabase] Credenziali o errore Supabase:", authRes.error);
