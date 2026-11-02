@@ -7071,6 +7071,8 @@ async function handleAuthSubmit(e) {
     }
 
     let isValid = false;
+    let sbAuthError = null;
+    let sbEmailUnconfirmed = false;
 
     if (currentCredMode === 'pin') {
       // Validate 4-digit PIN
@@ -7104,7 +7106,8 @@ async function handleAuthSubmit(e) {
       }
 
       // 2. Se non corrisponde localmente, autentica direttamente con il database Supabase!
-      let sbAuthError = null;
+      sbAuthError = null;
+      sbEmailUnconfirmed = false;
       if (!isValid && window.supabase && window.supabase.auth) {
         try {
           console.log("[Supabase] Tentativo di verifica credenziali su Supabase per:", emailNormalized);
