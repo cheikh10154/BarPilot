@@ -5957,7 +5957,8 @@ function setupModals() {
 // --------------------------------------------------------------------------
 // Toast Notification
 // --------------------------------------------------------------------------
-function showToast(msg) {
+let barpilotToastTimeout = null;
+function showToast(msg, duration = 3800) {
   let toast = document.getElementById("barpilot-toast");
   if (!toast) {
     toast = document.createElement("div");
@@ -5968,32 +5969,37 @@ function showToast(msg) {
       right: 24px;
       background: #111827;
       color: #FFFFFF;
-      padding: 12px 20px;
+      padding: 13px 22px;
       border-radius: 12px;
-      border: 1px solid #FF7A00;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      font-size: 13px;
+      border: 1.5px solid #FF7A00;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      font-size: 13.5px;
       font-weight: 600;
-      z-index: 9999;
+      z-index: 999999;
       opacity: 0;
       transform: translateY(10px);
       transition: all 0.25s ease;
       display: flex;
       align-items: center;
       gap: 10px;
+      max-width: 90vw;
     `;
     document.body.appendChild(toast);
+  } else {
+    toast.style.zIndex = "999999";
   }
 
   toast.innerHTML = `<span>🍸</span> <span>${msg}</span>`;
   toast.style.opacity = "1";
   toast.style.transform = "translateY(0)";
 
-  setTimeout(() => {
+  if (barpilotToastTimeout) clearTimeout(barpilotToastTimeout);
+  barpilotToastTimeout = setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
-  }, 2800);
+  }, duration);
 }
+window.showToast = showToast;
 
 // ==========================================================================
 // 1. AUTH PERSISTENCE & ANIMATED SPLASH SCREEN
@@ -6425,6 +6431,9 @@ function saveUserToDatabase(userObj) {
 function showAuthError(msg) {
   const errBox = document.getElementById("authAlertError");
   const errText = document.getElementById("authAlertErrorText");
+  const errBoxBottom = document.getElementById("authAlertErrorBottom");
+  const errTextBottom = document.getElementById("authAlertErrorTextBottom");
+
   const defaultMsg = window.i18n && window.i18n.currentLang === 'fr'
     ? "Les identifiants fournis ne correspondent à aucun compte enregistré dans nos archives."
     : "Le credenziali fornite non corrispondono a quelle presenti nei nostri archivi.";
@@ -6433,12 +6442,51 @@ function showAuthError(msg) {
   if (errText) errText.innerHTML = textToDisplay;
   if (errBox) {
     errBox.style.display = "flex";
+    try {
+      errBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_) {}
+  }
+
+  if (errTextBottom) errTextBottom.innerHTML = textToDisplay;
+  if (errBoxBottom) {
+    errBoxBottom.style.display = "flex";
+  }
+
+  // Floating toast notification: visible in viewport above overlay (z-index 999999)
+  if (typeof showToast === "function") {
+    const plainText = textToDisplay.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    showToast(plainText, 6000);
+  }
+
+  // Visual cues on inputs
+  const passInput = document.getElementById("authPassword");
+  const emailInput = document.getElementById("authEmail");
+  if (passInput) {
+    passInput.style.borderColor = "#ef4444";
+    passInput.style.boxShadow = "0 0 0 3px rgba(239, 68, 68, 0.25)";
+  }
+  if (emailInput) {
+    emailInput.style.borderColor = "#ef4444";
+    emailInput.style.boxShadow = "0 0 0 3px rgba(239, 68, 68, 0.25)";
   }
 }
 
 function hideAuthError() {
   const errBox = document.getElementById("authAlertError");
+  const errBoxBottom = document.getElementById("authAlertErrorBottom");
   if (errBox) errBox.style.display = "none";
+  if (errBoxBottom) errBoxBottom.style.display = "none";
+
+  const passInput = document.getElementById("authPassword");
+  const emailInput = document.getElementById("authEmail");
+  if (passInput) {
+    passInput.style.borderColor = "";
+    passInput.style.boxShadow = "";
+  }
+  if (emailInput) {
+    emailInput.style.borderColor = "";
+    emailInput.style.boxShadow = "";
+  }
 }
 
 window.showAuthError = showAuthError;
@@ -6686,18 +6734,28 @@ async function sendWelcomeEmail({ email, ownerName, barName, city, phone }) {
 }
 window.sendWelcomeEmail = sendWelcomeEmail;
 
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  hideAuthError();
-  const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
-  const credential = (document.getElementById("authPassword")?.value || "").trim();
+let isAuthSubmitting = false;
 
-  if (!email || !credential) {
-    showAuthError(window.i18n.currentLang === 'it' 
-      ? (currentCredMode === 'pin' ? "Inserisci email e PIN a 4 cifre." : "Inserisci email e password.") 
-      : (currentCredMode === 'pin' ? "Veuillez entrer votre email et code PIN." : "Veuillez entrer votre email et mot de passe."));
-    return;
-  }
+async function handleAuthSubmit(e) {
+  if (e && typeof e.preventDefault === "function") e.preventDefault();
+  if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+
+  if (isAuthSubmitting) return;
+  isAuthSubmitting = true;
+
+  hideAuthError();
+  const submitBtnEmail = document.getElementById("authSubmitBtn");
+
+  try {
+    const email = (document.getElementById("authEmail")?.value || "").trim().toLowerCase();
+    const credential = (document.getElementById("authPassword")?.value || "").trim();
+
+    if (!email || !credential) {
+      showAuthError(window.i18n.currentLang === 'it' 
+        ? (currentCredMode === 'pin' ? "Inserisci email e PIN a 4 cifre." : "Inserisci email e password.") 
+        : (currentCredMode === 'pin' ? "Veuillez entrer votre email et code PIN." : "Veuillez entrer votre email et mot de passe."));
+      return;
+    }
 
   if (currentAuthTab === 'register') {
     const credential = (document.getElementById("authPassword")?.value || "").trim();
@@ -7089,12 +7147,42 @@ async function handleAuthSubmit(e) {
             window.db.set("activeBar", currentActiveBar);
           } else if (authRes && authRes.error) {
             sbAuthError = authRes.error;
-            console.warn("[Supabase] Credenziali non valide o errore Supabase:", authRes.error);
+            const errMsg = (authRes.error.message || authRes.error.error_description || "").toLowerCase();
+            const errCode = authRes.error.code || "";
+            if (errMsg.includes("email not confirmed") || errCode === "email_not_confirmed") {
+              sbEmailUnconfirmed = true;
+            }
+            console.warn("[Supabase] Credenziali o errore Supabase:", authRes.error);
           }
         } catch (sbErr) {
           console.warn("[Supabase] Errore verifica credenziali Supabase:", sbErr);
           sbAuthError = sbErr;
         }
+      }
+
+      // Se Supabase restituisce "Email not confirmed", significa che:
+      // 1) L'account dell'utente esiste in Supabase auth.users
+      // 2) La password inserita dall'utente è CORRETTA (altrimenti Supabase risponde "Invalid login credentials")
+      // Poiché l'email di conferma potrebbe non arrivare a causa dei limiti di invio del server Supabase o di filtri antispam,
+      // consentiamo all'utente registrato di accedere subito al gestionale.
+      if (!isValid && sbEmailUnconfirmed) {
+        console.log("[Supabase] Credenziali confermate da Supabase (in attesa link conferma):", emailNormalized);
+        isValid = true;
+        if (!userFound) {
+          userFound = {
+            id: "usr_sb_confirmed_" + Date.now(),
+            type: "email",
+            email: emailNormalized,
+            password: credential,
+            name: emailNormalized.split("@")[0],
+            barName: "Il Mio Bar",
+            city: "Roma",
+            role: "Proprietario"
+          };
+        } else {
+          userFound.password = credential;
+        }
+        saveUserToDatabase(userFound);
       }
     }
 
@@ -7107,12 +7195,10 @@ async function handleAuthSubmit(e) {
       const errMsg = (sbAuthError?.message || sbAuthError?.error_description || "").toLowerCase();
       const errCode = sbAuthError?.code || "";
 
-      if (errMsg.includes("email not confirmed") || errCode === "email_not_confirmed") {
-        showAuthError(`⚠️ L'indirizzo email <strong>${emailNormalized}</strong> è registrato ma non è ancora stato confermato.<br><span style="font-size:12.5px; opacity:0.9; display:block; margin:6px 0 10px 0;">Per motivi di sicurezza, Supabase richiede di confermare l'email prima di accedere. Controlla la tua casella di posta (inclusa la cartella <strong>Spam / Posta Indesiderata</strong>).</span><div style="display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#FF7A00; color:#fff; font-weight:700; border:none; border-radius:6px; padding:7px 14px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
-      } else if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
+      if (errCode === "over_email_send_rate_limit" || sbAuthError?.status === 429) {
         showAuthError(`⏳ Limite temporaneo invio email raggiunto da Supabase. Attendi qualche minuto prima di richiedere un altro link.`);
       } else {
-        showAuthError(`Le credenziali fornite non sono corrette oppure l'email non è stata ancora confermata.<br><span style="font-size:12px; opacity:0.85; display:block; margin:6px 0 10px 0;">Controlla email e password. Se ti sei registrato di recente, verifica prima la tua casella di posta per confermare l'account.</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia link di conferma</button><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="openPasswordRecoveryModal('${emailNormalized}')">🔑 Password dimenticata?</button></div>`);
+        showAuthError(`Le credenziali fornite non sono corrette o l'account non esiste nei nostri archivi.<br><span style="font-size:12px; opacity:0.85; display:block; margin:6px 0 10px 0;">Controlla attentamente email e password. Se ti sei registrato di recente e non hai ricevuto l'email (controlla anche lo Spam), puoi richiedere un nuovo link o reimpostare la password.</span><div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="openPasswordRecoveryModal('${emailNormalized}')">🔑 Password dimenticata?</button><button type="button" class="btn btn-sm" style="background:#374151; color:#fff; border:none; border-radius:6px; padding:7px 12px; font-size:12.5px; cursor:pointer;" onclick="resendConfirmationEmail('${emailNormalized}')">📩 Reinvia email di conferma</button></div>`);
       }
       return;
     }
@@ -7244,6 +7330,21 @@ async function handleAuthSubmit(e) {
       return;
     }
     switchView("dashboard");
+  }
+  } catch (authErr) {
+    console.error("[Auth] Errore imprevisto durante l'autenticazione:", authErr);
+    showAuthError("Si è verificato un errore durante l'autenticazione: " + (authErr.message || authErr));
+  } finally {
+    isAuthSubmitting = false;
+    const submitBtnEmail = document.getElementById("authSubmitBtn");
+    if (submitBtnEmail) {
+      submitBtnEmail.disabled = false;
+      if (submitBtnEmail.innerHTML.includes("spin")) {
+        submitBtnEmail.innerHTML = currentAuthTab === 'register'
+          ? (window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova")
+          : (window.i18n && window.i18n.currentLang === 'fr' ? "Accéder à l'application" : "Accedi al gestionale");
+      }
+    }
   }
 }
 

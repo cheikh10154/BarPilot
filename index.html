@@ -363,7 +363,13 @@
           <label for="authRemember" style="cursor:pointer;" data-i18n="rememberMe">Resta connesso su questo dispositivo</label>
         </div>
 
-        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" data-i18n="submitLogin">
+        <!-- Direct Visible Error Alert Box right above the submit button -->
+        <div id="authAlertErrorBottom" class="auth-error-alert" style="display:none; margin-bottom:14px;" role="alert">
+          <span class="auth-error-icon">⚠️</span>
+          <span id="authAlertErrorTextBottom" class="auth-error-text"></span>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;" id="authSubmitBtn" onclick="handleAuthSubmit(event)" data-i18n="submitLogin">
           Accedi al gestionale
         </button>
       </form>
