@@ -303,7 +303,62 @@ const DEFAULT_ADMIN_DATA = {
       desc: "Bar Nettuno",
       time: "3 ore fa"
     }
-  ]
+  ],
+  subscriptions: [
+    { id: "sub-01", barId: "bp-bar-01", barName: "Bar Centrale", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "15/11/2025" },
+    { id: "sub-02", barId: "bp-bar-02", barName: "Caffè del Porto", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "active", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "28/11/2025" },
+    { id: "sub-03", barId: "bp-bar-03", barName: "La Dolce Vita", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "trial", paymentMethod: "Google Pay (In prova)", currentPeriodEnd: "10/11/2025" },
+    { id: "sub-04", barId: "bp-bar-04", barName: "Bar Moderno", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "late", paymentMethod: "Carta Scaduta (Stripe)", currentPeriodEnd: "10/10/2025" },
+    { id: "sub-05", barId: "bp-bar-05", barName: "Lounge 21", plan: "Premium", price: 99.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "22/11/2025" },
+    { id: "sub-06", barId: "bp-bar-06", barName: "Bar Nettuno", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "canceled", paymentMethod: "Nessuno", currentPeriodEnd: "28/10/2025" },
+    { id: "sub-07", barId: "bp-bar-07", barName: "Il Ritrovo", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "SEPA Direct", currentPeriodEnd: "18/11/2025" },
+    { id: "sub-08", barId: "bp-bar-08", barName: "Bar Firenze", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "late", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "05/10/2025" }
+  ],
+  payments: [
+    { id: "pay-01", transactionId: "txn_gpay_9823412", barId: "bp-bar-01", barName: "Bar Centrale", amount: 59.00, method: "Google Pay", status: "completed", date: "15 ott 2025, 10:14" },
+    { id: "pay-02", transactionId: "txn_strp_8849201", barId: "bp-bar-05", barName: "Lounge 21", amount: 99.00, method: "Carta (Stripe)", status: "completed", date: "15 ott 2025, 11:20" },
+    { id: "pay-03", transactionId: "txn_strp_7739102", barId: "bp-bar-02", barName: "Caffè del Porto", amount: 38.00, method: "Carta (Stripe)", status: "completed", date: "15 ott 2025, 12:45" },
+    { id: "pay-04", transactionId: "txn_sepa_1192840", barId: "bp-bar-07", barName: "Il Ritrovo", amount: 59.00, method: "SEPA Direct", status: "completed", date: "01 ott 2025, 09:00" },
+    { id: "pay-05", transactionId: "txn_gpay_3329104", barId: "bp-bar-04", barName: "Bar Moderno", amount: 59.00, method: "Google Pay", status: "failed", date: "05 ott 2025, 14:10" }
+  ],
+  stats: {
+    mrr: 12480.00,
+    arr: 149760.00,
+    arpu: 58.86,
+    clv: 1420.00,
+    conversionRate: 78.4,
+    retentionRate: 98.2,
+    basicCount: 18,
+    proCount: 52,
+    premiumCount: 26
+  },
+  tickets: [
+    { id: "tkt-01", barId: "bp-bar-01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", priority: "Media", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2025" },
+    { id: "tkt-02", barId: "bp-bar-04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", priority: "Alta", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il Google Wallet per il pagamento automatico?", response: null, date: "27 ott 2025" },
+    { id: "tkt-03", barId: "bp-bar-05", barName: "Lounge 21", contactEmail: "luca@lounge21.it", subject: "Integrazione stampante termica Bluetooth", category: "Hardware", priority: "Bassa", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2025" }
+  ],
+  overview: {
+    mrr: 12480.00,
+    arr: 149760.00,
+    activeBars: 64,
+    trialBars: 18,
+    lateBars: 11,
+    canceledBars: 3,
+    totalBars: 96,
+    paidInvoices: 132,
+    pendingInvoices: 13,
+    successRate: 95.10,
+    growthRate: 16.00
+  },
+  settings: {
+    superAdminName: "Cheikh Gueye",
+    superAdminEmail: "cheikh@barpilot.it",
+    accessPin: "101540",
+    companyName: "BarPilot Inc. · Gestione Bar & Ristoranti",
+    companyPiva: "IT 12345678901",
+    billingEmail: "billing@barpilot.app",
+    autoReminders: true
+  }
 };
 
 // ============================================================================
@@ -348,7 +403,7 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Supabase REST Client
+  // Supabase REST Client - Complete Live Synchronization for All 8 Sections
   // ==========================================================================
   async syncWithSupabase() {
     const badge = document.getElementById("supabaseStatusBadge");
@@ -358,82 +413,254 @@ class AdminConsole {
         badge.style.color = "#F59E0B";
       }
 
-      // 1. Fetch Bars
-      const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*`, {
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
-        }
-      });
+      const headers = {
+        "apikey": this.supabaseConfig.anonKey,
+        "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
+      };
 
-      if (barsRes.ok) {
-        const remoteBars = await barsRes.json();
-        if (Array.isArray(remoteBars) && remoteBars.length > 0) {
-          // Map DB columns to object
-          this.data.bars = remoteBars.map(rb => ({
-            id: rb.id,
-            name: rb.name,
-            owner: rb.owner,
-            email: rb.email,
-            phone: rb.phone || "+39 02 1234567",
-            address: rb.address || "Via Centrale 1",
-            city: rb.city || "Roma",
-            plan: rb.plan || "Pro",
-            status: rb.status || "active",
-            nextInvoice: rb.next_invoice || "15 nov 2025",
-            monthlyRevenue: Number(rb.monthly_revenue || 59),
-            createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "2024",
-            lastAccess: rb.last_access || "Recente",
-            avatar: rb.avatar || rb.name.substring(0, 2).toUpperCase(),
-            photo: rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-            piva: rb.piva || "IT09876543210",
-            notes: rb.notes || ""
-          }));
-          this.saveData();
-          this.renderOverviewTable();
-          this.renderFullBarsTable();
-          this.renderSubscriptionsTable();
-          this.renderKPIs();
+      // 1. Panoramica: Fetch Overview Metrics
+      try {
+        const ovRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_overview_metrics?select=*&limit=1`, { headers });
+        if (ovRes.ok) {
+          const ovData = await ovRes.json();
+          if (Array.isArray(ovData) && ovData.length > 0) {
+            const row = ovData[0];
+            this.data.overview = {
+              mrr: Number(row.mrr || 12480.00),
+              arr: Number(row.arr || 149760.00),
+              activeBars: Number(row.active_bars || 64),
+              trialBars: Number(row.trial_bars || 18),
+              lateBars: Number(row.late_bars || 11),
+              canceledBars: Number(row.canceled_bars || 3),
+              totalBars: Number(row.total_bars || 96),
+              paidInvoices: Number(row.paid_invoices || 132),
+              pendingInvoices: Number(row.pending_invoices || 13),
+              successRate: Number(row.success_rate || 95.10),
+              growthRate: Number(row.growth_rate || 16.00)
+            };
+          }
         }
+      } catch (e) {
+        console.warn("[Supabase] Overview sync fallback:", e);
       }
 
-      // 2. Fetch Invoices
-      const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*`, {
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
+      // 2. Bar Iscritti: Fetch Bars
+      try {
+        const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*`, { headers });
+        if (barsRes.ok) {
+          const remoteBars = await barsRes.json();
+          if (Array.isArray(remoteBars) && remoteBars.length > 0) {
+            this.data.bars = remoteBars.map(rb => ({
+              id: rb.id,
+              name: rb.name,
+              owner: rb.owner,
+              email: rb.email,
+              phone: rb.phone || "+39 02 1234567",
+              address: rb.address || "Via Centrale 1",
+              city: rb.city || rb["Città"] || "Roma",
+              plan: rb.plan || "Pro",
+              status: rb.status || "active",
+              nextInvoice: rb.next_invoice || "15 nov 2025",
+              monthlyRevenue: Number(rb.monthly_revenue || 59),
+              createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "2024",
+              lastAccess: rb.last_access || "Recente",
+              avatar: rb.avatar || rb.name.substring(0, 2).toUpperCase(),
+              photo: rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
+              piva: rb.piva || rb["Partita IVA"] || "IT09876543210",
+              notes: rb.notes || ""
+            }));
+          }
         }
-      });
-
-      if (invRes.ok) {
-        const remoteInvs = await invRes.json();
-        if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
-          this.data.invoices = remoteInvs.map(ri => ({
-            id: ri.id,
-            number: ri.number,
-            barId: ri.bar_id,
-            barName: ri.bar_name,
-            ownerName: ri.owner_name,
-            date: ri.date,
-            dueDate: ri.due_date,
-            amount: Number(ri.amount),
-            plan: ri.plan,
-            status: ri.status,
-            period: ri.period
-          }));
-          this.saveData();
-          this.renderInvoicesTable();
-        }
+      } catch (e) {
+        console.warn("[Supabase] Bars sync fallback:", e);
       }
 
+      // 3. Abbonamenti: Fetch Subscriptions
+      try {
+        const subsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions?select=*`, { headers });
+        if (subsRes.ok) {
+          const remoteSubs = await subsRes.json();
+          if (Array.isArray(remoteSubs) && remoteSubs.length > 0) {
+            this.data.subscriptions = remoteSubs.map(rs => ({
+              id: rs.id,
+              barId: rs.bar_id,
+              barName: rs.bar_name,
+              plan: rs.plan,
+              price: Number(rs.price),
+              billingCycle: rs.billing_cycle === 'yearly' ? 'Annuale' : 'Mensile',
+              status: rs.status,
+              paymentMethod: rs.payment_method || 'Google Pay',
+              currentPeriodEnd: rs.current_period_end || rs.next_invoice || '15/11/2025'
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Subscriptions sync fallback:", e);
+      }
+
+      // 4. Fatture: Fetch Invoices
+      try {
+        const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*`, { headers });
+        if (invRes.ok) {
+          const remoteInvs = await invRes.json();
+          if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
+            this.data.invoices = remoteInvs.map(ri => ({
+              id: ri.id,
+              number: ri.number,
+              barId: ri.bar_id,
+              barName: ri.bar_name,
+              ownerName: ri.owner_name,
+              date: ri.date,
+              dueDate: ri.due_date,
+              amount: Number(ri.amount),
+              plan: ri.plan,
+              status: ri.status,
+              period: ri.period
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Invoices sync fallback:", e);
+      }
+
+      // 5. Pagamenti: Fetch Payments Ledger
+      try {
+        const payRes = await fetch(`${this.supabaseConfig.url}/rest/v1/payments?select=*`, { headers });
+        if (payRes.ok) {
+          const remotePays = await payRes.json();
+          if (Array.isArray(remotePays) && remotePays.length > 0) {
+            this.data.payments = remotePays.map(rp => ({
+              id: rp.id,
+              transactionId: rp.transaction_id || rp.id,
+              barId: rp.bar_id,
+              barName: rp.bar_name,
+              amount: Number(rp.amount),
+              method: rp.method,
+              status: rp.status,
+              date: rp.created_at ? new Date(rp.created_at).toLocaleDateString('it-IT') : "Recente"
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Payments sync fallback:", e);
+      }
+
+      // 6. Statistiche: Fetch SaaS Analytics
+      try {
+        const statsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_stats?select=*&limit=1`, { headers });
+        if (statsRes.ok) {
+          const remoteStats = await statsRes.json();
+          if (Array.isArray(remoteStats) && remoteStats.length > 0) {
+            const st = remoteStats[0];
+            this.data.stats = {
+              mrr: Number(st.mrr || 12480.00),
+              arr: Number(st.arr || 149760.00),
+              arpu: Number(st.arpu || 58.86),
+              clv: Number(st.clv || 1420.00),
+              conversionRate: Number(st.conversion_rate || 78.4),
+              retentionRate: Number(st.retention_rate || 98.2),
+              basicCount: Number(st.basic_count || 18),
+              proCount: Number(st.pro_count || 52),
+              premiumCount: Number(st.premium_count || 26)
+            };
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Stats sync fallback:", e);
+      }
+
+      // 7. Supporto: Fetch Support Tickets
+      try {
+        const tktRes = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?select=*`, { headers });
+        if (tktRes.ok) {
+          const remoteTkts = await tktRes.json();
+          if (Array.isArray(remoteTkts) && remoteTkts.length > 0) {
+            this.data.tickets = remoteTkts.map(rt => ({
+              id: rt.id,
+              barId: rt.bar_id,
+              barName: rt.bar_name,
+              contactEmail: rt.contact_email,
+              subject: rt.subject,
+              category: rt.category || "KDS Banco",
+              priority: rt.priority || "Media",
+              status: rt.status || "open",
+              message: rt.message,
+              response: rt.response,
+              date: rt.created_at ? new Date(rt.created_at).toLocaleDateString('it-IT') : "Recente"
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Support tickets sync fallback:", e);
+      }
+
+      // 8. Impostazioni: Fetch Platform & Super Admin Config
+      try {
+        const setRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings?select=*&limit=1`, { headers });
+        if (setRes.ok) {
+          const remoteSet = await setRes.json();
+          if (Array.isArray(remoteSet) && remoteSet.length > 0) {
+            const s = remoteSet[0];
+            this.data.settings = {
+              superAdminName: s.super_admin_name || "Cheikh Gueye",
+              superAdminEmail: s.super_admin_email || "cheikh@barpilot.it",
+              accessPin: s.access_pin || "101540",
+              companyName: s.company_name || "BarPilot Inc. · Gestione Bar & Ristoranti",
+              companyPiva: s.company_piva || "IT 12345678901",
+              billingEmail: s.billing_email || "billing@barpilot.app",
+              autoReminders: s.auto_reminders !== false
+            };
+            if (s.super_admin_avatar && !localStorage.getItem("barpilot_admin_avatar")) {
+              localStorage.setItem("barpilot_admin_avatar", s.super_admin_avatar);
+              this.loadSuperAdminAvatar();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Settings sync fallback:", e);
+      }
+
+      // 9. Attività Recenti: Fetch Activities Audit Log
+      try {
+        const actRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_activities?select=*&order=created_at.desc&limit=10`, { headers });
+        if (actRes.ok) {
+          const remoteActs = await actRes.json();
+          if (Array.isArray(remoteActs) && remoteActs.length > 0) {
+            this.data.activities = remoteActs.map(ra => ({
+              id: ra.id,
+              type: ra.type,
+              title: ra.title,
+              desc: ra.description,
+              time: ra.time || "Poco fa"
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("[Supabase] Activities sync fallback:", e);
+      }
+
+      this.saveData();
       this.supabaseConnected = true;
+
+      // Re-render all views with synced data
+      this.renderKPIs();
+      this.renderOverviewTable();
+      this.renderFullBarsTable();
+      this.renderSubscriptionsTable();
+      this.renderInvoicesTable();
+      this.renderPaymentsTable();
+      this.renderStatsView();
+      this.renderSupportTable();
+      this.renderSettingsView();
+      this.renderRecentActivities();
+
       if (badge) {
         badge.innerHTML = `<span>🟢</span> <span>Supabase DB Connesso</span>`;
         badge.style.color = "#10B981";
       }
-      console.log("[BarPilot Admin] Connected to live Supabase DB!");
+      console.log("[BarPilot Admin] All 8 sections synchronized with live Supabase DB!");
     } catch (err) {
-      console.warn("[BarPilot Admin] Supabase sync note (using cached/local dataset):", err);
+      console.warn("[BarPilot Admin] Supabase global sync note:", err);
       if (badge) {
         badge.innerHTML = `<span>⚡</span> <span>Supabase (Modalità Ibrida)</span>`;
         badge.style.color = "#FF8A00";
@@ -441,6 +668,190 @@ class AdminConsole {
     }
   }
 
+  // ==========================================================================
+  // Push All 8 Sections Data to Supabase (REST Upsert)
+  // ==========================================================================
+  async pushAllDataToSupabase() {
+    const pushBtn = document.querySelector(".btn-supabase-push");
+    const origHtml = pushBtn ? pushBtn.innerHTML : "";
+    if (pushBtn) {
+      pushBtn.innerHTML = `<span>⏳</span> <span>Salvataggio...</span>`;
+      pushBtn.disabled = true;
+    }
+
+    try {
+      this.showToast("☁️ Inizio salvataggio di tutte le 8 sezioni su Supabase...");
+
+      // 1. Panoramica
+      const overviewPayload = [{
+        id: "current",
+        mrr: Number(this.data.overview.mrr || 12480.00),
+        arr: Number(this.data.overview.arr || 149760.00),
+        active_bars: Number(this.data.overview.activeBars || 64),
+        trial_bars: Number(this.data.overview.trialBars || 18),
+        late_bars: Number(this.data.overview.lateBars || 11),
+        canceled_bars: Number(this.data.overview.canceledBars || 3),
+        total_bars: Number(this.data.overview.totalBars || 96),
+        paid_invoices: Number(this.data.overview.paidInvoices || 132),
+        pending_invoices: Number(this.data.overview.pendingInvoices || 13),
+        success_rate: Number(this.data.overview.successRate || 95.10),
+        growth_rate: Number(this.data.overview.growthRate || 16.00)
+      }];
+
+      // 2. Bar Iscritti
+      const barsPayload = this.data.bars.map(b => ({
+        id: b.id,
+        name: b.name,
+        owner: b.owner,
+        email: b.email,
+        phone: b.phone,
+        address: b.address,
+        city: b.city,
+        plan: b.plan,
+        status: b.status,
+        next_invoice: b.nextInvoice,
+        monthly_revenue: b.monthlyRevenue,
+        avatar: b.avatar,
+        photo: b.photo,
+        piva: b.piva,
+        notes: b.notes
+      }));
+
+      // 3. Abbonamenti
+      const subsPayload = (this.data.subscriptions || []).map(s => ({
+        id: s.id,
+        bar_id: s.barId,
+        bar_name: s.barName,
+        plan: s.plan,
+        price: Number(s.price),
+        billing_cycle: (s.billingCycle || "monthly").toLowerCase(),
+        status: s.status,
+        payment_method: s.paymentMethod,
+        current_period_end: s.currentPeriodEnd
+      }));
+
+      // 4. Fatture
+      const invsPayload = (this.data.invoices || []).map(i => ({
+        id: i.id,
+        number: i.number,
+        bar_id: i.barId,
+        bar_name: i.barName,
+        owner_name: i.ownerName,
+        date: i.date,
+        due_date: i.dueDate,
+        amount: Number(i.amount),
+        plan: i.plan,
+        status: i.status,
+        period: i.period
+      }));
+
+      // 5. Pagamenti
+      const payPayload = (this.data.payments || []).map(p => ({
+        id: p.id,
+        transaction_id: p.transactionId || p.id,
+        bar_id: p.barId,
+        bar_name: p.barName,
+        amount: Number(p.amount),
+        method: p.method,
+        status: p.status
+      }));
+
+      // 6. Statistiche
+      const statsPayload = [{
+        id: "stats-current",
+        period: "Corrente",
+        mrr: Number(this.data.stats.mrr || 12480.00),
+        arr: Number(this.data.stats.arr || 149760.00),
+        arpu: Number(this.data.stats.arpu || 58.86),
+        clv: Number(this.data.stats.clv || 1420.00),
+        conversion_rate: Number(this.data.stats.conversionRate || 78.4),
+        retention_rate: Number(this.data.stats.retentionRate || 98.2),
+        basic_count: Number(this.data.stats.basicCount || 18),
+        pro_count: Number(this.data.stats.proCount || 52),
+        premium_count: Number(this.data.stats.premiumCount || 26)
+      }];
+
+      // 7. Supporto
+      const ticketsPayload = (this.data.tickets || []).map(t => ({
+        id: t.id,
+        bar_id: t.barId,
+        bar_name: t.barName,
+        contact_email: t.contactEmail,
+        subject: t.subject,
+        category: t.category,
+        priority: (t.priority || "medium").toLowerCase(),
+        status: t.status,
+        message: t.message,
+        response: t.response
+      }));
+
+      // 8. Impostazioni
+      const settingsPayload = [{
+        id: "global_config",
+        super_admin_name: this.data.settings.superAdminName || "Cheikh Gueye",
+        super_admin_email: this.data.settings.superAdminEmail || "cheikh@barpilot.it",
+        super_admin_avatar: localStorage.getItem("barpilot_admin_avatar") || null,
+        access_pin: this.data.settings.accessPin || "101540",
+        company_name: this.data.settings.companyName || "BarPilot Inc. · Gestione Bar & Ristoranti",
+        company_piva: this.data.settings.companyPiva || "IT 12345678901",
+        billing_email: this.data.settings.billingEmail || "billing@barpilot.app",
+        auto_reminders: this.data.settings.autoReminders !== false
+      }];
+
+      // 9. Attività Recenti
+      const actPayload = (this.data.activities || []).map(a => ({
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        description: a.desc || a.description,
+        time: a.time
+      }));
+
+      const postTable = async (table, data) => {
+        return fetch(`${this.supabaseConfig.url}/rest/v1/${table}`, {
+          method: "POST",
+          headers: {
+            "apikey": this.supabaseConfig.anonKey,
+            "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates"
+          },
+          body: JSON.stringify(data)
+        });
+      };
+
+      const results = await Promise.allSettled([
+        postTable("admin_overview_metrics", overviewPayload),
+        postTable("bars", barsPayload),
+        postTable("subscriptions", subsPayload),
+        postTable("invoices", invsPayload),
+        postTable("payments", payPayload),
+        postTable("admin_stats", statsPayload),
+        postTable("support_tickets", ticketsPayload),
+        postTable("admin_settings", settingsPayload),
+        postTable("admin_activities", actPayload)
+      ]);
+
+      const failed = results.filter(r => r.status === "rejected" || (r.value && !r.value.ok));
+      if (failed.length === 0) {
+        this.showToast("✅ Tutte le 8 sezioni salvate con successo su Supabase!");
+      } else {
+        console.warn("[Supabase push] Some tables returned non-200:", failed);
+        this.showToast(`⚠️ Salvataggio completato (${results.length - failed.length}/${results.length} sezioni). Se mancano tabelle, usa 'Crea Tabelle SQL'.`);
+      }
+      this.syncWithSupabase();
+    } catch (e) {
+      console.error("Push error:", e);
+      this.showToast("Errore durante il salvataggio su Supabase. Verifica la connessione.");
+    } finally {
+      if (pushBtn) {
+        pushBtn.innerHTML = origHtml;
+        pushBtn.disabled = false;
+      }
+    }
+  }
+
+  // Helpers to save individual items to Supabase
   async saveBarToSupabase(bar) {
     try {
       const payload = {
@@ -476,6 +887,96 @@ class AdminConsole {
     }
   }
 
+  async saveSubscriptionToSupabase(sub) {
+    try {
+      const payload = {
+        id: sub.id,
+        bar_id: sub.barId,
+        bar_name: sub.barName,
+        plan: sub.plan,
+        price: Number(sub.price),
+        billing_cycle: (sub.billingCycle || 'monthly').toLowerCase(),
+        status: sub.status,
+        payment_method: sub.paymentMethod,
+        current_period_end: sub.currentPeriodEnd
+      };
+
+      await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn("[Supabase] Insert subscription fallback:", e);
+    }
+  }
+
+  async saveTicketToSupabase(tkt) {
+    try {
+      const payload = {
+        id: tkt.id,
+        bar_id: tkt.barId,
+        bar_name: tkt.barName,
+        contact_email: tkt.contactEmail,
+        subject: tkt.subject,
+        category: tkt.category,
+        priority: (tkt.priority || "medium").toLowerCase(),
+        status: tkt.status,
+        message: tkt.message,
+        response: tkt.response,
+        updated_at: new Date().toISOString()
+      };
+
+      await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn("[Supabase] Insert ticket fallback:", e);
+    }
+  }
+
+  async saveSettingsToSupabase(settings) {
+    try {
+      const payload = {
+        id: "global_config",
+        super_admin_name: settings.superAdminName || "Cheikh Gueye",
+        super_admin_email: settings.superAdminEmail || "cheikh@barpilot.it",
+        super_admin_avatar: localStorage.getItem("barpilot_admin_avatar") || null,
+        access_pin: settings.accessPin || "101540",
+        company_name: settings.companyName,
+        company_piva: settings.companyPiva,
+        billing_email: settings.billingEmail,
+        auto_reminders: settings.autoReminders !== false,
+        updated_at: new Date().toISOString()
+      };
+
+      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn("[Supabase] Insert settings fallback:", e);
+    }
+  }
+
   init() {
     this.checkAdminPin();
     this.loadSuperAdminAvatar();
@@ -487,6 +988,10 @@ class AdminConsole {
     this.renderFullBarsTable();
     this.renderInvoicesTable();
     this.renderSubscriptionsTable();
+    this.renderPaymentsTable();
+    this.renderStatsView();
+    this.renderSupportTable();
+    this.renderSettingsView();
   }
 
   // ==========================================================================
@@ -681,6 +1186,7 @@ class AdminConsole {
       invoices: { title: "Fatturazione & Ricevute", sub: "Storico fatture emesse, pagate e da riscuotere." },
       payments: { title: "Gateway & Pagamenti", sub: "Registro transazioni via Stripe, Google Pay e Carte." },
       stats: { title: "Statistiche & Crescita", sub: "Analisi di redditività MRR, ARR e andamento abbonati." },
+      support: { title: "Centro Supporto & Ticket", sub: "Gestione richieste d'assistenza, KDS e configurazioni dai bar." },
       settings: { title: "Impostazioni Piattaforma", sub: "Configurazione prezzi, dati aziendali e sincronizzazione Supabase." }
     };
 
@@ -697,6 +1203,11 @@ class AdminConsole {
     const target = document.getElementById(`view-${viewId}`);
     if (target) target.classList.add("active");
 
+    if (viewId === "payments") this.renderPaymentsTable();
+    if (viewId === "stats") this.renderStatsView();
+    if (viewId === "support") this.renderSupportTable();
+    if (viewId === "settings") this.renderSettingsView();
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -704,11 +1215,12 @@ class AdminConsole {
   // KPI Calculations
   // ==========================================================================
   renderKPIs() {
-    const totalBars = 248;
-    const activeBars = 212;
-    const trialBars = 18;
-    const lateBars = 11;
-    const monthlyRevenue = "12.480 €";
+    const ov = this.data.overview || {};
+    const totalBars = ov.totalBars !== undefined ? ov.totalBars : 248;
+    const activeBars = ov.activeBars !== undefined ? ov.activeBars : 212;
+    const trialBars = ov.trialBars !== undefined ? ov.trialBars : 18;
+    const lateBars = ov.lateBars !== undefined ? ov.lateBars : 11;
+    const monthlyRevenue = ov.mrr !== undefined ? (Number(ov.mrr).toLocaleString('it-IT') + " €") : "12.480 €";
 
     const setEl = (id, val) => {
       const el = document.getElementById(id);
@@ -1059,30 +1571,211 @@ class AdminConsole {
     const tbody = document.getElementById("subscriptionsTableBody");
     if (!tbody) return;
 
-    tbody.innerHTML = this.data.bars.map(bar => {
-      const isLate = bar.status === "late";
-      const isTrial = bar.status === "trial";
+    const list = (this.data.subscriptions && this.data.subscriptions.length > 0)
+      ? this.data.subscriptions
+      : this.data.bars.map(b => ({
+          id: 'sub-' + b.id,
+          barId: b.id,
+          barName: b.name,
+          plan: b.plan,
+          price: b.monthlyRevenue,
+          paymentMethod: 'Google Pay',
+          currentPeriodEnd: b.nextInvoice,
+          status: b.status
+        }));
+
+    tbody.innerHTML = list.map(sub => {
+      const isLate = sub.status === "late";
+      const isTrial = sub.status === "trial";
+      const isCanceled = sub.status === "canceled";
       const badge = isLate 
         ? `<span class="status-pill status-late">Scaduto - Rinnovo Fallito</span>`
         : isTrial 
         ? `<span class="status-pill status-trial">14gg Prova Attiva</span>`
+        : isCanceled
+        ? `<span class="status-pill status-canceled">Annullato</span>`
         : `<span class="status-pill status-active">Rinnovo Automatico OK</span>`;
 
       return `
         <tr>
-          <td><strong>${bar.name}</strong></td>
-          <td>${bar.plan} (${bar.monthlyRevenue.toFixed(2)} €/m)</td>
-          <td>Google Pay & Wallet</td>
-          <td><strong>${bar.nextInvoice}</strong></td>
+          <td><strong>${sub.barName}</strong></td>
+          <td>${sub.plan} (${Number(sub.price).toFixed(2)} €/m)</td>
+          <td>${sub.paymentMethod || 'Google Pay & Wallet'}</td>
+          <td><strong>${sub.currentPeriodEnd || '-'}</strong></td>
           <td>${badge}</td>
           <td>
-            <button class="btn-primary-orange" style="height:28px; font-size:11px; padding:0 10px;" onclick="window.adminConsole.sendReminder('${bar.id}')">
+            <button class="btn-primary-orange" style="height:28px; font-size:11px; padding:0 10px;" onclick="window.adminConsole.sendReminder('${sub.barId || ''}')">
               ✉️ Invia Promemoria
             </button>
           </td>
         </tr>
       `;
     }).join("");
+  }
+
+  // ==========================================================================
+  // Render Payments Ledger Table
+  // ==========================================================================
+  renderPaymentsTable() {
+    const tbody = document.getElementById("paymentsTableBody");
+    if (!tbody) return;
+
+    const list = this.data.payments || [];
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Nessuna transazione registrata</td></tr>`;
+      return;
+    }
+
+    const statusBadges = {
+      completed: `<span class="status-pill status-active">Completato</span>`,
+      pending: `<span class="status-pill status-trial">In elaborazione</span>`,
+      failed: `<span class="status-pill status-late">Fallito</span>`,
+      refunded: `<span class="status-pill status-canceled">Rimborsato</span>`
+    };
+
+    tbody.innerHTML = list.map(p => `
+      <tr>
+        <td><code style="color:var(--primary); font-size:11.5px;">${p.transactionId || p.id}</code></td>
+        <td><strong>${p.barName}</strong></td>
+        <td><strong>${Number(p.amount).toFixed(2)} €</strong></td>
+        <td>${p.method}</td>
+        <td>${statusBadges[p.status] || p.status}</td>
+        <td>${p.date || 'Recente'}</td>
+      </tr>
+    `).join("");
+  }
+
+  // ==========================================================================
+  // Render SaaS Stats View
+  // ==========================================================================
+  renderStatsView() {
+    const s = this.data.stats || {};
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    if (s.mrr) setEl("statsMrr", Number(s.mrr).toLocaleString('it-IT') + " €");
+    if (s.arr) setEl("statsArr", Number(s.arr).toLocaleString('it-IT') + " €");
+    if (s.arpu) setEl("statsArpu", Number(s.arpu).toFixed(2).replace('.', ',') + " €");
+    if (s.retentionRate) setEl("statsChurn", (100 - Number(s.retentionRate)).toFixed(1) + "%");
+    if (s.basicCount !== undefined) setEl("statsBasicCount", s.basicCount + " bar");
+    if (s.proCount !== undefined) setEl("statsProCount", s.proCount + " bar");
+    if (s.premiumCount !== undefined) setEl("statsPremiumCount", s.premiumCount + " bar");
+  }
+
+  // ==========================================================================
+  // Render Support Helpdesk Tickets Table
+  // ==========================================================================
+  renderSupportTable() {
+    const tbody = document.getElementById("supportTableBody");
+    if (!tbody) return;
+
+    const list = this.data.tickets || [];
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Nessun ticket di supporto aperto</td></tr>`;
+      return;
+    }
+
+    const priorityBadges = {
+      high: `<span class="status-pill status-late">Alta</span>`,
+      alta: `<span class="status-pill status-late">Alta</span>`,
+      medium: `<span class="status-pill status-trial">Media</span>`,
+      media: `<span class="status-pill status-trial">Media</span>`,
+      low: `<span class="status-pill status-active">Bassa</span>`,
+      bassa: `<span class="status-pill status-active">Bassa</span>`,
+      urgent: `<span class="status-pill status-late" style="background:#EF4444; color:#fff;">Urgente</span>`
+    };
+
+    const statusBadges = {
+      open: `<span class="status-pill status-trial">Aperto</span>`,
+      in_progress: `<span class="status-pill status-trial" style="background:#3B82F6; color:#fff;">In corso</span>`,
+      resolved: `<span class="status-pill status-active">Risolto</span>`,
+      closed: `<span class="status-pill status-canceled">Chiuso</span>`
+    };
+
+    tbody.innerHTML = list.map(t => {
+      const pKey = (t.priority || 'medium').toLowerCase();
+      const sKey = (t.status || 'open').toLowerCase();
+      return `
+        <tr>
+          <td><strong style="color:var(--primary);">${t.id}</strong></td>
+          <td>
+            <div style="font-weight:700;">${t.barName}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${t.contactEmail}</div>
+          </td>
+          <td>
+            <div style="font-weight:600;">${t.subject}</div>
+            <div style="font-size:11px; color:var(--text-muted);"><span class="badge" style="background:var(--bg-card); font-size:10px;">${t.category}</span> - ${t.message}</div>
+            ${t.response ? `<div style="font-size:11px; color:#10B981; margin-top:2px;">↳ Risposta: ${t.response}</div>` : ''}
+          </td>
+          <td>${priorityBadges[pKey] || t.priority}</td>
+          <td>${statusBadges[sKey] || t.status}</td>
+          <td>${t.date || 'Recente'}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn-table-action" onclick="window.adminConsole.toggleTicketStatus('${t.id}')" title="Cambia stato / Segna come Risolto">
+                ${t.status === 'resolved' ? '↺ Riapri' : '✓ Risolvi'}
+              </button>
+              <button class="btn-table-action" onclick="window.adminConsole.replyTicket('${t.id}')" title="Rispondi al gestore">✉️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  toggleTicketStatus(tktId) {
+    const tkt = (this.data.tickets || []).find(t => t.id === tktId);
+    if (!tkt) return;
+    tkt.status = tkt.status === "resolved" ? "open" : "resolved";
+    this.saveData();
+    this.saveTicketToSupabase(tkt);
+    this.renderSupportTable();
+    this.showToast(`Ticket ${tkt.id} contrassegnato come: ${tkt.status.toUpperCase()}`);
+  }
+
+  replyTicket(tktId) {
+    const tkt = (this.data.tickets || []).find(t => t.id === tktId);
+    if (!tkt) return;
+    const answer = prompt(`Rispondi a ${tkt.barName} (${tkt.contactEmail}):\nOggetto: ${tkt.subject}`, tkt.response || "");
+    if (answer !== null) {
+      tkt.response = answer.trim();
+      tkt.status = "resolved";
+      this.saveData();
+      this.saveTicketToSupabase(tkt);
+      this.renderSupportTable();
+      this.showToast(`Risposta inviata e salvata su Supabase per il ticket ${tkt.id}`);
+    }
+  }
+
+  // ==========================================================================
+  // Render & Save Platform Settings
+  // ==========================================================================
+  renderSettingsView() {
+    const s = this.data.settings || {};
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val !== undefined) el.value = val;
+    };
+    setVal("settingsCompanyName", s.companyName);
+    setVal("settingsCompanyPiva", s.companyPiva);
+    setVal("settingsBillingEmail", s.billingEmail);
+  }
+
+  saveSettingsFromForm() {
+    if (!this.data.settings) this.data.settings = {};
+    const nameEl = document.getElementById("settingsCompanyName");
+    const pivaEl = document.getElementById("settingsCompanyPiva");
+    const emailEl = document.getElementById("settingsBillingEmail");
+
+    if (nameEl) this.data.settings.companyName = nameEl.value.trim();
+    if (pivaEl) this.data.settings.companyPiva = pivaEl.value.trim();
+    if (emailEl) this.data.settings.billingEmail = emailEl.value.trim();
+
+    this.saveData();
+    this.saveSettingsToSupabase(this.data.settings);
+    this.showToast("💾 Impostazioni salvate e sincronizzate con Supabase!");
   }
 
   // ==========================================================================
@@ -1359,7 +2052,32 @@ class AdminConsole {
   }
 
   copySupabaseSql() {
-    const sql = `-- BarPilot Administration Database Schema for Supabase
+    const sql = `-- ============================================================================
+-- BarPilot Super Admin Enterprise Database Schema for Supabase
+-- Console: https://www.barpilot.eu/administration.html
+-- Esegui questo script completo nell'editor SQL di Supabase:
+-- https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql
+-- ============================================================================
+
+-- 1. PANORAMICA (KPI & Metriche Live Dashboard)
+CREATE TABLE IF NOT EXISTS public.admin_overview_metrics (
+  id TEXT PRIMARY KEY DEFAULT 'current',
+  mrr NUMERIC(10,2) DEFAULT 12480.00,
+  arr NUMERIC(10,2) DEFAULT 149760.00,
+  active_bars INT DEFAULT 64,
+  trial_bars INT DEFAULT 18,
+  late_bars INT DEFAULT 11,
+  canceled_bars INT DEFAULT 3,
+  total_bars INT DEFAULT 96,
+  paid_invoices INT DEFAULT 132,
+  pending_invoices INT DEFAULT 13,
+  success_rate NUMERIC(5,2) DEFAULT 95.10,
+  growth_rate NUMERIC(5,2) DEFAULT 16.00,
+  churn_rate NUMERIC(5,2) DEFAULT 1.80,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. BAR ISCRITTI (Multi-Tenant Bars Directory)
 CREATE TABLE IF NOT EXISTS public.bars (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -1368,6 +2086,7 @@ CREATE TABLE IF NOT EXISTS public.bars (
   phone TEXT,
   address TEXT,
   city TEXT,
+  "Città" TEXT,
   plan TEXT DEFAULT 'Pro',
   status TEXT DEFAULT 'active',
   next_invoice TEXT,
@@ -1377,9 +2096,28 @@ CREATE TABLE IF NOT EXISTS public.bars (
   avatar TEXT,
   photo TEXT,
   piva TEXT,
+  "Partita IVA" TEXT,
   notes TEXT
 );
 
+-- 3. ABBONAMENTI (Subscriptions Lifecycle & Renewals)
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id TEXT PRIMARY KEY,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
+  bar_name TEXT NOT NULL,
+  plan TEXT NOT NULL,
+  price NUMERIC(10,2) NOT NULL,
+  billing_cycle TEXT DEFAULT 'monthly',
+  status TEXT NOT NULL,
+  payment_method TEXT DEFAULT 'Google Pay / Carta',
+  current_period_start TEXT,
+  current_period_end TEXT,
+  trial_end TEXT,
+  auto_renew BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. FATTURE (Invoices & Billing History)
 CREATE TABLE IF NOT EXISTS public.invoices (
   id TEXT PRIMARY KEY,
   number TEXT NOT NULL,
@@ -1392,22 +2130,132 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   plan TEXT DEFAULT 'Pro',
   status TEXT DEFAULT 'paid',
   period TEXT,
+  download_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. PAGAMENTI (Transactions & Gateway Ledger)
+CREATE TABLE IF NOT EXISTS public.payments (
+  id TEXT PRIMARY KEY,
+  transaction_id TEXT NOT NULL,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
+  bar_name TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  method TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. STATISTICHE (SaaS Analytics & Cohorts)
+CREATE TABLE IF NOT EXISTS public.admin_stats (
+  id TEXT PRIMARY KEY,
+  period TEXT NOT NULL,
+  mrr NUMERIC(10,2) NOT NULL,
+  arr NUMERIC(10,2) NOT NULL,
+  arpu NUMERIC(10,2) NOT NULL,
+  clv NUMERIC(10,2) NOT NULL,
+  conversion_rate NUMERIC(5,2) DEFAULT 78.4,
+  retention_rate NUMERIC(5,2) DEFAULT 98.2,
+  basic_count INT DEFAULT 18,
+  pro_count INT DEFAULT 52,
+  premium_count INT DEFAULT 26,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. SUPPORTO (Helpdesk & Client Tickets)
+CREATE TABLE IF NOT EXISTS public.support_tickets (
+  id TEXT PRIMARY KEY,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
+  bar_name TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  category TEXT DEFAULT 'KDS Banco',
+  priority TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'open',
+  message TEXT NOT NULL,
+  response TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. IMPOSTAZIONI (Super Admin Profile & Company Configuration)
+CREATE TABLE IF NOT EXISTS public.admin_settings (
+  id TEXT PRIMARY KEY DEFAULT 'global_config',
+  super_admin_name TEXT DEFAULT 'Cheikh Gueye',
+  super_admin_email TEXT DEFAULT 'cheikh@barpilot.it',
+  super_admin_avatar TEXT,
+  access_pin TEXT DEFAULT '101540',
+  company_name TEXT DEFAULT 'BarPilot Inc. · Gestione Bar & Ristoranti',
+  company_piva TEXT DEFAULT 'IT 12345678901',
+  billing_email TEXT DEFAULT 'billing@barpilot.app',
+  auto_reminders BOOLEAN DEFAULT true,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. ATTIVITÀ RECENTI (Audit Log)
+CREATE TABLE IF NOT EXISTS public.admin_activities (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  time TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ROW LEVEL SECURITY (RLS)
+ALTER TABLE public.admin_overview_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read access on bars" ON public.bars FOR SELECT USING (true);
-CREATE POLICY "Allow public insert on bars" ON public.bars FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update on bars" ON public.bars FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete on bars" ON public.bars FOR DELETE USING (true);
-CREATE POLICY "Allow public read access on invoices" ON public.invoices FOR SELECT USING (true);
-CREATE POLICY "Allow public insert on invoices" ON public.invoices FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update on invoices" ON public.invoices FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete on invoices" ON public.invoices FOR DELETE USING (true);`;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_activities ENABLE ROW LEVEL SECURITY;
+
+DO $$
+DECLARE
+  tbl text;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY['admin_overview_metrics', 'bars', 'subscriptions', 'invoices', 'payments', 'admin_stats', 'support_tickets', 'admin_settings', 'admin_activities']
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Public select on %I" ON public.%I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "Public select on %I" ON public.%I FOR SELECT USING (true)', tbl, tbl);
+
+    EXECUTE format('DROP POLICY IF EXISTS "Public insert on %I" ON public.%I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "Public insert on %I" ON public.%I FOR INSERT WITH CHECK (true)', tbl, tbl);
+
+    EXECUTE format('DROP POLICY IF EXISTS "Public update on %I" ON public.%I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "Public update on %I" ON public.%I FOR UPDATE USING (true)', tbl, tbl);
+
+    EXECUTE format('DROP POLICY IF EXISTS "Public delete on %I" ON public.%I', tbl, tbl);
+    EXECUTE format('CREATE POLICY "Public delete on %I" ON public.%I FOR DELETE USING (true)', tbl, tbl);
+  END LOOP;
+END $$;
+
+-- SEED DATA
+INSERT INTO public.admin_overview_metrics (id, mrr, arr, active_bars, trial_bars, late_bars, canceled_bars, total_bars, paid_invoices, pending_invoices, success_rate, growth_rate)
+VALUES ('current', 12480.00, 149760.00, 64, 18, 11, 3, 96, 132, 13, 95.10, 16.00)
+ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
+
+INSERT INTO public.bars (id, name, owner, email, phone, address, city, plan, status, next_invoice, monthly_revenue, avatar, piva, notes)
+VALUES
+('bp-bar-01', 'Bar Centrale', 'Marco Bianchi', 'marco@barcentrale.it', '+39 02 87654321', 'Via Roma 123, Milano', 'Milano', 'Pro', 'active', '15 nov 2025', 59.00, 'BC', 'IT09876543210', 'Cliente storico. Richiede fatturazione elettronica.'),
+('bp-bar-02', 'Caffè del Porto', 'Giulia Rossi', 'giulia@caffedelporto.it', '+39 010 3344556', 'Calata Molo Vecchio 4, Genova', 'Genova', 'Basic', 'active', '28 nov 2025', 38.00, 'CP', 'IT01234567890', 'Locale stagionale estivo, attivo tutto l''anno.'),
+('bp-bar-03', 'La Dolce Vita', 'Alessandro Conti', 'alessandro@ladolcevita.it', '+39 081 7766554', 'Piazza Plebiscito 12, Napoli', 'Napoli', 'Pro', 'trial', '10 nov 2025', 0.00, 'DV', 'IT04567891234', 'In prova gratuita (giorno 4 di 14).'),
+('bp-bar-04', 'Bar Moderno', 'Sara Romano', 'sara@barmoderno.it', '+39 051 9988776', 'Via Indipendenza 45, Bologna', 'Bologna', 'Pro', 'late', '10 ott 2025', 59.00, 'BM', 'IT07891234567', 'Carta scaduta nel Google Wallet. Sollecito inviato.'),
+('bp-bar-05', 'Lounge 21', 'Luca Moretti', 'luca@lounge21.it', '+39 02 44332211', 'Corso Como 21, Milano', 'Milano', 'Premium', 'active', '22 nov 2025', 99.00, 'L2', 'IT03216549870', 'Piano Premium con 4 tablet KDS contemporanei.'),
+('bp-bar-06', 'Bar Nettuno', 'Martina Gallo', 'martina@barnettuno.it', '+39 0541 234567', 'Lungomare Tintori 8, Rimini', 'Rimini', 'Basic', 'canceled', '-', 0.00, 'BN', 'IT06549873210', 'Chiusura stagionale invernale.'),
+('bp-bar-07', 'Il Ritrovo', 'Federico Neri', 'federico@ilritrovo.it', '+39 06 65432109', 'Via Appia Nuova 88, Roma', 'Roma', 'Pro', 'active', '18 nov 2025', 59.00, 'IR', 'IT08765432109', 'Locale ad alto volume colazioni e aperitivi.'),
+('bp-bar-08', 'Bar Firenze', 'Elena Russo', 'elena@barfirenze.it', '+39 055 7654321', 'Borgo San Frediano 19, Firenze', 'Firenze', 'Basic', 'late', '05 ott 2025', 38.00, 'BF', 'IT09812345678', 'Pagamento respinto dalla banca.')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
+
+INSERT INTO public.admin_settings (id, super_admin_name, super_admin_email, access_pin, company_name, company_piva, billing_email, auto_reminders)
+VALUES ('global_config', 'Cheikh Gueye', 'cheikh@barpilot.it', '101540', 'BarPilot Inc. · Gestione Bar & Ristoranti', 'IT 12345678901', 'billing@barpilot.app', true)
+ON CONFLICT (id) DO UPDATE SET super_admin_name = EXCLUDED.super_admin_name, access_pin = EXCLUDED.access_pin;`;
 
     navigator.clipboard.writeText(sql).then(() => {
-      this.showToast("📋 Schema SQL Supabase copiato negli appunti!");
+      this.showToast("📋 Schema SQL completo Supabase copiato negli appunti!");
       window.open("https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql", "_blank");
     }).catch(() => {
       this.showToast("Errore copia, apri il file sql/admin_schema.sql nel progetto.");

@@ -152,7 +152,7 @@
           <span class="nav-link-chevron">›</span>
         </button>
 
-        <button type="button" class="nav-link" onclick="alert('Centro Assistenza BarPilot: supporto prioritario h24 via chat o support@barpilot.app')">
+        <button type="button" class="nav-link" data-view="support">
           <div class="nav-link-left">
             <span class="nav-link-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -217,9 +217,17 @@
         </div>
 
         <div class="topbar-right">
-          <!-- Supabase Live Status Badge -->
-          <div id="supabaseStatusBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#10B981; background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.syncWithSupabase()" title="Clicca per sincronizzare subito con Supabase">
-            <span>🟢</span> <span>Supabase DB Connesso</span>
+          <!-- Supabase Live Status Badge & Global Sync Actions -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div id="supabaseStatusBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#10B981; background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.syncWithSupabase()" title="Clicca per sincronizzare subito con Supabase">
+              <span>🟢</span> <span>Supabase DB Connesso</span>
+            </div>
+            <button type="button" class="btn-supabase-push" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#fff; background:#FF6B00; border:none; padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer; box-shadow:0 2px 8px rgba(255,107,0,0.3);" onclick="window.adminConsole.pushAllDataToSupabase()" title="Salva tutti i dati delle 8 sezioni su Supabase">
+              <span>☁️</span> <span>Salva su Supabase</span>
+            </button>
+            <button type="button" class="btn-supabase-sql" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text-main); background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.copySupabaseSql()" title="Copia lo script SQL per creare le tabelle nel tuo progetto Supabase">
+              <span>📋</span> <span>Crea Tabelle SQL</span>
+            </button>
           </div>
 
           <!-- Live Search Input -->
@@ -640,6 +648,23 @@
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Sollecito automatico attivo via email</div>
               </div>
             </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID Transazione</th>
+                    <th>Bar</th>
+                    <th>Importo</th>
+                    <th>Metodo</th>
+                    <th>Stato</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsTableBody">
+                  <!-- Populated via admin.js -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -654,20 +679,69 @@
             <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
                 <div style="font-size:12px; color:var(--text-muted);">MRR (Monthly Recurring Revenue)</div>
-                <div style="font-size:24px; font-weight:900; color:#10B981;">12.480 €</div>
+                <div style="font-size:24px; font-weight:900; color:#10B981;" id="statsMrr">12.480 €</div>
               </div>
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
                 <div style="font-size:12px; color:var(--text-muted);">ARR (Annual Run Rate)</div>
-                <div style="font-size:24px; font-weight:900; color:#3B82F6;">149.760 €</div>
+                <div style="font-size:24px; font-weight:900; color:#3B82F6;" id="statsArr">149.760 €</div>
               </div>
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
                 <div style="font-size:12px; color:var(--text-muted);">ARPU (Ricavo medio per bar)</div>
-                <div style="font-size:24px; font-weight:900; color:#F59E0B;">58,86 €</div>
+                <div style="font-size:24px; font-weight:900; color:#F59E0B;" id="statsArpu">58,86 €</div>
               </div>
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
                 <div style="font-size:12px; color:var(--text-muted);">Tasso di Churn Mensile</div>
-                <div style="font-size:24px; font-weight:900; color:#94A3B8;">2.8%</div>
+                <div style="font-size:24px; font-weight:900; color:#94A3B8;" id="statsChurn">1.8%</div>
               </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Piano Basic (38 €/mese)</div>
+                <div style="font-size:22px; font-weight:800; color:#fff; margin-top:4px;" id="statsBasicCount">18 bar</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 684 €/mese</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Piano Pro (59 €/mese)</div>
+                <div style="font-size:22px; font-weight:800; color:var(--primary); margin-top:4px;" id="statsProCount">52 bar</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 3.068 €/mese</div>
+              </div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Piano Premium (99 €/mese)</div>
+                <div style="font-size:22px; font-weight:800; color:#A855F7; margin-top:4px;" id="statsPremiumCount">26 bar</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 2.574 €/mese</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 7: SUPPORTO & TICKET ASSISTENZA
+             ================================================================== -->
+        <section class="page-view" id="view-support">
+          <div class="section-box">
+            <div class="section-box-header">
+              <div>
+                <h3 class="section-box-title">Ticket & Richieste Assistenza Bar</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Richieste di supporto tecnico, KDS, hardware e pagamenti dai gestori dei bar.</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Bar Richiedente</th>
+                    <th>Oggetto & Categoria</th>
+                    <th>Priorità</th>
+                    <th>Stato</th>
+                    <th>Data</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="supportTableBody">
+                  <!-- Populated via admin.js -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -734,17 +808,17 @@
               <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">Dati Aziendali per Fatturazione ai Bar</h4>
               <div class="form-group-admin">
                 <label class="form-label-admin">Ragione Sociale Fornitore Software</label>
-                <input type="text" class="form-input-admin" value="BarPilot Inc. · Gestione Bar & Ristoranti">
+                <input type="text" id="settingsCompanyName" class="form-input-admin" value="BarPilot Inc. · Gestione Bar & Ristoranti">
               </div>
               <div class="form-group-admin">
                 <label class="form-label-admin">Partita IVA / Codice Fiscale</label>
-                <input type="text" class="form-input-admin" value="IT 12345678901">
+                <input type="text" id="settingsCompanyPiva" class="form-input-admin" value="IT 12345678901">
               </div>
               <div class="form-group-admin">
                 <label class="form-label-admin">Email Invio Notifiche & Fatture</label>
-                <input type="email" class="form-input-admin" value="billing@barpilot.app">
+                <input type="email" id="settingsBillingEmail" class="form-input-admin" value="billing@barpilot.app">
               </div>
-              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.showToast('Impostazioni salvate con successo!')">
+              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.saveSettingsFromForm()">
                 💾 Salva Modifiche
               </button>
             </div>
