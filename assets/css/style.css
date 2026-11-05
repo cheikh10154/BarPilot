@@ -692,6 +692,7 @@ html.user-authenticated #authOverlay {
 
 .chart-bars-scroll {
   flex: 1;
+  min-width: 0;
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -699,6 +700,8 @@ html.user-authenticated #authOverlay {
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 122, 0, 0.4) transparent;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .chart-bars-scroll::-webkit-scrollbar {
@@ -887,8 +890,31 @@ html.user-authenticated #authOverlay {
 }
 
 @media (max-width: 768px) {
+  .bar-chart-container {
+    overflow: hidden;
+  }
+
+  .chart-bars-scroll {
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: thin;
+  }
+
+  .chart-bars-wrap {
+    min-width: 600px;
+    gap: 6px;
+    padding: 0 8px;
+  }
+
   .chart-bars-wrap.slot-all {
-    min-width: 580px; /* Ensures all 15 bars have plenty of breathing room and never overlap on mobile */
+    min-width: 640px; /* Assicura che tutte le 15 fasce orarie abbiano spazio e scorrano fluidamente su mobile */
+  }
+
+  .chart-bars-wrap .bar-col {
+    min-width: 36px;
+    flex-shrink: 0;
   }
 
   .chart-scroll-hint.show-hint {
