@@ -1213,7 +1213,19 @@ function selectHourlyBar(hour, val) {
       detailEl.innerHTML = `Ore ${hour} ➔ 0,00 € <span style="font-size:11px; font-weight:600; opacity:0.85;">(Nessuna vendita registrata in questa fascia)</span>`;
     }
   }
-  renderHourlySalesChart();
+
+  // Highlight active bar without destroying DOM or resetting horizontal scroll position
+  const barsWrap = document.getElementById("hourlyBarsWrap");
+  if (barsWrap) {
+    barsWrap.querySelectorAll(".bar-col").forEach(b => {
+      const lbl = b.querySelector(".bar-label");
+      if (lbl && lbl.textContent.trim() === hour) {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+    });
+  }
 }
 
 function renderHourlySalesChart() {
@@ -1293,6 +1305,56 @@ function renderHourlySalesChart() {
       </div>
     `;
   }).join("");
+
+  initChartBarsScroll();
+}
+
+function initChartBarsScroll() {
+  const scroller = document.querySelector(".chart-bars-scroll");
+  if (!scroller || scroller._touchInit) return;
+  scroller._touchInit = true;
+
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  scroller.addEventListener("mousedown", (e) => {
+    isDown = true;
+    startX = e.pageX - scroller.offsetLeft;
+    scrollLeft = scroller.scrollLeft;
+  });
+  window.addEventListener("mouseup", () => { isDown = false; });
+  scroller.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - scroller.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scroller.scrollLeft = scrollLeft - walk;
+  });
+
+  // Touch swipe support across devices
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchScrollLeft = 0;
+  scroller.addEventListener("touchstart", (e) => {
+    if (e.touches && e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchScrollLeft = scroller.scrollLeft;
+    }
+  }, { passive: true });
+
+  scroller.addEventListener("touchmove", (e) => {
+    if (e.touches && e.touches.length === 1) {
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const dx = touchX - touchStartX;
+      const dy = touchY - touchStartY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        scroller.scrollLeft = touchScrollLeft - dx;
+      }
+    }
+  }, { passive: true });
 }
 
 window.filterHourlySlot = filterHourlySlot;

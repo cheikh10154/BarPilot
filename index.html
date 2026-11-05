@@ -7,7 +7,19 @@
   <title>BarPilot - Smart Bar Management Platform</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="assets/images/logo.png">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=130">
+  <style>
+    #hourlySalesCard, .charts-grid { min-width: 0 !important; max-width: 100% !important; }
+    #hourlySalesCard { overflow: hidden !important; }
+    .bar-chart-container { width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: hidden !important; }
+    .chart-bars-scroll { flex: 1 1 0% !important; min-width: 0 !important; max-width: 100% !important; overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important; }
+    @media (max-width: 768px) {
+      .chart-bars-wrap { display: flex !important; flex-wrap: nowrap !important; width: max-content !important; min-width: 660px !important; gap: 8px !important; padding: 0 10px !important; }
+      .chart-bars-wrap.slot-all { min-width: 680px !important; }
+      .chart-bars-wrap .bar-col { flex: 0 0 38px !important; min-width: 38px !important; width: 38px !important; height: 100% !important; touch-action: pan-x pan-y !important; }
+      .chart-scroll-hint { display: flex !important; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--primary); padding: 6px 0 2px 0; }
+    }
+  </style>
   <!-- Instant Session Cache Check: Zero-Flicker Persistence -->
   <script>
     (function() {
@@ -657,7 +669,7 @@
                 <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Nessuna comanda registrata</strong>
               </div>
 
-              <div class="bar-chart-container">
+              <div class="bar-chart-container" style="width:100%; max-width:100%; min-width:0; overflow:hidden;">
                 <div class="chart-y-axis" id="hourlyYAxis">
                   <span>400€</span>
                   <span>300€</span>
@@ -665,7 +677,7 @@
                   <span>100€</span>
                   <span>0€</span>
                 </div>
-                <div class="chart-bars-scroll">
+                <div class="chart-bars-scroll" style="flex:1; min-width:0; max-width:100%; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;">
                   <div class="chart-bars-wrap slot-all" id="hourlyBarsWrap">
                     <!-- Generated via app.js -->
                   </div>

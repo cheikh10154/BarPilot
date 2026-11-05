@@ -672,6 +672,14 @@ html.user-authenticated #authOverlay {
   padding-top: 15px;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#hourlySalesCard {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .chart-y-axis {
@@ -890,35 +898,62 @@ html.user-authenticated #authOverlay {
 }
 
 @media (max-width: 768px) {
+  #hourlySalesCard {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
   .bar-chart-container {
-    overflow: hidden;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   .chart-bars-scroll {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     overflow-x: auto !important;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
     scrollbar-width: thin;
   }
 
   .chart-bars-wrap {
-    min-width: 600px;
-    gap: 6px;
-    padding: 0 8px;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: max-content !important;
+    min-width: 660px !important;
+    gap: 8px !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
   }
 
   .chart-bars-wrap.slot-all {
-    min-width: 640px; /* Assicura che tutte le 15 fasce orarie abbiano spazio e scorrano fluidamente su mobile */
+    min-width: 680px !important;
   }
 
   .chart-bars-wrap .bar-col {
-    min-width: 36px;
-    flex-shrink: 0;
+    flex: 0 0 38px !important;
+    min-width: 38px !important;
+    width: 38px !important;
+    height: 100% !important;
+    touch-action: pan-x pan-y !important;
   }
 
-  .chart-scroll-hint.show-hint {
-    display: block;
+  .chart-scroll-hint {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 6px 0 2px 0;
   }
 
   .bar-label {
