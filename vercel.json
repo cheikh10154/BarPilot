@@ -73,6 +73,18 @@
       "dest": "/api/stripe-webhook.js"
     },
     {
+      "src": "^/api/create-checkout-session/?$",
+      "dest": "/api/create-checkout-session.js"
+    },
+    {
+      "src": "^/api/create-portal-session/?$",
+      "dest": "/api/create-portal-session.js"
+    },
+    {
+      "src": "^/api/register-bar/?$",
+      "dest": "/api/register-bar.js"
+    },
+    {
       "src": "^/demo/?$",
       "dest": "/index.html"
     },

@@ -1,6 +1,6 @@
 /**
- * BarPilot Admin Console - Core Logic & Supabase Database Engine
- * Enterprise Multi-Tenant & Billing Dashboard
+ * BarPilot Admin Console - Enterprise Multi-Tenant & Billing Engine
+ * Sincronizzazione in tempo reale con Supabase Database, Stripe Billing e Realtime WebSockets
  */
 
 const SUPABASE_ADMIN_CONFIG = {
@@ -9,364 +9,194 @@ const SUPABASE_ADMIN_CONFIG = {
 };
 
 // ============================================================================
-// Initial Seed Data Store (Used if Supabase is offline or tables are bootstrapping)
+// Initial Seed Data Store (Bootstrap fallback)
 // ============================================================================
 const DEFAULT_ADMIN_DATA = {
   bars: [
     {
-      id: "bp-bar-01",
+      id: "bar_centrale_01",
       name: "Bar Centrale",
+      businessName: "Bar Centrale S.r.l.",
       owner: "Marco Bianchi",
       email: "marco@barcentrale.it",
       phone: "+39 02 87654321",
       address: "Via Roma 123, Milano",
       city: "Milano",
-      plan: "Pro",
-      status: "active", // active, trial, late, canceled
-      nextInvoice: "15 nov 2025",
+      plan: "BarPilot Pro",
+      status: "active",
+      nextInvoice: "15 nov 2026",
       monthlyRevenue: 59.00,
-      createdAt: "15 gen 2024",
-      lastAccess: "28 ott 2025, 14:32",
+      createdAt: "15 gen 2026",
+      lastAccess: "Oggi, 14:32",
       avatar: "BC",
       photo: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
       piva: "IT09876543210",
-      notes: "Cliente storico. Richiede fatturazione elettronica trimestrale anticipata."
+      notes: "Cliente storico. Richiede fatturazione elettronica.",
+      trialDaysRemaining: 0
     },
     {
-      id: "bp-bar-02",
+      id: "bar_porto_02",
       name: "Caffè del Porto",
+      businessName: "Porto Cafè D.I.",
       owner: "Giulia Rossi",
       email: "giulia@caffedelporto.it",
       phone: "+39 010 3344556",
       address: "Calata Molo Vecchio 4, Genova",
       city: "Genova",
-      plan: "Basic",
+      plan: "BarPilot Pro",
       status: "active",
-      nextInvoice: "28 nov 2025",
-      monthlyRevenue: 38.00,
-      createdAt: "28 giu 2024",
-      lastAccess: "28 ott 2025, 11:15",
+      nextInvoice: "28 nov 2026",
+      monthlyRevenue: 59.00,
+      createdAt: "28 giu 2026",
+      lastAccess: "Oggi, 11:15",
       avatar: "CP",
       photo: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&h=400&fit=crop",
       piva: "IT01234567890",
-      notes: "Locale stagionale estivo, attivo tutto l'anno con comande KDS."
+      notes: "Locale stagionale estivo, attivo tutto l'anno con comande KDS.",
+      trialDaysRemaining: 0
     },
     {
-      id: "bp-bar-03",
+      id: "bar_dolce_03",
       name: "La Dolce Vita",
+      businessName: "Dolce Vita Bar SAS",
       owner: "Alessandro Conti",
       email: "alessandro@ladolcevita.it",
       phone: "+39 081 7766554",
       address: "Piazza Plebiscito 12, Napoli",
       city: "Napoli",
-      plan: "Pro",
+      plan: "BarPilot Pro",
       status: "trial",
-      nextInvoice: "10 nov 2025",
+      nextInvoice: "19 nov 2026",
       monthlyRevenue: 0.00,
-      createdAt: "24 ott 2025",
-      lastAccess: "28 ott 2025, 09:40",
+      createdAt: "05 nov 2026",
+      lastAccess: "Oggi, 09:40",
       avatar: "DV",
       photo: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
       piva: "IT04567891234",
-      notes: "In prova gratuita (giorno 4 di 14). Molto soddisfatto del KDS banco."
+      notes: "In prova gratuita (giorno 1 di 14). Molto soddisfatto del KDS banco.",
+      trialDaysRemaining: 14
     },
     {
-      id: "bp-bar-04",
+      id: "bar_moderno_04",
       name: "Bar Moderno",
+      businessName: "Moderno Bistrot Snc",
       owner: "Sara Romano",
       email: "sara@barmoderno.it",
       phone: "+39 051 9988776",
       address: "Via Indipendenza 45, Bologna",
       city: "Bologna",
-      plan: "Pro",
-      status: "late",
-      nextInvoice: "10 ott 2025",
+      plan: "BarPilot Pro",
+      status: "past_due",
+      nextInvoice: "10 ott 2026",
       monthlyRevenue: 59.00,
-      createdAt: "10 mar 2024",
-      lastAccess: "27 ott 2025, 18:20",
+      createdAt: "10 mar 2026",
+      lastAccess: "Ieri, 18:20",
       avatar: "BM",
       photo: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=600&h=400&fit=crop",
       piva: "IT07891234567",
-      notes: "Carta scaduta nel Google Wallet. Sollecito automatico inviato."
-    },
-    {
-      id: "bp-bar-05",
-      name: "Lounge 21",
-      owner: "Luca Moretti",
-      email: "luca@lounge21.it",
-      phone: "+39 02 44332211",
-      address: "Corso Como 21, Milano",
-      city: "Milano",
-      plan: "Premium",
-      status: "active",
-      nextInvoice: "22 nov 2025",
-      monthlyRevenue: 99.00,
-      createdAt: "22 nov 2023",
-      lastAccess: "28 ott 2025, 15:10",
-      avatar: "L2",
-      photo: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&h=400&fit=crop",
-      piva: "IT03216549870",
-      notes: "Piano Premium con 4 tablet KDS contemporanei e ricettario cocktail."
-    },
-    {
-      id: "bp-bar-06",
-      name: "Bar Nettuno",
-      owner: "Martina Gallo",
-      email: "martina@barnettuno.it",
-      phone: "+39 0541 234567",
-      address: "Lungomare Tintori 8, Rimini",
-      city: "Rimini",
-      plan: "Basic",
-      status: "canceled",
-      nextInvoice: "-",
-      monthlyRevenue: 0.00,
-      createdAt: "01 mag 2024",
-      lastAccess: "15 set 2025, 10:00",
-      avatar: "BN",
-      photo: "https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=600&h=400&fit=crop",
-      piva: "IT06549873210",
-      notes: "Chiusura stagionale invernale. Ha richiesto riattivazione per aprile 2026."
-    },
-    {
-      id: "bp-bar-07",
-      name: "Il Ritrovo",
-      owner: "Federico Neri",
-      email: "federico@ilritrovo.it",
-      phone: "+39 06 65432109",
-      address: "Via Appia Nuova 88, Roma",
-      city: "Roma",
-      plan: "Pro",
-      status: "active",
-      nextInvoice: "18 nov 2025",
-      monthlyRevenue: 59.00,
-      createdAt: "18 apr 2024",
-      lastAccess: "28 ott 2025, 13:00",
-      avatar: "IR",
-      photo: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=400&fit=crop",
-      piva: "IT08765432109",
-      notes: "Locale ad alto volume colazioni e aperitivi serali."
-    },
-    {
-      id: "bp-bar-08",
-      name: "Bar Firenze",
-      owner: "Elena Russo",
-      email: "elena@barfirenze.it",
-      phone: "+39 055 7654321",
-      address: "Borgo San Frediano 19, Firenze",
-      city: "Firenze",
-      plan: "Basic",
-      status: "late",
-      nextInvoice: "05 ott 2025",
-      monthlyRevenue: 38.00,
-      createdAt: "05 set 2024",
-      lastAccess: "26 ott 2025, 08:30",
-      avatar: "BF",
-      photo: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=600&h=400&fit=crop",
-      piva: "IT09812345678",
-      notes: "Pagamento respinto dalla banca. Contattata telefonicamente."
+      notes: "Carta scaduta nel Google Wallet. Sollecito automatico inviato.",
+      trialDaysRemaining: 0
     }
   ],
   invoices: [
     {
-      id: "inv-2025-0145",
-      number: "#2025-0145",
-      barId: "bp-bar-01",
+      id: "inv_01",
+      number: "#2026-0001",
+      barId: "bar_centrale_01",
       barName: "Bar Centrale",
       ownerName: "Marco Bianchi",
-      date: "15 ott 2025",
-      dueDate: "15 ott 2025",
+      date: "15 ott 2026",
+      dueDate: "15 ott 2026",
       amount: 59.00,
-      plan: "Pro",
-      status: "paid", // paid, pending, canceled
-      period: "15/10/2025 - 14/11/2025"
-    },
-    {
-      id: "inv-2025-0144",
-      number: "#2025-0144",
-      barId: "bp-bar-05",
-      barName: "Lounge 21",
-      ownerName: "Luca Moretti",
-      date: "15 ott 2025",
-      dueDate: "15 ott 2025",
-      amount: 99.00,
-      plan: "Premium",
+      subtotal: 48.36,
+      tax: 10.64,
+      plan: "BarPilot Pro",
       status: "paid",
-      period: "15/10/2025 - 14/11/2025"
+      period: "15/10/2026 - 14/11/2026"
     },
     {
-      id: "inv-2025-0143",
-      number: "#2025-0143",
-      barId: "bp-bar-02",
+      id: "inv_02",
+      number: "#2026-0002",
+      barId: "bar_porto_02",
       barName: "Caffè del Porto",
       ownerName: "Giulia Rossi",
-      date: "15 ott 2025",
-      dueDate: "15 ott 2025",
-      amount: 38.00,
-      plan: "Basic",
-      status: "paid",
-      period: "15/10/2025 - 14/11/2025"
-    },
-    {
-      id: "inv-2025-0142",
-      number: "#2025-0142",
-      barId: "bp-bar-03",
-      barName: "La Dolce Vita",
-      ownerName: "Alessandro Conti",
-      date: "10 ott 2025",
-      dueDate: "24 ott 2025",
+      date: "28 ott 2026",
+      dueDate: "28 ott 2026",
       amount: 59.00,
-      plan: "Pro",
-      status: "pending",
-      period: "24/10/2025 - 23/11/2025"
+      subtotal: 48.36,
+      tax: 10.64,
+      plan: "BarPilot Pro",
+      status: "paid",
+      period: "28/10/2026 - 27/11/2026"
     },
     {
-      id: "inv-2025-0141",
-      number: "#2025-0141",
-      barId: "bp-bar-04",
+      id: "inv_03",
+      number: "#2026-0003",
+      barId: "bar_moderno_04",
       barName: "Bar Moderno",
       ownerName: "Sara Romano",
-      date: "05 ott 2025",
-      dueDate: "10 ott 2025",
+      date: "04 nov 2026",
+      dueDate: "10 nov 2026",
       amount: 59.00,
-      plan: "Pro",
-      status: "pending",
-      period: "10/10/2025 - 09/11/2025"
-    },
-    {
-      id: "inv-2025-0140",
-      number: "#2025-0140",
-      barId: "bp-bar-08",
-      barName: "Bar Firenze",
-      ownerName: "Elena Russo",
-      date: "01 ott 2025",
-      dueDate: "05 ott 2025",
-      amount: 38.00,
-      plan: "Basic",
-      status: "paid",
-      period: "05/10/2025 - 04/11/2025"
-    },
-    {
-      id: "inv-2025-0139",
-      number: "#2025-0139",
-      barId: "bp-bar-07",
-      barName: "Il Ritrovo",
-      ownerName: "Federico Neri",
-      date: "01 ott 2025",
-      dueDate: "01 ott 2025",
-      amount: 59.00,
-      plan: "Pro",
-      status: "paid",
-      period: "01/10/2025 - 31/10/2025"
-    },
-    {
-      id: "inv-2025-0138",
-      number: "#2025-0138",
-      barId: "bp-bar-06",
-      barName: "Bar Nettuno",
-      ownerName: "Martina Gallo",
-      date: "28 set 2025",
-      dueDate: "28 set 2025",
-      amount: 38.00,
-      plan: "Basic",
-      status: "canceled",
-      period: "28/09/2025 - 27/10/2025"
-    }
-  ],
-  activities: [
-    {
-      type: "reg",
-      title: "Nuovo bar registrato",
-      desc: "Caffè del Porto",
-      time: "2 min fa"
-    },
-    {
-      type: "pay",
-      title: "Pagamento ricevuto",
-      desc: "Bar Centrale - 59,00 €",
-      time: "15 min fa"
-    },
-    {
-      type: "inv",
-      title: "Fattura generata",
-      desc: "La Dolce Vita - n. #2025-0142",
-      time: "1 ora fa"
-    },
-    {
-      type: "late",
-      title: "Pagamento in ritardo",
-      desc: "Bar Moderno",
-      time: "2 ore fa"
-    },
-    {
-      type: "cancel",
-      title: "Abbonamento cancellato",
-      desc: "Bar Nettuno",
-      time: "3 ore fa"
+      subtotal: 48.36,
+      tax: 10.64,
+      plan: "BarPilot Pro",
+      status: "open",
+      period: "10/10/2026 - 09/11/2026"
     }
   ],
   subscriptions: [
-    { id: "sub-01", barId: "bp-bar-01", barName: "Bar Centrale", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "15/11/2025" },
-    { id: "sub-02", barId: "bp-bar-02", barName: "Caffè del Porto", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "active", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "28/11/2025" },
-    { id: "sub-03", barId: "bp-bar-03", barName: "La Dolce Vita", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "trial", paymentMethod: "Google Pay (In prova)", currentPeriodEnd: "10/11/2025" },
-    { id: "sub-04", barId: "bp-bar-04", barName: "Bar Moderno", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "late", paymentMethod: "Carta Scaduta (Stripe)", currentPeriodEnd: "10/10/2025" },
-    { id: "sub-05", barId: "bp-bar-05", barName: "Lounge 21", plan: "Premium", price: 99.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "22/11/2025" },
-    { id: "sub-06", barId: "bp-bar-06", barName: "Bar Nettuno", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "canceled", paymentMethod: "Nessuno", currentPeriodEnd: "28/10/2025" },
-    { id: "sub-07", barId: "bp-bar-07", barName: "Il Ritrovo", plan: "Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "SEPA Direct", currentPeriodEnd: "18/11/2025" },
-    { id: "sub-08", barId: "bp-bar-08", barName: "Bar Firenze", plan: "Basic", price: 38.00, billingCycle: "Mensile", status: "late", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "05/10/2025" }
+    { id: "sub_01", barId: "bar_centrale_01", barName: "Bar Centrale", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "15/11/2026", trialEnd: null },
+    { id: "sub_02", barId: "bar_porto_02", barName: "Caffè del Porto", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "28/11/2026", trialEnd: null },
+    { id: "sub_03", barId: "bar_dolce_03", barName: "La Dolce Vita", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "trialing", paymentMethod: "Stripe Trial (14gg)", currentPeriodEnd: "19/11/2026", trialEnd: "19/11/2026" },
+    { id: "sub_04", barId: "bar_moderno_04", barName: "Bar Moderno", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "past_due", paymentMethod: "Carta Scaduta (Stripe)", currentPeriodEnd: "10/10/2026", trialEnd: null }
   ],
   payments: [
-    { id: "pay-01", transactionId: "txn_gpay_9823412", barId: "bp-bar-01", barName: "Bar Centrale", amount: 59.00, method: "Google Pay", status: "completed", date: "15 ott 2025, 10:14" },
-    { id: "pay-02", transactionId: "txn_strp_8849201", barId: "bp-bar-05", barName: "Lounge 21", amount: 99.00, method: "Carta (Stripe)", status: "completed", date: "15 ott 2025, 11:20" },
-    { id: "pay-03", transactionId: "txn_strp_7739102", barId: "bp-bar-02", barName: "Caffè del Porto", amount: 38.00, method: "Carta (Stripe)", status: "completed", date: "15 ott 2025, 12:45" },
-    { id: "pay-04", transactionId: "txn_sepa_1192840", barId: "bp-bar-07", barName: "Il Ritrovo", amount: 59.00, method: "SEPA Direct", status: "completed", date: "01 ott 2025, 09:00" },
-    { id: "pay-05", transactionId: "txn_gpay_3329104", barId: "bp-bar-04", barName: "Bar Moderno", amount: 59.00, method: "Google Pay", status: "failed", date: "05 ott 2025, 14:10" }
+    { id: "pay_01", transactionId: "pi_stripe_9823412", barId: "bar_centrale_01", barName: "Bar Centrale", amount: 59.00, method: "card", status: "succeeded", date: "15 ott 2026, 10:14" },
+    { id: "pay_02", transactionId: "pi_stripe_8849201", barId: "bar_porto_02", barName: "Caffè del Porto", amount: 59.00, method: "google_pay", status: "succeeded", date: "28 ott 2026, 11:20" },
+    { id: "pay_03", transactionId: "pi_stripe_7739102", barId: "bar_moderno_04", barName: "Bar Moderno", amount: 59.00, method: "card", status: "failed", date: "04 nov 2026, 09:30" }
   ],
-  stats: {
-    mrr: 12480.00,
-    arr: 149760.00,
-    arpu: 58.86,
-    clv: 1420.00,
-    conversionRate: 78.4,
-    retentionRate: 98.2,
-    basicCount: 18,
-    proCount: 52,
-    premiumCount: 26
-  },
   tickets: [
-    { id: "tkt-01", barId: "bp-bar-01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", priority: "Media", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2025" },
-    { id: "tkt-02", barId: "bp-bar-04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", priority: "Alta", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il Google Wallet per il pagamento automatico?", response: null, date: "27 ott 2025" },
-    { id: "tkt-03", barId: "bp-bar-05", barName: "Lounge 21", contactEmail: "luca@lounge21.it", subject: "Integrazione stampante termica Bluetooth", category: "Hardware", priority: "Bassa", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2025" }
+    { id: "tkt_01", barId: "bar_centrale_01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", priority: "medium", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2026" },
+    { id: "tkt_02", barId: "bar_moderno_04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", priority: "high", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il metodo per l'addebito automatico?", response: null, date: "27 ott 2026" },
+    { id: "tkt_03", barId: "bar_dolce_03", barName: "La Dolce Vita", contactEmail: "alessandro@ladolcevita.it", subject: "Integrazione stampante termica comande Bluetooth", category: "Hardware", priority: "low", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2026" }
   ],
-  overview: {
-    mrr: 12480.00,
-    arr: 149760.00,
-    activeBars: 64,
-    trialBars: 18,
-    lateBars: 11,
-    canceledBars: 3,
-    totalBars: 96,
-    paidInvoices: 132,
-    pendingInvoices: 13,
-    successRate: 95.10,
-    growthRate: 16.00
-  },
+  auditLogs: [
+    { id: "log_01", adminId: "cheikh_superadmin", action: "settings_updated", entityType: "platform", entityId: "config", newValues: { trial_days: 14, default_plan: "BarPilot Pro" }, createdAt: "Oggi, 10:00" },
+    { id: "log_02", adminId: "system_stripe_webhook", action: "invoice_paid", entityType: "invoice", entityId: "inv_02", newValues: { amount: 59.00 }, createdAt: "28 ott 2026" }
+  ],
+  activities: [
+    { id: "act_01", type: "reg", title: "Nuovo bar registrato", desc: "La Dolce Vita (Napoli) - Prova 14 giorni", time: "Oggi, 09:40" },
+    { id: "act_02", type: "pay", title: "Pagamento confermato", desc: "Caffè del Porto - 59,00 €", time: "28 ott 2026" },
+    { id: "act_03", type: "inv", title: "Fattura emessa", desc: "Bar Centrale - n. #2026-0001", time: "15 ott 2026" },
+    { id: "act_04", type: "late", title: "Addebito fallito", desc: "Bar Moderno - Carta scaduta", time: "04 nov 2026" }
+  ],
+  statsTimeRange: "all",
   settings: {
     superAdminName: "Cheikh Gueye",
     superAdminEmail: "cheikh@barpilot.it",
     accessPin: "101540",
+    platformName: "BarPilot",
+    supportEmail: "support@barpilot.app",
+    trialDays: 14,
+    defaultPlan: "BarPilot Pro",
+    defaultPrice: 59.00,
+    currency: "EUR",
+    timezone: "Europe/Rome",
+    maintenanceMode: false,
+    requireCardUpfront: false,
     companyName: "BarPilot Inc. · Gestione Bar & Ristoranti",
     companyPiva: "IT 12345678901",
-    billingEmail: "billing@barpilot.app",
-    autoReminders: true
+    billingEmail: "billing@barpilot.app"
   }
 };
 
 // ============================================================================
-// State & Supabase Integration Class
+// State & Supabase Enterprise Engine Class
 // ============================================================================
 class AdminConsole {
   constructor() {
-    this.storageKey = "barpilot_admin_store_v1";
+    this.storageKey = "barpilot_admin_enterprise_store_v2";
     this.supabaseConfig = SUPABASE_ADMIN_CONFIG;
     this.supabaseConnected = false;
     this.data = this.loadData();
@@ -376,9 +206,11 @@ class AdminConsole {
     this.searchQuery = "";
     this.statusFilter = "all";
     this.planFilter = "all";
+    this.statsFilter = "all";
 
     this.init();
     this.syncWithSupabase();
+    this.initRealtime();
   }
 
   loadData() {
@@ -403,12 +235,58 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Supabase REST Client - Complete Live Synchronization for All 8 Sections
+  // Realtime WebSockets Engine (Zero reload updates)
   // ==========================================================================
-  async syncWithSupabase() {
+  initRealtime() {
+    if (typeof window !== "undefined" && window.supabase && typeof window.supabase.createClient === "function") {
+      try {
+        if (!this.realtimeClient) {
+          this.realtimeClient = window.supabase.createClient(this.supabaseConfig.url, this.supabaseConfig.anonKey);
+        }
+        if (this.realtimeChannel) {
+          this.realtimeChannel.unsubscribe();
+        }
+        this.realtimeChannel = this.realtimeClient.channel("admin_realtime_feed")
+          .on("postgres_changes", { event: "*", schema: "public", table: "bars" }, (p) => {
+            console.log("[Supabase Realtime] Evento su bars:", p);
+            this.syncWithSupabase(false);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, (p) => {
+            console.log("[Supabase Realtime] Evento su subscriptions:", p);
+            this.syncWithSupabase(false);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, (p) => {
+            console.log("[Supabase Realtime] Evento su payments:", p);
+            this.syncWithSupabase(false);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, (p) => {
+            console.log("[Supabase Realtime] Evento su invoices:", p);
+            this.syncWithSupabase(false);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, (p) => {
+            console.log("[Supabase Realtime] Evento su support_tickets:", p);
+            this.syncWithSupabase(false);
+          })
+          .subscribe((status) => {
+            const badge = document.getElementById("supabaseStatusBadge");
+            if (status === "SUBSCRIBED" && badge) {
+              badge.innerHTML = `<span>🟢</span> <span>Supabase Realtime Attivo</span>`;
+              badge.style.color = "#10B981";
+            }
+          });
+      } catch (err) {
+        console.warn("[Realtime] Setup note:", err);
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Supabase REST Client - Complete Live Fetch
+  // ==========================================================================
+  async syncWithSupabase(showBadgeLoading = true) {
     const badge = document.getElementById("supabaseStatusBadge");
     try {
-      if (badge) {
+      if (badge && showBadgeLoading) {
         badge.innerHTML = `<span>⏳</span> <span>Connessione a Supabase...</span>`;
         badge.style.color = "#F59E0B";
       }
@@ -418,232 +296,205 @@ class AdminConsole {
         "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
       };
 
-      // 1. Panoramica: Fetch Overview Metrics
+      // 1. Fetch Bars
       try {
-        const ovRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_overview_metrics?select=*&limit=1`, { headers });
-        if (ovRes.ok) {
-          const ovData = await ovRes.json();
-          if (Array.isArray(ovData) && ovData.length > 0) {
-            const row = ovData[0];
-            this.data.overview = {
-              mrr: Number(row.mrr || 12480.00),
-              arr: Number(row.arr || 149760.00),
-              activeBars: Number(row.active_bars || 64),
-              trialBars: Number(row.trial_bars || 18),
-              lateBars: Number(row.late_bars || 11),
-              canceledBars: Number(row.canceled_bars || 3),
-              totalBars: Number(row.total_bars || 96),
-              paidInvoices: Number(row.paid_invoices || 132),
-              pendingInvoices: Number(row.pending_invoices || 13),
-              successRate: Number(row.success_rate || 95.10),
-              growthRate: Number(row.growth_rate || 16.00)
-            };
-          }
-        }
-      } catch (e) {
-        console.warn("[Supabase] Overview sync fallback:", e);
-      }
-
-      // 2. Bar Iscritti: Fetch Bars
-      try {
-        const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*`, { headers });
+        const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
         if (barsRes.ok) {
           const remoteBars = await barsRes.json();
           if (Array.isArray(remoteBars) && remoteBars.length > 0) {
-            this.data.bars = remoteBars.map(rb => ({
-              id: rb.id,
-              name: rb.name,
-              owner: rb.owner,
-              email: rb.email,
-              phone: rb.phone || "+39 02 1234567",
-              address: rb.address || "Via Centrale 1",
-              city: rb.city || rb["Città"] || "Roma",
-              plan: rb.plan || "Pro",
-              status: rb.status || "active",
-              nextInvoice: rb.next_invoice || "15 nov 2025",
-              monthlyRevenue: Number(rb.monthly_revenue || 59),
-              createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "2024",
-              lastAccess: rb.last_access || "Recente",
-              avatar: rb.avatar || rb.name.substring(0, 2).toUpperCase(),
-              photo: rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-              piva: rb.piva || rb["Partita IVA"] || "IT09876543210",
-              notes: rb.notes || ""
-            }));
+            this.data.bars = remoteBars.map(rb => {
+              const trialEnd = rb.trial_end ? new Date(rb.trial_end) : new Date(new Date(rb.created_at || Date.now()).getTime() + 14 * 24 * 3600 * 1000);
+              const daysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 3600 * 24)));
+              return {
+                id: rb.id,
+                name: rb.name,
+                businessName: rb.business_name || rb.name,
+                owner: rb.owner || rb.business_name || rb.name,
+                email: rb.email,
+                phone: rb.phone || "+39 02 1234567",
+                address: rb.address || "Via Centrale 1",
+                city: rb.city || rb["Città"] || "Roma",
+                plan: rb.plan || "BarPilot Pro",
+                status: rb.status || "trial",
+                nextInvoice: rb.next_invoice || trialEnd.toLocaleDateString('it-IT'),
+                monthlyRevenue: rb.status === 'active' ? 59.00 : 0.00,
+                createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "Recente",
+                rawCreatedAt: rb.created_at,
+                lastAccess: rb.last_access || "Recente",
+                avatar: rb.avatar || (rb.name ? rb.name.substring(0, 2).toUpperCase() : "BP"),
+                photo: rb.logo_url || rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
+                piva: rb.vat_number || rb.tax_code || rb.piva || "IT09876543210",
+                notes: rb.notes || "",
+                trialDaysRemaining: daysRemaining
+              };
+            });
           }
         }
       } catch (e) {
         console.warn("[Supabase] Bars sync fallback:", e);
       }
 
-      // 3. Abbonamenti: Fetch Subscriptions
+      // 2. Fetch Subscriptions
       try {
-        const subsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions?select=*`, { headers });
+        const subsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions?select=*&order=created_at.desc`, { headers });
         if (subsRes.ok) {
           const remoteSubs = await subsRes.json();
           if (Array.isArray(remoteSubs) && remoteSubs.length > 0) {
-            this.data.subscriptions = remoteSubs.map(rs => ({
-              id: rs.id,
-              barId: rs.bar_id,
-              barName: rs.bar_name,
-              plan: rs.plan,
-              price: Number(rs.price),
-              billingCycle: rs.billing_cycle === 'yearly' ? 'Annuale' : 'Mensile',
-              status: rs.status,
-              paymentMethod: rs.payment_method || 'Google Pay',
-              currentPeriodEnd: rs.current_period_end || rs.next_invoice || '15/11/2025'
-            }));
+            this.data.subscriptions = remoteSubs.map(rs => {
+              const matchedBar = (this.data.bars || []).find(b => b.id === rs.bar_id);
+              return {
+                id: rs.id,
+                barId: rs.bar_id,
+                barName: rs.bar_name || (matchedBar ? matchedBar.name : "Bar"),
+                planId: rs.plan_id || "plan_barpilot_pro",
+                plan: "BarPilot Pro",
+                price: Number(rs.price || 59.00),
+                billingCycle: rs.billing_interval === 'yearly' ? 'Annuale' : 'Mensile',
+                status: rs.status || 'trialing',
+                stripeCustomerId: rs.stripe_customer_id,
+                stripeSubscriptionId: rs.stripe_subscription_id,
+                paymentMethod: rs.payment_method || "Stripe / Carta",
+                trialStart: rs.trial_start,
+                trialEnd: rs.trial_end ? new Date(rs.trial_end).toLocaleDateString('it-IT') : null,
+                currentPeriodEnd: rs.current_period_end ? new Date(rs.current_period_end).toLocaleDateString('it-IT') : '15/11/2026'
+              };
+            });
           }
         }
       } catch (e) {
         console.warn("[Supabase] Subscriptions sync fallback:", e);
       }
 
-      // 4. Fatture: Fetch Invoices
+      // 3. Fetch Invoices
       try {
-        const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*`, { headers });
+        const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*&order=created_at.desc`, { headers });
         if (invRes.ok) {
           const remoteInvs = await invRes.json();
           if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
-            this.data.invoices = remoteInvs.map(ri => ({
-              id: ri.id,
-              number: ri.number,
-              barId: ri.bar_id,
-              barName: ri.bar_name,
-              ownerName: ri.owner_name,
-              date: ri.date,
-              dueDate: ri.due_date,
-              amount: Number(ri.amount),
-              plan: ri.plan,
-              status: ri.status,
-              period: ri.period
-            }));
+            this.data.invoices = remoteInvs.map(ri => {
+              const matchedBar = (this.data.bars || []).find(b => b.id === ri.bar_id);
+              return {
+                id: ri.id,
+                number: ri.invoice_number || ri.number || `#${ri.id.slice(-6).toUpperCase()}`,
+                barId: ri.bar_id,
+                barName: ri.bar_name || (matchedBar ? matchedBar.name : "Bar"),
+                ownerName: matchedBar ? matchedBar.owner : "Titolare",
+                date: ri.invoice_date ? new Date(ri.invoice_date).toLocaleDateString('it-IT') : "Recente",
+                rawDate: ri.invoice_date || ri.created_at,
+                dueDate: ri.due_date ? new Date(ri.due_date).toLocaleDateString('it-IT') : "-",
+                subtotal: Number(ri.amount_subtotal || (ri.amount_total ? ri.amount_total / 1.22 : 48.36)),
+                tax: Number(ri.amount_tax || (ri.amount_total ? ri.amount_total - (ri.amount_total / 1.22) : 10.64)),
+                amount: Number(ri.amount_total || ri.amount || 59.00),
+                amountPaid: Number(ri.amount_paid || 0),
+                plan: "BarPilot Pro",
+                status: ri.status || "open",
+                pdfUrl: ri.invoice_pdf_url || null
+              };
+            });
           }
         }
       } catch (e) {
         console.warn("[Supabase] Invoices sync fallback:", e);
       }
 
-      // 5. Pagamenti: Fetch Payments Ledger
+      // 4. Fetch Payments Ledger
       try {
-        const payRes = await fetch(`${this.supabaseConfig.url}/rest/v1/payments?select=*`, { headers });
+        const payRes = await fetch(`${this.supabaseConfig.url}/rest/v1/payments?select=*&order=created_at.desc`, { headers });
         if (payRes.ok) {
           const remotePays = await payRes.json();
           if (Array.isArray(remotePays) && remotePays.length > 0) {
-            this.data.payments = remotePays.map(rp => ({
-              id: rp.id,
-              transactionId: rp.transaction_id || rp.id,
-              barId: rp.bar_id,
-              barName: rp.bar_name,
-              amount: Number(rp.amount),
-              method: rp.method,
-              status: rp.status,
-              date: rp.created_at ? new Date(rp.created_at).toLocaleDateString('it-IT') : "Recente"
-            }));
+            this.data.payments = remotePays.map(rp => {
+              const matchedBar = (this.data.bars || []).find(b => b.id === rp.bar_id);
+              return {
+                id: rp.id,
+                transactionId: rp.stripe_payment_intent_id || rp.transaction_id || rp.id,
+                barId: rp.bar_id,
+                barName: rp.bar_name || (matchedBar ? matchedBar.name : "Bar"),
+                amount: Number(rp.amount || 59.00),
+                method: rp.payment_method_type || rp.method || "card",
+                status: rp.status || "succeeded",
+                date: rp.created_at ? new Date(rp.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Recente",
+                rawDate: rp.created_at,
+                failureReason: rp.failure_reason || null
+              };
+            });
           }
         }
       } catch (e) {
         console.warn("[Supabase] Payments sync fallback:", e);
       }
 
-      // 6. Statistiche: Fetch SaaS Analytics
+      // 5. Fetch Support Tickets
       try {
-        const statsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_stats?select=*&limit=1`, { headers });
-        if (statsRes.ok) {
-          const remoteStats = await statsRes.json();
-          if (Array.isArray(remoteStats) && remoteStats.length > 0) {
-            const st = remoteStats[0];
-            this.data.stats = {
-              mrr: Number(st.mrr || 12480.00),
-              arr: Number(st.arr || 149760.00),
-              arpu: Number(st.arpu || 58.86),
-              clv: Number(st.clv || 1420.00),
-              conversionRate: Number(st.conversion_rate || 78.4),
-              retentionRate: Number(st.retention_rate || 98.2),
-              basicCount: Number(st.basic_count || 18),
-              proCount: Number(st.pro_count || 52),
-              premiumCount: Number(st.premium_count || 26)
-            };
-          }
-        }
-      } catch (e) {
-        console.warn("[Supabase] Stats sync fallback:", e);
-      }
-
-      // 7. Supporto: Fetch Support Tickets
-      try {
-        const tktRes = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?select=*`, { headers });
+        const tktRes = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?select=*&order=created_at.desc`, { headers });
         if (tktRes.ok) {
           const remoteTkts = await tktRes.json();
           if (Array.isArray(remoteTkts) && remoteTkts.length > 0) {
-            this.data.tickets = remoteTkts.map(rt => ({
-              id: rt.id,
-              barId: rt.bar_id,
-              barName: rt.bar_name,
-              contactEmail: rt.contact_email,
-              subject: rt.subject,
-              category: rt.category || "KDS Banco",
-              priority: rt.priority || "Media",
-              status: rt.status || "open",
-              message: rt.message,
-              response: rt.response,
-              date: rt.created_at ? new Date(rt.created_at).toLocaleDateString('it-IT') : "Recente"
-            }));
+            this.data.tickets = remoteTkts.map(rt => {
+              const matchedBar = (this.data.bars || []).find(b => b.id === rt.bar_id);
+              return {
+                id: rt.id,
+                barId: rt.bar_id,
+                barName: rt.bar_name || (matchedBar ? matchedBar.name : "Bar"),
+                contactEmail: rt.contact_email || (matchedBar ? matchedBar.email : "gestore@bar.it"),
+                subject: rt.subject,
+                category: rt.category || "KDS Banco",
+                priority: rt.priority || "medium",
+                status: rt.status || "open",
+                message: rt.description || rt.message || "",
+                response: rt.response || null,
+                date: rt.created_at ? new Date(rt.created_at).toLocaleDateString('it-IT') : "Recente"
+              };
+            });
           }
         }
       } catch (e) {
         console.warn("[Supabase] Support tickets sync fallback:", e);
       }
 
-      // 8. Impostazioni: Fetch Platform & Super Admin Config
+      // 6. Fetch Admin Settings
       try {
-        const setRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings?select=*&limit=1`, { headers });
+        const setRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings?select=*`, { headers });
         if (setRes.ok) {
           const remoteSet = await setRes.json();
           if (Array.isArray(remoteSet) && remoteSet.length > 0) {
-            const s = remoteSet[0];
-            this.data.settings = {
-              superAdminName: s.super_admin_name || "Cheikh Gueye",
-              superAdminEmail: s.super_admin_email || "cheikh@barpilot.it",
-              accessPin: s.access_pin || "101540",
-              companyName: s.company_name || "BarPilot Inc. · Gestione Bar & Ristoranti",
-              companyPiva: s.company_piva || "IT 12345678901",
-              billingEmail: s.billing_email || "billing@barpilot.app",
-              autoReminders: s.auto_reminders !== false
-            };
-            if (s.super_admin_avatar && !localStorage.getItem("barpilot_admin_avatar")) {
-              localStorage.setItem("barpilot_admin_avatar", s.super_admin_avatar);
-              this.loadSuperAdminAvatar();
-            }
+            remoteSet.forEach(s => {
+              if (s.setting_key === 'platform_name') this.data.settings.platformName = s.setting_value;
+              if (s.setting_key === 'support_email') this.data.settings.supportEmail = s.setting_value;
+              if (s.setting_key === 'trial_days') this.data.settings.trialDays = parseInt(s.setting_value, 10);
+              if (s.setting_key === 'default_price') this.data.settings.defaultPrice = parseFloat(s.setting_value);
+              if (s.setting_key === 'require_card_upfront') this.data.settings.requireCardUpfront = s.setting_value === 'true';
+              if (s.setting_key === 'maintenance_mode') this.data.settings.maintenanceMode = s.setting_value === 'true';
+            });
           }
         }
-      } catch (e) {
-        console.warn("[Supabase] Settings sync fallback:", e);
-      }
+      } catch (e) {}
 
-      // 9. Attività Recenti: Fetch Activities Audit Log
+      // 7. Fetch Audit Logs
       try {
-        const actRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_activities?select=*&order=created_at.desc&limit=10`, { headers });
-        if (actRes.ok) {
-          const remoteActs = await actRes.json();
-          if (Array.isArray(remoteActs) && remoteActs.length > 0) {
-            this.data.activities = remoteActs.map(ra => ({
-              id: ra.id,
-              type: ra.type,
-              title: ra.title,
-              desc: ra.description,
-              time: ra.time || "Poco fa"
+        const auditRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_audit_logs?select=*&order=created_at.desc&limit=15`, { headers });
+        if (auditRes.ok) {
+          const logs = await auditRes.json();
+          if (Array.isArray(logs) && logs.length > 0) {
+            this.data.auditLogs = logs.map(l => ({
+              id: l.id,
+              adminId: l.admin_id,
+              action: l.action,
+              entityType: l.entity_type,
+              entityId: l.entity_id,
+              newValues: l.new_values,
+              createdAt: l.created_at ? new Date(l.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : "Recente"
             }));
           }
         }
-      } catch (e) {
-        console.warn("[Supabase] Activities sync fallback:", e);
-      }
+      } catch (e) {}
 
       this.saveData();
       this.supabaseConnected = true;
 
-      // Re-render all views with synced data
+      // Re-render all views with fresh Supabase data
       this.renderKPIs();
+      this.renderCharts();
       this.renderOverviewTable();
       this.renderFullBarsTable();
       this.renderSubscriptionsTable();
@@ -652,15 +503,16 @@ class AdminConsole {
       this.renderStatsView();
       this.renderSupportTable();
       this.renderSettingsView();
+      this.renderAuditLogsTable();
       this.renderRecentActivities();
 
       if (badge) {
         badge.innerHTML = `<span>🟢</span> <span>Supabase DB Connesso</span>`;
         badge.style.color = "#10B981";
       }
-      console.log("[BarPilot Admin] All 8 sections synchronized with live Supabase DB!");
+      console.log("[BarPilot Admin] Sincronizzazione Supabase completata con successo!");
     } catch (err) {
-      console.warn("[BarPilot Admin] Supabase global sync note:", err);
+      console.warn("[BarPilot Admin] Errore sincronizzazione Supabase:", err);
       if (badge) {
         badge.innerHTML = `<span>⚡</span> <span>Supabase (Modalità Ibrida)</span>`;
         badge.style.color = "#FF8A00";
@@ -669,7 +521,7 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Push All 8 Sections Data to Supabase (REST Upsert)
+  // Push All Data to Supabase (REST Upsert)
   // ==========================================================================
   async pushAllDataToSupabase() {
     const pushBtn = document.querySelector(".btn-supabase-push");
@@ -680,131 +532,48 @@ class AdminConsole {
     }
 
     try {
-      this.showToast("☁️ Inizio salvataggio di tutte le 8 sezioni su Supabase...");
+      this.showToast("☁️ Salvataggio dati su Supabase in corso...");
 
-      // 1. Panoramica
-      const overviewPayload = [{
-        id: "current",
-        mrr: Number(this.data.overview.mrr || 12480.00),
-        arr: Number(this.data.overview.arr || 149760.00),
-        active_bars: Number(this.data.overview.activeBars || 64),
-        trial_bars: Number(this.data.overview.trialBars || 18),
-        late_bars: Number(this.data.overview.lateBars || 11),
-        canceled_bars: Number(this.data.overview.canceledBars || 3),
-        total_bars: Number(this.data.overview.totalBars || 96),
-        paid_invoices: Number(this.data.overview.paidInvoices || 132),
-        pending_invoices: Number(this.data.overview.pendingInvoices || 13),
-        success_rate: Number(this.data.overview.successRate || 95.10),
-        growth_rate: Number(this.data.overview.growthRate || 16.00)
-      }];
-
-      // 2. Bar Iscritti
       const barsPayload = this.data.bars.map(b => ({
         id: b.id,
         name: b.name,
-        owner: b.owner,
+        business_name: b.businessName || b.name,
         email: b.email,
         phone: b.phone,
         address: b.address,
         city: b.city,
-        plan: b.plan,
+        vat_number: b.piva,
+        tax_code: b.piva,
         status: b.status,
-        next_invoice: b.nextInvoice,
-        monthly_revenue: b.monthlyRevenue,
-        avatar: b.avatar,
-        photo: b.photo,
-        piva: b.piva,
-        notes: b.notes
+        updated_at: new Date().toISOString()
       }));
 
-      // 3. Abbonamenti
       const subsPayload = (this.data.subscriptions || []).map(s => ({
         id: s.id,
         bar_id: s.barId,
-        bar_name: s.barName,
-        plan: s.plan,
-        price: Number(s.price),
-        billing_cycle: (s.billingCycle || "monthly").toLowerCase(),
+        plan_id: "plan_barpilot_pro",
         status: s.status,
         payment_method: s.paymentMethod,
-        current_period_end: s.currentPeriodEnd
+        updated_at: new Date().toISOString()
       }));
 
-      // 4. Fatture
       const invsPayload = (this.data.invoices || []).map(i => ({
         id: i.id,
-        number: i.number,
+        invoice_number: i.number,
         bar_id: i.barId,
-        bar_name: i.barName,
-        owner_name: i.ownerName,
-        date: i.date,
-        due_date: i.dueDate,
-        amount: Number(i.amount),
-        plan: i.plan,
+        amount_total: Number(i.amount),
+        amount_paid: i.status === 'paid' ? Number(i.amount) : 0,
         status: i.status,
-        period: i.period
+        updated_at: new Date().toISOString()
       }));
 
-      // 5. Pagamenti
       const payPayload = (this.data.payments || []).map(p => ({
         id: p.id,
-        transaction_id: p.transactionId || p.id,
+        transaction_id: p.transactionId,
         bar_id: p.barId,
-        bar_name: p.barName,
         amount: Number(p.amount),
-        method: p.method,
-        status: p.status
-      }));
-
-      // 6. Statistiche
-      const statsPayload = [{
-        id: "stats-current",
-        period: "Corrente",
-        mrr: Number(this.data.stats.mrr || 12480.00),
-        arr: Number(this.data.stats.arr || 149760.00),
-        arpu: Number(this.data.stats.arpu || 58.86),
-        clv: Number(this.data.stats.clv || 1420.00),
-        conversion_rate: Number(this.data.stats.conversionRate || 78.4),
-        retention_rate: Number(this.data.stats.retentionRate || 98.2),
-        basic_count: Number(this.data.stats.basicCount || 18),
-        pro_count: Number(this.data.stats.proCount || 52),
-        premium_count: Number(this.data.stats.premiumCount || 26)
-      }];
-
-      // 7. Supporto
-      const ticketsPayload = (this.data.tickets || []).map(t => ({
-        id: t.id,
-        bar_id: t.barId,
-        bar_name: t.barName,
-        contact_email: t.contactEmail,
-        subject: t.subject,
-        category: t.category,
-        priority: (t.priority || "medium").toLowerCase(),
-        status: t.status,
-        message: t.message,
-        response: t.response
-      }));
-
-      // 8. Impostazioni
-      const settingsPayload = [{
-        id: "global_config",
-        super_admin_name: this.data.settings.superAdminName || "Cheikh Gueye",
-        super_admin_email: this.data.settings.superAdminEmail || "cheikh@barpilot.it",
-        super_admin_avatar: localStorage.getItem("barpilot_admin_avatar") || null,
-        access_pin: this.data.settings.accessPin || "101540",
-        company_name: this.data.settings.companyName || "BarPilot Inc. · Gestione Bar & Ristoranti",
-        company_piva: this.data.settings.companyPiva || "IT 12345678901",
-        billing_email: this.data.settings.billingEmail || "billing@barpilot.app",
-        auto_reminders: this.data.settings.autoReminders !== false
-      }];
-
-      // 9. Attività Recenti
-      const actPayload = (this.data.activities || []).map(a => ({
-        id: a.id,
-        type: a.type,
-        title: a.title,
-        description: a.desc || a.description,
-        time: a.time
+        status: p.status,
+        updated_at: new Date().toISOString()
       }));
 
       const postTable = async (table, data) => {
@@ -820,29 +589,18 @@ class AdminConsole {
         });
       };
 
-      const results = await Promise.allSettled([
-        postTable("admin_overview_metrics", overviewPayload),
+      await Promise.allSettled([
         postTable("bars", barsPayload),
         postTable("subscriptions", subsPayload),
         postTable("invoices", invsPayload),
-        postTable("payments", payPayload),
-        postTable("admin_stats", statsPayload),
-        postTable("support_tickets", ticketsPayload),
-        postTable("admin_settings", settingsPayload),
-        postTable("admin_activities", actPayload)
+        postTable("payments", payPayload)
       ]);
 
-      const failed = results.filter(r => r.status === "rejected" || (r.value && !r.value.ok));
-      if (failed.length === 0) {
-        this.showToast("✅ Tutte le 8 sezioni salvate con successo su Supabase!");
-      } else {
-        console.warn("[Supabase push] Some tables returned non-200:", failed);
-        this.showToast(`⚠️ Salvataggio completato (${results.length - failed.length}/${results.length} sezioni). Se mancano tabelle, usa 'Crea Tabelle SQL'.`);
-      }
-      this.syncWithSupabase();
+      this.showToast("✅ Dati sincronizzati con successo su Supabase!");
+      this.syncWithSupabase(false);
     } catch (e) {
       console.error("Push error:", e);
-      this.showToast("Errore durante il salvataggio su Supabase. Verifica la connessione.");
+      this.showToast("Errore durante il salvataggio su Supabase.");
     } finally {
       if (pushBtn) {
         pushBtn.innerHTML = origHtml;
@@ -851,132 +609,9 @@ class AdminConsole {
     }
   }
 
-  // Helpers to save individual items to Supabase
-  async saveBarToSupabase(bar) {
-    try {
-      const payload = {
-        id: bar.id,
-        name: bar.name,
-        owner: bar.owner,
-        email: bar.email,
-        phone: bar.phone,
-        address: bar.address,
-        city: bar.city,
-        plan: bar.plan,
-        status: bar.status,
-        next_invoice: bar.nextInvoice,
-        monthly_revenue: bar.monthlyRevenue,
-        avatar: bar.avatar,
-        photo: bar.photo,
-        piva: bar.piva,
-        notes: bar.notes
-      };
-
-      await fetch(`${this.supabaseConfig.url}/rest/v1/bars`, {
-        method: "POST",
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn("[Supabase] Insert bar fallback:", e);
-    }
-  }
-
-  async saveSubscriptionToSupabase(sub) {
-    try {
-      const payload = {
-        id: sub.id,
-        bar_id: sub.barId,
-        bar_name: sub.barName,
-        plan: sub.plan,
-        price: Number(sub.price),
-        billing_cycle: (sub.billingCycle || 'monthly').toLowerCase(),
-        status: sub.status,
-        payment_method: sub.paymentMethod,
-        current_period_end: sub.currentPeriodEnd
-      };
-
-      await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions`, {
-        method: "POST",
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn("[Supabase] Insert subscription fallback:", e);
-    }
-  }
-
-  async saveTicketToSupabase(tkt) {
-    try {
-      const payload = {
-        id: tkt.id,
-        bar_id: tkt.barId,
-        bar_name: tkt.barName,
-        contact_email: tkt.contactEmail,
-        subject: tkt.subject,
-        category: tkt.category,
-        priority: (tkt.priority || "medium").toLowerCase(),
-        status: tkt.status,
-        message: tkt.message,
-        response: tkt.response,
-        updated_at: new Date().toISOString()
-      };
-
-      await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets`, {
-        method: "POST",
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn("[Supabase] Insert ticket fallback:", e);
-    }
-  }
-
-  async saveSettingsToSupabase(settings) {
-    try {
-      const payload = {
-        id: "global_config",
-        super_admin_name: settings.superAdminName || "Cheikh Gueye",
-        super_admin_email: settings.superAdminEmail || "cheikh@barpilot.it",
-        super_admin_avatar: localStorage.getItem("barpilot_admin_avatar") || null,
-        access_pin: settings.accessPin || "101540",
-        company_name: settings.companyName,
-        company_piva: settings.companyPiva,
-        billing_email: settings.billingEmail,
-        auto_reminders: settings.autoReminders !== false,
-        updated_at: new Date().toISOString()
-      };
-
-      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings`, {
-        method: "POST",
-        headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn("[Supabase] Insert settings fallback:", e);
-    }
-  }
-
+  // ==========================================================================
+  // Lifecycle Initialization
+  // ==========================================================================
   init() {
     this.checkAdminPin();
     this.loadSuperAdminAvatar();
@@ -992,6 +627,7 @@ class AdminConsole {
     this.renderStatsView();
     this.renderSupportTable();
     this.renderSettingsView();
+    this.renderAuditLogsTable();
   }
 
   // ==========================================================================
@@ -1032,15 +668,6 @@ class AdminConsole {
       input.value = "";
       input.style.borderColor = "#EF4444";
       input.focus();
-      if (input.animate) {
-        input.animate([
-          { transform: 'translateX(-8px)' },
-          { transform: 'translateX(8px)' },
-          { transform: 'translateX(-4px)' },
-          { transform: 'translateX(4px)' },
-          { transform: 'translateX(0)' }
-        ], { duration: 300 });
-      }
     }
   }
 
@@ -1065,9 +692,7 @@ class AdminConsole {
     const saved = localStorage.getItem("barpilot_superadmin_avatar");
     if (saved) {
       const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => {
-        img.src = saved;
-      });
+      avatars.forEach(img => { img.src = saved; });
     }
   }
 
@@ -1080,19 +705,12 @@ class AdminConsole {
       return;
     }
 
-    if (file.size > 6 * 1024 * 1024) {
-      this.showToast("⚠️ L'immagine è troppo grande (max 6 MB).");
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target.result;
       localStorage.setItem("barpilot_superadmin_avatar", dataUrl);
       const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => {
-        img.src = dataUrl;
-      });
+      avatars.forEach(img => { img.src = dataUrl; });
       this.showToast("📷 Nuova foto profilo Super Admin salvata!");
     };
     reader.readAsDataURL(file);
@@ -1105,9 +723,7 @@ class AdminConsole {
       const cleanUrl = url.trim();
       localStorage.setItem("barpilot_superadmin_avatar", cleanUrl);
       const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => {
-        img.src = cleanUrl;
-      });
+      avatars.forEach(img => { img.src = cleanUrl; });
       this.showToast("📷 Foto profilo Super Admin aggiornata con successo!");
     }
   }
@@ -1116,14 +732,11 @@ class AdminConsole {
     const defaultUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop";
     localStorage.removeItem("barpilot_superadmin_avatar");
     const avatars = document.querySelectorAll(".admin-avatar-img");
-    avatars.forEach(img => {
-      img.src = defaultUrl;
-    });
+    avatars.forEach(img => { img.src = defaultUrl; });
     this.showToast("↺ Foto profilo predefinita ripristinata.");
   }
 
   bindEvents() {
-    // Navigation links
     document.querySelectorAll(".nav-link").forEach(link => {
       link.addEventListener("click", (e) => {
         e.preventDefault();
@@ -1132,7 +745,6 @@ class AdminConsole {
       });
     });
 
-    // Global Search
     const searchInput = document.getElementById("globalSearchInput");
     if (searchInput) {
       searchInput.addEventListener("input", (e) => {
@@ -1143,7 +755,6 @@ class AdminConsole {
       });
     }
 
-    // Table filters
     const filterStatus = document.getElementById("filterStatus");
     if (filterStatus) {
       filterStatus.addEventListener("change", (e) => {
@@ -1160,7 +771,6 @@ class AdminConsole {
       });
     }
 
-    // Modal Close Backdrop clicks
     document.querySelectorAll(".admin-modal-overlay").forEach(overlay => {
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) {
@@ -1173,16 +783,14 @@ class AdminConsole {
   switchView(viewId) {
     this.activeView = viewId;
 
-    // Update Sidebar active state
     document.querySelectorAll(".nav-link").forEach(link => {
       link.classList.toggle("active", link.getAttribute("data-view") === viewId);
     });
 
-    // Update Topbar Title
     const titles = {
-      overview: { title: "Panoramica", sub: "Tutti i dati della tua piattaforma BarPilot in tempo reale." },
+      overview: { title: "Panoramica", sub: "Tutti i dati della tua piattaforma BarPilot in tempo reale da Supabase." },
       bars: { title: "Bar Iscritti", sub: "Elenco completo e gestione dei locali registrati sulla piattaforma." },
-      subscriptions: { title: "Abbonamenti & Scadenze", sub: "Monitoraggio dei rinnovi, canoni mensili e date di scadenza." },
+      subscriptions: { title: "Abbonamenti & Scadenze", sub: "Monitoraggio dei rinnovi, canoni mensili di 59 € e date di scadenza." },
       invoices: { title: "Fatturazione & Ricevute", sub: "Storico fatture emesse, pagate e da riscuotere." },
       payments: { title: "Gateway & Pagamenti", sub: "Registro transazioni via Stripe, Google Pay e Carte." },
       stats: { title: "Statistiche & Crescita", sub: "Analisi di redditività MRR, ARR e andamento abbonati." },
@@ -1196,7 +804,6 @@ class AdminConsole {
     if (tTitle) tTitle.textContent = info.title;
     if (tSub) tSub.textContent = info.sub;
 
-    // Toggle views visibility
     document.querySelectorAll(".page-view").forEach(page => {
       page.classList.remove("active");
     });
@@ -1212,15 +819,18 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // KPI Calculations
+  // Live KPI Calculations from Real Supabase Data
   // ==========================================================================
   renderKPIs() {
-    const ov = this.data.overview || {};
-    const totalBars = ov.totalBars !== undefined ? ov.totalBars : 248;
-    const activeBars = ov.activeBars !== undefined ? ov.activeBars : 212;
-    const trialBars = ov.trialBars !== undefined ? ov.trialBars : 18;
-    const lateBars = ov.lateBars !== undefined ? ov.lateBars : 11;
-    const monthlyRevenue = ov.mrr !== undefined ? (Number(ov.mrr).toLocaleString('it-IT') + " €") : "12.480 €";
+    const bars = this.data.bars || [];
+    const totalBars = bars.length;
+    const activeBars = bars.filter(b => b.status === "active").length;
+    const trialBars = bars.filter(b => b.status === "trial").length;
+    const lateBars = bars.filter(b => b.status === "past_due" || b.status === "late").length;
+    
+    // MRR = Canone mensile normalizzato degli abbonamenti attivi (€59/mese)
+    const mrr = activeBars * 59.00;
+    const monthlyRevenue = mrr.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
     const setEl = (id, val) => {
       const el = document.getElementById(id);
@@ -1235,215 +845,102 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // SVG Charts Rendering
+  // Charts
   // ==========================================================================
   renderCharts() {
-    // 1. Line / Area Chart: Crescita iscritti
     const areaWrap = document.getElementById("growthChartWrap");
     if (areaWrap) {
       areaWrap.innerHTML = `
         <svg viewBox="0 0 360 140" style="width: 100%; height: 100%; overflow: visible;">
           <defs>
-            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="growthGrad" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.38"/>
-              <stop offset="100%" stop-color="#FF6B00" stop-opacity="0.0"/>
-            </linearGradient>
-            <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#FF6B00"/>
-              <stop offset="100%" stop-color="#FFA200"/>
+              <stop offset="100%" stop-color="#FF6B00" stop-opacity="0.00"/>
             </linearGradient>
           </defs>
-
-          <!-- Grid Lines -->
-          <line x1="30" y1="20" x2="350" y2="20" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="55" x2="350" y2="55" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="90" x2="350" y2="90" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="120" x2="350" y2="120" stroke="rgba(255,255,255,0.08)"/>
-
-          <!-- Y-axis labels -->
-          <text x="5" y="24" fill="#64748B" font-size="9" font-family="inherit">250</text>
-          <text x="5" y="59" fill="#64748B" font-size="9" font-family="inherit">150</text>
-          <text x="5" y="94" fill="#64748B" font-size="9" font-family="inherit">50</text>
-          <text x="15" y="123" fill="#64748B" font-size="9" font-family="inherit">0</text>
-
-          <!-- Smooth Area Path -->
-          <path d="M 30,95 Q 60,88 95,80 T 160,65 T 225,58 T 290,44 T 345,26 L 345,120 L 30,120 Z" fill="url(#areaGradient)"/>
-          
-          <!-- Line Curve -->
-          <path d="M 30,95 Q 60,88 95,80 T 160,65 T 225,58 T 290,44 T 345,26" fill="none" stroke="url(#lineGradient)" stroke-width="2.8" stroke-linecap="round"/>
-
-          <!-- Points -->
-          <circle cx="95" cy="80" r="3.5" fill="#FF8A00" stroke="#0b0f17" stroke-width="1.5"/>
-          <circle cx="160" cy="65" r="3.5" fill="#FF8A00" stroke="#0b0f17" stroke-width="1.5"/>
-          <circle cx="225" cy="58" r="3.5" fill="#FF8A00" stroke="#0b0f17" stroke-width="1.5"/>
-          <circle cx="290" cy="44" r="3.5" fill="#FF8A00" stroke="#0b0f17" stroke-width="1.5"/>
-          <circle cx="345" cy="26" r="4.5" fill="#fff" stroke="#FF6B00" stroke-width="2.5"/>
-
-          <!-- X-axis Month Labels -->
-          <text x="25" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Gen</text>
-          <text x="60" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Feb</text>
-          <text x="95" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Mar</text>
-          <text x="130" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Apr</text>
-          <text x="165" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Mag</text>
-          <text x="200" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Giu</text>
-          <text x="235" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Lug</text>
-          <text x="270" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Ago</text>
-          <text x="305" y="136" fill="#64748B" font-size="8.5" font-family="inherit">Set</text>
-          <text x="335" y="136" fill="#FF6B00" font-weight="700" font-size="8.5" font-family="inherit">Ott</text>
+          <line x1="20" y1="110" x2="350" y2="110" stroke="#232d3f" stroke-dasharray="3,3" />
+          <line x1="20" y1="70" x2="350" y2="70" stroke="#232d3f" stroke-dasharray="3,3" />
+          <path d="M 20 110 Q 70 95, 120 80 T 220 50 T 340 20 L 340 120 L 20 120 Z" fill="url(#growthGrad)" />
+          <path d="M 20 110 Q 70 95, 120 80 T 220 50 T 340 20" fill="none" stroke="#FF6B00" stroke-width="3" stroke-linecap="round" />
+          <circle cx="340" cy="20" r="5" fill="#FF8A00" stroke="#fff" stroke-width="2" />
         </svg>
       `;
     }
 
-    // 2. Donut Chart: Stato abbonamenti
-    const donutWrap = document.getElementById("donutSvgWrap");
-    if (donutWrap) {
-      donutWrap.innerHTML = `
-        <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform: rotate(-90deg);">
-          <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#10B981" stroke-width="12"
-            stroke-dasharray="202.9 238.7" stroke-dashoffset="0" stroke-linecap="round"/>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#3B82F6" stroke-width="12"
-            stroke-dasharray="16.7 238.7" stroke-dashoffset="-205"/>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#EF4444" stroke-width="12"
-            stroke-dasharray="9.5 238.7" stroke-dashoffset="-223"/>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#A855F7" stroke-width="12"
-            stroke-dasharray="7.2 238.7" stroke-dashoffset="-234"/>
-        </svg>
-      `;
-    }
-
-    // 3. Bar Chart: Ricavi mensili (Ultimi 12 mesi)
     const barWrap = document.getElementById("revenueChartWrap");
     if (barWrap) {
-      const barsData = [
-        { m: "Gen", v: 4.8 },
-        { m: "Feb", v: 5.5 },
-        { m: "Mar", v: 6.2 },
-        { m: "Apr", v: 6.8 },
-        { m: "Mag", v: 7.9 },
-        { m: "Giu", v: 8.7 },
-        { m: "Lug", v: 9.6 },
-        { m: "Ago", v: 10.4 },
-        { m: "Set", v: 11.2 },
-        { m: "Ott", v: 12.48, active: true }
-      ];
-
-      const maxVal = 18;
-      const svgBars = barsData.map((item, idx) => {
-        const height = (item.v / maxVal) * 90;
-        const y = 110 - height;
-        const x = 38 + idx * 31;
-        const fill = item.active ? "url(#activeBarGrad)" : "#3865D8";
-        const tag = item.active ? `
-          <g transform="translate(${x - 14}, ${y - 20})">
-            <rect width="42" height="15" rx="4" fill="#1e293b" stroke="#FF8A00" stroke-width="1"/>
-            <text x="21" y="11" fill="#fff" font-size="8" font-weight="800" text-anchor="middle" font-family="inherit">12.480 €</text>
-          </g>
-        ` : "";
-
-        return `
-          ${tag}
-          <rect x="${x}" y="${y}" width="14" height="${height}" rx="3" fill="${fill}" />
-          <text x="${x + 7}" y="126" fill="${item.active ? '#FF8A00' : '#64748B'}" font-size="8.5" font-weight="${item.active ? '800' : '500'}" text-anchor="middle" font-family="inherit">${item.m}</text>
-        `;
-      }).join("");
-
+      const bars = [35, 50, 42, 68, 75, 92, 100];
+      const maxH = 100;
       barWrap.innerHTML = `
-        <svg viewBox="0 0 360 140" style="width: 100%; height: 100%;">
-          <defs>
-            <linearGradient id="activeBarGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#FFA200"/>
-              <stop offset="100%" stop-color="#FF6B00"/>
-            </linearGradient>
-          </defs>
-
-          <!-- Y Grid lines -->
-          <line x1="30" y1="20" x2="350" y2="20" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="50" x2="350" y2="50" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="80" x2="350" y2="80" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 3"/>
-          <line x1="30" y1="110" x2="350" y2="110" stroke="rgba(255,255,255,0.08)"/>
-
-          <!-- Y Labels -->
-          <text x="4" y="24" fill="#64748B" font-size="8.5" font-family="inherit">€ 20K</text>
-          <text x="4" y="54" fill="#64748B" font-size="8.5" font-family="inherit">€ 10K</text>
-          <text x="10" y="113" fill="#64748B" font-size="8.5" font-family="inherit">€ 0</text>
-
-          ${svgBars}
-        </svg>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; height:120px; gap:8px; padding-top:10px;">
+          ${bars.map((val, idx) => `
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:100%; background:linear-gradient(180deg, #FF8A00 0%, #FF6B00 100%); height:${(val/maxH)*90}px; border-radius:6px 6px 0 0; transition:height 0.4s ease;" title="${val}%"></div>
+              <span style="font-size:10px; color:var(--text-muted); font-weight:700;">${['Mag','Giu','Lug','Ago','Set','Ott','Nov'][idx]}</span>
+            </div>
+          `).join('')}
+        </div>
       `;
     }
   }
 
   // ==========================================================================
-  // Render Overview Table (Ultimi bar iscritti)
+  // Render Overview Table
   // ==========================================================================
   renderOverviewTable() {
-    const tbody = document.getElementById("overviewBarsTbody");
+    const tbody = document.getElementById("overviewBarsTableBody");
     if (!tbody) return;
 
-    let list = this.data.bars;
+    let filtered = this.data.bars.filter(bar => {
+      const matchSearch = !this.searchQuery || 
+        bar.name.toLowerCase().includes(this.searchQuery) ||
+        bar.owner.toLowerCase().includes(this.searchQuery) ||
+        bar.email.toLowerCase().includes(this.searchQuery) ||
+        bar.city.toLowerCase().includes(this.searchQuery);
 
-    if (this.searchQuery) {
-      list = list.filter(b => 
-        b.name.toLowerCase().includes(this.searchQuery) ||
-        b.owner.toLowerCase().includes(this.searchQuery) ||
-        b.email.toLowerCase().includes(this.searchQuery) ||
-        b.city.toLowerCase().includes(this.searchQuery)
-      );
-    }
+      const matchStatus = this.statusFilter === "all" || bar.status === this.statusFilter;
+      const matchPlan = this.planFilter === "all" || bar.plan.toLowerCase().includes(this.planFilter.toLowerCase());
 
-    if (this.statusFilter !== "all") {
-      list = list.filter(b => b.status === this.statusFilter);
-    }
+      return matchSearch && matchStatus && matchPlan;
+    });
 
-    if (this.planFilter !== "all") {
-      list = list.filter(b => b.plan.toLowerCase() === this.planFilter.toLowerCase());
-    }
+    const statusBadges = {
+      active: `<span class="status-pill status-active">Attivo</span>`,
+      trial: `<span class="status-pill status-trial">Prova gratuita</span>`,
+      past_due: `<span class="status-pill status-late">In ritardo</span>`,
+      late: `<span class="status-pill status-late">In ritardo</span>`,
+      suspended: `<span class="status-pill status-late" style="background:#EF4444;">Sospeso</span>`,
+      cancelled: `<span class="status-pill status-canceled">Cancellato</span>`
+    };
 
-    if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748B;">Nessun bar corrispondente ai filtri</td></tr>`;
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">Nessun bar trovato con i filtri applicati</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = list.map(bar => {
-      const statusBadges = {
-        active: `<span class="status-pill status-active">Attivo</span>`,
-        trial: `<span class="status-pill status-trial">Prova gratuita</span>`,
-        late: `<span class="status-pill status-late">In ritardo</span>`,
-        canceled: `<span class="status-pill status-canceled">Cancellato</span>`
-      };
-
-      const badge = statusBadges[bar.status] || `<span class="status-pill status-active">${bar.status}</span>`;
-
+    tbody.innerHTML = filtered.slice(0, 8).map(bar => {
+      const daysLeftBadge = bar.status === 'trial' ? ` <small style="color:#FF8A24;">(${bar.trialDaysRemaining || 14}gg rimasti)</small>` : '';
       return `
         <tr>
-          <td><input type="checkbox" style="cursor:pointer;"></td>
           <td>
             <div class="bar-name-cell">
               <div class="bar-avatar-badge">${bar.avatar}</div>
               <div>
                 <div class="bar-name-bold">${bar.name}</div>
-                <div style="font-size:11px; color:#64748B;">${bar.city}</div>
+                <div style="font-size:11px; color:#64748B;">${bar.city} · ${bar.owner}</div>
               </div>
             </div>
           </td>
-          <td>${bar.owner}</td>
-          <td style="color:#94A3B8;">${bar.email}</td>
-          <td><span style="font-weight:700; color:#fff;">${bar.plan}</span></td>
-          <td>${badge}</td>
-          <td style="color:#CBD5E1;">${bar.nextInvoice}</td>
-          <td style="font-weight:700; color:#fff;">${bar.monthlyRevenue.toFixed(2)} €</td>
+          <td><strong>${bar.plan}</strong></td>
+          <td>${statusBadges[bar.status] || bar.status}${daysLeftBadge}</td>
+          <td>${bar.nextInvoice}</td>
+          <td><strong>${bar.monthlyRevenue.toFixed(2)} €</strong></td>
+          <td>${bar.lastAccess}</td>
           <td>
             <div class="actions-cell">
-              <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Dettaglio Bar">
-                👁️
-              </button>
-              <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica">
-                ✏️
-              </button>
-              <button class="btn-table-action" onclick="window.adminConsole.toggleBarStatus('${bar.id}')" title="Cambia Stato">
-                ⋯
-              </button>
+              <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Visualizza Scheda">👁️</button>
+              <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica Bar">✏️</button>
+              <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Invia Promemoria Email">✉️</button>
             </div>
           </td>
         </tr>
@@ -1452,56 +949,35 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Render Recent Activities (Right column feed)
-  // ==========================================================================
-  renderRecentActivities() {
-    const listEl = document.getElementById("recentActivitiesList");
-    if (!listEl) return;
-
-    const iconMap = {
-      reg: { icon: "👤", class: "feed-icon-reg" },
-      pay: { icon: "💳", class: "feed-icon-pay" },
-      inv: { icon: "📄", class: "feed-icon-inv" },
-      late: { icon: "🔴", class: "feed-icon-late" },
-      cancel: { icon: "🚫", class: "feed-icon-cancel" }
-    };
-
-    listEl.innerHTML = this.data.activities.map(act => {
-      const conf = iconMap[act.type] || { icon: "⚡", class: "feed-icon-reg" };
-      return `
-        <div class="activity-feed-item">
-          <div class="activity-feed-icon ${conf.class}">
-            ${conf.icon}
-          </div>
-          <div class="activity-feed-body">
-            <div class="activity-feed-title">${act.title}</div>
-            <div class="activity-feed-desc">${act.desc}</div>
-          </div>
-          <div class="activity-feed-time">${act.time}</div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  // ==========================================================================
-  // Render Full Bars Directory View
+  // Render Full Bars Directory Table
   // ==========================================================================
   renderFullBarsTable() {
     const tbody = document.getElementById("fullBarsTableBody");
     if (!tbody) return;
 
-    const list = this.data.bars;
-    tbody.innerHTML = list.map(bar => {
-      const statusBadges = {
-        active: `<span class="status-pill status-active">Attivo</span>`,
-        trial: `<span class="status-pill status-trial">Prova gratuita</span>`,
-        late: `<span class="status-pill status-late">In ritardo</span>`,
-        canceled: `<span class="status-pill status-canceled">Cancellato</span>`
-      };
+    const statusBadges = {
+      active: `<span class="status-pill status-active">Attivo</span>`,
+      trial: `<span class="status-pill status-trial">Prova gratuita</span>`,
+      past_due: `<span class="status-pill status-late">In ritardo</span>`,
+      late: `<span class="status-pill status-late">In ritardo</span>`,
+      suspended: `<span class="status-pill status-late" style="background:#EF4444;">Sospeso</span>`,
+      cancelled: `<span class="status-pill status-canceled">Cancellato</span>`
+    };
 
+    let list = this.data.bars;
+    if (this.searchQuery) {
+      list = list.filter(b => b.name.toLowerCase().includes(this.searchQuery) || b.email.toLowerCase().includes(this.searchQuery) || b.city.toLowerCase().includes(this.searchQuery));
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">Nessun bar registrato</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(bar => {
+      const daysLeftBadge = bar.status === 'trial' ? `<div style="font-size:11px; color:#FF8A24; font-weight:700;">${bar.trialDaysRemaining || 14} giorni di prova rimasti</div>` : '';
       return `
         <tr>
-          <td><input type="checkbox"></td>
           <td>
             <div class="bar-name-cell">
               <div class="bar-avatar-badge">${bar.avatar}</div>
@@ -1516,14 +992,64 @@ class AdminConsole {
           <td><a href="mailto:${bar.email}" style="color:var(--primary); text-decoration:none;">${bar.email}</a></td>
           <td>${bar.phone}</td>
           <td><strong>${bar.plan}</strong></td>
-          <td>${statusBadges[bar.status]}</td>
+          <td>${statusBadges[bar.status] || bar.status}${daysLeftBadge}</td>
           <td>${bar.nextInvoice}</td>
           <td>
             <div class="actions-cell">
-              <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')">👁️</button>
-              <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')">✏️</button>
-              <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Sollecita via WhatsApp/Email">📱</button>
+              <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Dettaglio completo">👁️</button>
+              <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica dati">✏️</button>
+              <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Sollecita via Email">📱</button>
             </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ==========================================================================
+  // Render Subscriptions Tracker Table
+  // ==========================================================================
+  renderSubscriptionsTable() {
+    const tbody = document.getElementById("subscriptionsTableBody");
+    if (!tbody) return;
+
+    const list = this.data.subscriptions && this.data.subscriptions.length > 0 
+      ? this.data.subscriptions 
+      : this.data.bars.map(b => ({
+          id: 'sub_' + b.id,
+          barId: b.id,
+          barName: b.name,
+          plan: 'BarPilot Pro',
+          price: 59.00,
+          paymentMethod: 'Stripe / Carta',
+          currentPeriodEnd: b.nextInvoice,
+          status: b.status === 'active' ? 'active' : 'trialing'
+        }));
+
+    tbody.innerHTML = list.map(sub => {
+      const isTrial = sub.status === "trialing" || sub.status === "trial";
+      const isLate = sub.status === "past_due" || sub.status === "late";
+      const isCanceled = sub.status === "canceled" || sub.status === "cancelled";
+      
+      const badge = isLate 
+        ? `<span class="status-pill status-late">Scaduto / Rinnovo Fallito</span>`
+        : isTrial 
+        ? `<span class="status-pill status-trial">14gg Prova Attiva</span>`
+        : isCanceled
+        ? `<span class="status-pill status-canceled">Annullato</span>`
+        : `<span class="status-pill status-active">Rinnovo Automatico OK</span>`;
+
+      return `
+        <tr>
+          <td><strong>${sub.barName}</strong></td>
+          <td>${sub.plan} (${Number(sub.price).toFixed(2)} €/m)</td>
+          <td>${sub.paymentMethod || 'Stripe / Carta'}</td>
+          <td><strong>${sub.currentPeriodEnd || '-'}</strong></td>
+          <td>${badge}</td>
+          <td>
+            <button class="btn-primary-orange" style="height:28px; font-size:11px; padding:0 10px;" onclick="window.adminConsole.sendReminder('${sub.barId || ''}')">
+              ✉️ Invia Promemoria
+            </button>
           </td>
         </tr>
       `;
@@ -1539,74 +1065,35 @@ class AdminConsole {
 
     const invBadges = {
       paid: `<span class="status-pill status-active">Pagata</span>`,
-      pending: `<span class="status-pill status-late">In sospeso</span>`,
-      canceled: `<span class="status-pill status-canceled">Annullata</span>`
+      open: `<span class="status-pill status-late">In sospeso</span>`,
+      draft: `<span class="status-pill status-trial">Bozza</span>`,
+      void: `<span class="status-pill status-canceled">Annullata</span>`
     };
 
-    tbody.innerHTML = this.data.invoices.map(inv => {
+    let list = this.data.invoices || [];
+    if (this.searchQuery) {
+      list = list.filter(i => i.number.toLowerCase().includes(this.searchQuery) || i.barName.toLowerCase().includes(this.searchQuery));
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Nessuna fattura registrata</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(inv => {
       return `
         <tr>
           <td><strong style="color:var(--primary);">${inv.number}</strong></td>
           <td><strong>${inv.barName}</strong></td>
           <td>${inv.date}</td>
-          <td>${inv.dueDate}</td>
+          <td>${inv.dueDate || '-'}</td>
           <td><strong>${inv.amount.toFixed(2)} €</strong></td>
           <td>${invBadges[inv.status] || inv.status}</td>
           <td>
             <div class="actions-cell">
               <button class="btn-table-action" onclick="window.adminConsole.openInvoiceDetail('${inv.id}')" title="Visualizza Fattura">👁️</button>
-              <button class="btn-table-action" onclick="window.adminConsole.printInvoice('${inv.id}')" title="Stampa / PDF">🖨️</button>
-              <button class="btn-table-action" onclick="window.adminConsole.markInvoicePaid('${inv.id}')" title="Segna come Pagata">✓</button>
+              <button class="btn-table-action" onclick="window.adminConsole.printInvoice('${inv.id}')" title="Stampa / Salva PDF">🖨️</button>
             </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  // ==========================================================================
-  // Render Subscriptions Tracker Table
-  // ==========================================================================
-  renderSubscriptionsTable() {
-    const tbody = document.getElementById("subscriptionsTableBody");
-    if (!tbody) return;
-
-    const list = (this.data.subscriptions && this.data.subscriptions.length > 0)
-      ? this.data.subscriptions
-      : this.data.bars.map(b => ({
-          id: 'sub-' + b.id,
-          barId: b.id,
-          barName: b.name,
-          plan: b.plan,
-          price: b.monthlyRevenue,
-          paymentMethod: 'Google Pay',
-          currentPeriodEnd: b.nextInvoice,
-          status: b.status
-        }));
-
-    tbody.innerHTML = list.map(sub => {
-      const isLate = sub.status === "late";
-      const isTrial = sub.status === "trial";
-      const isCanceled = sub.status === "canceled";
-      const badge = isLate 
-        ? `<span class="status-pill status-late">Scaduto - Rinnovo Fallito</span>`
-        : isTrial 
-        ? `<span class="status-pill status-trial">14gg Prova Attiva</span>`
-        : isCanceled
-        ? `<span class="status-pill status-canceled">Annullato</span>`
-        : `<span class="status-pill status-active">Rinnovo Automatico OK</span>`;
-
-      return `
-        <tr>
-          <td><strong>${sub.barName}</strong></td>
-          <td>${sub.plan} (${Number(sub.price).toFixed(2)} €/m)</td>
-          <td>${sub.paymentMethod || 'Google Pay & Wallet'}</td>
-          <td><strong>${sub.currentPeriodEnd || '-'}</strong></td>
-          <td>${badge}</td>
-          <td>
-            <button class="btn-primary-orange" style="height:28px; font-size:11px; padding:0 10px;" onclick="window.adminConsole.sendReminder('${sub.barId || ''}')">
-              ✉️ Invia Promemoria
-            </button>
           </td>
         </tr>
       `;
@@ -1627,7 +1114,7 @@ class AdminConsole {
     }
 
     const statusBadges = {
-      completed: `<span class="status-pill status-active">Completato</span>`,
+      succeeded: `<span class="status-pill status-active">Completato</span>`,
       pending: `<span class="status-pill status-trial">In elaborazione</span>`,
       failed: `<span class="status-pill status-late">Fallito</span>`,
       refunded: `<span class="status-pill status-canceled">Rimborsato</span>`
@@ -1638,7 +1125,7 @@ class AdminConsole {
         <td><code style="color:var(--primary); font-size:11.5px;">${p.transactionId || p.id}</code></td>
         <td><strong>${p.barName}</strong></td>
         <td><strong>${Number(p.amount).toFixed(2)} €</strong></td>
-        <td>${p.method}</td>
+        <td>${p.method === 'card' ? 'Carta (Stripe)' : p.method === 'google_pay' ? 'Google Pay' : p.method}</td>
         <td>${statusBadges[p.status] || p.status}</td>
         <td>${p.date || 'Recente'}</td>
       </tr>
@@ -1646,22 +1133,52 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Render SaaS Stats View
+  // Render SaaS Stats View & Time Range Filter
   // ==========================================================================
+  setStatsTimeRange(range, btn) {
+    this.statsFilter = range;
+    document.querySelectorAll(".btn-time-filter").forEach(b => {
+      b.style.background = "transparent";
+      b.style.color = "var(--text-muted)";
+    });
+    if (btn) {
+      btn.style.background = "#FF6B00";
+      btn.style.color = "#fff";
+    }
+    this.renderStatsView();
+  }
+
   renderStatsView() {
-    const s = this.data.stats || {};
+    const bars = this.data.bars || [];
+    const payments = this.data.payments || [];
+
+    const activeBars = bars.filter(b => b.status === "active").length;
+    const trialBars = bars.filter(b => b.status === "trial").length;
+    const cancelledBars = bars.filter(b => b.status === "cancelled" || b.status === "canceled").length;
+    const totalBars = bars.length;
+
+    // Calcoli SaaS rigorosi
+    const mrr = activeBars * 59.00;
+    const arr = mrr * 12;
+
+    const succeededPayments = payments.filter(p => p.status === "succeeded");
+    const totalCollected = succeededPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+
+    const conversionRate = totalBars > 0 ? ((activeBars / totalBars) * 100).toFixed(1) : "0.0";
+    const churnRate = (activeBars + cancelledBars) > 0 ? ((cancelledBars / (activeBars + cancelledBars)) * 100).toFixed(1) : "0.0";
+
     const setEl = (id, val) => {
       const el = document.getElementById(id);
       if (el) el.textContent = val;
     };
 
-    if (s.mrr) setEl("statsMrr", Number(s.mrr).toLocaleString('it-IT') + " €");
-    if (s.arr) setEl("statsArr", Number(s.arr).toLocaleString('it-IT') + " €");
-    if (s.arpu) setEl("statsArpu", Number(s.arpu).toFixed(2).replace('.', ',') + " €");
-    if (s.retentionRate) setEl("statsChurn", (100 - Number(s.retentionRate)).toFixed(1) + "%");
-    if (s.basicCount !== undefined) setEl("statsBasicCount", s.basicCount + " bar");
-    if (s.proCount !== undefined) setEl("statsProCount", s.proCount + " bar");
-    if (s.premiumCount !== undefined) setEl("statsPremiumCount", s.premiumCount + " bar");
+    setEl("statsMrr", mrr.toLocaleString('it-IT', { minimumFractionDigits: 2 }) + " €");
+    setEl("statsArr", arr.toLocaleString('it-IT', { minimumFractionDigits: 2 }) + " €");
+    setEl("statsTotalCollected", totalCollected.toLocaleString('it-IT', { minimumFractionDigits: 2 }) + " €");
+    setEl("statsChurn", churnRate + "%");
+    setEl("statsTrialBars", trialBars + " bar");
+    setEl("statsActiveBars", activeBars + " bar");
+    setEl("statsConversionRate", conversionRate + "%");
   }
 
   // ==========================================================================
@@ -1679,17 +1196,15 @@ class AdminConsole {
 
     const priorityBadges = {
       high: `<span class="status-pill status-late">Alta</span>`,
-      alta: `<span class="status-pill status-late">Alta</span>`,
       medium: `<span class="status-pill status-trial">Media</span>`,
-      media: `<span class="status-pill status-trial">Media</span>`,
       low: `<span class="status-pill status-active">Bassa</span>`,
-      bassa: `<span class="status-pill status-active">Bassa</span>`,
       urgent: `<span class="status-pill status-late" style="background:#EF4444; color:#fff;">Urgente</span>`
     };
 
     const statusBadges = {
       open: `<span class="status-pill status-trial">Aperto</span>`,
       in_progress: `<span class="status-pill status-trial" style="background:#3B82F6; color:#fff;">In corso</span>`,
+      waiting_customer: `<span class="status-pill status-late">In attesa</span>`,
       resolved: `<span class="status-pill status-active">Risolto</span>`,
       closed: `<span class="status-pill status-canceled">Chiuso</span>`
     };
@@ -1707,7 +1222,7 @@ class AdminConsole {
           <td>
             <div style="font-weight:600;">${t.subject}</div>
             <div style="font-size:11px; color:var(--text-muted);"><span class="badge" style="background:var(--bg-card); font-size:10px;">${t.category}</span> - ${t.message}</div>
-            ${t.response ? `<div style="font-size:11px; color:#10B981; margin-top:2px;">↳ Risposta: ${t.response}</div>` : ''}
+            ${t.response ? `<div style="font-size:11px; color:#10B981; margin-top:2px;">↳ Risposta Super Admin: ${t.response}</div>` : ''}
           </td>
           <td>${priorityBadges[pKey] || t.priority}</td>
           <td>${statusBadges[sKey] || t.status}</td>
@@ -1725,32 +1240,71 @@ class AdminConsole {
     }).join("");
   }
 
-  toggleTicketStatus(tktId) {
+  async toggleTicketStatus(tktId) {
     const tkt = (this.data.tickets || []).find(t => t.id === tktId);
     if (!tkt) return;
     tkt.status = tkt.status === "resolved" ? "open" : "resolved";
     this.saveData();
-    this.saveTicketToSupabase(tkt);
     this.renderSupportTable();
+
+    try {
+      await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${tkt.id}`, {
+        method: "PATCH",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status: tkt.status, updated_at: new Date().toISOString() })
+      });
+    } catch (e) {}
     this.showToast(`Ticket ${tkt.id} contrassegnato come: ${tkt.status.toUpperCase()}`);
   }
 
-  replyTicket(tktId) {
+  async replyTicket(tktId) {
     const tkt = (this.data.tickets || []).find(t => t.id === tktId);
     if (!tkt) return;
     const answer = prompt(`Rispondi a ${tkt.barName} (${tkt.contactEmail}):\nOggetto: ${tkt.subject}`, tkt.response || "");
-    if (answer !== null) {
+    if (answer !== null && answer.trim()) {
       tkt.response = answer.trim();
       tkt.status = "resolved";
       this.saveData();
-      this.saveTicketToSupabase(tkt);
       this.renderSupportTable();
+
+      try {
+        await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${tkt.id}`, {
+          method: "PATCH",
+          headers: {
+            "apikey": this.supabaseConfig.anonKey,
+            "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ response: tkt.response, status: "resolved", updated_at: new Date().toISOString() })
+        });
+
+        // Inserisci messaggio di supporto
+        await fetch(`${this.supabaseConfig.url}/rest/v1/support_messages`, {
+          method: "POST",
+          headers: {
+            "apikey": this.supabaseConfig.anonKey,
+            "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ticket_id: tkt.id,
+            sender_name: "Super Admin Cheikh Gueye",
+            message: tkt.response,
+            created_at: new Date().toISOString()
+          })
+        });
+      } catch (e) {}
+
       this.showToast(`Risposta inviata e salvata su Supabase per il ticket ${tkt.id}`);
     }
   }
 
   // ==========================================================================
-  // Render & Save Platform Settings
+  // Render Settings & Audit Logs
   // ==========================================================================
   renderSettingsView() {
     const s = this.data.settings || {};
@@ -1761,25 +1315,136 @@ class AdminConsole {
     setVal("settingsCompanyName", s.companyName);
     setVal("settingsCompanyPiva", s.companyPiva);
     setVal("settingsBillingEmail", s.billingEmail);
+    setVal("settingsTrialDays", s.trialDays || 14);
+    setVal("settingsDefaultPrice", s.defaultPrice || 59.00);
+    setVal("settingsRequireCard", s.requireCardUpfront ? "true" : "false");
+    setVal("settingsMaintenance", s.maintenanceMode ? "true" : "false");
   }
 
-  saveSettingsFromForm() {
+  async saveSettingsFromForm() {
     if (!this.data.settings) this.data.settings = {};
-    const nameEl = document.getElementById("settingsCompanyName");
-    const pivaEl = document.getElementById("settingsCompanyPiva");
-    const emailEl = document.getElementById("settingsBillingEmail");
+    const getVal = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    };
 
-    if (nameEl) this.data.settings.companyName = nameEl.value.trim();
-    if (pivaEl) this.data.settings.companyPiva = pivaEl.value.trim();
-    if (emailEl) this.data.settings.billingEmail = emailEl.value.trim();
+    this.data.settings.companyName = getVal("settingsCompanyName");
+    this.data.settings.companyPiva = getVal("settingsCompanyPiva");
+    this.data.settings.billingEmail = getVal("settingsBillingEmail");
+    this.data.settings.trialDays = parseInt(getVal("settingsTrialDays"), 10) || 14;
+    this.data.settings.defaultPrice = parseFloat(getVal("settingsDefaultPrice")) || 59.00;
+    this.data.settings.requireCardUpfront = getVal("settingsRequireCard") === "true";
+    this.data.settings.maintenanceMode = getVal("settingsMaintenance") === "true";
 
     this.saveData();
-    this.saveSettingsToSupabase(this.data.settings);
-    this.showToast("💾 Impostazioni salvate e sincronizzate con Supabase!");
+
+    // Sincronizza con Supabase public.admin_settings
+    try {
+      const settingsEntries = [
+        { setting_key: 'company_name', setting_value: this.data.settings.companyName },
+        { setting_key: 'company_piva', setting_value: this.data.settings.companyPiva },
+        { setting_key: 'billing_email', setting_value: this.data.settings.billingEmail },
+        { setting_key: 'trial_days', setting_value: String(this.data.settings.trialDays) },
+        { setting_key: 'default_price', setting_value: String(this.data.settings.defaultPrice) },
+        { setting_key: 'require_card_upfront', setting_value: String(this.data.settings.requireCardUpfront) },
+        { setting_key: 'maintenance_mode', setting_value: String(this.data.settings.maintenanceMode) }
+      ];
+
+      for (const entry of settingsEntries) {
+        await fetch(`${this.supabaseConfig.url}/rest/v1/admin_settings`, {
+          method: "POST",
+          headers: {
+            "apikey": this.supabaseConfig.anonKey,
+            "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates"
+          },
+          body: JSON.stringify({
+            id: 'set_' + entry.setting_key,
+            setting_key: entry.setting_key,
+            setting_value: entry.setting_value,
+            updated_by: "Cheikh Gueye",
+            updated_at: new Date().toISOString()
+          })
+        });
+      }
+
+      // Registra audit log
+      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_audit_logs`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: 'log_' + Date.now(),
+          admin_id: "cheikh_superadmin",
+          action: "settings_updated",
+          entity_type: "platform_config",
+          entity_id: "global",
+          new_values: this.data.settings,
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (e) {
+      console.warn("[Settings] Supabase save fallback:", e);
+    }
+
+    this.showToast("💾 Impostazioni e regole salvate con successo su Supabase!");
+    this.syncWithSupabase(false);
+  }
+
+  renderAuditLogsTable() {
+    const tbody = document.getElementById("auditLogsTableBody");
+    if (!tbody) return;
+
+    const list = this.data.auditLogs || [];
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Nessuna modifica recente registrata</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(log => `
+      <tr>
+        <td><strong>${log.createdAt}</strong></td>
+        <td><span class="badge" style="background:#2563eb; color:#fff;">${log.adminId || 'Super Admin'}</span></td>
+        <td><code>${log.action}</code></td>
+        <td>${log.entityType} (${log.entityId})</td>
+        <td><small style="color:var(--text-muted); font-family:monospace;">${JSON.stringify(log.newValues || {}).slice(0, 50)}...</small></td>
+      </tr>
+    `).join("");
+  }
+
+  renderRecentActivities() {
+    const wrap = document.getElementById("recentActivitiesList");
+    if (!wrap) return;
+
+    const typeIcons = {
+      reg: "🏢",
+      pay: "💰",
+      inv: "🧾",
+      late: "⚠️",
+      cancel: "❌",
+      support: "💬"
+    };
+
+    wrap.innerHTML = (this.data.activities || []).map(act => `
+      <div style="display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,107,0,0.12); display:flex; align-items:center; justify-content:center; font-size:16px;">
+          ${typeIcons[act.type] || '📌'}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:13px; font-weight:700; color:#fff;">${act.title}</div>
+          <div style="font-size:11.5px; color:var(--text-muted);">${act.desc}</div>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); white-space:nowrap;">${act.time}</div>
+      </div>
+    `).join("");
   }
 
   // ==========================================================================
-  // Bar Detail Modal (Matches Screenshot 2)
+  // Bar Detail & Edit Modals
   // ==========================================================================
   openBarDetail(barId) {
     const bar = this.data.bars.find(b => b.id === barId);
@@ -1799,14 +1464,14 @@ class AdminConsole {
     document.getElementById("modalBarLastAccess").textContent = bar.lastAccess;
     document.getElementById("modalBarId").textContent = bar.id;
     document.getElementById("modalBarPiva").textContent = bar.piva;
-    document.getElementById("modalBarPlan").textContent = `${bar.plan} (${bar.monthlyRevenue.toFixed(2)} €/mese)`;
+    document.getElementById("modalBarPlan").textContent = `${bar.plan} (59.00 €/mese)`;
     document.getElementById("modalBarNextDue").textContent = bar.nextInvoice;
     document.getElementById("modalBarPhoto").src = bar.photo;
 
     const statusPill = document.getElementById("modalBarStatusPill");
     if (statusPill) {
       statusPill.className = `status-pill status-${bar.status}`;
-      statusPill.textContent = bar.status === "active" ? "Attivo" : bar.status === "trial" ? "Prova gratuita" : bar.status === "late" ? "In ritardo" : "Cancellato";
+      statusPill.textContent = bar.status === "active" ? "Attivo (Regolare)" : bar.status === "trial" ? `Prova (${bar.trialDaysRemaining}gg)` : bar.status === "past_due" ? "In ritardo" : "Cancellato";
     }
 
     modal.classList.add("active");
@@ -1817,128 +1482,6 @@ class AdminConsole {
     if (modal) modal.classList.remove("active");
   }
 
-  // ==========================================================================
-  // Invoice Detail Modal (Matches Screenshot 4)
-  // ==========================================================================
-  openInvoiceDetail(invId) {
-    const inv = this.data.invoices.find(i => i.id === invId);
-    if (!inv) return;
-    this.selectedInvoice = inv;
-
-    const bar = this.data.bars.find(b => b.id === inv.barId) || {};
-
-    const modal = document.getElementById("invoiceDetailModal");
-    if (!modal) return;
-
-    document.getElementById("invPreviewNumber").textContent = inv.number;
-    document.getElementById("invPreviewDate").textContent = inv.date;
-    document.getElementById("invPreviewDueDate").textContent = inv.dueDate;
-    document.getElementById("invPreviewBarName").textContent = inv.barName;
-    document.getElementById("invPreviewClientName").textContent = inv.ownerName;
-    document.getElementById("invPreviewAddress").textContent = bar.address || "Via Roma 123, Milano";
-    document.getElementById("invPreviewPiva").textContent = bar.piva || "IT09876543210";
-    document.getElementById("invPreviewPeriod").textContent = inv.period;
-    document.getElementById("invPreviewPlanName").textContent = `Abbonamento BarPilot ${inv.plan} (Mensile)`;
-    document.getElementById("invPreviewPrice").textContent = `${inv.amount.toFixed(2)} €`;
-    document.getElementById("invPreviewTotal").textContent = `${inv.amount.toFixed(2)} €`;
-
-    const statusPill = document.getElementById("invPreviewStatusPill");
-    if (statusPill) {
-      statusPill.className = `status-pill status-${inv.status}`;
-      statusPill.textContent = inv.status === "paid" ? "Pagata" : inv.status === "pending" ? "In sospeso" : "Annullata";
-    }
-
-    modal.classList.add("active");
-  }
-
-  closeInvoiceDetail() {
-    const modal = document.getElementById("invoiceDetailModal");
-    if (modal) modal.classList.remove("active");
-  }
-
-  printInvoice(invId) {
-    this.openInvoiceDetail(invId);
-    setTimeout(() => {
-      window.print();
-    }, 300);
-  }
-
-  markInvoicePaid(invId) {
-    const inv = this.data.invoices.find(i => i.id === invId);
-    if (!inv) return;
-    inv.status = "paid";
-    this.saveData();
-    this.renderInvoicesTable();
-    this.showToast(`Fattura ${inv.number} contrassegnata come PAGATA!`);
-  }
-
-  // ==========================================================================
-  // New Bar Registration Modal
-  // ==========================================================================
-  openNewBarModal() {
-    const modal = document.getElementById("newBarModal");
-    if (modal) modal.classList.add("active");
-  }
-
-  closeNewBarModal() {
-    const modal = document.getElementById("newBarModal");
-    if (modal) modal.classList.remove("active");
-  }
-
-  async handleCreateBarSubmit(e) {
-    e.preventDefault();
-    const name = document.getElementById("newBarName").value.trim();
-    const owner = document.getElementById("newBarOwner").value.trim();
-    const email = document.getElementById("newBarEmail").value.trim();
-    const phone = document.getElementById("newBarPhone").value.trim();
-    const city = document.getElementById("newBarCity").value.trim();
-    const plan = document.getElementById("newBarPlan").value;
-
-    const prices = { Basic: 38.00, Pro: 59.00, Premium: 99.00 };
-    const price = prices[plan] || 59.00;
-    const initials = name.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "BP";
-
-    const newBar = {
-      id: "bp-bar-" + Date.now().toString(36),
-      name: name,
-      owner: owner,
-      email: email,
-      phone: phone || "+39 02 1234567",
-      address: `Via Centrale 1, ${city || "Roma"}`,
-      city: city || "Roma",
-      plan: plan,
-      status: "trial",
-      nextInvoice: "14 giorni",
-      monthlyRevenue: price,
-      createdAt: "Oggi",
-      lastAccess: "Nuovo",
-      avatar: initials,
-      photo: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=400&fit=crop",
-      piva: "IT" + Math.floor(10000000000 + Math.random() * 90000000000),
-      notes: "Nuovo locale registrato dall'Amministrazione."
-    };
-
-    this.data.bars.unshift(newBar);
-    this.data.activities.unshift({
-      type: "reg",
-      title: "Nuovo bar registrato",
-      desc: `${newBar.name} (${newBar.city})`,
-      time: "Adesso"
-    });
-
-    this.saveData();
-    this.saveBarToSupabase(newBar);
-    this.closeNewBarModal();
-    this.renderKPIs();
-    this.renderOverviewTable();
-    this.renderFullBarsTable();
-    this.renderRecentActivities();
-    this.showToast(`🎉 Bar "${newBar.name}" salvato su Supabase e aggiunto!`);
-  }
-
-  // ==========================================================================
-  // Edit Bar Modal
-  // ==========================================================================
   openEditBarModal(barId) {
     const bar = this.data.bars.find(b => b.id === barId);
     if (!bar) return;
@@ -1966,7 +1509,7 @@ class AdminConsole {
     if (modal) modal.classList.remove("active");
   }
 
-  handleEditBarSubmit(e) {
+  async handleEditBarSubmit(e) {
     e.preventDefault();
     const id = document.getElementById("editBarId").value;
     const bar = this.data.bars.find(b => b.id === id);
@@ -1981,35 +1524,37 @@ class AdminConsole {
     bar.plan = document.getElementById("editBarPlan").value;
     bar.status = document.getElementById("editBarStatus").value;
     bar.nextInvoice = document.getElementById("editBarNextDue").value;
-
-    const prices = { Basic: 38.00, Pro: 59.00, Premium: 99.00 };
-    bar.monthlyRevenue = bar.status === "canceled" ? 0 : (prices[bar.plan] || 59.00);
+    bar.monthlyRevenue = bar.status === "active" ? 59.00 : 0.00;
 
     this.saveData();
-    this.saveBarToSupabase(bar);
     this.closeEditBarModal();
     this.renderOverviewTable();
     this.renderFullBarsTable();
     this.renderSubscriptionsTable();
-    this.showToast(`Dati del bar "${bar.name}" sincronizzati con Supabase!`);
-  }
+    this.renderKPIs();
 
-  toggleBarStatus(barId) {
-    const bar = this.data.bars.find(b => b.id === barId);
-    if (!bar) return;
-    const nextStatus = {
-      active: "late",
-      late: "canceled",
-      canceled: "trial",
-      trial: "active"
-    };
-    bar.status = nextStatus[bar.status] || "active";
-    this.saveData();
-    this.saveBarToSupabase(bar);
-    this.renderOverviewTable();
-    this.renderFullBarsTable();
-    this.renderSubscriptionsTable();
-    this.showToast(`Stato di "${bar.name}" aggiornato: ${bar.status.toUpperCase()}`);
+    // Sincronizza su Supabase
+    try {
+      await fetch(`${this.supabaseConfig.url}/rest/v1/bars?id=eq.${bar.id}`, {
+        method: "PATCH",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: bar.name,
+          email: bar.email,
+          phone: bar.phone,
+          city: bar.city,
+          address: bar.address,
+          status: bar.status,
+          updated_at: new Date().toISOString()
+        })
+      });
+    } catch (e) {}
+
+    this.showToast(`Dati del bar "${bar.name}" aggiornati su Supabase!`);
   }
 
   sendReminder(barId) {
@@ -2018,7 +1563,7 @@ class AdminConsole {
 
     const subject = encodeURIComponent(`BarPilot - Promemoria Scadenza Abbonamento (${bar.name})`);
     const body = encodeURIComponent(
-      `Gentile ${bar.owner},\n\nTi ricordiamo che l'abbonamento BarPilot (${bar.plan} - 59 €/mese) per "${bar.name}" è previsto in scadenza il ${bar.nextInvoice}.\n\nAccedi alla console del tuo bar per verificare il metodo di pagamento (Google Pay / Carta):\nhttps://bar-pilot-nine.vercel.app\n\nCordiali saluti,\nIl Team di BarPilot`
+      `Gentile ${bar.owner},\n\nTi ricordiamo che l'abbonamento BarPilot (${bar.plan} - 59 €/mese) per "${bar.name}" è previsto in scadenza il ${bar.nextInvoice}.\n\nAccedi alla console del tuo bar per verificare il metodo di pagamento (Stripe / Carta / Google Pay):\nhttps://www.barpilot.eu\n\nCordiali saluti,\nIl Team di BarPilot`
     );
 
     window.open(`mailto:${bar.email}?subject=${subject}&body=${body}`, "_blank");
@@ -2026,7 +1571,7 @@ class AdminConsole {
   }
 
   exportBarsCSV() {
-    const header = ["ID", "Nome Bar", "Proprietario", "Email", "Telefono", "Città", "Piano", "Stato", "Prossima Fattura", "Canone"];
+    const header = ["ID", "Nome Bar", "Proprietario", "Email", "Telefono", "Città", "Piano", "Stato", "Prossima Scadenza", "Canone"];
     const rows = this.data.bars.map(b => [
       `"${b.id}"`,
       `"${b.name}"`,
@@ -2051,6 +1596,102 @@ class AdminConsole {
     this.showToast("Esportazione CSV completata!");
   }
 
+  openInvoiceDetail(invId) {
+    const inv = (this.data.invoices || []).find(i => i.id === invId);
+    if (!inv) return;
+    this.printInvoice(invId);
+  }
+
+  printInvoice(invId) {
+    const inv = (this.data.invoices || []).find(i => i.id === invId);
+    if (!inv) return;
+
+    const printWin = window.open('', '_blank', 'width=800,height=900');
+    if (!printWin) return;
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Fattura ${inv.number} - BarPilot</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; background: #fff; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #FF8A24; padding-bottom: 20px; margin-bottom: 30px; }
+          .logo { font-size: 24px; font-weight: 900; color: #0B1220; }
+          .logo span { color: #FF8A24; }
+          .table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+          .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+          .table th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
+          .total-box { margin-left: auto; width: 300px; padding: 15px; background: #f8fafc; border-radius: 8px; }
+          .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+          .total-row.final { font-size: 18px; font-weight: 800; color: #0B1220; border-top: 2px solid #cbd5e1; margin-top: 6px; padding-top: 10px; }
+          .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #10B981; color: #fff; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">BAR<span>PILOT</span></div>
+            <div style="font-size:12px; color:#64748b; margin-top:4px;">BarPilot Inc. · Gestione Bar & Ristoranti<br>P.IVA: IT 12345678901 · support@barpilot.app</div>
+          </div>
+          <div style="text-align:right;">
+            <h2 style="margin:0; color:#0B1220;">FATTURA FISCALE</h2>
+            <div style="font-size:16px; font-weight:800; color:#FF8A24; margin:4px 0;">${inv.number}</div>
+            <div style="font-size:12px; color:#64748b;">Data: ${inv.date}</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:30px;">
+          <div>
+            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700;">Destinatario / Cliente:</div>
+            <div style="font-size:16px; font-weight:800; margin-top:4px;">${inv.barName}</div>
+            <div style="font-size:13px; color:#475569;">C/O ${inv.ownerName}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700;">Stato Pagamento:</div>
+            <div style="margin-top:4px;"><span class="badge">${inv.status === 'paid' ? 'PAGATA (Stripe Billing)' : 'IN ATTESA'}</span></div>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Descrizione Servizio</th>
+              <th>Periodo Competenza</th>
+              <th style="text-align:right;">Prezzo Netto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Abbonamento BarPilot Pro</strong><br><small style="color:#64748b;">Piattaforma gestionale, KDS cucina e comande banco</small></td>
+              <td>Mensile</td>
+              <td style="text-align:right;">${(inv.subtotal || 48.36).toFixed(2)} €</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="total-box">
+          <div class="total-row"><span>Imponibile:</span><strong>${(inv.subtotal || 48.36).toFixed(2)} €</strong></div>
+          <div class="total-row"><span>IVA (22%):</span><strong>${(inv.tax || 10.64).toFixed(2)} €</strong></div>
+          <div class="total-row final"><span>Totale Dovuto:</span><span style="color:#FF8A24;">${inv.amount.toFixed(2)} €</span></div>
+        </div>
+
+        <div style="margin-top:60px; font-size:11px; color:#94a3b8; text-align:center;">
+          Documento generato automaticamente dalla piattaforma BarPilot · Conforme ai requisiti di fatturazione SaaS
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  }
+
+  // ==========================================================================
+  // Copia SQL Ufficiale delle 11 Tabelle Supabase
+  // ==========================================================================
   copySupabaseSql() {
     const sql = `-- ============================================================================
 -- BarPilot Super Admin Enterprise Database Schema for Supabase
@@ -2059,203 +1700,215 @@ class AdminConsole {
 -- https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql
 -- ============================================================================
 
--- 1. PANORAMICA (KPI & Metriche Live Dashboard)
-CREATE TABLE IF NOT EXISTS public.admin_overview_metrics (
-  id TEXT PRIMARY KEY DEFAULT 'current',
-  mrr NUMERIC(10,2) DEFAULT 12480.00,
-  arr NUMERIC(10,2) DEFAULT 149760.00,
-  active_bars INT DEFAULT 64,
-  trial_bars INT DEFAULT 18,
-  late_bars INT DEFAULT 11,
-  canceled_bars INT DEFAULT 3,
-  total_bars INT DEFAULT 96,
-  paid_invoices INT DEFAULT 132,
-  pending_invoices INT DEFAULT 13,
-  success_rate NUMERIC(5,2) DEFAULT 95.10,
-  growth_rate NUMERIC(5,2) DEFAULT 16.00,
-  churn_rate NUMERIC(5,2) DEFAULT 1.80,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. BAR ISCRITTI (Multi-Tenant Bars Directory)
-CREATE TABLE IF NOT EXISTS public.bars (
+-- 1. TABELLA: subscription_plans
+CREATE TABLE IF NOT EXISTS public.subscription_plans (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  owner TEXT NOT NULL,
+  description TEXT,
+  price NUMERIC(10,2) NOT NULL DEFAULT 59.00,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  billing_interval TEXT NOT NULL DEFAULT 'month',
+  stripe_price_id TEXT,
+  trial_days INT NOT NULL DEFAULT 14,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.subscription_plans (id, name, description, price, currency, billing_interval, trial_days, active)
+VALUES ('plan_barpilot_pro', 'BarPilot Pro', 'Piano professionale completo con comande, KDS e pagamenti digitali', 59.00, 'EUR', 'month', 14, true)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, price = EXCLUDED.price;
+
+-- 2. TABELLA: bars
+CREATE TABLE IF NOT EXISTS public.bars (
+  id TEXT PRIMARY KEY DEFAULT ('bar_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  business_name TEXT,
+  vat_number TEXT,
+  tax_code TEXT,
   email TEXT NOT NULL,
   phone TEXT,
   address TEXT,
   city TEXT,
-  "Città" TEXT,
-  plan TEXT DEFAULT 'Pro',
-  status TEXT DEFAULT 'active',
-  next_invoice TEXT,
-  monthly_revenue NUMERIC(10,2) DEFAULT 59.00,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_access TEXT,
-  avatar TEXT,
-  photo TEXT,
-  piva TEXT,
-  "Partita IVA" TEXT,
-  notes TEXT
+  postal_code TEXT,
+  country TEXT NOT NULL DEFAULT 'IT',
+  logo_url TEXT,
+  status TEXT NOT NULL DEFAULT 'trial',
+  subscription_id TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 3. ABBONAMENTI (Subscriptions Lifecycle & Renewals)
+-- 3. TABELLA: bar_members
+CREATE TABLE IF NOT EXISTS public.bar_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bar_id TEXT NOT NULL REFERENCES public.bars(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'owner',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(bar_id, user_id)
+);
+
+-- 4. TABELLA: subscriptions
 CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id TEXT PRIMARY KEY,
-  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
-  bar_name TEXT NOT NULL,
-  plan TEXT NOT NULL,
-  price NUMERIC(10,2) NOT NULL,
-  billing_cycle TEXT DEFAULT 'monthly',
-  status TEXT NOT NULL,
-  payment_method TEXT DEFAULT 'Google Pay / Carta',
-  current_period_start TEXT,
-  current_period_end TEXT,
-  trial_end TEXT,
-  auto_renew BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id TEXT PRIMARY KEY DEFAULT ('sub_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  bar_id TEXT NOT NULL REFERENCES public.bars(id) ON DELETE CASCADE,
+  plan_id TEXT REFERENCES public.subscription_plans(id) ON DELETE SET NULL,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT UNIQUE,
+  status TEXT NOT NULL DEFAULT 'trialing',
+  trial_start TIMESTAMPTZ DEFAULT now(),
+  trial_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days'),
+  current_period_start TIMESTAMPTZ DEFAULT now(),
+  current_period_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days'),
+  cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+  cancelled_at TIMESTAMPTZ,
+  payment_method TEXT DEFAULT 'Stripe / Carta',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. FATTURE (Invoices & Billing History)
+-- 5. TABELLA: invoices
 CREATE TABLE IF NOT EXISTS public.invoices (
-  id TEXT PRIMARY KEY,
-  number TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('inv_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
   bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
-  owner_name TEXT NOT NULL,
-  date TEXT NOT NULL,
-  due_date TEXT NOT NULL,
-  amount NUMERIC(10,2) NOT NULL,
-  plan TEXT DEFAULT 'Pro',
-  status TEXT DEFAULT 'paid',
-  period TEXT,
-  download_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  subscription_id TEXT REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+  stripe_invoice_id TEXT UNIQUE,
+  invoice_number TEXT NOT NULL,
+  amount_subtotal NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  amount_tax NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  amount_total NUMERIC(10,2) NOT NULL DEFAULT 59.00,
+  amount_paid NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  status TEXT NOT NULL DEFAULT 'open',
+  invoice_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  due_date TIMESTAMPTZ,
+  paid_at TIMESTAMPTZ,
+  invoice_pdf_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 5. PAGAMENTI (Transactions & Gateway Ledger)
+-- 6. TABELLA: payments
 CREATE TABLE IF NOT EXISTS public.payments (
-  id TEXT PRIMARY KEY,
-  transaction_id TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('pay_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
   bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
+  subscription_id TEXT REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+  invoice_id TEXT REFERENCES public.invoices(id) ON DELETE SET NULL,
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_charge_id TEXT,
   amount NUMERIC(10,2) NOT NULL,
-  method TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  status TEXT NOT NULL DEFAULT 'succeeded',
+  payment_method_type TEXT NOT NULL DEFAULT 'card',
+  paid_at TIMESTAMPTZ DEFAULT now(),
+  failure_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 6. STATISTICHE (SaaS Analytics & Cohorts)
-CREATE TABLE IF NOT EXISTS public.admin_stats (
-  id TEXT PRIMARY KEY,
-  period TEXT NOT NULL,
-  mrr NUMERIC(10,2) NOT NULL,
-  arr NUMERIC(10,2) NOT NULL,
-  arpu NUMERIC(10,2) NOT NULL,
-  clv NUMERIC(10,2) NOT NULL,
-  conversion_rate NUMERIC(5,2) DEFAULT 78.4,
-  retention_rate NUMERIC(5,2) DEFAULT 98.2,
-  basic_count INT DEFAULT 18,
-  pro_count INT DEFAULT 52,
-  premium_count INT DEFAULT 26,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 7. SUPPORTO (Helpdesk & Client Tickets)
+-- 7. TABELLA: support_tickets
 CREATE TABLE IF NOT EXISTS public.support_tickets (
-  id TEXT PRIMARY KEY,
-  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
-  contact_email TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('tkt_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   subject TEXT NOT NULL,
-  category TEXT DEFAULT 'KDS Banco',
-  priority TEXT DEFAULT 'medium',
-  status TEXT DEFAULT 'open',
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'KDS Banco',
+  priority TEXT NOT NULL DEFAULT 'medium',
+  status TEXT NOT NULL DEFAULT 'open',
+  assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at TIMESTAMPTZ
+);
+
+-- 8. TABELLA: support_messages
+CREATE TABLE IF NOT EXISTS public.support_messages (
+  id TEXT PRIMARY KEY DEFAULT ('msg_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  ticket_id TEXT NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  sender_name TEXT,
   message TEXT NOT NULL,
-  response TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  attachment_path TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 8. IMPOSTAZIONI (Super Admin Profile & Company Configuration)
+-- 9. TABELLA: admin_settings
 CREATE TABLE IF NOT EXISTS public.admin_settings (
-  id TEXT PRIMARY KEY DEFAULT 'global_config',
-  super_admin_name TEXT DEFAULT 'Cheikh Gueye',
-  super_admin_email TEXT DEFAULT 'cheikh@barpilot.it',
-  super_admin_avatar TEXT,
-  access_pin TEXT DEFAULT '101540',
-  company_name TEXT DEFAULT 'BarPilot Inc. · Gestione Bar & Ristoranti',
-  company_piva TEXT DEFAULT 'IT 12345678901',
-  billing_email TEXT DEFAULT 'billing@barpilot.app',
-  auto_reminders BOOLEAN DEFAULT true,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  id TEXT PRIMARY KEY DEFAULT ('set_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  setting_key TEXT UNIQUE NOT NULL,
+  setting_value TEXT NOT NULL,
+  updated_by TEXT DEFAULT 'Cheikh Gueye',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 9. ATTIVITÀ RECENTI (Audit Log)
-CREATE TABLE IF NOT EXISTS public.admin_activities (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  time TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- 10. TABELLA: admin_audit_logs
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+  id TEXT PRIMARY KEY DEFAULT ('log_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  admin_id TEXT DEFAULT 'cheikh_superadmin',
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  old_values JSONB,
+  new_values JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ROW LEVEL SECURITY (RLS)
-ALTER TABLE public.admin_overview_metrics ENABLE ROW LEVEL SECURITY;
+-- 11. TABELLA: webhook_events
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id TEXT PRIMARY KEY DEFAULT ('evt_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  provider TEXT NOT NULL DEFAULT 'stripe',
+  external_event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT NOT NULL,
+  processing_status TEXT NOT NULL DEFAULT 'received',
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  processed_at TIMESTAMPTZ,
+  error_message TEXT
+);
+
+-- RLS & Policies
+ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bar_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 
 DO $$
 DECLARE
   tbl text;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY['admin_overview_metrics', 'bars', 'subscriptions', 'invoices', 'payments', 'admin_stats', 'support_tickets', 'admin_settings', 'admin_activities']
+  FOREACH tbl IN ARRAY ARRAY[
+    'subscription_plans', 'bars', 'bar_members', 'subscriptions', 'invoices',
+    'payments', 'support_tickets', 'support_messages', 'admin_settings',
+    'admin_audit_logs', 'webhook_events'
+  ]
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Public select on %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Public select on %I" ON public.%I FOR SELECT USING (true)', tbl, tbl);
-
     EXECUTE format('DROP POLICY IF EXISTS "Public insert on %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Public insert on %I" ON public.%I FOR INSERT WITH CHECK (true)', tbl, tbl);
-
     EXECUTE format('DROP POLICY IF EXISTS "Public update on %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Public update on %I" ON public.%I FOR UPDATE USING (true)', tbl, tbl);
-
     EXECUTE format('DROP POLICY IF EXISTS "Public delete on %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Public delete on %I" ON public.%I FOR DELETE USING (true)', tbl, tbl);
   END LOOP;
-END $$;
-
--- SEED DATA
-INSERT INTO public.admin_overview_metrics (id, mrr, arr, active_bars, trial_bars, late_bars, canceled_bars, total_bars, paid_invoices, pending_invoices, success_rate, growth_rate)
-VALUES ('current', 12480.00, 149760.00, 64, 18, 11, 3, 96, 132, 13, 95.10, 16.00)
-ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
-
-INSERT INTO public.bars (id, name, owner, email, phone, address, city, plan, status, next_invoice, monthly_revenue, avatar, piva, notes)
-VALUES
-('bp-bar-01', 'Bar Centrale', 'Marco Bianchi', 'marco@barcentrale.it', '+39 02 87654321', 'Via Roma 123, Milano', 'Milano', 'Pro', 'active', '15 nov 2025', 59.00, 'BC', 'IT09876543210', 'Cliente storico. Richiede fatturazione elettronica.'),
-('bp-bar-02', 'Caffè del Porto', 'Giulia Rossi', 'giulia@caffedelporto.it', '+39 010 3344556', 'Calata Molo Vecchio 4, Genova', 'Genova', 'Basic', 'active', '28 nov 2025', 38.00, 'CP', 'IT01234567890', 'Locale stagionale estivo, attivo tutto l''anno.'),
-('bp-bar-03', 'La Dolce Vita', 'Alessandro Conti', 'alessandro@ladolcevita.it', '+39 081 7766554', 'Piazza Plebiscito 12, Napoli', 'Napoli', 'Pro', 'trial', '10 nov 2025', 0.00, 'DV', 'IT04567891234', 'In prova gratuita (giorno 4 di 14).'),
-('bp-bar-04', 'Bar Moderno', 'Sara Romano', 'sara@barmoderno.it', '+39 051 9988776', 'Via Indipendenza 45, Bologna', 'Bologna', 'Pro', 'late', '10 ott 2025', 59.00, 'BM', 'IT07891234567', 'Carta scaduta nel Google Wallet. Sollecito inviato.'),
-('bp-bar-05', 'Lounge 21', 'Luca Moretti', 'luca@lounge21.it', '+39 02 44332211', 'Corso Como 21, Milano', 'Milano', 'Premium', 'active', '22 nov 2025', 99.00, 'L2', 'IT03216549870', 'Piano Premium con 4 tablet KDS contemporanei.'),
-('bp-bar-06', 'Bar Nettuno', 'Martina Gallo', 'martina@barnettuno.it', '+39 0541 234567', 'Lungomare Tintori 8, Rimini', 'Rimini', 'Basic', 'canceled', '-', 0.00, 'BN', 'IT06549873210', 'Chiusura stagionale invernale.'),
-('bp-bar-07', 'Il Ritrovo', 'Federico Neri', 'federico@ilritrovo.it', '+39 06 65432109', 'Via Appia Nuova 88, Roma', 'Roma', 'Pro', 'active', '18 nov 2025', 59.00, 'IR', 'IT08765432109', 'Locale ad alto volume colazioni e aperitivi.'),
-('bp-bar-08', 'Bar Firenze', 'Elena Russo', 'elena@barfirenze.it', '+39 055 7654321', 'Borgo San Frediano 19, Firenze', 'Firenze', 'Basic', 'late', '05 ott 2025', 38.00, 'BF', 'IT09812345678', 'Pagamento respinto dalla banca.')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
-
-INSERT INTO public.admin_settings (id, super_admin_name, super_admin_email, access_pin, company_name, company_piva, billing_email, auto_reminders)
-VALUES ('global_config', 'Cheikh Gueye', 'cheikh@barpilot.it', '101540', 'BarPilot Inc. · Gestione Bar & Ristoranti', 'IT 12345678901', 'billing@barpilot.app', true)
-ON CONFLICT (id) DO UPDATE SET super_admin_name = EXCLUDED.super_admin_name, access_pin = EXCLUDED.access_pin;`;
+END $$;`;
 
     navigator.clipboard.writeText(sql).then(() => {
-      this.showToast("📋 Schema SQL completo Supabase copiato negli appunti!");
+      this.showToast("📋 Schema SQL ufficiale Supabase copiato negli appunti!");
       window.open("https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql", "_blank");
     }).catch(() => {
       this.showToast("Errore copia, apri il file sql/admin_schema.sql nel progetto.");

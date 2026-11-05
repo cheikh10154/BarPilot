@@ -673,42 +673,54 @@
              ================================================================== -->
         <section class="page-view" id="view-stats">
           <div class="section-box">
-            <div class="section-box-header">
-              <h3 class="section-box-title">Metriche Chiave SaaS BarPilot</h3>
+            <div class="section-box-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div>
+                <h3 class="section-box-title">Metriche Chiave SaaS BarPilot</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Analisi in tempo reale su registrazioni, conversioni e ricavi da Supabase e Stripe.</p>
+              </div>
+              <div class="btn-group-time-range" style="display:flex; gap:6px; background:var(--bg-card-secondary); padding:4px; border-radius:10px; border:1px solid var(--border-color);">
+                <button type="button" class="btn-time-filter active" onclick="window.adminConsole.setStatsTimeRange('all', this)" style="background:#FF6B00; color:#fff; border:none; border-radius:6px; font-size:11.5px; font-weight:700; padding:6px 12px; cursor:pointer;">Tutto</button>
+                <button type="button" class="btn-time-filter" onclick="window.adminConsole.setStatsTimeRange('month', this)" style="background:transparent; color:var(--text-muted); border:none; border-radius:6px; font-size:11.5px; font-weight:700; padding:6px 12px; cursor:pointer;">Questo Mese</button>
+                <button type="button" class="btn-time-filter" onclick="window.adminConsole.setStatsTimeRange('30d', this)" style="background:transparent; color:var(--text-muted); border:none; border-radius:6px; font-size:11.5px; font-weight:700; padding:6px 12px; cursor:pointer;">30 Giorni</button>
+                <button type="button" class="btn-time-filter" onclick="window.adminConsole.setStatsTimeRange('7d', this)" style="background:transparent; color:var(--text-muted); border:none; border-radius:6px; font-size:11.5px; font-weight:700; padding:6px 12px; cursor:pointer;">7 Giorni</button>
+                <button type="button" class="btn-time-filter" onclick="window.adminConsole.setStatsTimeRange('today', this)" style="background:transparent; color:var(--text-muted); border:none; border-radius:6px; font-size:11.5px; font-weight:700; padding:6px 12px; cursor:pointer;">Oggi</button>
+              </div>
             </div>
+
             <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
-              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
                 <div style="font-size:12px; color:var(--text-muted);">MRR (Monthly Recurring Revenue)</div>
-                <div style="font-size:24px; font-weight:900; color:#10B981;" id="statsMrr">12.480 €</div>
+                <div style="font-size:24px; font-weight:900; color:#10B981;" id="statsMrr">0,00 €</div>
               </div>
-              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
                 <div style="font-size:12px; color:var(--text-muted);">ARR (Annual Run Rate)</div>
-                <div style="font-size:24px; font-weight:900; color:#3B82F6;" id="statsArr">149.760 €</div>
+                <div style="font-size:24px; font-weight:900; color:#3B82F6;" id="statsArr">0,00 €</div>
               </div>
-              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
-                <div style="font-size:12px; color:var(--text-muted);">ARPU (Ricavo medio per bar)</div>
-                <div style="font-size:24px; font-weight:900; color:#F59E0B;" id="statsArpu">58,86 €</div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Incasso Totale Riuscito</div>
+                <div style="font-size:24px; font-weight:900; color:#F59E0B;" id="statsTotalCollected">0,00 €</div>
               </div>
-              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px;">
-                <div style="font-size:12px; color:var(--text-muted);">Tasso di Churn Mensile</div>
-                <div style="font-size:24px; font-weight:900; color:#94A3B8;" id="statsChurn">1.8%</div>
+              <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="font-size:12px; color:var(--text-muted);">Tasso di Churn</div>
+                <div style="font-size:24px; font-weight:900; color:#94A3B8;" id="statsChurn">0.0%</div>
               </div>
             </div>
+
             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
-                <div style="font-size:12px; color:var(--text-muted);">Piano Basic (38 €/mese)</div>
-                <div style="font-size:22px; font-weight:800; color:#fff; margin-top:4px;" id="statsBasicCount">18 bar</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 684 €/mese</div>
+                <div style="font-size:12px; color:var(--text-muted);">Bar in Prova Gratuita</div>
+                <div style="font-size:22px; font-weight:800; color:#FF8A24; margin-top:4px;" id="statsTrialBars">0 bar</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">14 giorni di prova attiva</div>
               </div>
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
-                <div style="font-size:12px; color:var(--text-muted);">Piano Pro (59 €/mese)</div>
-                <div style="font-size:22px; font-weight:800; color:var(--primary); margin-top:4px;" id="statsProCount">52 bar</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 3.068 €/mese</div>
+                <div style="font-size:12px; color:var(--text-muted);">Bar Abbonati Attivi</div>
+                <div style="font-size:22px; font-weight:800; color:#10B981; margin-top:4px;" id="statsActiveBars">0 bar</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Canone regolare 59 €/mese</div>
               </div>
               <div style="background:var(--bg-card-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
-                <div style="font-size:12px; color:var(--text-muted);">Piano Premium (99 €/mese)</div>
-                <div style="font-size:22px; font-weight:800; color:#A855F7; margin-top:4px;" id="statsPremiumCount">26 bar</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ricavo: 2.574 €/mese</div>
+                <div style="font-size:12px; color:var(--text-muted);">Conversione Prova → Pagamento</div>
+                <div style="font-size:22px; font-weight:800; color:#A855F7; margin-top:4px;" id="statsConversionRate">0%</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Successo abbonamenti ricorrenti</div>
               </div>
             </div>
           </div>
@@ -804,6 +816,40 @@
               </div>
             </div>
 
+            <!-- Configurazione SaaS & Regole Billing -->
+            <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
+              <h4 style="font-size:14px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <span>⚙️</span> <span>Regole Piattaforma & Abbonamenti SaaS</span>
+              </h4>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="form-group-admin">
+                  <label class="form-label-admin">Durata Prova Gratuita (Giorni)</label>
+                  <input type="number" id="settingsTrialDays" class="form-input-admin" value="14" min="1" max="90">
+                </div>
+                <div class="form-group-admin">
+                  <label class="form-label-admin">Canone Piano Pro (€ / Mese)</label>
+                  <input type="number" id="settingsDefaultPrice" class="form-input-admin" value="59.00" step="1">
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="form-group-admin">
+                  <label class="form-label-admin">Modalità Prova Gratuita</label>
+                  <select id="settingsRequireCard" class="form-input-admin" style="height:38px;">
+                    <option value="false">Modalità B: 14gg senza carta iniziale</option>
+                    <option value="true">Modalità A: Carta richiesta subito con prova 14gg</option>
+                  </select>
+                </div>
+                <div class="form-group-admin">
+                  <label class="form-label-admin">Stato Piattaforma</label>
+                  <select id="settingsMaintenance" class="form-input-admin" style="height:38px;">
+                    <option value="false">🟢 Operativa al 100% (Online)</option>
+                    <option value="true">🟠 Modalità Manutenzione</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dati Aziendali per Fatturazione -->
             <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
               <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">Dati Aziendali per Fatturazione ai Bar</h4>
               <div class="form-group-admin">
@@ -819,8 +865,31 @@
                 <input type="email" id="settingsBillingEmail" class="form-input-admin" value="billing@barpilot.app">
               </div>
               <button type="button" class="btn-primary-orange" onclick="window.adminConsole.saveSettingsFromForm()">
-                💾 Salva Modifiche
+                💾 Salva Modifiche Impostazioni su Supabase
               </button>
+            </div>
+
+            <!-- Audit Logs -->
+            <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
+              <h4 style="font-size:14px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <span>🛡️</span> <span>Registro Audit Log Amministrativo (admin_audit_logs)</span>
+              </h4>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Data & Ora</th>
+                      <th>Autore</th>
+                      <th>Azione</th>
+                      <th>Entità</th>
+                      <th>Dettagli Modifiche</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auditLogsTableBody">
+                    <tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Caricamento audit logs...</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -1227,6 +1296,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="admin.js"></script>
 </body>
 </html>

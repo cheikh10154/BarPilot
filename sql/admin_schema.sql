@@ -1,193 +1,346 @@
 -- ============================================================================
 -- BarPilot Super Admin Enterprise Database Schema for Supabase
--- Console: https://www.barpilot.eu/administration.html
+-- Versione Ufficiale Conforme alle Specifiche:
+-- Tabella 1 — bars
+-- Tabella 2 — bar_members
+-- Tabella 3 — subscriptions
+-- Tabella 4 — subscription_plans
+-- Tabella 5 — invoices
+-- Tabella 6 — payments
+-- Tabella 7 — support_tickets
+-- Tabella 8 — support_messages
+-- Tabella 9 — admin_settings
+-- Tabella 10 — admin_audit_logs
+-- Tabella 11 — webhook_events
+-- Vista: admin_overview_live
+--
 -- Esegui questo script completo nell'editor SQL di Supabase:
 -- https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. PANORAMICA (KPI & Metriche Live Dashboard)
--- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_overview_metrics (
-  id TEXT PRIMARY KEY DEFAULT 'current',
-  mrr NUMERIC(10,2) DEFAULT 12480.00,
-  arr NUMERIC(10,2) DEFAULT 149760.00,
-  active_bars INT DEFAULT 64,
-  trial_bars INT DEFAULT 18,
-  late_bars INT DEFAULT 11,
-  canceled_bars INT DEFAULT 3,
-  total_bars INT DEFAULT 96,
-  paid_invoices INT DEFAULT 132,
-  pending_invoices INT DEFAULT 13,
-  success_rate NUMERIC(5,2) DEFAULT 95.10,
-  growth_rate NUMERIC(5,2) DEFAULT 16.00,
-  churn_rate NUMERIC(5,2) DEFAULT 1.80,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ----------------------------------------------------------------------------
--- 2. BAR ISCRITTI (Multi-Tenant Bars Directory)
+-- 1. TABELLA: subscription_plans
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.bars (
+CREATE TABLE IF NOT EXISTS public.subscription_plans (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  owner TEXT NOT NULL,
+  description TEXT,
+  price NUMERIC(10,2) NOT NULL DEFAULT 59.00,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  billing_interval TEXT NOT NULL DEFAULT 'month',
+  stripe_price_id TEXT,
+  trial_days INT NOT NULL DEFAULT 14,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.subscription_plans (id, name, description, price, currency, billing_interval, trial_days, active)
+VALUES (
+  'plan_barpilot_pro',
+  'BarPilot Pro',
+  'Piano professionale completo: comande, KDS cucina, sala, magazzino e pagamenti digitali',
+  59.00,
+  'EUR',
+  'month',
+  14,
+  true
+)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  price = EXCLUDED.price,
+  trial_days = EXCLUDED.trial_days;
+
+-- ----------------------------------------------------------------------------
+-- 2. TABELLA: bars
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.bars (
+  id TEXT PRIMARY KEY DEFAULT ('bar_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  business_name TEXT,
+  vat_number TEXT,
+  tax_code TEXT,
   email TEXT NOT NULL,
   phone TEXT,
   address TEXT,
   city TEXT,
-  "Città" TEXT,
-  plan TEXT DEFAULT 'Pro', -- Basic (38€), Pro (59€), Premium (99€)
-  status TEXT DEFAULT 'active', -- active, trial, late, canceled
-  next_invoice TEXT,
-  monthly_revenue NUMERIC(10,2) DEFAULT 59.00,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_access TEXT,
-  avatar TEXT,
-  photo TEXT,
-  piva TEXT,
-  "Partita IVA" TEXT,
-  notes TEXT
+  postal_code TEXT,
+  country TEXT NOT NULL DEFAULT 'IT',
+  logo_url TEXT,
+  status TEXT NOT NULL DEFAULT 'trial', -- trial, active, past_due, suspended, cancelled
+  subscription_id TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS "Partita IVA" TEXT;
-ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS "Città" TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS business_name TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS vat_number TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS tax_code TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS postal_code TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'IT';
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS subscription_id TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- ----------------------------------------------------------------------------
--- 3. ABBONAMENTI (Subscriptions Lifecycle & Renewals)
+-- 3. TABELLA: bar_members
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.bar_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bar_id TEXT NOT NULL REFERENCES public.bars(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'owner', -- owner, manager, waiter, bartender, cashier
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(bar_id, user_id)
+);
+
+-- ----------------------------------------------------------------------------
+-- 4. TABELLA: subscriptions
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id TEXT PRIMARY KEY,
-  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
-  bar_name TEXT NOT NULL,
-  plan TEXT NOT NULL,
-  price NUMERIC(10,2) NOT NULL,
-  billing_cycle TEXT DEFAULT 'monthly', -- monthly, yearly
-  status TEXT NOT NULL, -- active, trial, late, canceled
-  payment_method TEXT DEFAULT 'Google Pay / Carta',
-  current_period_start TEXT,
-  current_period_end TEXT,
-  trial_end TEXT,
-  auto_renew BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id TEXT PRIMARY KEY DEFAULT ('sub_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  bar_id TEXT NOT NULL REFERENCES public.bars(id) ON DELETE CASCADE,
+  plan_id TEXT REFERENCES public.subscription_plans(id) ON DELETE SET NULL,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT UNIQUE,
+  status TEXT NOT NULL DEFAULT 'trialing', -- trialing, active, past_due, unpaid, canceled, incomplete, paused
+  trial_start TIMESTAMPTZ DEFAULT now(),
+  trial_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days'),
+  current_period_start TIMESTAMPTZ DEFAULT now(),
+  current_period_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days'),
+  cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+  cancelled_at TIMESTAMPTZ,
+  payment_method TEXT DEFAULT 'Stripe / Carta',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS trial_start TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS trial_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days');
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS current_period_start TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days');
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN DEFAULT false;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+
 -- ----------------------------------------------------------------------------
--- 4. FATTURE (Invoices & Billing History)
+-- 5. TABELLA: invoices
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.invoices (
-  id TEXT PRIMARY KEY,
-  number TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('inv_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
   bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
-  owner_name TEXT NOT NULL,
-  date TEXT NOT NULL,
-  due_date TEXT NOT NULL,
-  amount NUMERIC(10,2) NOT NULL,
-  plan TEXT DEFAULT 'Pro',
-  status TEXT DEFAULT 'paid', -- paid, pending, canceled
-  period TEXT,
-  download_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  subscription_id TEXT REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+  stripe_invoice_id TEXT UNIQUE,
+  invoice_number TEXT NOT NULL,
+  amount_subtotal NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  amount_tax NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  amount_total NUMERIC(10,2) NOT NULL DEFAULT 59.00,
+  amount_paid NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  status TEXT NOT NULL DEFAULT 'open', -- draft, open, paid, void, uncollectible
+  invoice_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  due_date TIMESTAMPTZ,
+  paid_at TIMESTAMPTZ,
+  invoice_pdf_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS stripe_invoice_id TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS amount_subtotal NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS amount_tax NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS amount_total NUMERIC(10,2) DEFAULT 59.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS amount_paid NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS invoice_pdf_url TEXT;
+
 -- ----------------------------------------------------------------------------
--- 5. PAGAMENTI (Transactions & Gateway Ledger)
+-- 6. TABELLA: payments
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.payments (
-  id TEXT PRIMARY KEY,
-  transaction_id TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('pay_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
   bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
+  subscription_id TEXT REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+  invoice_id TEXT REFERENCES public.invoices(id) ON DELETE SET NULL,
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_charge_id TEXT,
   amount NUMERIC(10,2) NOT NULL,
-  method TEXT NOT NULL, -- 'Google Pay', 'Carta (Stripe)', 'SEPA Direct'
-  status TEXT NOT NULL, -- 'completed', 'pending', 'failed', 'refunded'
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  currency TEXT NOT NULL DEFAULT 'EUR',
+  status TEXT NOT NULL DEFAULT 'succeeded', -- pending, succeeded, failed, refunded, partially_refunded
+  payment_method_type TEXT NOT NULL DEFAULT 'card',
+  paid_at TIMESTAMPTZ DEFAULT now(),
+  failure_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ----------------------------------------------------------------------------
--- 6. STATISTICHE (SaaS Analytics & Cohorts)
--- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_stats (
-  id TEXT PRIMARY KEY,
-  period TEXT NOT NULL,
-  mrr NUMERIC(10,2) NOT NULL,
-  arr NUMERIC(10,2) NOT NULL,
-  arpu NUMERIC(10,2) NOT NULL,
-  clv NUMERIC(10,2) NOT NULL,
-  conversion_rate NUMERIC(5,2) DEFAULT 78.4,
-  retention_rate NUMERIC(5,2) DEFAULT 98.2,
-  basic_count INT DEFAULT 18,
-  pro_count INT DEFAULT 52,
-  premium_count INT DEFAULT 26,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT;
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS stripe_charge_id TEXT;
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS payment_method_type TEXT DEFAULT 'card';
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS failure_reason TEXT;
 
 -- ----------------------------------------------------------------------------
--- 7. SUPPORTO (Helpdesk & Client Tickets)
+-- 7. TABELLA: support_tickets
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.support_tickets (
-  id TEXT PRIMARY KEY,
-  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
-  bar_name TEXT NOT NULL,
-  contact_email TEXT NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT ('tkt_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   subject TEXT NOT NULL,
-  category TEXT DEFAULT 'KDS Banco',
-  priority TEXT DEFAULT 'medium', -- low, medium, high, urgent
-  status TEXT DEFAULT 'open', -- open, in_progress, resolved, closed
-  message TEXT NOT NULL,
-  response TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'KDS Banco',
+  priority TEXT NOT NULL DEFAULT 'medium', -- low, medium, high, urgent
+  status TEXT NOT NULL DEFAULT 'open', -- open, in_progress, waiting_customer, resolved, closed
+  assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at TIMESTAMPTZ
 );
 
 -- ----------------------------------------------------------------------------
--- 8. IMPOSTAZIONI (Super Admin Profile & Company Configuration)
+-- 8. TABELLA: support_messages
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.support_messages (
+  id TEXT PRIMARY KEY DEFAULT ('msg_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  ticket_id TEXT NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  sender_name TEXT,
+  message TEXT NOT NULL,
+  attachment_path TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- 9. TABELLA: admin_settings
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.admin_settings (
-  id TEXT PRIMARY KEY DEFAULT 'global_config',
-  super_admin_name TEXT DEFAULT 'Cheikh Gueye',
-  super_admin_email TEXT DEFAULT 'cheikh@barpilot.it',
-  super_admin_avatar TEXT,
-  access_pin TEXT DEFAULT '101540',
-  company_name TEXT DEFAULT 'BarPilot Inc. · Gestione Bar & Ristoranti',
-  company_piva TEXT DEFAULT 'IT 12345678901',
-  billing_email TEXT DEFAULT 'billing@barpilot.app',
-  auto_reminders BOOLEAN DEFAULT true,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  id TEXT PRIMARY KEY DEFAULT ('set_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  setting_key TEXT UNIQUE NOT NULL,
+  setting_value TEXT NOT NULL,
+  updated_by TEXT DEFAULT 'Cheikh Gueye',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.admin_settings (id, setting_key, setting_value, updated_by)
+VALUES
+  ('set_01', 'platform_name', 'BarPilot', 'Cheikh Gueye'),
+  ('set_02', 'support_email', 'support@barpilot.app', 'Cheikh Gueye'),
+  ('set_03', 'trial_days', '14', 'Cheikh Gueye'),
+  ('set_04', 'default_plan', 'BarPilot Pro', 'Cheikh Gueye'),
+  ('set_05', 'default_price', '59.00', 'Cheikh Gueye'),
+  ('set_06', 'currency', 'EUR', 'Cheikh Gueye'),
+  ('set_07', 'timezone', 'Europe/Rome', 'Cheikh Gueye'),
+  ('set_08', 'maintenance_mode', 'false', 'Cheikh Gueye'),
+  ('set_09', 'admin_notifications', 'true', 'Cheikh Gueye'),
+  ('set_10', 'require_card_upfront', 'false', 'Cheikh Gueye')
+ON CONFLICT (setting_key) DO UPDATE SET
+  setting_value = EXCLUDED.setting_value,
+  updated_at = now();
+
+-- ----------------------------------------------------------------------------
+-- 10. TABELLA: admin_audit_logs
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+  id TEXT PRIMARY KEY DEFAULT ('log_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  admin_id TEXT DEFAULT 'cheikh_superadmin',
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  old_values JSONB,
+  new_values JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ----------------------------------------------------------------------------
--- 9. ATTIVITÀ RECENTI (Audit Log)
+-- 11. TABELLA: webhook_events
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_activities (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL, -- reg, pay, inv, late, cancel, support
-  title TEXT NOT NULL,
-  description TEXT,
-  time TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id TEXT PRIMARY KEY DEFAULT ('evt_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  provider TEXT NOT NULL DEFAULT 'stripe',
+  external_event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT NOT NULL,
+  processing_status TEXT NOT NULL DEFAULT 'received', -- received, processed, failed, ignored
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  processed_at TIMESTAMPTZ,
+  error_message TEXT
 );
 
--- ============================================================================
--- ROW LEVEL SECURITY (RLS) - Accesso Sicuro e Aperto via Anon Key
--- ============================================================================
-ALTER TABLE public.admin_overview_metrics ENABLE ROW LEVEL SECURITY;
+-- ----------------------------------------------------------------------------
+-- LIVE METRICS VIEW PER SUPER ADMIN
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.admin_overview_live AS
+SELECT
+  (SELECT count(*)::int FROM public.bars) AS total_bars,
+  (SELECT count(*)::int FROM public.bars WHERE status = 'trial') AS trial_bars,
+  (SELECT count(*)::int FROM public.bars WHERE status = 'active') AS active_bars,
+  (SELECT count(*)::int FROM public.bars WHERE status = 'past_due') AS past_due_bars,
+  (SELECT count(*)::int FROM public.bars WHERE status = 'suspended') AS suspended_bars,
+  (SELECT count(*)::int FROM public.bars WHERE status = 'cancelled') AS cancelled_bars,
+  (SELECT count(*)::int FROM public.subscriptions WHERE status = 'active') AS active_subscriptions,
+  COALESCE(
+    (SELECT sum(p.price)::numeric(10,2)
+     FROM public.subscriptions s
+     JOIN public.subscription_plans p ON s.plan_id = p.id
+     WHERE s.status = 'active'),
+    0.00
+  ) AS mrr,
+  COALESCE(
+    (SELECT sum(p.price * 12)::numeric(10,2)
+     FROM public.subscriptions s
+     JOIN public.subscription_plans p ON s.plan_id = p.id
+     WHERE s.status = 'active'),
+    0.00
+  ) AS arr,
+  COALESCE(
+    (SELECT sum(amount)::numeric(10,2)
+     FROM public.payments
+     WHERE status = 'succeeded'),
+    0.00
+  ) AS total_collected,
+  (SELECT count(*)::int FROM public.payments WHERE status = 'failed') AS failed_payments_count,
+  (SELECT count(*)::int FROM public.support_tickets WHERE status IN ('open', 'in_progress', 'waiting_customer')) AS open_tickets_count;
+
+-- ----------------------------------------------------------------------------
+-- ROW LEVEL SECURITY (RLS) & POLICIES
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bar_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 
--- Policy per tutte le tabelle (SELECT, INSERT, UPDATE, DELETE)
 DO $$
 DECLARE
   tbl text;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY['admin_overview_metrics', 'bars', 'subscriptions', 'invoices', 'payments', 'admin_stats', 'support_tickets', 'admin_settings', 'admin_activities']
+  FOREACH tbl IN ARRAY ARRAY[
+    'subscription_plans',
+    'bars',
+    'bar_members',
+    'subscriptions',
+    'invoices',
+    'payments',
+    'support_tickets',
+    'support_messages',
+    'admin_settings',
+    'admin_audit_logs',
+    'webhook_events'
+  ]
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Public select on %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Public select on %I" ON public.%I FOR SELECT USING (true)', tbl, tbl);
@@ -203,91 +356,53 @@ BEGIN
   END LOOP;
 END $$;
 
--- ============================================================================
--- SEED DATA INIZIALE (Popolamento Immediato di tutte le sezioni)
--- ============================================================================
-
--- 1. Panoramica
-INSERT INTO public.admin_overview_metrics (id, mrr, arr, active_bars, trial_bars, late_bars, canceled_bars, total_bars, paid_invoices, pending_invoices, success_rate, growth_rate)
-VALUES ('current', 12480.00, 149760.00, 64, 18, 11, 3, 96, 132, 13, 95.10, 16.00)
-ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
-
--- 2. Bar Iscritti
-INSERT INTO public.bars (id, name, owner, email, phone, address, city, plan, status, next_invoice, monthly_revenue, avatar, piva, notes)
+-- ----------------------------------------------------------------------------
+-- SEED INIZIALE REALE DI ESEMPIO (Garantisce che il Super Admin veda subito i dati)
+-- ----------------------------------------------------------------------------
+INSERT INTO public.bars (id, name, business_name, vat_number, email, phone, city, address, status)
 VALUES
-('bp-bar-01', 'Bar Centrale', 'Marco Bianchi', 'marco@barcentrale.it', '+39 02 87654321', 'Via Roma 123, Milano', 'Milano', 'Pro', 'active', '15 nov 2025', 59.00, 'BC', 'IT09876543210', 'Cliente storico. Richiede fatturazione elettronica.'),
-('bp-bar-02', 'Caffè del Porto', 'Giulia Rossi', 'giulia@caffedelporto.it', '+39 010 3344556', 'Calata Molo Vecchio 4, Genova', 'Genova', 'Basic', 'active', '28 nov 2025', 38.00, 'CP', 'IT01234567890', 'Locale stagionale estivo, attivo tutto l''anno.'),
-('bp-bar-03', 'La Dolce Vita', 'Alessandro Conti', 'alessandro@ladolcevita.it', '+39 081 7766554', 'Piazza Plebiscito 12, Napoli', 'Napoli', 'Pro', 'trial', '10 nov 2025', 0.00, 'DV', 'IT04567891234', 'In prova gratuita (giorno 4 di 14).'),
-('bp-bar-04', 'Bar Moderno', 'Sara Romano', 'sara@barmoderno.it', '+39 051 9988776', 'Via Indipendenza 45, Bologna', 'Bologna', 'Pro', 'late', '10 ott 2025', 59.00, 'BM', 'IT07891234567', 'Carta scaduta nel Google Wallet. Sollecito inviato.'),
-('bp-bar-05', 'Lounge 21', 'Luca Moretti', 'luca@lounge21.it', '+39 02 44332211', 'Corso Como 21, Milano', 'Milano', 'Premium', 'active', '22 nov 2025', 99.00, 'L2', 'IT03216549870', 'Piano Premium con 4 tablet KDS contemporanei.'),
-('bp-bar-06', 'Bar Nettuno', 'Martina Gallo', 'martina@barnettuno.it', '+39 0541 234567', 'Lungomare Tintori 8, Rimini', 'Rimini', 'Basic', 'canceled', '-', 0.00, 'BN', 'IT06549873210', 'Chiusura stagionale invernale.'),
-('bp-bar-07', 'Il Ritrovo', 'Federico Neri', 'federico@ilritrovo.it', '+39 06 65432109', 'Via Appia Nuova 88, Roma', 'Roma', 'Pro', 'active', '18 nov 2025', 59.00, 'IR', 'IT08765432109', 'Locale ad alto volume colazioni e aperitivi.'),
-('bp-bar-08', 'Bar Firenze', 'Elena Russo', 'elena@barfirenze.it', '+39 055 7654321', 'Borgo San Frediano 19, Firenze', 'Firenze', 'Basic', 'late', '05 ott 2025', 38.00, 'BF', 'IT09812345678', 'Pagamento respinto dalla banca.')
+  ('bar_centrale_01', 'Bar Centrale', 'Bar Centrale S.r.l.', 'IT09876543210', 'marco@barcentrale.it', '+39 02 87654321', 'Milano', 'Via Roma 123', 'active'),
+  ('bar_porto_02', 'Caffè del Porto', 'Porto Cafè D.I.', 'IT01234567890', 'giulia@caffedelporto.it', '+39 010 3344556', 'Genova', 'Calata Molo Vecchio 4', 'active'),
+  ('bar_dolce_03', 'La Dolce Vita', 'Dolce Vita Bar SAS', 'IT04567891234', 'alessandro@ladolcevita.it', '+39 081 7766554', 'Napoli', 'Piazza Plebiscito 12', 'trial'),
+  ('bar_moderno_04', 'Bar Moderno', 'Moderno Bistrot Snc', 'IT07891234567', 'sara@barmoderno.it', '+39 051 9988776', 'Bologna', 'Via Indipendenza 45', 'past_due')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
 
--- 3. Abbonamenti
-INSERT INTO public.subscriptions (id, bar_id, bar_name, plan, price, billing_cycle, status, payment_method, current_period_end)
+INSERT INTO public.subscriptions (id, bar_id, plan_id, status, trial_start, trial_end, current_period_end)
 VALUES
-('sub-01', 'bp-bar-01', 'Bar Centrale', 'Pro', 59.00, 'monthly', 'active', 'Google Pay', '15/11/2025'),
-('sub-02', 'bp-bar-02', 'Caffè del Porto', 'Basic', 38.00, 'monthly', 'active', 'Carta di Credito (Stripe)', '28/11/2025'),
-('sub-03', 'bp-bar-03', 'La Dolce Vita', 'Pro', 59.00, 'monthly', 'trial', 'Google Pay (In Prova)', '10/11/2025'),
-('sub-04', 'bp-bar-04', 'Bar Moderno', 'Pro', 59.00, 'monthly', 'late', 'Carta Scaduta (Stripe)', '10/10/2025'),
-('sub-05', 'bp-bar-05', 'Lounge 21', 'Premium', 99.00, 'monthly', 'active', 'Google Pay', '22/11/2025'),
-('sub-06', 'bp-bar-06', 'Bar Nettuno', 'Basic', 38.00, 'monthly', 'canceled', 'Nessuno', '28/10/2025'),
-('sub-07', 'bp-bar-07', 'Il Ritrovo', 'Pro', 59.00, 'monthly', 'active', 'SEPA Direct Debit', '18/11/2025'),
-('sub-08', 'bp-bar-08', 'Bar Firenze', 'Basic', 38.00, 'monthly', 'late', 'Carta di Credito (Stripe)', '05/10/2025')
+  ('sub_01', 'bar_centrale_01', 'plan_barpilot_pro', 'active', now() - INTERVAL '30 days', now() - INTERVAL '16 days', now() + INTERVAL '14 days'),
+  ('sub_02', 'bar_porto_02', 'plan_barpilot_pro', 'active', now() - INTERVAL '20 days', now() - INTERVAL '6 days', now() + INTERVAL '24 days'),
+  ('sub_03', 'bar_dolce_03', 'plan_barpilot_pro', 'trialing', now() - INTERVAL '4 days', now() + INTERVAL '10 days', now() + INTERVAL '10 days'),
+  ('sub_04', 'bar_moderno_04', 'plan_barpilot_pro', 'past_due', now() - INTERVAL '45 days', now() - INTERVAL '31 days', now() - INTERVAL '1 day')
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
 
--- 4. Fatture
-INSERT INTO public.invoices (id, number, bar_id, bar_name, owner_name, date, due_date, amount, plan, status, period)
+INSERT INTO public.invoices (id, bar_id, subscription_id, invoice_number, amount_total, amount_paid, status, invoice_date)
 VALUES
-('inv-2025-0145', '#2025-0145', 'bp-bar-01', 'Bar Centrale', 'Marco Bianchi', '15 ott 2025', '15 ott 2025', 59.00, 'Pro', 'paid', '15/10/2025 - 14/11/2025'),
-('inv-2025-0144', '#2025-0144', 'bp-bar-05', 'Lounge 21', 'Luca Moretti', '15 ott 2025', '15 ott 2025', 99.00, 'Premium', 'paid', '15/10/2025 - 14/11/2025'),
-('inv-2025-0143', '#2025-0143', 'bp-bar-02', 'Caffè del Porto', 'Giulia Rossi', '15 ott 2025', '15 ott 2025', 38.00, 'Basic', 'paid', '15/10/2025 - 14/11/2025'),
-('inv-2025-0142', '#2025-0142', 'bp-bar-03', 'La Dolce Vita', 'Alessandro Conti', '10 ott 2025', '24 ott 2025', 59.00, 'Pro', 'pending', '24/10/2025 - 23/11/2025'),
-('inv-2025-0141', '#2025-0141', 'bp-bar-04', 'Bar Moderno', 'Sara Romano', '05 ott 2025', '10 ott 2025', 59.00, 'Pro', 'pending', '10/10/2025 - 09/11/2025'),
-('inv-2025-0140', '#2025-0140', 'bp-bar-08', 'Bar Firenze', 'Elena Russo', '01 ott 2025', '05 ott 2025', 38.00, 'Basic', 'paid', '05/10/2025 - 04/11/2025'),
-('inv-2025-0139', '#2025-0139', 'bp-bar-07', 'Il Ritrovo', 'Federico Neri', '01 ott 2025', '01 ott 2025', 59.00, 'Pro', 'paid', '01/10/2025 - 31/10/2025'),
-('inv-2025-0138', '#2025-0138', 'bp-bar-06', 'Bar Nettuno', 'Martina Gallo', '28 set 2025', '28 set 2025', 38.00, 'Basic', 'canceled', '28/09/2025 - 27/10/2025')
+  ('inv_01', 'bar_centrale_01', 'sub_01', '#2026-0001', 59.00, 59.00, 'paid', now() - INTERVAL '16 days'),
+  ('inv_02', 'bar_porto_02', 'sub_02', '#2026-0002', 59.00, 59.00, 'paid', now() - INTERVAL '6 days'),
+  ('inv_03', 'bar_moderno_04', 'sub_04', '#2026-0003', 59.00, 0.00, 'open', now() - INTERVAL '1 day')
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
 
--- 5. Pagamenti
-INSERT INTO public.payments (id, transaction_id, bar_id, bar_name, amount, method, status)
+INSERT INTO public.payments (id, bar_id, subscription_id, invoice_id, amount, currency, status, payment_method_type)
 VALUES
-('pay-01', 'txn_gpay_9823412', 'bp-bar-01', 'Bar Centrale', 59.00, 'Google Pay', 'completed'),
-('pay-02', 'txn_strp_8849201', 'bp-bar-05', 'Lounge 21', 99.00, 'Carta (Stripe)', 'completed'),
-('pay-03', 'txn_strp_7739102', 'bp-bar-02', 'Caffè del Porto', 38.00, 'Carta (Stripe)', 'completed'),
-('pay-04', 'txn_sepa_1192840', 'bp-bar-07', 'Il Ritrovo', 59.00, 'SEPA Direct', 'completed'),
-('pay-05', 'txn_gpay_3329104', 'bp-bar-04', 'Bar Moderno', 59.00, 'Google Pay', 'failed')
+  ('pay_01', 'bar_centrale_01', 'sub_01', 'inv_01', 59.00, 'EUR', 'succeeded', 'card'),
+  ('pay_02', 'bar_porto_02', 'sub_02', 'inv_02', 59.00, 'EUR', 'succeeded', 'google_pay'),
+  ('pay_03', 'bar_moderno_04', 'sub_04', 'inv_03', 59.00, 'EUR', 'failed', 'card')
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
 
--- 6. Statistiche
-INSERT INTO public.admin_stats (id, period, mrr, arr, arpu, clv, conversion_rate, retention_rate, basic_count, pro_count, premium_count)
+INSERT INTO public.support_tickets (id, bar_id, subject, description, category, priority, status)
 VALUES
-('stats-2025-10', 'Ottobre 2025', 12480.00, 149760.00, 58.86, 1420.00, 78.4, 98.2, 18, 52, 26)
-ON CONFLICT (id) DO UPDATE SET mrr = EXCLUDED.mrr;
-
--- 7. Supporto
-INSERT INTO public.support_tickets (id, bar_id, bar_name, contact_email, subject, category, priority, status, message, response)
-VALUES
-('tkt-01', 'bp-bar-01', 'Bar Centrale', 'marco@barcentrale.it', 'Richiesta configurazione secondo tablet KDS cucina', 'KDS Banco', 'medium', 'resolved', 'Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.', 'Configurazione abilitata su multi-schermo KDS.'),
-('tkt-02', 'bp-bar-04', 'Bar Moderno', 'sara@barmoderno.it', 'Aggiornamento carta di credito aziendale', 'Pagamenti', 'high', 'open', 'Abbiamo sostituito la carta di credito. Come possiamo aggiornare il Google Wallet per il pagamento automatico?', NULL),
-('tkt-03', 'bp-bar-05', 'Lounge 21', 'luca@lounge21.it', 'Integrazione stampante termica comande Bluetooth', 'Hardware', 'low', 'in_progress', 'Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.', 'Guida inviata, in attesa di test del gestore.')
+  ('tkt_01', 'bar_centrale_01', 'Configurazione stampante KDS cucina', 'Vorremmo affiancare un secondo tablet per il forno pizze', 'KDS Banco', 'medium', 'resolved'),
+  ('tkt_02', 'bar_moderno_04', 'Aggiornamento carta di credito aziendale', 'Abbiamo sostituito la carta di debito aziendale, come aggiorniamo il pagamento?', 'Pagamenti', 'high', 'open'),
+  ('tkt_03', 'bar_dolce_03', 'Personalizzazione comande aperitivi', 'Come raggruppare cocktail alcolici e analcolici nei filtri?', 'Software', 'low', 'in_progress')
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
 
--- 8. Impostazioni
-INSERT INTO public.admin_settings (id, super_admin_name, super_admin_email, access_pin, company_name, company_piva, billing_email, auto_reminders)
-VALUES
-('global_config', 'Cheikh Gueye', 'cheikh@barpilot.it', '101540', 'BarPilot Inc. · Gestione Bar & Ristoranti', 'IT 12345678901', 'billing@barpilot.app', true)
-ON CONFLICT (id) DO UPDATE SET super_admin_name = EXCLUDED.super_admin_name, access_pin = EXCLUDED.access_pin;
-
--- 9. Attività Recenti
-INSERT INTO public.admin_activities (id, type, title, description, time)
-VALUES
-('act-01', 'reg', 'Nuovo bar registrato', 'Caffè del Porto (Genova)', '2 min fa'),
-('act-02', 'pay', 'Pagamento ricevuto', 'Bar Centrale - 59,00 €', '15 min fa'),
-('act-03', 'inv', 'Fattura generata', 'La Dolce Vita - n. #2025-0142', '1 ora fa'),
-('act-04', 'late', 'Pagamento in ritardo', 'Bar Moderno', '2 ore fa'),
-('act-05', 'cancel', 'Abbonamento cancellato', 'Bar Nettuno', '3 ore fa'),
-('act-06', 'support', 'Ticket assistenza aperto', 'Bar Moderno - Aggiornamento carta', '4 ore fa')
-ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
+-- Realtime Publication
+DO $$
+BEGIN
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.bars; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.subscriptions; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.payments; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.invoices; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_settings; EXCEPTION WHEN duplicate_object THEN NULL; END;
+END $$;

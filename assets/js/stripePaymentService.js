@@ -170,7 +170,41 @@ async function verifyCardWithStripe(cardData) {
 
 // Global exposure
 window.verifyCardWithStripe = verifyCardWithStripe;
+
+async function startStripeSubscriptionCheckout(options = {}) {
+  const bar = (window.db && window.db.get("activeBar")) || {};
+  const session = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "{}");
+  const payload = {
+    barId: options.barId || bar.id,
+    userId: options.userId || session.user?.id,
+    email: options.email || bar.managerEmail || session.user?.email,
+    barName: options.barName || bar.name,
+    trialDays: options.trialDays || 14
+  };
+
+  try {
+    const res = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || "Impossibile avviare Stripe Checkout");
+    }
+  } catch (err) {
+    console.warn("[StripeService] Checkout session error:", err);
+    if (typeof window.showToast === "function") {
+      window.showToast("⚠️ " + (err.message || "Errore Stripe Checkout"));
+    }
+  }
+}
+window.startStripeSubscriptionCheckout = startStripeSubscriptionCheckout;
+
 window.stripePaymentService = {
   verifyCard: verifyCardWithStripe,
+  startSubscriptionCheckout: startStripeSubscriptionCheckout,
   getPublishableKey: () => STRIPE_LIVE_PK
 };

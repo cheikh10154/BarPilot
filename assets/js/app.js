@@ -7109,31 +7109,54 @@ async function handleAuthSubmit(e) {
         console.warn("[Supabase] Errore connessione Supabase:", errSupabase);
       }
 
-      // Salvataggio anche su tabella REST registrations se configurata
+      // Registrazione centralizzata su Supabase e sincronizzazione backend
       try {
-        await fetch(`${window.supabase.url}/rest/v1/registrations`, {
+        const regRes = await fetch("/api/register-bar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: supabaseUser ? supabaseUser.id : null,
+            ownerName: ownerName,
+            barName: barName,
+            email: emailNormalized,
+            phone: phone,
+            vatNumber: vatNumber,
+            city: city,
+            address: `Via Principale, 1 - ${city}`
+          })
+        });
+        if (regRes.ok) {
+          const regJson = await regRes.json();
+          console.log("[BarPilot] Registrazione bar completata su backend:", regJson);
+        }
+      } catch (errApi) {
+        console.warn("[BarPilot] API register-bar fallback:", errApi);
+      }
+
+      // Salvataggio diretto su tabelle Supabase bars e subscriptions per resilienza
+      try {
+        const barPayload = {
+          name: barName,
+          business_name: barName,
+          vat_number: vatNumber,
+          tax_code: vatNumber,
+          email: emailNormalized,
+          phone: phone,
+          city: city,
+          address: `Via Principale, 1 - ${city}`,
+          country: 'IT',
+          status: 'trial',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        if (supabaseUser && supabaseUser.id) {
+          barPayload.owner_id = supabaseUser.id;
+        }
+
+        await fetch(`${window.supabase.url}/rest/v1/bars`, {
           method: "POST",
           headers: window.supabase.getHeaders(false),
-          body: JSON.stringify({
-            email: emailNormalized,
-            owner_name: ownerName,
-            display_name: ownerName,
-            full_name: ownerName,
-            name: ownerName,
-            bar_name: barName,
-            vat_number: vatNumber,
-            piva: vatNumber,
-            "Partita IVA": vatNumber,
-            partita_iva: vatNumber,
-            city: city,
-            "Città": city,
-            citta: city,
-            phone: phone,
-            Phone: phone,
-            plan: "BarPilot Pro 59€",
-            trial_days: 14,
-            created_at: new Date().toISOString()
-          })
+          body: JSON.stringify(barPayload)
         });
       } catch (e) {}
     }
