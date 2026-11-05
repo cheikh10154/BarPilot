@@ -617,11 +617,6 @@
           </button>
         </div>
 
-        <button class="ctrl-btn" onclick="window.location.href='index.html'" style="width:100%; justify-content:center; gap:6px;">
-          <span>📱</span>
-          <span>Rivedi Storie di Benvenuto</span>
-        </button>
-
         <!-- Theme & Language Toggles -->
         <div class="sidebar-controls">
           <button class="ctrl-btn" id="themeToggleBtn" onclick="toggleTheme()">
@@ -669,9 +664,9 @@
               <span>📅</span>
               <span id="liveDateText">--</span>
             </div>
-            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="window.location.href='index.html#view-support'" title="Apri un ticket di assistenza">
+            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="window.location.href='index.html#view-support'" title="Apri un ticket di assistenza" data-i18n-title="openTicketTitle">
               <span class="btn-ticket-icon">🎧</span>
-              <span class="btn-ticket-text">Apri un ticket</span>
+              <span class="btn-ticket-text" data-i18n="openTicket">Apri un ticket</span>
             </button>
           </div>
           <button class="icon-btn" onclick="alert('Nessuna nuova notifica')" title="Notifiche">
@@ -1007,6 +1002,22 @@
       const text = document.getElementById("themeToggleText");
       if (icon) icon.textContent = savedTheme === "light" ? "🌙" : "☀️";
       if (text) text.textContent = savedTheme === "light" ? "Dark" : "Light";
+
+      // Lingua corrente e traduzione Apri un ticket
+      const currentLang = localStorage.getItem("barpilot_lang") || "it";
+      const ticketBtnText = document.querySelector(".btn-ticket-text");
+      if (ticketBtnText) {
+        ticketBtnText.textContent = (currentLang === "fr") ? "Ouvrir un ticket" : "Apri un ticket";
+      }
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
+        b.onclick = () => {
+          const l = b.getAttribute('data-lang');
+          localStorage.setItem('barpilot_lang', l);
+          document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-lang') === l));
+          if (ticketBtnText) ticketBtnText.textContent = (l === 'fr') ? "Ouvrir un ticket" : "Apri un ticket";
+        };
+      });
 
       // Data live
       const dateEl = document.getElementById("liveDateText");

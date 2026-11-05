@@ -471,11 +471,6 @@
           </button>
         </div>
 
-        <button class="ctrl-btn" onclick="initStoriesOnboarding()" style="width:100%; justify-content:center; gap:6px;">
-          <span>📱</span>
-          <span>Rivedi Storie di Benvenuto</span>
-        </button>
-
         <!-- Theme & Language Toggles -->
         <div class="sidebar-controls">
           <button class="ctrl-btn" id="themeToggleBtn">

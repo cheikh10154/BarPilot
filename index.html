@@ -497,11 +497,6 @@
           </button>
         </div>
 
-        <button class="ctrl-btn" onclick="initStoriesOnboarding()" style="width:100%; justify-content:center; gap:6px;">
-          <span>📱</span>
-          <span>Rivedi Storie di Benvenuto</span>
-        </button>
-
         <!-- Theme & Language Toggles -->
         <div class="sidebar-controls">
           <button class="ctrl-btn" id="themeToggleBtn">
@@ -550,9 +545,9 @@
               <span>📅</span>
               <span id="liveDateText">--</span>
             </div>
-            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza">
+            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza" data-i18n-title="openTicketTitle">
               <span class="btn-ticket-icon">🎧</span>
-              <span class="btn-ticket-text">Apri un ticket</span>
+              <span class="btn-ticket-text" data-i18n="openTicket">Apri un ticket</span>
             </button>
           </div>
           <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
@@ -3281,9 +3276,9 @@
   </div>
 
   <!-- Floating "Apri un Ticket" Button (FAB) -->
-  <button type="button" class="fab-ticket-btn" id="fabSupportBtn" onclick="openSupportTicketModal()" title="Serve aiuto? Apri un ticket con il supporto BarPilot">
+  <button type="button" class="fab-ticket-btn" id="fabSupportBtn" onclick="openSupportTicketModal()" title="Serve aiuto? Apri un ticket con il supporto BarPilot" data-i18n-title="fabTicketTitle">
     <span class="fab-ticket-icon">🎧</span>
-    <span class="fab-ticket-text">Apri un ticket</span>
+    <span class="fab-ticket-text" data-i18n="openTicket">Apri un ticket</span>
     <span class="fab-pulse-dot"></span>
   </button>
 

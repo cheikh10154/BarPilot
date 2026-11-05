@@ -37,6 +37,9 @@ const i18nData = {
     loading: "Caricamento...",
     skip: "Salta",
     next: "Avanti",
+    openTicket: "Apri un ticket",
+    openTicketTitle: "Apri un ticket di assistenza",
+    fabTicketTitle: "Serve aiuto? Apri un ticket con il supporto BarPilot",
 
     // Splash Screen
     splashSubtitle: "Il centro di controllo del tuo locale",
@@ -377,6 +380,9 @@ const i18nData = {
     loading: "Chargement...",
     skip: "Passer",
     next: "Suivant",
+    openTicket: "Ouvrir un ticket",
+    openTicketTitle: "Ouvrir un ticket d'assistance",
+    fabTicketTitle: "Besoin d'aide ? Ouvrez un ticket avec le support BarPilot",
 
     // Splash Screen
     splashSubtitle: "Le centre de contrôle de votre établissement",
