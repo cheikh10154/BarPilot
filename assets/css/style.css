@@ -5042,6 +5042,28 @@ input:checked + .toggle-slider:before {
   font-size: 15px;
 }
 
+.topbar-date-ticket-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .topbar-date-ticket-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .topbar-date-ticket-group .btn-topbar-ticket {
+    font-size: 11px;
+    padding: 3px 9px;
+    gap: 4px;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+  }
+}
+
 /* 2. Floating Action Button (FAB) at Bottom-Right */
 .fab-ticket-btn {
   position: fixed;

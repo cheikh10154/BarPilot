@@ -550,14 +550,16 @@
         </div>
 
         <div class="topbar-right">
-          <!-- Pulsante Apri un Ticket -->
-          <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza">
-            <span class="btn-ticket-icon">🎧</span>
-            <span class="btn-ticket-text">Apri un ticket</span>
-          </button>
-          <div class="date-pill" id="liveDatePill">
-            <span>📅</span>
-            <span id="liveDateText">--</span>
+          <!-- Gruppo Data & Apri un Ticket (sotto la data in mobile) -->
+          <div class="topbar-date-ticket-group">
+            <div class="date-pill" id="liveDatePill">
+              <span>📅</span>
+              <span id="liveDateText">--</span>
+            </div>
+            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza">
+              <span class="btn-ticket-icon">🎧</span>
+              <span class="btn-ticket-text">Apri un ticket</span>
+            </button>
           </div>
           <button class="icon-btn" onclick="showToast('Nessuna nuova notifica')" title="Notifiche">
             🔔
