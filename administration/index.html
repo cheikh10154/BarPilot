@@ -9,6 +9,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Instant PIN Protection Check: Zero-Flicker Security -->
+  <script>
+    (function() {
+      try {
+        if (sessionStorage.getItem("barpilot_admin_pass") === "101540" || localStorage.getItem("barpilot_admin_pass") === "101540") {
+          document.documentElement.classList.add("admin-authorized");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    html.admin-authorized #adminPinGateOverlay {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -174,14 +189,18 @@
         </a>
 
         <!-- Admin Profile -->
-        <div class="admin-user-card" onclick="window.adminConsole.switchView('settings')">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="admin-avatar-img" alt="Super Admin">
-          <div class="admin-user-info">
-            <div class="admin-user-name">Luca Ferrari</div>
+        <div class="admin-user-card" style="position:relative; display:flex; align-items:center; gap:10px;">
+          <div class="admin-avatar-wrap" onclick="event.stopPropagation(); document.getElementById('superAdminAvatarInput').click();" title="Clicca per cambiare immagine del Super Admin" style="position:relative; cursor:pointer; flex-shrink:0;">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="admin-avatar-img" id="superAdminAvatarImg" alt="Super Admin">
+            <span style="position:absolute; bottom:-2px; right:-2px; width:16px; height:16px; background:#FF6B00; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; border:1px solid #111;" title="Cambia foto">📷</span>
+          </div>
+          <div class="admin-user-info" onclick="window.adminConsole.switchView('settings')" style="cursor:pointer;">
+            <div class="admin-user-name">Cheikh Gueye</div>
             <div class="admin-user-role">Super Admin</div>
           </div>
-          <span style="font-size:12px; color:var(--text-dim);">›</span>
+          <button type="button" onclick="event.stopPropagation(); window.adminConsole.lockAdmin();" title="Blocca console / Esci (Richiederà PIN 101540)" style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; padding:4px;">🔒</button>
         </div>
+        <input type="file" id="superAdminAvatarInput" accept="image/*" style="display:none;" onchange="window.adminConsole.handleSuperAdminAvatarChange(event)">
       </div>
     </aside>
 
@@ -662,6 +681,38 @@
               <h3 class="section-box-title">Configurazione Piattaforma & Supabase Live Sync</h3>
             </div>
             
+            <!-- Profilo Super Admin & Cambio Immagine -->
+            <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
+              <h4 style="font-size:14px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                <span>👤</span> <span>Profilo Super Admin & Immagine</span>
+              </h4>
+              <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="position:relative; width:64px; height:64px; cursor:pointer;" onclick="document.getElementById('superAdminAvatarInput').click()" title="Clicca per caricare una nuova foto">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="admin-avatar-img" style="width:64px; height:64px; border-radius:50%; border:2px solid var(--primary); object-fit:cover;" alt="Super Admin">
+                  <span style="position:absolute; bottom:0; right:0; width:22px; height:22px; background:#FF6B00; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; border:2px solid #151c28;" title="Carica foto">📷</span>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:#fff;">Cheikh Gueye</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Super Admin Piattaforma BarPilot</div>
+                  <div style="font-size:11.5px; color:#10B981; font-weight:700; margin-top:3px;">● Accesso Protetto (Codice PIN: 101540)</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn-primary-orange" onclick="document.getElementById('superAdminAvatarInput').click()">
+                  📷 Carica Nuova Immagine
+                </button>
+                <button type="button" class="btn-primary-orange" style="background:var(--bg-card); color:#fff; border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.changeSuperAdminAvatarByUrl()">
+                  🔗 Inserisci URL Immagine
+                </button>
+                <button type="button" class="btn-primary-orange" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.resetSuperAdminAvatar()">
+                  ↺ Ripristina Predefinita
+                </button>
+                <button type="button" class="btn-primary-orange" style="background:rgba(239,68,68,0.15); color:#EF4444; border:1px solid rgba(239,68,68,0.3); box-shadow:none;" onclick="window.adminConsole.lockAdmin()">
+                  🔒 Blocca Console
+                </button>
+              </div>
+            </div>
+
             <div style="background:var(--bg-card-secondary); border-radius:12px; padding:18px; margin-bottom:20px; border:1px solid var(--border-color);">
               <h4 style="font-size:14px; font-weight:800; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
                 <span>🟢</span> <span>Stato Database Supabase</span>
@@ -1062,6 +1113,43 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       SECURITY GATE: Accesso Protetto da PIN Super Admin (Codice: 101540)
+       ======================================================================== -->
+  <div id="adminPinGateOverlay" style="position:fixed; inset:0; z-index:99999999; background:rgba(11, 15, 23, 0.98); backdrop-filter:blur(16px); display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#151c28; border:1px solid rgba(255, 107, 0, 0.35); border-radius:20px; padding:36px 30px; width:100%; max-width:400px; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.8); animation:modalIn 0.25s ease;">
+      <div style="width:68px; height:68px; margin:0 auto 16px; border-radius:50%; background:rgba(255,107,0,0.15); border:1px solid rgba(255,107,0,0.4); display:flex; align-items:center; justify-content:center; font-size:32px;">
+        🔐
+      </div>
+      <h2 style="font-size:22px; font-weight:800; color:#fff; margin:0 0 6px 0; letter-spacing:-0.3px;">Accesso Super Admin</h2>
+      <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 24px 0; line-height:1.4;">
+        Questa sezione è riservata all'amministrazione della piattaforma. Inserisci il codice di accesso per continuare.
+      </p>
+
+      <form id="adminPinForm" onsubmit="event.preventDefault(); window.adminConsole.verifyAdminPin();">
+        <div style="margin-bottom:16px;">
+          <input type="password" id="adminPinInput" inputmode="numeric" maxlength="10" placeholder="••••••" autocomplete="current-password" autofocus
+            style="width:100%; height:52px; background:#0b0f17; border:2px solid #232d3f; border-radius:12px; font-size:24px; font-weight:800; text-align:center; letter-spacing:8px; color:#FF6B00; outline:none; transition:border-color 0.2s;"
+            onfocus="this.style.borderColor='#FF6B00'" onblur="this.style.borderColor='#232d3f'">
+          <div id="adminPinError" style="display:none; color:#EF4444; font-size:12px; font-weight:700; margin-top:8px;">
+            ⚠️ Codice di accesso errato. Riprova.
+          </div>
+        </div>
+
+        <button type="submit" style="width:100%; height:48px; background:linear-gradient(135deg, #FF6B00 0%, #FF8A00 100%); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 4px 16px rgba(255,107,0,0.4); transition:transform 0.15s;"
+          onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
+          🔓 Sblocca Console
+        </button>
+      </form>
+
+      <div style="margin-top:20px; font-size:11.5px; color:var(--text-dim);">
+        <a href="../" style="color:var(--text-muted); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#FF6B00'" onmouseout="this.style.color='var(--text-muted)'">
+          ← Torna al gestionale Bar
+        </a>
+      </div>
     </div>
   </div>
 

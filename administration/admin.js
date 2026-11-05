@@ -477,6 +477,8 @@ class AdminConsole {
   }
 
   init() {
+    this.checkAdminPin();
+    this.loadSuperAdminAvatar();
     this.bindEvents();
     this.renderKPIs();
     this.renderCharts();
@@ -485,6 +487,134 @@ class AdminConsole {
     this.renderFullBarsTable();
     this.renderInvoicesTable();
     this.renderSubscriptionsTable();
+  }
+
+  // ==========================================================================
+  // Super Admin Security Gate (Codice Accesso: 101540)
+  // ==========================================================================
+  checkAdminPin() {
+    const isAuth = sessionStorage.getItem("barpilot_admin_pass") === "101540" || localStorage.getItem("barpilot_admin_pass") === "101540";
+    const overlay = document.getElementById("adminPinGateOverlay");
+    if (isAuth) {
+      document.documentElement.classList.add("admin-authorized");
+      if (overlay) overlay.style.display = "none";
+    } else {
+      document.documentElement.classList.remove("admin-authorized");
+      if (overlay) overlay.style.display = "flex";
+      setTimeout(() => {
+        const pinInput = document.getElementById("adminPinInput");
+        if (pinInput) pinInput.focus();
+      }, 100);
+    }
+  }
+
+  verifyAdminPin() {
+    const input = document.getElementById("adminPinInput");
+    const err = document.getElementById("adminPinError");
+    if (!input) return;
+    const val = input.value.trim();
+
+    if (val === "101540") {
+      sessionStorage.setItem("barpilot_admin_pass", "101540");
+      localStorage.setItem("barpilot_admin_pass", "101540");
+      document.documentElement.classList.add("admin-authorized");
+      const overlay = document.getElementById("adminPinGateOverlay");
+      if (overlay) overlay.style.display = "none";
+      if (err) err.style.display = "none";
+      this.showToast("🔓 Accesso autorizzato come Super Admin!");
+    } else {
+      if (err) err.style.display = "block";
+      input.value = "";
+      input.style.borderColor = "#EF4444";
+      input.focus();
+      if (input.animate) {
+        input.animate([
+          { transform: 'translateX(-8px)' },
+          { transform: 'translateX(8px)' },
+          { transform: 'translateX(-4px)' },
+          { transform: 'translateX(4px)' },
+          { transform: 'translateX(0)' }
+        ], { duration: 300 });
+      }
+    }
+  }
+
+  lockAdmin() {
+    sessionStorage.removeItem("barpilot_admin_pass");
+    localStorage.removeItem("barpilot_admin_pass");
+    document.documentElement.classList.remove("admin-authorized");
+    const overlay = document.getElementById("adminPinGateOverlay");
+    if (overlay) overlay.style.display = "flex";
+    const input = document.getElementById("adminPinInput");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    this.showToast("🔒 Console Super Admin bloccata.");
+  }
+
+  // ==========================================================================
+  // Super Admin Profile Avatar Management
+  // ==========================================================================
+  loadSuperAdminAvatar() {
+    const saved = localStorage.getItem("barpilot_superadmin_avatar");
+    if (saved) {
+      const avatars = document.querySelectorAll(".admin-avatar-img");
+      avatars.forEach(img => {
+        img.src = saved;
+      });
+    }
+  }
+
+  handleSuperAdminAvatarChange(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      this.showToast("⚠️ Seleziona un file immagine valido (PNG, JPG, WebP).");
+      return;
+    }
+
+    if (file.size > 6 * 1024 * 1024) {
+      this.showToast("⚠️ L'immagine è troppo grande (max 6 MB).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      localStorage.setItem("barpilot_superadmin_avatar", dataUrl);
+      const avatars = document.querySelectorAll(".admin-avatar-img");
+      avatars.forEach(img => {
+        img.src = dataUrl;
+      });
+      this.showToast("📷 Nuova foto profilo Super Admin salvata!");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  changeSuperAdminAvatarByUrl() {
+    const current = localStorage.getItem("barpilot_superadmin_avatar") || "";
+    const url = prompt("Inserisci l'indirizzo web (URL) della nuova foto profilo:", current.startsWith("data:") ? "" : current);
+    if (url && url.trim()) {
+      const cleanUrl = url.trim();
+      localStorage.setItem("barpilot_superadmin_avatar", cleanUrl);
+      const avatars = document.querySelectorAll(".admin-avatar-img");
+      avatars.forEach(img => {
+        img.src = cleanUrl;
+      });
+      this.showToast("📷 Foto profilo Super Admin aggiornata con successo!");
+    }
+  }
+
+  resetSuperAdminAvatar() {
+    const defaultUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop";
+    localStorage.removeItem("barpilot_superadmin_avatar");
+    const avatars = document.querySelectorAll(".admin-avatar-img");
+    avatars.forEach(img => {
+      img.src = defaultUrl;
+    });
+    this.showToast("↺ Foto profilo predefinita ripristinata.");
   }
 
   bindEvents() {
