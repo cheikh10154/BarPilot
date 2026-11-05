@@ -132,6 +132,9 @@ function renderApp() {
   renderGoogleSetting();
   renderFacebookSetting();
   updateDashboardLockState();
+  if (typeof updateTicketButtonVisibility === "function") {
+    updateTicketButtonVisibility();
+  }
 }
 
 function renderGoogleSetting() {
@@ -585,6 +588,10 @@ function switchView(viewName) {
   document.querySelectorAll(".view-panel").forEach(panel => {
     panel.classList.toggle("active", panel.id === `view-${viewName}`);
   });
+
+  if (typeof updateTicketButtonVisibility === "function") {
+    updateTicketButtonVisibility();
+  }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -6331,6 +6338,9 @@ function setUserLoggedIn(status, userMeta = null) {
     document.cookie = "barpilot_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
     document.documentElement.classList.remove("user-authenticated");
   }
+  if (typeof updateTicketButtonVisibility === "function") {
+    updateTicketButtonVisibility();
+  }
 }
 
 function clearConnectionCache() {
@@ -6807,6 +6817,9 @@ function openAuthScreen(tab) {
     authOverlay.style.display = "flex";
   }
   hideAuthError();
+  if (typeof updateTicketButtonVisibility === "function") {
+    updateTicketButtonVisibility();
+  }
   if (tab && typeof switchAuthTab === "function") {
     switchAuthTab(tab);
   } else if (typeof switchAuthTab === "function") {
@@ -6821,6 +6834,9 @@ function closeAuthScreen() {
     authOverlay.style.display = "none";
   }
   hideAuthError();
+  if (typeof updateTicketButtonVisibility === "function") {
+    updateTicketButtonVisibility();
+  }
 }
 
 window.openAuthScreen = openAuthScreen;
@@ -8395,11 +8411,71 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     initSupportTicketControls();
     checkPendingPasswordRecovery();
+    updateTicketButtonVisibility();
   });
 } else {
   initSupportTicketControls();
   checkPendingPasswordRecovery();
+  updateTicketButtonVisibility();
 }
+
+window.addEventListener("hashchange", updateTicketButtonVisibility);
+setInterval(updateTicketButtonVisibility, 600);
+
+// ============================================================================
+// VISIBILITÀ PULSANTE "APRI UN TICKET":
+// Visibile ESCLUSIVAMENTE nella vista Dashboard in Demo o dopo aver effettuato l'accesso
+// ============================================================================
+function updateTicketButtonVisibility() {
+  const fab = document.getElementById("fabSupportBtn");
+  const topbarBtn = document.getElementById("btnTopbarOpenTicket");
+
+  // 1. Verifica se in demo o autenticato
+  const inDemo = typeof isDemoMode === "function" ? isDemoMode() : (localStorage.getItem("barpilot_is_demo") === "true");
+  const loggedIn = typeof isUserLoggedIn === "function" ? isUserLoggedIn() : (localStorage.getItem("barpilot_is_logged_in") === "true");
+  const isAuthorized = inDemo || loggedIn;
+
+  // 2. Verifica che non vi siano overlay pre-accesso attivi (splash, stories onboarding, login/registrazione)
+  const splash = document.getElementById("splashScreen");
+  const splashActive = splash && !splash.classList.contains("hidden");
+
+  const stories = document.getElementById("storiesOverlay");
+  const storiesActive = stories && !stories.classList.contains("hidden");
+
+  const authOverlay = document.getElementById("authOverlay");
+  const authActive = authOverlay && !authOverlay.classList.contains("hidden") && authOverlay.style.display !== "none";
+
+  const onPreAuthScreen = splashActive || storiesActive || authActive;
+
+  // 3. Verifica che la vista attiva sia "dashboard"
+  const activeView = (typeof appState !== "undefined" && appState && appState.activeView) ? appState.activeView : "dashboard";
+  const dashboardPanel = document.getElementById("view-dashboard");
+  const isDashboardView = activeView === "dashboard" && (!dashboardPanel || dashboardPanel.classList.contains("active"));
+
+  // Deve apparire solo se autorizzato (demo o login), senza overlay pre-accesso e solo su Dashboard
+  const shouldShow = isAuthorized && !onPreAuthScreen && isDashboardView;
+
+  if (fab) {
+    if (shouldShow) {
+      fab.classList.add("visible");
+      fab.style.display = "inline-flex";
+    } else {
+      fab.classList.remove("visible");
+      fab.style.display = "none";
+    }
+  }
+
+  if (topbarBtn) {
+    if (shouldShow) {
+      topbarBtn.classList.add("visible");
+      topbarBtn.style.display = "inline-flex";
+    } else {
+      topbarBtn.classList.remove("visible");
+      topbarBtn.style.display = "none";
+    }
+  }
+}
+window.updateTicketButtonVisibility = updateTicketButtonVisibility;
 
 function checkPendingPasswordRecovery() {
   const recoveryEmail = sessionStorage.getItem("barpilot_recovery_email");

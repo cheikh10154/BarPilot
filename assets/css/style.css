@@ -5013,9 +5013,9 @@ input:checked + .toggle-slider:before {
    ASSISTENZA BARPILOT & TICKET SYSTEM (Exact Match to User Screenshot)
    ========================================================================== */
 
-/* 1. Topbar "Apri un ticket" Button */
+/* 1. Topbar "Apri un ticket" Button (Visibile solo nel Dashboard in demo o dopo aver effettuato l'accesso) */
 .btn-topbar-ticket {
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 7px;
   padding: 7px 15px;
@@ -5028,6 +5028,9 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+}
+.btn-topbar-ticket.visible {
+  display: inline-flex !important;
 }
 .btn-topbar-ticket:hover {
   background: var(--primary);
@@ -5064,13 +5067,13 @@ input:checked + .toggle-slider:before {
   }
 }
 
-/* 2. Floating Action Button (FAB) at Bottom-Right */
+/* 2. Floating Action Button (FAB) at Bottom-Right (Visibile solo nel Dashboard in demo o dopo aver effettuato l'accesso) */
 .fab-ticket-btn {
   position: fixed !important;
   bottom: 24px !important;
   right: 24px !important;
   z-index: 999999 !important;
-  display: inline-flex !important;
+  display: none;
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
@@ -5087,6 +5090,9 @@ input:checked + .toggle-slider:before {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fab-ticket-btn.visible {
+  display: inline-flex !important;
 }
 .fab-ticket-btn:hover {
   transform: translateY(-2px) scale(1.02);
@@ -5124,8 +5130,11 @@ input:checked + .toggle-slider:before {
     padding: 10px 16px !important;
     font-size: 13px !important;
     z-index: 999999 !important;
-    display: inline-flex !important;
+    display: none;
     pointer-events: auto !important;
+  }
+  .fab-ticket-btn.visible {
+    display: inline-flex !important;
   }
 }
 
