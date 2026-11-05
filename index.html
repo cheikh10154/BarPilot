@@ -477,6 +477,12 @@
           <span class="nav-item-icon">⚙️</span>
           <span data-i18n="navSettings">Impostazioni</span>
         </button>
+
+        <button class="nav-item" data-view="support" id="navSupportBtn" onclick="switchView('support')">
+          <span class="nav-item-icon">🎧</span>
+          <span>Assistenza</span>
+          <span class="nav-badge-pro" style="background:#FF8A24; color:#fff;">TICKET</span>
+        </button>
       </nav>
 
       <!-- Sidebar Footer -->
@@ -544,6 +550,11 @@
         </div>
 
         <div class="topbar-right">
+          <!-- Pulsante Apri un Ticket -->
+          <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza">
+            <span class="btn-ticket-icon">🎧</span>
+            <span class="btn-ticket-text">Apri un ticket</span>
+          </button>
           <div class="date-pill" id="liveDatePill">
             <span>📅</span>
             <span id="liveDateText">--</span>
@@ -1772,6 +1783,135 @@
               </div>
             </div>
 
+          </div>
+        </section>
+
+        <!-- ========================================================
+             12. SUPPORT VIEW (Matches Screenshot "Assistenza BarPilot")
+             ======================================================== -->
+        <section class="view-panel" id="view-support" style="padding:0;">
+          <div class="support-page-wrapper">
+            <!-- Hero Header with Ambient Bar Photo -->
+            <div class="support-hero-header">
+              <!-- Top Navbar in Hero -->
+              <div class="support-hero-top-nav">
+                <div class="support-hero-brand">Bar<span>Pilot</span></div>
+                <button type="button" class="support-hero-menu-btn" onclick="openSidebar()" aria-label="Menu">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Orange Headset Icon -->
+              <div class="support-headset-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                </svg>
+              </div>
+
+              <!-- Title & Subtitle -->
+              <h1 class="support-hero-title">Assistenza Bar<span>Pilot</span></h1>
+              <p class="support-hero-subtitle">
+                Siamo qui per aiutarti. Contattaci per qualsiasi domanda, problema o richiesta.
+              </p>
+
+              <!-- 3 Circular Action Badges -->
+              <div class="support-hero-actions">
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('Supporto rapido')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">Supporto<br>rapido</span>
+                </button>
+
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('Guide e tutorial')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">Guide e<br>tutorial</span>
+                </button>
+
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('FAQ')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">FAQ</span>
+                </button>
+              </div>
+
+              <!-- Curved Bottom Wave -->
+              <div class="support-hero-wave">
+                <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+                  <path fill="#F4F6F9" d="M0,0 C360,50 640,55 1080,20 C1220,9 1350,15 1440,30 L1440,60 L0,60 Z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Floating White Contact Card -->
+            <div class="support-card-container">
+              <div class="support-form-card">
+                <h2 class="support-form-title">Inviaci un messaggio</h2>
+
+                <form id="supportTicketFormPage" onsubmit="handleSupportFormSubmit(event, 'supportTicketFormPage')">
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketFullName">
+                      Nome e cognome <span class="required-star">*</span>
+                    </label>
+                    <input type="text" class="support-form-input" id="page_ticketFullName" placeholder="Inserisci il tuo nome" required>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketEmail">
+                      Email <span class="required-star">*</span>
+                    </label>
+                    <input type="email" class="support-form-input" id="page_ticketEmail" placeholder="Inserisci la tua email" required>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketSubject">
+                      Oggetto <span class="required-star">*</span>
+                    </label>
+                    <select class="support-form-select" id="page_ticketSubject" required>
+                      <option value="" disabled selected>Seleziona un argomento</option>
+                      <option value="Configurazione KDS cucina & comande">Configurazione KDS cucina & comande</option>
+                      <option value="Supporto tecnico / Errore app">Supporto tecnico / Errore app</option>
+                      <option value="Fatturazione, pagamenti e Stripe">Fatturazione, pagamenti e Stripe</option>
+                      <option value="Periodo di prova 14 giorni & Abbonamento">Periodo di prova 14 giorni & Abbonamento</option>
+                      <option value="Richiesta nuova funzionalità">Richiesta nuova funzionalità</option>
+                      <option value="Altro argomento">Altro argomento</option>
+                    </select>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketMessage">
+                      Messaggio <span class="required-star">*</span>
+                    </label>
+                    <textarea class="support-form-textarea" id="page_ticketMessage" rows="5" placeholder="Descrivi la tua richiesta..." required></textarea>
+                  </div>
+
+                  <button type="submit" class="support-submit-btn" id="page_ticketSubmitBtn">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span>Invia richiesta</span>
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -3097,6 +3237,145 @@
       </div>
     </div>
   </div>
+
+  <!-- ========================================================================
+       MODAL: ASSISTENZA BARPILOT & APERTURA TICKET (Matches Screenshot)
+       ======================================================================== -->
+  <div class="modal-overlay" id="supportTicketModal">
+    <div class="modal-box-clean">
+      <button type="button" class="modal-close-corner" onclick="closeSupportTicketModal()" aria-label="Chiudi">✕</button>
+
+      <div class="support-page-wrapper" style="box-shadow:none;">
+        <!-- Hero Header with Ambient Bar Photo -->
+        <div class="support-hero-header">
+          <!-- Top Navbar in Hero -->
+          <div class="support-hero-top-nav">
+            <div class="support-hero-brand">Bar<span>Pilot</span></div>
+            <button type="button" class="support-hero-menu-btn" onclick="closeSupportTicketModal()" aria-label="Chiudi">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Orange Headset Icon -->
+          <div class="support-headset-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            </svg>
+          </div>
+
+          <!-- Title & Subtitle -->
+          <h2 class="support-hero-title">Assistenza Bar<span>Pilot</span></h2>
+          <p class="support-hero-subtitle">
+            Siamo qui per aiutarti. Contattaci per qualsiasi domanda, problema o richiesta.
+          </p>
+
+          <!-- 3 Circular Action Badges -->
+          <div class="support-hero-actions">
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('Supporto rapido')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <span class="support-action-caption">Supporto<br>rapido</span>
+            </button>
+
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('Guide e tutorial')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                </svg>
+              </div>
+              <span class="support-action-caption">Guide e<br>tutorial</span>
+            </button>
+
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('FAQ')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <span class="support-action-caption">FAQ</span>
+            </button>
+          </div>
+
+          <!-- Curved Bottom Wave -->
+          <div class="support-hero-wave">
+            <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+              <path fill="#ffffff" d="M0,0 C360,50 640,55 1080,20 C1220,9 1350,15 1440,30 L1440,60 L0,60 Z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Floating White Contact Card -->
+        <div class="support-card-container" style="background:#ffffff; border-radius:0 0 20px 20px; padding:0 24px 30px; margin-top:0;">
+          <div class="support-form-card" style="box-shadow:none; border:none; padding:20px 0 0;">
+            <h3 class="support-form-title">Inviaci un messaggio</h3>
+
+            <form id="supportTicketFormModal" onsubmit="handleSupportFormSubmit(event, 'supportTicketFormModal')">
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketFullName">
+                  Nome e cognome <span class="required-star">*</span>
+                </label>
+                <input type="text" class="support-form-input" id="modal_ticketFullName" placeholder="Inserisci il tuo nome" required>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketEmail">
+                  Email <span class="required-star">*</span>
+                </label>
+                <input type="email" class="support-form-input" id="modal_ticketEmail" placeholder="Inserisci la tua email" required>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketSubject">
+                  Oggetto <span class="required-star">*</span>
+                </label>
+                <select class="support-form-select" id="modal_ticketSubject" required>
+                  <option value="" disabled selected>Seleziona un argomento</option>
+                  <option value="Configurazione KDS cucina & comande">Configurazione KDS cucina & comande</option>
+                  <option value="Supporto tecnico / Errore app">Supporto tecnico / Errore app</option>
+                  <option value="Fatturazione, pagamenti e Stripe">Fatturazione, pagamenti e Stripe</option>
+                  <option value="Periodo di prova 14 giorni & Abbonamento">Periodo di prova 14 giorni & Abbonamento</option>
+                  <option value="Richiesta nuova funzionalità">Richiesta nuova funzionalità</option>
+                  <option value="Altro argomento">Altro argomento</option>
+                </select>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketMessage">
+                  Messaggio <span class="required-star">*</span>
+                </label>
+                <textarea class="support-form-textarea" id="modal_ticketMessage" rows="4" placeholder="Descrivi la tua richiesta..." required></textarea>
+              </div>
+
+              <button type="submit" class="support-submit-btn" id="modal_ticketSubmitBtn">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                <span>Invia richiesta</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating "Apri un Ticket" Button (FAB) -->
+  <button type="button" class="fab-ticket-btn" id="fabSupportBtn" onclick="openSupportTicketModal()" title="Serve aiuto? Apri un ticket con il supporto BarPilot">
+    <span class="fab-ticket-icon">🎧</span>
+    <span class="fab-ticket-text">Apri un ticket</span>
+    <span class="fab-pulse-dot"></span>
+  </button>
 
   <!-- Scripts -->
   <script src="assets/js/i18n.js"></script>

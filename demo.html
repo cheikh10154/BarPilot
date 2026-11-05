@@ -4,19 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#FF7A00">
-  <title>BarPilot - Demo Bar Centrale (Dati dimostrativi precaricati)</title>
+  <title>BarPilot - Smart Bar Management Platform</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="assets/images/logo.png">
-  <link rel="stylesheet" href="assets/css/style.css">
-  <!-- Instant Session Cache Check & Demo Mode Pre-Init -->
+  <link rel="stylesheet" href="assets/css/style.css?v=130">
+  <style>
+    #hourlySalesCard, .charts-grid { min-width: 0 !important; max-width: 100% !important; }
+    #hourlySalesCard { overflow: hidden !important; }
+    .bar-chart-container { width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: hidden !important; }
+    .chart-bars-scroll { flex: 1 1 0% !important; min-width: 0 !important; max-width: 100% !important; overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important; }
+    @media (max-width: 768px) {
+      .chart-bars-wrap { display: flex !important; flex-wrap: nowrap !important; width: max-content !important; min-width: 660px !important; gap: 8px !important; padding: 0 10px !important; }
+      .chart-bars-wrap.slot-all { min-width: 680px !important; }
+      .chart-bars-wrap .bar-col { flex: 0 0 38px !important; min-width: 38px !important; width: 38px !important; height: 100% !important; touch-action: pan-x pan-y !important; }
+      .chart-scroll-hint { display: flex !important; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--primary); padding: 6px 0 2px 0; }
+    }
+  </style>
+  <!-- Instant Session Cache Check: Zero-Flicker Persistence -->
   <script>
     (function() {
       try {
-        localStorage.setItem("barpilot_is_demo", "true");
-        localStorage.setItem("barpilot_is_subscribed", "true");
-        localStorage.setItem("barpilot_is_logged_in", "true");
-        sessionStorage.setItem("barpilot_demo_active", "true");
-        document.documentElement.classList.add("user-authenticated");
+        const isAuth = localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true");
+        if (isAuth) {
+          document.documentElement.classList.add("user-authenticated");
+        } else {
+          document.documentElement.classList.remove("user-authenticated");
+        }
       } catch (e) {}
     })();
   </script>
@@ -26,20 +39,8 @@
 </head>
 <body>
 
-  <!-- Top Persistent Demo Banner -->
-  <div class="demo-persistent-banner" style="background: linear-gradient(90deg, #FF7A00 0%, #EA580C 100%); color: #fff; padding: 10px 18px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; z-index: 99999; box-shadow: 0 4px 15px rgba(255,122,0,0.35); position: sticky; top: 0;">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:16px;">⚡</span>
-      <span>MODALITÀ DIMOSTRATIVA — Bar Centrale (Dati dimostrativi: 1.248,00 € vendite · 186 comande · 6,71 € scontrino medio)</span>
-    </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button type="button" onclick="if(typeof resetDemoData==='function'){resetDemoData();}else{location.reload();}" style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer;">🔄 Ripristina Dati Demo</button>
-      <a href="index.html" style="background:#fff; color:#EA580C; padding:5px 14px; border-radius:6px; text-decoration:none; font-weight:800; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">Accedi al tuo Bar Reale (LIVE) ➔</a>
-    </div>
-  </div>
-
   <!-- 1. ANIMATED SPLASH SCREEN (3 SECONDS) -->
-  <div class="splash-overlay hidden" id="splashScreen">
+  <div class="splash-overlay" id="splashScreen">
     <div class="splash-center">
       <div class="splash-logo-wrap">
         <div class="splash-glow-ring"></div>
@@ -54,6 +55,31 @@
       <p style="font-size:11px; color:#64748B; margin-top:10px;" data-i18n="splashPreparing">Inizializzazione in corso...</p>
     </div>
   </div>
+
+  <script>
+    // Fail-safe di emergenza per lo Splash Screen:
+    // garantisce che dopo massimo 1.5 secondi l'overlay di caricamento sia SEMPRE rimosso
+    // e che vengano avviate le Storie
+    setTimeout(function() {
+      try {
+        var sp = document.getElementById("splashScreen");
+        if (sp && !sp.classList.contains("hidden")) {
+          sp.classList.add("hidden");
+        }
+        var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
+        var stories = document.getElementById("storiesOverlay");
+        var auth = document.getElementById("authOverlay");
+        if (!isDemo && stories && stories.classList.contains("hidden") && auth && auth.classList.contains("hidden")) {
+          if (typeof initStoriesOnboarding === "function") {
+            initStoriesOnboarding();
+          } else {
+            stories.classList.remove("hidden");
+            stories.style.display = "flex";
+          }
+        }
+      } catch (_) {}
+    }, 1500);
+  </script>
 
   <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->
   <div class="stories-overlay hidden" id="storiesOverlay">
@@ -224,7 +250,7 @@
           </div>
           <div class="story-action-bottom" style="display:flex; flex-direction:column; gap:8px;">
             <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#10B981; box-shadow:0 6px 20px rgba(16,185,129,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
-            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth()" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
+            <button class="btn-story-next" onclick="finishStoriesAndGoToAuth('register')" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
           </div>
         </div>
 
@@ -451,6 +477,12 @@
           <span class="nav-item-icon">⚙️</span>
           <span data-i18n="navSettings">Impostazioni</span>
         </button>
+
+        <button class="nav-item" data-view="support" id="navSupportBtn" onclick="switchView('support')">
+          <span class="nav-item-icon">🎧</span>
+          <span>Assistenza</span>
+          <span class="nav-badge-pro" style="background:#FF8A24; color:#fff;">TICKET</span>
+        </button>
       </nav>
 
       <!-- Sidebar Footer -->
@@ -518,6 +550,11 @@
         </div>
 
         <div class="topbar-right">
+          <!-- Pulsante Apri un Ticket -->
+          <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="openSupportTicketModal()" title="Apri un ticket di assistenza">
+            <span class="btn-ticket-icon">🎧</span>
+            <span class="btn-ticket-text">Apri un ticket</span>
+          </button>
           <div class="date-pill" id="liveDatePill">
             <span>📅</span>
             <span id="liveDateText">--</span>
@@ -643,7 +680,7 @@
                 <strong style="color:var(--primary); font-size:12px;" id="hourlySelectedText">Nessuna comanda registrata</strong>
               </div>
 
-              <div class="bar-chart-container">
+              <div class="bar-chart-container" style="width:100%; max-width:100%; min-width:0; overflow:hidden;">
                 <div class="chart-y-axis" id="hourlyYAxis">
                   <span>400€</span>
                   <span>300€</span>
@@ -651,7 +688,7 @@
                   <span>100€</span>
                   <span>0€</span>
                 </div>
-                <div class="chart-bars-scroll">
+                <div class="chart-bars-scroll" style="flex:1; min-width:0; max-width:100%; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;">
                   <div class="chart-bars-wrap slot-all" id="hourlyBarsWrap">
                     <!-- Generated via app.js -->
                   </div>
@@ -1749,6 +1786,135 @@
           </div>
         </section>
 
+        <!-- ========================================================
+             12. SUPPORT VIEW (Matches Screenshot "Assistenza BarPilot")
+             ======================================================== -->
+        <section class="view-panel" id="view-support" style="padding:0;">
+          <div class="support-page-wrapper">
+            <!-- Hero Header with Ambient Bar Photo -->
+            <div class="support-hero-header">
+              <!-- Top Navbar in Hero -->
+              <div class="support-hero-top-nav">
+                <div class="support-hero-brand">Bar<span>Pilot</span></div>
+                <button type="button" class="support-hero-menu-btn" onclick="openSidebar()" aria-label="Menu">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Orange Headset Icon -->
+              <div class="support-headset-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                </svg>
+              </div>
+
+              <!-- Title & Subtitle -->
+              <h1 class="support-hero-title">Assistenza Bar<span>Pilot</span></h1>
+              <p class="support-hero-subtitle">
+                Siamo qui per aiutarti. Contattaci per qualsiasi domanda, problema o richiesta.
+              </p>
+
+              <!-- 3 Circular Action Badges -->
+              <div class="support-hero-actions">
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('Supporto rapido')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">Supporto<br>rapido</span>
+                </button>
+
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('Guide e tutorial')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">Guide e<br>tutorial</span>
+                </button>
+
+                <button type="button" class="support-action-item" onclick="prefillSupportTopic('FAQ')">
+                  <div class="support-action-circle">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                  </div>
+                  <span class="support-action-caption">FAQ</span>
+                </button>
+              </div>
+
+              <!-- Curved Bottom Wave -->
+              <div class="support-hero-wave">
+                <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+                  <path fill="#F4F6F9" d="M0,0 C360,50 640,55 1080,20 C1220,9 1350,15 1440,30 L1440,60 L0,60 Z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Floating White Contact Card -->
+            <div class="support-card-container">
+              <div class="support-form-card">
+                <h2 class="support-form-title">Inviaci un messaggio</h2>
+
+                <form id="supportTicketFormPage" onsubmit="handleSupportFormSubmit(event, 'supportTicketFormPage')">
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketFullName">
+                      Nome e cognome <span class="required-star">*</span>
+                    </label>
+                    <input type="text" class="support-form-input" id="page_ticketFullName" placeholder="Inserisci il tuo nome" required>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketEmail">
+                      Email <span class="required-star">*</span>
+                    </label>
+                    <input type="email" class="support-form-input" id="page_ticketEmail" placeholder="Inserisci la tua email" required>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketSubject">
+                      Oggetto <span class="required-star">*</span>
+                    </label>
+                    <select class="support-form-select" id="page_ticketSubject" required>
+                      <option value="" disabled selected>Seleziona un argomento</option>
+                      <option value="Configurazione KDS cucina & comande">Configurazione KDS cucina & comande</option>
+                      <option value="Supporto tecnico / Errore app">Supporto tecnico / Errore app</option>
+                      <option value="Fatturazione, pagamenti e Stripe">Fatturazione, pagamenti e Stripe</option>
+                      <option value="Periodo di prova 14 giorni & Abbonamento">Periodo di prova 14 giorni & Abbonamento</option>
+                      <option value="Richiesta nuova funzionalità">Richiesta nuova funzionalità</option>
+                      <option value="Altro argomento">Altro argomento</option>
+                    </select>
+                  </div>
+
+                  <div class="support-input-group">
+                    <label class="support-input-label" for="page_ticketMessage">
+                      Messaggio <span class="required-star">*</span>
+                    </label>
+                    <textarea class="support-form-textarea" id="page_ticketMessage" rows="5" placeholder="Descrivi la tua richiesta..." required></textarea>
+                  </div>
+
+                  <button type="submit" class="support-submit-btn" id="page_ticketSubmitBtn">
+                    <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span>Invia richiesta</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
     </div>
@@ -1783,7 +1949,7 @@
 
   <!-- New Password Modal (Supabase Password Reset) -->
   <div class="modal-overlay" id="newPasswordModal">
-    <div class="modal-box" style="max-width: 440px; width: 92%; padding: 26px 24px; border-radius: 20px;">
+    <div class="modal-box" style="max-width: 420px; width: 92%; padding: 26px 24px; border-radius: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:20px;">🔒</span>
@@ -3072,6 +3238,145 @@
     </div>
   </div>
 
+  <!-- ========================================================================
+       MODAL: ASSISTENZA BARPILOT & APERTURA TICKET (Matches Screenshot)
+       ======================================================================== -->
+  <div class="modal-overlay" id="supportTicketModal">
+    <div class="modal-box-clean">
+      <button type="button" class="modal-close-corner" onclick="closeSupportTicketModal()" aria-label="Chiudi">✕</button>
+
+      <div class="support-page-wrapper" style="box-shadow:none;">
+        <!-- Hero Header with Ambient Bar Photo -->
+        <div class="support-hero-header">
+          <!-- Top Navbar in Hero -->
+          <div class="support-hero-top-nav">
+            <div class="support-hero-brand">Bar<span>Pilot</span></div>
+            <button type="button" class="support-hero-menu-btn" onclick="closeSupportTicketModal()" aria-label="Chiudi">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Orange Headset Icon -->
+          <div class="support-headset-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+            </svg>
+          </div>
+
+          <!-- Title & Subtitle -->
+          <h2 class="support-hero-title">Assistenza Bar<span>Pilot</span></h2>
+          <p class="support-hero-subtitle">
+            Siamo qui per aiutarti. Contattaci per qualsiasi domanda, problema o richiesta.
+          </p>
+
+          <!-- 3 Circular Action Badges -->
+          <div class="support-hero-actions">
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('Supporto rapido')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <span class="support-action-caption">Supporto<br>rapido</span>
+            </button>
+
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('Guide e tutorial')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                </svg>
+              </div>
+              <span class="support-action-caption">Guide e<br>tutorial</span>
+            </button>
+
+            <button type="button" class="support-action-item" onclick="prefillSupportTopic('FAQ')">
+              <div class="support-action-circle">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <span class="support-action-caption">FAQ</span>
+            </button>
+          </div>
+
+          <!-- Curved Bottom Wave -->
+          <div class="support-hero-wave">
+            <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+              <path fill="#ffffff" d="M0,0 C360,50 640,55 1080,20 C1220,9 1350,15 1440,30 L1440,60 L0,60 Z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Floating White Contact Card -->
+        <div class="support-card-container" style="background:#ffffff; border-radius:0 0 20px 20px; padding:0 24px 30px; margin-top:0;">
+          <div class="support-form-card" style="box-shadow:none; border:none; padding:20px 0 0;">
+            <h3 class="support-form-title">Inviaci un messaggio</h3>
+
+            <form id="supportTicketFormModal" onsubmit="handleSupportFormSubmit(event, 'supportTicketFormModal')">
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketFullName">
+                  Nome e cognome <span class="required-star">*</span>
+                </label>
+                <input type="text" class="support-form-input" id="modal_ticketFullName" placeholder="Inserisci il tuo nome" required>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketEmail">
+                  Email <span class="required-star">*</span>
+                </label>
+                <input type="email" class="support-form-input" id="modal_ticketEmail" placeholder="Inserisci la tua email" required>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketSubject">
+                  Oggetto <span class="required-star">*</span>
+                </label>
+                <select class="support-form-select" id="modal_ticketSubject" required>
+                  <option value="" disabled selected>Seleziona un argomento</option>
+                  <option value="Configurazione KDS cucina & comande">Configurazione KDS cucina & comande</option>
+                  <option value="Supporto tecnico / Errore app">Supporto tecnico / Errore app</option>
+                  <option value="Fatturazione, pagamenti e Stripe">Fatturazione, pagamenti e Stripe</option>
+                  <option value="Periodo di prova 14 giorni & Abbonamento">Periodo di prova 14 giorni & Abbonamento</option>
+                  <option value="Richiesta nuova funzionalità">Richiesta nuova funzionalità</option>
+                  <option value="Altro argomento">Altro argomento</option>
+                </select>
+              </div>
+
+              <div class="support-input-group">
+                <label class="support-input-label" for="modal_ticketMessage">
+                  Messaggio <span class="required-star">*</span>
+                </label>
+                <textarea class="support-form-textarea" id="modal_ticketMessage" rows="4" placeholder="Descrivi la tua richiesta..." required></textarea>
+              </div>
+
+              <button type="submit" class="support-submit-btn" id="modal_ticketSubmitBtn">
+                <svg viewBox="0 0 24 24" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                <span>Invia richiesta</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating "Apri un Ticket" Button (FAB) -->
+  <button type="button" class="fab-ticket-btn" id="fabSupportBtn" onclick="openSupportTicketModal()" title="Serve aiuto? Apri un ticket con il supporto BarPilot">
+    <span class="fab-ticket-icon">🎧</span>
+    <span class="fab-ticket-text">Apri un ticket</span>
+    <span class="fab-pulse-dot"></span>
+  </button>
+
   <!-- Scripts -->
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/data.js"></script>
@@ -3093,23 +3398,6 @@
           .catch(err => console.log('ServiceWorker registration failed:', err));
       });
     }
-  </script>
-
-  <!-- Auto-Initialize Full Demo Data on Page Load -->
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      try {
-        localStorage.setItem("barpilot_is_demo", "true");
-        localStorage.setItem("barpilot_is_subscribed", "true");
-        localStorage.setItem("barpilot_is_logged_in", "true");
-        sessionStorage.setItem("barpilot_demo_active", "true");
-      } catch (e) {}
-      setTimeout(() => {
-        if (typeof quickLoginDemo === 'function') {
-          quickLoginDemo();
-        }
-      }, 50);
-    });
   </script>
 
 </body>

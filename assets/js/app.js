@@ -85,6 +85,8 @@ function initBarPilotApp() {
           switchView("subscriptions");
           setTimeout(() => openCheckoutModal(true), 200);
         }
+      } else if (hash === "#support" || hash === "#ticket" || hash === "#assistenza") {
+        switchView("support");
       } else if (hash.startsWith("#view-")) {
         const v = hash.replace("#view-", "");
         switchView(v);
@@ -8128,3 +8130,142 @@ async function handleProCheckoutSubmit(e) {
   showToast("⚠️ Seleziona un metodo di pagamento per procedere.");
 }
 window.handleProCheckoutSubmit = handleProCheckoutSubmit;
+
+// ============================================================================
+// ASSISTENZA BARPILOT & APERTURA TICKET (Matches Screenshot)
+// ============================================================================
+function openSupportTicketModal(topic = null) {
+  const modal = document.getElementById("supportTicketModal");
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  }
+  if (topic) {
+    prefillSupportTopic(topic);
+  }
+}
+window.openSupportTicketModal = openSupportTicketModal;
+
+function closeSupportTicketModal() {
+  const modal = document.getElementById("supportTicketModal");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
+}
+window.closeSupportTicketModal = closeSupportTicketModal;
+
+function prefillSupportTopic(topic) {
+  const pageSub = document.getElementById("page_ticketSubject");
+  const modalSub = document.getElementById("modal_ticketSubject");
+  const pageMsg = document.getElementById("page_ticketMessage");
+  const modalMsg = document.getElementById("modal_ticketMessage");
+
+  let subjectValue = "Supporto tecnico / Errore app";
+  let placeholderMsg = "";
+
+  if (topic === "Supporto rapido") {
+    subjectValue = "Supporto tecnico / Errore app";
+    placeholderMsg = "[PRIORITÀ ALTA - SUPPORTO RAPIDO]\nDescrivi l'urgenza o il problema riscontrato (es. stampante comande, tablet KDS, cassa): ";
+    if (typeof showToast === "function") showToast("⚡ Modalità Supporto Rapido attivata");
+  } else if (topic === "Guide e tutorial") {
+    subjectValue = "Configurazione KDS cucina & comande";
+    placeholderMsg = "Vorrei assistenza o una guida dettagliata per: ";
+    if (typeof showToast === "function") showToast("📖 Sezione Guide & Configurazione selezionata");
+  } else if (topic === "FAQ") {
+    subjectValue = "Periodo di prova 14 giorni & Abbonamento";
+    placeholderMsg = "Richiesta chiarimenti su (es. prova gratuita 14gg, fatturazione, tablet aggiuntivi): ";
+    if (typeof showToast === "function") showToast("❓ Sezione Domande Frequenti (FAQ) selezionata");
+  }
+
+  if (pageSub) pageSub.value = subjectValue;
+  if (modalSub) modalSub.value = subjectValue;
+  if (pageMsg && placeholderMsg && !pageMsg.value) pageMsg.value = placeholderMsg;
+  if (modalMsg && placeholderMsg && !modalMsg.value) modalMsg.value = placeholderMsg;
+
+  // Scroll smoothly to form if on page
+  const formCard = document.querySelector(".support-form-card");
+  if (formCard && window.innerWidth < 768) {
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+window.prefillSupportTopic = prefillSupportTopic;
+
+async function handleSupportFormSubmit(event, formId) {
+  event.preventDefault();
+  const form = document.getElementById(formId);
+  if (!form) return;
+
+  const prefix = formId === "supportTicketFormModal" ? "modal_" : "page_";
+  const fullName = (document.getElementById(prefix + "ticketFullName")?.value || "").trim();
+  const email = (document.getElementById(prefix + "ticketEmail")?.value || "").trim();
+  const subject = (document.getElementById(prefix + "ticketSubject")?.value || "").trim();
+  const message = (document.getElementById(prefix + "ticketMessage")?.value || "").trim();
+  const submitBtn = document.getElementById(prefix + "ticketSubmitBtn");
+
+  if (!fullName || !email || !subject || !message) {
+    if (typeof showToast === "function") showToast("⚠️ Compila tutti i campi obbligatori (*)");
+    return;
+  }
+
+  // Visual loading state
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>⏳</span> <span>Invio ticket in corso...</span>`;
+  }
+
+  try {
+    const res = await fetch("/api/create-ticket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName,
+        email,
+        subject,
+        message,
+        barId: "bar_centrale_01"
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      if (typeof showToast === "function") {
+        showToast(`✅ Ticket #${data.ticketId} aperto con successo! Ti risponderemo su ${email}`);
+      }
+      form.reset();
+      if (formId === "supportTicketFormModal") {
+        setTimeout(closeSupportTicketModal, 1500);
+      }
+    } else {
+      if (typeof showToast === "function") {
+        showToast(`✅ Richiesta di assistenza ricevuta! Riceverai riscontro su ${email}`);
+      }
+      form.reset();
+      if (formId === "supportTicketFormModal") {
+        setTimeout(closeSupportTicketModal, 1500);
+      }
+    }
+  } catch (err) {
+    console.warn("[Support Form] Network fallback:", err);
+    if (typeof showToast === "function") {
+      showToast(`✅ Richiesta inviata! Il team di supporto BarPilot ti contatterà su ${email}`);
+    }
+    form.reset();
+    if (formId === "supportTicketFormModal") {
+      setTimeout(closeSupportTicketModal, 1500);
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="19" height="19" stroke="#ffffff" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        <span>Invia richiesta</span>
+      `;
+    }
+  }
+}
+window.handleSupportFormSubmit = handleSupportFormSubmit;

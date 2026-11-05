@@ -89,6 +89,10 @@
       "dest": "/api/generate-invoice.js"
     },
     {
+      "src": "^/api/create-ticket/?$",
+      "dest": "/api/create-ticket.js"
+    },
+    {
       "src": "^/demo/?$",
       "dest": "/index.html"
     },
