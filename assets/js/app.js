@@ -26,11 +26,17 @@ function initBarPilotApp() {
     // Restore saved session details into activeBar
     if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
       try {
+        const isDemo = (typeof isDemoMode === "function" && isDemoMode());
         const savedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
         if (savedUser && window.db) {
           const bar = window.db.get("activeBar") || {};
-          if (savedUser.name) bar.managerName = savedUser.name;
-          if (savedUser.barName) bar.name = savedUser.barName;
+          if (isDemo) {
+            bar.managerName = "Marco Rossi";
+            bar.role = "Proprietario";
+          } else {
+            if (savedUser.name) bar.managerName = savedUser.name;
+            if (savedUser.barName) bar.name = savedUser.barName;
+          }
           window.db.set("activeBar", bar);
         }
       } catch (e) {}
@@ -753,7 +759,12 @@ function updateGreeting(name) {
 window.updateGreeting = updateGreeting;
 
 function renderActiveBar() {
+  const isDemo = (typeof isDemoMode === "function" && isDemoMode());
   const bar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", trialDaysRemaining: 14, managerName: "Marco Rossi" };
+  if (isDemo) {
+    bar.managerName = "Marco Rossi";
+    bar.role = "Proprietario";
+  }
   const barNameEl = document.getElementById("activeBarName");
   const barSwitcherText = document.getElementById("barSwitcherText");
   const trialDaysEl = document.getElementById("trialDaysCount");
@@ -762,23 +773,36 @@ function renderActiveBar() {
   if (barSwitcherText) barSwitcherText.textContent = bar.name || "Bar Centrale";
   if (trialDaysEl) trialDaysEl.textContent = (bar.trialDaysRemaining !== undefined && bar.trialDaysRemaining !== null) ? bar.trialDaysRemaining : 14;
 
+  if (isDemo && (!currentStaff || (currentStaff.role === "Proprietario" && currentStaff.name !== "Marco Rossi"))) {
+    currentStaff = {
+      id: 1,
+      name: "Marco Rossi",
+      role: "Proprietario",
+      email: "marco@barcentrale.it",
+      pin: null,
+      status: "active",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop"
+    };
+  }
+
   // L'utente attivo nella sidebar e nel saluto riflette currentStaff con il suo ruolo specifico
   if (currentStaff) {
     const sidebarUserName = document.getElementById("sidebarUserName") || document.querySelector(".user-profile-card .user-name");
     const avatarEl = document.getElementById("sidebarUserAvatar");
     const roleEl = document.getElementById("sidebarUserRole");
-    if (sidebarUserName) sidebarUserName.textContent = currentStaff.name;
+    if (sidebarUserName) sidebarUserName.textContent = (isDemo && currentStaff.role === "Proprietario") ? "Marco Rossi" : currentStaff.name;
     if (avatarEl && currentStaff.avatar) avatarEl.src = currentStaff.avatar;
     if (roleEl) {
       const perms = ROLE_PERMISSIONS[currentStaff.role] || ROLE_PERMISSIONS.Proprietario;
       roleEl.textContent = currentStaff.role;
       roleEl.className = `user-role ${perms.badgeClass}`;
     }
-    updateGreeting(currentStaff.name);
+    updateGreeting((isDemo && currentStaff.role === "Proprietario") ? "Marco Rossi" : currentStaff.name);
   } else {
     const sidebarUserName = document.getElementById("sidebarUserName") || document.querySelector(".user-profile-card .user-name");
-    if (sidebarUserName) sidebarUserName.textContent = bar.managerName;
-    updateGreeting(bar.managerName);
+    const ownerName = isDemo ? "Marco Rossi" : (bar.managerName || "Marco Rossi");
+    if (sidebarUserName) sidebarUserName.textContent = ownerName;
+    updateGreeting(ownerName);
   }
 }
 
@@ -3089,6 +3113,28 @@ let selectedPinStaff = null;
 function initActiveStaff() {
   const staffList = (window.db ? window.db.get("staff") : []) || [];
   if (staffList.length === 0) return;
+
+  const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+  if (isDemo) {
+    let ownerStaff = staffList.find(s => s.role === "Proprietario" && s.name === "Marco Rossi") ||
+                     staffList.find(s => s.role === "Proprietario");
+    if (!ownerStaff) {
+      ownerStaff = {
+        id: 1,
+        name: "Marco Rossi",
+        role: "Proprietario",
+        email: "marco@barcentrale.it",
+        pin: null,
+        status: "active",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop"
+      };
+    } else {
+      ownerStaff.name = "Marco Rossi";
+      ownerStaff.role = "Proprietario";
+    }
+    applyActiveStaff(ownerStaff, false);
+    return;
+  }
 
   const savedStaff = localStorage.getItem("barpilot_active_staff");
   if (savedStaff) {
@@ -7808,18 +7854,27 @@ function quickLoginDemo() {
   }
 
   const staffList = (window.db ? window.db.get("staff") : []) || [];
-  const ownerStaff = staffList.find(s => s.role === "Proprietario") || {
-    id: 1,
-    name: "Marco Rossi",
-    role: "Proprietario",
-    email: "marco@barcentrale.it",
-    pin: null,
-    status: "active",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop"
-  };
+  let ownerStaff = staffList.find(s => s.role === "Proprietario" && s.name === "Marco Rossi") ||
+                   staffList.find(s => s.role === "Proprietario");
+  if (!ownerStaff) {
+    ownerStaff = {
+      id: 1,
+      name: "Marco Rossi",
+      role: "Proprietario",
+      email: "marco@barcentrale.it",
+      pin: null,
+      status: "active",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop"
+    };
+  } else {
+    ownerStaff.name = "Marco Rossi";
+    ownerStaff.role = "Proprietario";
+  }
 
   const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
   activeBar.name = "Bar Centrale (Demo)";
+  activeBar.managerName = "Marco Rossi";
+  activeBar.role = "Proprietario";
   activeBar.isDemo = true;
   activeBar.isSubscribed = true;
   activeBar.subscriptionStatus = "active";
