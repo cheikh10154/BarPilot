@@ -85,6 +85,10 @@
       "dest": "/api/register-bar.js"
     },
     {
+      "src": "^/api/generate-invoice/?$",
+      "dest": "/api/generate-invoice.js"
+    },
+    {
       "src": "^/demo/?$",
       "dest": "/index.html"
     },

@@ -854,15 +854,15 @@
               <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">Dati Aziendali per Fatturazione ai Bar</h4>
               <div class="form-group-admin">
                 <label class="form-label-admin">Ragione Sociale Fornitore Software</label>
-                <input type="text" id="settingsCompanyName" class="form-input-admin" value="BarPilot Inc. · Gestione Bar & Ristoranti">
+                <input type="text" id="settingsCompanyName" class="form-input-admin" value="BarPilot · Gestionale per Bar & Ristoranti">
               </div>
               <div class="form-group-admin">
                 <label class="form-label-admin">Partita IVA / Codice Fiscale</label>
-                <input type="text" id="settingsCompanyPiva" class="form-input-admin" value="IT 12345678901">
+                <input type="text" id="settingsCompanyPiva" class="form-input-admin" value="02799820036">
               </div>
               <div class="form-group-admin">
                 <label class="form-label-admin">Email Invio Notifiche & Fatture</label>
-                <input type="email" id="settingsBillingEmail" class="form-input-admin" value="billing@barpilot.app">
+                <input type="email" id="settingsBillingEmail" class="form-input-admin" value="admin@barpilot.eu">
               </div>
               <button type="button" class="btn-primary-orange" onclick="window.adminConsole.saveSettingsFromForm()">
                 💾 Salva Modifiche Impostazioni su Supabase
@@ -1025,94 +1025,126 @@
       </div>
 
       <div class="modal-body-scroll">
+        <!-- Variant Selector Toolbar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:10px 14px; border-radius:8px; margin-bottom:15px; border:1px solid #334155; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:700; color:#94a3b8;">Tipo Fattura:</span>
+            <button type="button" id="btnVariantRecurring" class="btn-table-action" style="width:auto; padding:5px 12px; font-size:12px; font-weight:700; background:#FF8A24; color:#fff; border:none; border-radius:6px; cursor:pointer;" onclick="window.adminConsole.setInvoiceVariant('recurring')">
+              📅 Mensile Ricorrente
+            </button>
+            <button type="button" id="btnVariantTrial" class="btn-table-action" style="width:auto; padding:5px 12px; font-size:12px; font-weight:700; background:#334155; color:#cbd5e1; border:none; border-radius:6px; cursor:pointer;" onclick="window.adminConsole.setInvoiceVariant('post_trial')">
+              🎁 1ª Fattura Post-Prova (14gg)
+            </button>
+          </div>
+          <div style="font-size:11.5px; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span>
+            <span>Dati sincronizzati con <strong>Supabase</strong></span>
+          </div>
+        </div>
+
         <!-- Printable Invoice Paper -->
         <div class="invoice-sheet" id="invoicePrintArea">
           <div class="invoice-header-row">
             <div>
-              <div class="invoice-brand-h2">Bar<span>Pilot</span></div>
-              <p style="font-size:11px; color:#64748b; margin-top:2px;">Software Gestionale Bar & Ristorazione</p>
-              <p style="font-size:11px; color:#64748b;">BarPilot Inc. · P.IVA IT12345678901 · Milano</p>
+              <div class="invoice-brand-h2" style="font-size:26px; font-weight:900; color:#0B1220;">BAR<span style="color:#FF8A24;">PILOT</span></div>
+              <p style="font-size:12px; font-weight:700; color:#0B1220; margin-top:3px;">BarPilot · Gestionale per Bar & Ristoranti</p>
+              <p style="font-size:11px; color:#64748b; line-height:1.4;">
+                P.IVA: <strong>02799820036</strong> · Email: <strong>admin@barpilot.eu</strong><br>
+                Sito: <strong>www.barpilot.eu</strong> · Sede Operativa: Italia
+              </p>
             </div>
             <div style="text-align:right;">
-              <div class="invoice-meta-num" id="invPreviewNumber">Fattura #2025-0145</div>
-              <div class="invoice-meta-date">Data emissione: <strong id="invPreviewDate">15 ottobre 2025</strong></div>
-              <div class="invoice-meta-date">Data scadenza: <strong id="invPreviewDueDate">15 ottobre 2025</strong></div>
+              <h3 style="margin:0; font-size:18px; color:#0B1220; font-weight:900;">FATTURA FISCALE</h3>
+              <div class="invoice-meta-num" id="invPreviewNumber" style="font-size:16px; font-weight:800; color:#FF8A24; margin:4px 0;">#2026-0001</div>
+              <div id="invPreviewBadge" style="display:inline-block; margin:2px 0 6px; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:4px; background:#e0f2fe; color:#0369a1; text-transform:uppercase;">FATTURA MENSILE RICORRENTE</div>
+              <div class="invoice-meta-date" style="font-size:12px; color:#64748b;">Data emissione: <strong id="invPreviewDate" style="color:#1e293b;">15 ott 2026</strong></div>
+              <div class="invoice-meta-date" style="font-size:12px; color:#64748b;">Data scadenza: <strong id="invPreviewDueDate" style="color:#1e293b;">15 ott 2026</strong></div>
               <div style="margin-top:6px;">
-                <span class="status-pill status-active" id="invPreviewStatusPill">Pagata</span>
+                <span class="status-pill status-active" id="invPreviewStatusPill" style="background:#10B981; color:#fff; font-weight:700; padding:4px 10px; border-radius:6px; font-size:11px;">PAGATA (Stripe Billing)</span>
               </div>
             </div>
           </div>
 
-          <div class="invoice-parties-grid">
-            <div class="invoice-party-box">
-              <div class="invoice-party-title">Emessa da:</div>
-              <strong>BarPilot Inc.</strong><br>
-              Via Monte Napoleone 8, Milano<br>
-              P.IVA: IT 12345678901<br>
-              Email: billing@barpilot.app
+          <div class="invoice-parties-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:24px 0; padding:16px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+            <div class="invoice-party-box" style="font-size:12.5px; line-height:1.5; color:#334155;">
+              <div class="invoice-party-title" style="font-size:11px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:6px;">Fornitore Servizio Software:</div>
+              <strong style="color:#0B1220; font-size:13.5px;">BarPilot · Gestionale per Bar & Ristoranti</strong><br>
+              Partita IVA: <strong>02799820036</strong><br>
+              Email Amministrazione: <strong>admin@barpilot.eu</strong><br>
+              Portale: <strong>www.barpilot.eu</strong>
             </div>
-            <div class="invoice-party-box">
-              <div class="invoice-party-title">Intestata a:</div>
-              <strong id="invPreviewBarName">Bar Centrale</strong><br>
-              Cliente: <span id="invPreviewClientName">Marco Bianchi</span><br>
-              Indirizzo: <span id="invPreviewAddress">Via Roma 123, Milano</span><br>
-              P.IVA / CF: <span id="invPreviewPiva">IT09876543210</span>
+            <div class="invoice-party-box" style="font-size:12.5px; line-height:1.5; color:#334155;">
+              <div class="invoice-party-title" style="font-size:11px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:6px;">Destinatario / Cliente (Supabase DB):</div>
+              <strong id="invPreviewBusinessName" style="color:#0B1220; font-size:13.5px;">Bar Centrale S.r.l.</strong><br>
+              Insegna Locale: <span id="invPreviewBarName" style="font-weight:700;">Bar Centrale</span><br>
+              C/O Titolare: <span id="invPreviewClientName">Marco Bianchi</span><br>
+              Sede Legale: <span id="invPreviewAddress">Via del Corso 142, Roma (00186)</span><br>
+              P.IVA / CF: <span id="invPreviewPiva" style="font-weight:700;">IT09876543210</span> · SDI: <span id="invPreviewSdi">0000000</span><br>
+              Email: <span id="invPreviewEmail">marco@barcentrale.it</span>
             </div>
           </div>
 
-          <table class="invoice-items-table">
+          <table class="invoice-items-table" style="width:100%; border-collapse:collapse; margin:20px 0;">
             <thead>
-              <tr>
-                <th>Descrizione</th>
-                <th style="width:80px; text-align:center;">Q.tà</th>
-                <th style="width:110px; text-align:right;">Prezzo</th>
-                <th style="width:110px; text-align:right;">Importo</th>
+              <tr style="border-bottom:2px solid #e2e8f0; background:#f1f5f9;">
+                <th style="padding:10px 12px; text-align:left; font-size:11px; text-transform:uppercase; color:#475569;">Descrizione Servizio</th>
+                <th style="padding:10px 12px; text-align:left; font-size:11px; text-transform:uppercase; color:#475569;">Periodo Competenza</th>
+                <th style="padding:10px 12px; text-align:center; font-size:11px; text-transform:uppercase; color:#475569; width:70px;">Aliquota</th>
+                <th style="padding:10px 12px; text-align:right; font-size:11px; text-transform:uppercase; color:#475569; width:110px;">Prezzo Netto</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  <strong id="invPreviewPlanName">Abbonamento BarPilot Pro (Mensile)</strong><br>
-                  <span style="font-size:11px; color:#64748b;">Periodo di servizio: <span id="invPreviewPeriod">15/10/2025 - 14/11/2025</span></span>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:12px;">
+                  <strong id="invPreviewPlanName" style="color:#0B1220; font-size:13.5px;">Abbonamento BarPilot Pro — Canone Mensile Ricorrente</strong>
+                  <div id="invPreviewServiceNotes" style="font-size:11.5px; color:#64748b; margin-top:4px;">
+                    Licenza d'uso piattaforma cloud BarPilot, sistema comande banco, KDS cucina in tempo reale e backup continuo.
+                  </div>
                 </td>
-                <td style="text-align:center;">1</td>
-                <td style="text-align:right;" id="invPreviewPrice">59,00 €</td>
-                <td style="text-align:right;"><strong>59,00 €</strong></td>
+                <td style="padding:12px; font-size:12.5px; color:#334155;" id="invPreviewPeriod">15/10/2026 - 14/11/2026</td>
+                <td style="padding:12px; text-align:center; font-size:12.5px; color:#334155;">22%</td>
+                <td style="padding:12px; text-align:right; font-size:13px; font-weight:700; color:#0B1220;" id="invPreviewPrice">48,36 €</td>
               </tr>
             </tbody>
           </table>
 
-          <div class="invoice-total-row">
-            <div class="invoice-total-box">
-              <div class="invoice-total-line">
-                <span>Imponibile:</span>
-                <span>48,36 €</span>
+          <div class="invoice-total-row" style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:20px;">
+            <div id="invPreviewLegalNote" style="font-size:11px; color:#64748b; line-height:1.5; max-width:380px; padding:10px 14px; background:#f8fafc; border-radius:6px; border-left:3px solid #FF8A24;">
+              Documento generato automaticamente dalla piattaforma BarPilot · Conforme ai requisiti di fatturazione SaaS europea.<br>
+              Metodo pagamento: <strong>Stripe Billing (Carta / Wallet)</strong>. Saldata con successo.
+            </div>
+
+            <div class="invoice-total-box" style="width:260px; background:#f8fafc; padding:14px; border-radius:8px; border:1px solid #e2e8f0;">
+              <div class="invoice-total-line" style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:#475569;">
+                <span>Imponibile Netto:</span>
+                <span id="invPreviewSubtotal" style="font-weight:700; color:#0B1220;">48,36 €</span>
               </div>
-              <div class="invoice-total-line">
+              <div class="invoice-total-line" style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; color:#475569;">
                 <span>IVA (22%):</span>
-                <span>10,64 €</span>
+                <span id="invPreviewTax" style="font-weight:700; color:#0B1220;">10,64 €</span>
               </div>
-              <div class="invoice-total-line grand-total">
+              <div class="invoice-total-line grand-total" style="display:flex; justify-content:space-between; font-size:16px; font-weight:900; color:#0B1220; border-top:2px solid #cbd5e1; padding-top:8px;">
                 <span>Totale Fattura:</span>
-                <span id="invPreviewTotal">59,00 €</span>
+                <span id="invPreviewTotal" style="color:#FF8A24;">59,00 €</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Actions -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:10px;">
           <div style="display:flex; gap:10px;">
-            <button type="button" class="btn-primary-orange" onclick="window.print()">
-              🖨️ Scarica PDF / Stampa
+            <button type="button" class="btn-primary-orange" onclick="window.adminConsole.printCurrentInvoice()">
+              🖨️ Stampa / Salva PDF (A4)
             </button>
-            <button type="button" class="btn-primary-orange" style="background:var(--bg-card-secondary); color:#fff; border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.showToast('Fattura inviata via email con successo!')">
-              ✉️ Invia via email
+            <button type="button" class="btn-primary-orange" style="background:var(--bg-card-secondary); color:#fff; border:1px solid var(--border-color); box-shadow:none;" onclick="window.adminConsole.sendInvoiceEmail()">
+              ✉️ Invia Fattura al Bar via Email
             </button>
           </div>
-          <button type="button" class="btn-table-action" style="width:auto; padding:0 14px; height:36px; color:#EF4444; border-color:rgba(239,68,68,0.3);" onclick="alert('Fattura contrassegnata come annullata')">
-            Annulla fattura
+          <button type="button" class="btn-table-action" style="width:auto; padding:0 14px; height:36px; color:#94a3b8; border-color:#334155;" onclick="window.adminConsole.closeInvoiceDetail()">
+            Chiudi
           </button>
+        </div>
         </div>
       </div>
     </div>

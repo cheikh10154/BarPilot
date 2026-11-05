@@ -19,9 +19,10 @@ const DEFAULT_ADMIN_DATA = {
       businessName: "Bar Centrale S.r.l.",
       owner: "Marco Bianchi",
       email: "marco@barcentrale.it",
-      phone: "+39 02 87654321",
-      address: "Via Roma 123, Milano",
-      city: "Milano",
+      phone: "+39 06 87654321",
+      address: "Via del Corso 142",
+      city: "Roma",
+      postalCode: "00186",
       plan: "BarPilot Pro",
       status: "active",
       nextInvoice: "15 nov 2026",
@@ -30,19 +31,22 @@ const DEFAULT_ADMIN_DATA = {
       lastAccess: "Oggi, 14:32",
       avatar: "BC",
       photo: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-      piva: "IT09876543210",
-      notes: "Cliente storico. Richiede fatturazione elettronica.",
+      piva: "09876543210",
+      taxCode: "BNCMRC78A15H501Z",
+      sdiCode: "M5UXCR1",
+      notes: "Cliente storico con fatturazione elettronica. 3 punti cassa e KDS cucina.",
       trialDaysRemaining: 0
     },
     {
       id: "bar_porto_02",
       name: "Caffè del Porto",
-      businessName: "Porto Cafè D.I.",
+      businessName: "Porto Cafè D.I. di Giulia Rossi",
       owner: "Giulia Rossi",
       email: "giulia@caffedelporto.it",
       phone: "+39 010 3344556",
-      address: "Calata Molo Vecchio 4, Genova",
+      address: "Calata Molo Vecchio 4",
       city: "Genova",
+      postalCode: "16128",
       plan: "BarPilot Pro",
       status: "active",
       nextInvoice: "28 nov 2026",
@@ -51,19 +55,22 @@ const DEFAULT_ADMIN_DATA = {
       lastAccess: "Oggi, 11:15",
       avatar: "CP",
       photo: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&h=400&fit=crop",
-      piva: "IT01234567890",
-      notes: "Locale stagionale estivo, attivo tutto l'anno con comande KDS.",
+      piva: "01234567890",
+      taxCode: "RSSGLI82B45D969W",
+      sdiCode: "0000000",
+      notes: "Locale sul porto, attivo tutto l'anno con comande KDS e Google Pay.",
       trialDaysRemaining: 0
     },
     {
       id: "bar_dolce_03",
       name: "La Dolce Vita",
-      businessName: "Dolce Vita Bar SAS",
+      businessName: "Dolce Vita Bar S.a.s.",
       owner: "Alessandro Conti",
       email: "alessandro@ladolcevita.it",
       phone: "+39 081 7766554",
-      address: "Piazza Plebiscito 12, Napoli",
+      address: "Piazza Plebiscito 12",
       city: "Napoli",
+      postalCode: "80132",
       plan: "BarPilot Pro",
       status: "trial",
       nextInvoice: "19 nov 2026",
@@ -72,19 +79,22 @@ const DEFAULT_ADMIN_DATA = {
       lastAccess: "Oggi, 09:40",
       avatar: "DV",
       photo: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
-      piva: "IT04567891234",
-      notes: "In prova gratuita (giorno 1 di 14). Molto soddisfatto del KDS banco.",
+      piva: "04567891234",
+      taxCode: "CNTLSN85C12F839K",
+      sdiCode: "SUBM70N",
+      notes: "In prova gratuita (14 giorni inclusi). Molto soddisfatto del KDS banco.",
       trialDaysRemaining: 14
     },
     {
       id: "bar_moderno_04",
       name: "Bar Moderno",
-      businessName: "Moderno Bistrot Snc",
+      businessName: "Moderno Bistrot S.n.c.",
       owner: "Sara Romano",
       email: "sara@barmoderno.it",
       phone: "+39 051 9988776",
-      address: "Via Indipendenza 45, Bologna",
+      address: "Via Indipendenza 45",
       city: "Bologna",
+      postalCode: "40121",
       plan: "BarPilot Pro",
       status: "past_due",
       nextInvoice: "10 ott 2026",
@@ -93,7 +103,9 @@ const DEFAULT_ADMIN_DATA = {
       lastAccess: "Ieri, 18:20",
       avatar: "BM",
       photo: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=600&h=400&fit=crop",
-      piva: "IT07891234567",
+      piva: "07891234567",
+      taxCode: "RMNSRA90D55A944P",
+      sdiCode: "0000000",
       notes: "Carta scaduta nel Google Wallet. Sollecito automatico inviato.",
       trialDaysRemaining: 0
     }
@@ -102,47 +114,83 @@ const DEFAULT_ADMIN_DATA = {
     {
       id: "inv_01",
       number: "#2026-0001",
+      type: "recurring",
       barId: "bar_centrale_01",
       barName: "Bar Centrale",
+      businessName: "Bar Centrale S.r.l.",
       ownerName: "Marco Bianchi",
       date: "15 ott 2026",
       dueDate: "15 ott 2026",
+      paidAt: "15 ott 2026, 10:14",
       amount: 59.00,
       subtotal: 48.36,
       tax: 10.64,
       plan: "BarPilot Pro",
       status: "paid",
-      period: "15/10/2026 - 14/11/2026"
+      period: "15/10/2026 - 14/11/2026",
+      paymentMethod: "Stripe Billing (Carta di Credito)",
+      stripeInvoiceId: "in_1NxABC20260001"
     },
     {
       id: "inv_02",
       number: "#2026-0002",
+      type: "recurring",
       barId: "bar_porto_02",
       barName: "Caffè del Porto",
+      businessName: "Porto Cafè D.I. di Giulia Rossi",
       ownerName: "Giulia Rossi",
       date: "28 ott 2026",
       dueDate: "28 ott 2026",
+      paidAt: "28 ott 2026, 11:20",
       amount: 59.00,
       subtotal: 48.36,
       tax: 10.64,
       plan: "BarPilot Pro",
       status: "paid",
-      period: "28/10/2026 - 27/11/2026"
+      period: "28/10/2026 - 27/11/2026",
+      paymentMethod: "Stripe Billing (Google Pay)",
+      stripeInvoiceId: "in_1NxDEF20260002"
     },
     {
       id: "inv_03",
       number: "#2026-0003",
+      type: "recurring",
       barId: "bar_moderno_04",
       barName: "Bar Moderno",
+      businessName: "Moderno Bistrot S.n.c.",
       ownerName: "Sara Romano",
       date: "04 nov 2026",
       dueDate: "10 nov 2026",
+      paidAt: null,
       amount: 59.00,
       subtotal: 48.36,
       tax: 10.64,
       plan: "BarPilot Pro",
       status: "open",
-      period: "10/10/2026 - 09/11/2026"
+      period: "10/10/2026 - 09/11/2026",
+      paymentMethod: "Stripe Billing (Carta in sospeso)",
+      stripeInvoiceId: "in_1NxGHI20260003"
+    },
+    {
+      id: "inv_04",
+      number: "#2026-0004",
+      type: "post_trial",
+      barId: "bar_dolce_03",
+      barName: "La Dolce Vita",
+      businessName: "Dolce Vita Bar S.a.s.",
+      ownerName: "Alessandro Conti",
+      date: "19 nov 2026",
+      dueDate: "19 nov 2026",
+      paidAt: "19 nov 2026, 09:40",
+      amount: 59.00,
+      subtotal: 48.36,
+      tax: 10.64,
+      plan: "BarPilot Pro",
+      status: "paid",
+      period: "19/11/2026 - 18/12/2026",
+      trialPeriod: "05/11/2026 - 19/11/2026 (14 giorni)",
+      paymentMethod: "Stripe Billing (Carta di Credito)",
+      stripeInvoiceId: "in_1NxJKL20260004"
     }
   ],
   subscriptions: [
@@ -174,10 +222,10 @@ const DEFAULT_ADMIN_DATA = {
   statsTimeRange: "all",
   settings: {
     superAdminName: "Cheikh Gueye",
-    superAdminEmail: "cheikh@barpilot.it",
+    superAdminEmail: "admin@barpilot.eu",
     accessPin: "101540",
     platformName: "BarPilot",
-    supportEmail: "support@barpilot.app",
+    supportEmail: "admin@barpilot.eu",
     trialDays: 14,
     defaultPlan: "BarPilot Pro",
     defaultPrice: 59.00,
@@ -185,9 +233,10 @@ const DEFAULT_ADMIN_DATA = {
     timezone: "Europe/Rome",
     maintenanceMode: false,
     requireCardUpfront: false,
-    companyName: "BarPilot Inc. · Gestione Bar & Ristoranti",
-    companyPiva: "IT 12345678901",
-    billingEmail: "billing@barpilot.app"
+    companyName: "BarPilot · Gestionale per Bar & Ristoranti",
+    companyPiva: "02799820036",
+    billingEmail: "admin@barpilot.eu",
+    companyWebsite: "www.barpilot.eu"
   }
 };
 
@@ -314,6 +363,7 @@ class AdminConsole {
                 phone: rb.phone || "+39 02 1234567",
                 address: rb.address || "Via Centrale 1",
                 city: rb.city || rb["Città"] || "Roma",
+                postalCode: rb.postal_code || rb.postalCode || "00186",
                 plan: rb.plan || "BarPilot Pro",
                 status: rb.status || "trial",
                 nextInvoice: rb.next_invoice || trialEnd.toLocaleDateString('it-IT'),
@@ -323,7 +373,9 @@ class AdminConsole {
                 lastAccess: rb.last_access || "Recente",
                 avatar: rb.avatar || (rb.name ? rb.name.substring(0, 2).toUpperCase() : "BP"),
                 photo: rb.logo_url || rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-                piva: rb.vat_number || rb.tax_code || rb.piva || "IT09876543210",
+                piva: rb.vat_number || rb.tax_code || rb.piva || "09876543210",
+                taxCode: rb.tax_code || rb.taxCode || rb.vat_number || "",
+                sdiCode: rb.sdi_code || rb.sdiCode || "0000000",
                 notes: rb.notes || "",
                 trialDaysRemaining: daysRemaining
               };
@@ -373,21 +425,36 @@ class AdminConsole {
           if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
             this.data.invoices = remoteInvs.map(ri => {
               const matchedBar = (this.data.bars || []).find(b => b.id === ri.bar_id);
+              const matchedSub = (this.data.subscriptions || []).find(s => s.barId === ri.bar_id || s.id === ri.subscription_id);
+              const isPostTrial = ri.invoice_type === 'post_trial' || ri.is_trial_end || (matchedSub && matchedSub.trialEnd && new Date(ri.invoice_date).getTime() >= new Date(matchedSub.trialEnd).getTime() - 86400000);
               return {
                 id: ri.id,
                 number: ri.invoice_number || ri.number || `#${ri.id.slice(-6).toUpperCase()}`,
+                type: isPostTrial ? "post_trial" : "recurring",
                 barId: ri.bar_id,
                 barName: ri.bar_name || (matchedBar ? matchedBar.name : "Bar"),
+                businessName: matchedBar ? (matchedBar.businessName || matchedBar.name) : "Bar",
                 ownerName: matchedBar ? matchedBar.owner : "Titolare",
+                piva: matchedBar ? (matchedBar.piva || matchedBar.vat_number) : "09876543210",
+                taxCode: matchedBar ? matchedBar.taxCode : "",
+                sdiCode: matchedBar ? (matchedBar.sdiCode || "0000000") : "0000000",
+                address: matchedBar ? matchedBar.address : "",
+                city: matchedBar ? matchedBar.city : "",
+                postalCode: matchedBar ? matchedBar.postalCode : "",
+                email: matchedBar ? matchedBar.email : "",
                 date: ri.invoice_date ? new Date(ri.invoice_date).toLocaleDateString('it-IT') : "Recente",
                 rawDate: ri.invoice_date || ri.created_at,
-                dueDate: ri.due_date ? new Date(ri.due_date).toLocaleDateString('it-IT') : "-",
+                dueDate: ri.due_date ? new Date(ri.due_date).toLocaleDateString('it-IT') : (ri.invoice_date ? new Date(ri.invoice_date).toLocaleDateString('it-IT') : "-"),
                 subtotal: Number(ri.amount_subtotal || (ri.amount_total ? ri.amount_total / 1.22 : 48.36)),
                 tax: Number(ri.amount_tax || (ri.amount_total ? ri.amount_total - (ri.amount_total / 1.22) : 10.64)),
                 amount: Number(ri.amount_total || ri.amount || 59.00),
-                amountPaid: Number(ri.amount_paid || 0),
+                amountPaid: Number(ri.amount_paid || (ri.status === 'paid' ? (ri.amount_total || 59.00) : 0)),
                 plan: "BarPilot Pro",
-                status: ri.status || "open",
+                status: ri.status || "paid",
+                period: ri.period || (matchedSub ? `${matchedSub.trialEnd || 'Inizio'} - ${matchedSub.currentPeriodEnd || 'Fine'}` : "15/10/2026 - 14/11/2026"),
+                trialPeriod: matchedSub && matchedSub.trialStart ? `${new Date(matchedSub.trialStart).toLocaleDateString('it-IT')} - ${new Date(matchedSub.trialEnd).toLocaleDateString('it-IT')} (14 giorni)` : "14 giorni gratuiti inclusi",
+                paymentMethod: ri.payment_method || (matchedSub ? matchedSub.paymentMethod : "Stripe Billing (Carta)"),
+                stripeInvoiceId: ri.stripe_invoice_id || null,
                 pdfUrl: ri.invoice_pdf_url || null
               };
             });
@@ -465,6 +532,10 @@ class AdminConsole {
               if (s.setting_key === 'default_price') this.data.settings.defaultPrice = parseFloat(s.setting_value);
               if (s.setting_key === 'require_card_upfront') this.data.settings.requireCardUpfront = s.setting_value === 'true';
               if (s.setting_key === 'maintenance_mode') this.data.settings.maintenanceMode = s.setting_value === 'true';
+              if (s.setting_key === 'company_name') this.data.settings.companyName = s.setting_value;
+              if (s.setting_key === 'company_piva') this.data.settings.companyPiva = s.setting_value;
+              if (s.setting_key === 'billing_email') this.data.settings.billingEmail = s.setting_value;
+              if (s.setting_key === 'company_website') this.data.settings.companyWebsite = s.setting_value;
             });
           }
         }
@@ -1599,89 +1670,451 @@ class AdminConsole {
   openInvoiceDetail(invId) {
     const inv = (this.data.invoices || []).find(i => i.id === invId);
     if (!inv) return;
-    this.printInvoice(invId);
+    this.activeInvoiceId = invId;
+    this.activeInvoiceVariant = inv.type || 'recurring';
+    this.renderInvoiceModal();
+    const modal = document.getElementById("invoiceDetailModal");
+    if (modal) modal.classList.add("active");
   }
 
-  printInvoice(invId) {
+  closeInvoiceDetail() {
+    const modal = document.getElementById("invoiceDetailModal");
+    if (modal) modal.classList.remove("active");
+  }
+
+  setInvoiceVariant(variant) {
+    this.activeInvoiceVariant = variant;
+    this.renderInvoiceModal();
+  }
+
+  renderInvoiceModal() {
+    const inv = (this.data.invoices || []).find(i => i.id === this.activeInvoiceId);
+    if (!inv) return;
+    const bar = (this.data.bars || []).find(b => b.id === inv.barId) || {};
+    const isPostTrial = this.activeInvoiceVariant === 'post_trial';
+
+    // Aggiorna bottoni toolbar
+    const btnRec = document.getElementById("btnVariantRecurring");
+    const btnTrial = document.getElementById("btnVariantTrial");
+    if (btnRec && btnTrial) {
+      if (isPostTrial) {
+        btnRec.style.background = "#334155";
+        btnRec.style.color = "#cbd5e1";
+        btnTrial.style.background = "#FF8A24";
+        btnTrial.style.color = "#fff";
+      } else {
+        btnRec.style.background = "#FF8A24";
+        btnRec.style.color = "#fff";
+        btnTrial.style.background = "#334155";
+        btnTrial.style.color = "#cbd5e1";
+      }
+    }
+
+    // Metadati fattura
+    const setTxt = (id, txt) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = txt;
+    };
+
+    setTxt("invPreviewNumber", inv.number || `#${inv.id}`);
+    setTxt("invPreviewDate", inv.date || "Oggi");
+    setTxt("invPreviewDueDate", inv.dueDate || inv.date || "Oggi");
+
+    const badge = document.getElementById("invPreviewBadge");
+    if (badge) {
+      if (isPostTrial) {
+        badge.textContent = "PRIMA FATTURA (POST-PROVA 14 GIORNI)";
+        badge.style.background = "#fef3c7";
+        badge.style.color = "#b45309";
+      } else {
+        badge.textContent = "FATTURA MENSILE RICORRENTE";
+        badge.style.background = "#e0f2fe";
+        badge.style.color = "#0369a1";
+      }
+    }
+
+    const pill = document.getElementById("invPreviewStatusPill");
+    if (pill) {
+      pill.textContent = inv.status === 'paid' ? 'PAGATA (Stripe Billing)' : 'IN ATTESA';
+      pill.style.background = inv.status === 'paid' ? '#10B981' : '#F59E0B';
+    }
+
+    // Dati Cliente da Supabase
+    setTxt("invPreviewBusinessName", bar.businessName || inv.businessName || bar.name || inv.barName);
+    setTxt("invPreviewBarName", bar.name || inv.barName);
+    setTxt("invPreviewClientName", bar.owner || inv.ownerName || "Titolare");
+    setTxt("invPreviewAddress", `${bar.address || inv.address || "Via Centrale 1"}, ${bar.postalCode ? bar.postalCode + ' ' : ''}${bar.city || inv.city || "Roma"}`);
+    setTxt("invPreviewPiva", bar.piva || inv.piva || "09876543210");
+    setTxt("invPreviewSdi", bar.sdiCode || inv.sdiCode || "0000000");
+    setTxt("invPreviewEmail", bar.email || inv.email || "gestore@bar.it");
+
+    // Servizio e note
+    const planNameEl = document.getElementById("invPreviewPlanName");
+    const notesEl = document.getElementById("invPreviewServiceNotes");
+    const legalEl = document.getElementById("invPreviewLegalNote");
+
+    if (isPostTrial) {
+      if (planNameEl) planNameEl.textContent = "Abbonamento BarPilot Pro — Primo canone post-periodo di prova gratuita (14 giorni inclusi)";
+      if (notesEl) notesEl.textContent = `Prova gratuita di 14 giorni completata con successo (dal ${inv.trialPeriod || '05/11 al 19/11'}). Primo addebito mensile automatico per piattaforma gestionale, comande cassa e KDS cucina.`;
+      if (legalEl) {
+        legalEl.innerHTML = `
+          <strong>Nota di Attivazione Post-Trial:</strong> Il presente documento certifica il primo addebito effettivo dell'abbonamento BarPilot Pro dopo il completamento della prova gratuita di 14 giorni.<br>
+          Metodo pagamento: <strong>${inv.paymentMethod || 'Stripe Billing (Carta)'}</strong>. Corrispettivo saldato.
+        `;
+      }
+      setTxt("invPreviewPeriod", inv.trialPeriod ? `${inv.trialPeriod} + 1° Mese Rinnovo` : "1° Canone Post-Trial");
+    } else {
+      if (planNameEl) planNameEl.textContent = "Abbonamento BarPilot Pro — Canone Mensile Ricorrente";
+      if (notesEl) notesEl.textContent = "Licenza d'uso piattaforma cloud BarPilot, sistema comande banco, KDS cucina in tempo reale, backup continuo e supporto prioritario.";
+      if (legalEl) {
+        legalEl.innerHTML = `
+          <strong>Nota Fiscale Ricorrente:</strong> Documento emesso per rinnovo mensile continuativo del servizio SaaS BarPilot.<br>
+          Metodo pagamento: <strong>${inv.paymentMethod || 'Stripe Billing (Carta)'}</strong>. Saldata con successo.
+        `;
+      }
+      setTxt("invPreviewPeriod", inv.period || "Canone Mensile");
+    }
+
+    const subtotal = inv.subtotal || 48.36;
+    const tax = inv.tax || 10.64;
+    const total = inv.amount || 59.00;
+
+    setTxt("invPreviewPrice", `${subtotal.toFixed(2)} €`);
+    setTxt("invPreviewSubtotal", `${subtotal.toFixed(2)} €`);
+    setTxt("invPreviewTax", `${tax.toFixed(2)} €`);
+    setTxt("invPreviewTotal", `${total.toFixed(2)} €`);
+  }
+
+  printCurrentInvoice() {
+    this.printInvoice(this.activeInvoiceId, this.activeInvoiceVariant);
+  }
+
+  sendInvoiceEmail() {
+    const inv = (this.data.invoices || []).find(i => i.id === this.activeInvoiceId);
+    if (!inv) return;
+    const bar = (this.data.bars || []).find(b => b.id === inv.barId) || {};
+    const recipient = bar.email || inv.email || "cliente@bar.it";
+    const typeLabel = this.activeInvoiceVariant === 'post_trial' ? 'Prima fattura post-prova 14gg' : 'Fattura mensile ricorrente';
+
+    this.showToast(`✉️ ${typeLabel} ${inv.number} inviata con successo via email a: ${recipient}`);
+
+    // Registra audit log su Supabase
+    try {
+      fetch(`${this.supabaseConfig.url}/rest/v1/admin_audit_logs`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          admin_id: "cheikh_superadmin",
+          action: "invoice_sent_email",
+          entity_type: "invoice",
+          entity_id: inv.id,
+          new_values: { recipient, invoice_number: inv.number, variant: this.activeInvoiceVariant },
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (e) {}
+  }
+
+  printInvoice(invId, forcedVariant = null) {
     const inv = (this.data.invoices || []).find(i => i.id === invId);
     if (!inv) return;
+    const bar = (this.data.bars || []).find(b => b.id === inv.barId) || {};
+    const variant = forcedVariant || inv.type || 'recurring';
+    const isPostTrial = variant === 'post_trial';
 
-    const printWin = window.open('', '_blank', 'width=800,height=900');
+    const s = this.data.settings || {};
+    const compName = s.companyName || "BarPilot · Gestionale per Bar & Ristoranti";
+    const compPiva = s.companyPiva || "02799820036";
+    const compEmail = s.billingEmail || "admin@barpilot.eu";
+    const compWebsite = s.companyWebsite || "www.barpilot.eu";
+
+    const businessName = bar.businessName || inv.businessName || bar.name || inv.barName;
+    const barName = bar.name || inv.barName;
+    const ownerName = bar.owner || inv.ownerName || "Titolare";
+    const piva = bar.piva || inv.piva || "09876543210";
+    const taxCode = bar.taxCode || inv.taxCode || "";
+    const sdiCode = bar.sdiCode || inv.sdiCode || "0000000";
+    const address = bar.address || inv.address || "Via Centrale 1";
+    const city = bar.city || inv.city || "Roma";
+    const postalCode = bar.postalCode || inv.postalCode || "";
+    const email = bar.email || inv.email || "amministrazione@bar.it";
+    const paymentMethod = inv.paymentMethod || "Stripe Billing (Carta di Credito)";
+
+    const subtotal = inv.subtotal || 48.36;
+    const tax = inv.tax || 10.64;
+    const amount = inv.amount || 59.00;
+
+    const printWin = window.open('', '_blank', 'width=850,height=950');
     if (!printWin) return;
 
     printWin.document.write(`
       <!DOCTYPE html>
-      <html>
+      <html lang="it">
       <head>
+        <meta charset="UTF-8">
         <title>Fattura ${inv.number} - BarPilot</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; background: #fff; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #FF8A24; padding-bottom: 20px; margin-bottom: 30px; }
-          .logo { font-size: 24px; font-weight: 900; color: #0B1220; }
+          @page { size: A4; margin: 15mm; }
+          * { box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 30px 40px;
+            color: #0B1220;
+            background: #fff;
+            line-height: 1.45;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #FF8A24;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            color: #0B1220;
+          }
           .logo span { color: #FF8A24; }
-          .table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-          .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-          .table th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
-          .total-box { margin-left: auto; width: 300px; padding: 15px; background: #f8fafc; border-radius: 8px; }
-          .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-          .total-row.final { font-size: 18px; font-weight: 800; color: #0B1220; border-top: 2px solid #cbd5e1; margin-top: 6px; padding-top: 10px; }
-          .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #10B981; color: #fff; }
+          .parties-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            gap: 20px;
+          }
+          .party-col { flex: 1; }
+          .party-title {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+          }
+          .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0 20px;
+          }
+          .table th {
+            background: #f1f5f9;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #475569;
+            font-weight: 800;
+            border-bottom: 2px solid #cbd5e1;
+          }
+          .table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 12.5px;
+            vertical-align: top;
+          }
+          .totals-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 10px;
+          }
+          .legal-note {
+            max-width: 420px;
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+            background: #f8fafc;
+            padding: 12px 14px;
+            border-radius: 6px;
+            border-left: 3px solid #FF8A24;
+          }
+          .total-box {
+            width: 280px;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 13px;
+            color: #334155;
+          }
+          .total-row.final {
+            font-size: 17px;
+            font-weight: 900;
+            color: #0B1220;
+            border-top: 2px solid #cbd5e1;
+            margin-top: 6px;
+            padding-top: 8px;
+          }
+          .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+          }
+          .sub-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin: 2px 0 6px;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10.5px;
+            color: #94a3b8;
+            text-align: center;
+            line-height: 1.5;
+          }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+          }
         </style>
       </head>
       <body>
+        <!-- Header -->
         <div class="header">
           <div>
             <div class="logo">BAR<span>PILOT</span></div>
-            <div style="font-size:12px; color:#64748b; margin-top:4px;">BarPilot Inc. · Gestione Bar & Ristoranti<br>P.IVA: IT 12345678901 · support@barpilot.app</div>
+            <div style="font-size:12.5px; font-weight:700; color:#0B1220; margin-top:4px;">${compName}</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px; line-height:1.4;">
+              Partita IVA: <strong>${compPiva}</strong> · Email: <strong>${compEmail}</strong><br>
+              Portale: <strong>${compWebsite}</strong> · Sede Operativa: Italia
+            </div>
           </div>
           <div style="text-align:right;">
-            <h2 style="margin:0; color:#0B1220;">FATTURA FISCALE</h2>
-            <div style="font-size:16px; font-weight:800; color:#FF8A24; margin:4px 0;">${inv.number}</div>
-            <div style="font-size:12px; color:#64748b;">Data: ${inv.date}</div>
+            <h2 style="margin:0; font-size:20px; font-weight:900; color:#0B1220;">FATTURA FISCALE</h2>
+            <div style="font-size:16px; font-weight:800; color:#FF8A24; margin:3px 0;">${inv.number}</div>
+            <div>
+              <span class="sub-badge" style="background:${isPostTrial ? '#fef3c7' : '#e0f2fe'}; color:${isPostTrial ? '#b45309' : '#0369a1'};">
+                ${isPostTrial ? 'PRIMA FATTURA (ATTIVAZIONE POST-TRIAL 14 GG)' : 'RINNOVO MENSILE RICORRENTE'}
+              </span>
+            </div>
+            <div style="font-size:12px; color:#64748b;">Data emissione: <strong style="color:#1e293b;">${inv.date}</strong></div>
+            <div style="font-size:12px; color:#64748b;">Data scadenza: <strong style="color:#1e293b;">${inv.dueDate || inv.date}</strong></div>
           </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; margin-bottom:30px;">
-          <div>
-            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700;">Destinatario / Cliente:</div>
-            <div style="font-size:16px; font-weight:800; margin-top:4px;">${inv.barName}</div>
-            <div style="font-size:13px; color:#475569;">C/O ${inv.ownerName}</div>
+        <!-- Anagrafiche -->
+        <div class="parties-box">
+          <div class="party-col">
+            <div class="party-title">Destinatario / Cliente (Database Supabase):</div>
+            <div style="font-size:14.5px; font-weight:800; color:#0B1220;">${businessName}</div>
+            <div style="font-size:12.5px; color:#334155; margin-top:2px;">Insegna: <strong>${barName}</strong></div>
+            <div style="font-size:12px; color:#475569; margin-top:2px;">C/O Titolare: ${ownerName}</div>
+            <div style="font-size:12px; color:#475569; margin-top:2px;">Sede: ${address}${postalCode ? ', ' + postalCode : ''} ${city} (IT)</div>
+            <div style="font-size:12px; color:#475569; margin-top:2px;">P.IVA / CF: <strong>${piva}</strong> ${taxCode ? '· ' + taxCode : ''} · SDI: <strong>${sdiCode}</strong></div>
+            <div style="font-size:12px; color:#475569; margin-top:2px;">Email: ${email}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700;">Stato Pagamento:</div>
-            <div style="margin-top:4px;"><span class="badge">${inv.status === 'paid' ? 'PAGATA (Stripe Billing)' : 'IN ATTESA'}</span></div>
+          <div class="party-col" style="text-align:right;">
+            <div class="party-title">Stato Pagamento:</div>
+            <div style="margin-top:2px;">
+              <span class="badge" style="background:${inv.status === 'paid' ? '#10B981' : '#F59E0B'}; color:#fff;">
+                ${inv.status === 'paid' ? 'PAGATA (Stripe Billing)' : 'IN ATTESA DI PAGAMENTO'}
+              </span>
+            </div>
+            <div style="font-size:11.5px; color:#475569; margin-top:6px;">Metodo: <strong>${paymentMethod}</strong></div>
+            ${inv.stripeInvoiceId ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">ID Ricevuta: ${inv.stripeInvoiceId}</div>` : ''}
+            ${inv.paidAt ? `<div style="font-size:11px; color:#10B981; font-weight:700; margin-top:2px;">Data Incasso: ${inv.paidAt}</div>` : ''}
           </div>
         </div>
 
+        <!-- Righe Servizio -->
         <table class="table">
           <thead>
             <tr>
               <th>Descrizione Servizio</th>
-              <th>Periodo Competenza</th>
-              <th style="text-align:right;">Prezzo Netto</th>
+              <th style="width:140px;">Competenza</th>
+              <th style="width:70px; text-align:center;">Aliquota</th>
+              <th style="width:110px; text-align:right;">Imponibile</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>Abbonamento BarPilot Pro</strong><br><small style="color:#64748b;">Piattaforma gestionale, KDS cucina e comande banco</small></td>
-              <td>Mensile</td>
-              <td style="text-align:right;">${(inv.subtotal || 48.36).toFixed(2)} €</td>
-            </tr>
+            ${isPostTrial ? `
+              <tr>
+                <td>
+                  <strong style="font-size:13px; color:#0B1220;">Abbonamento BarPilot Pro — Primo canone post-periodo di prova gratuita (14 giorni inclusi)</strong>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:4px; line-height:1.4;">
+                    Periodo di prova di 14 giorni completato con successo (dal ${inv.trialPeriod || '05/11 al 19/11'} a 0,00 €). Attivazione del primo canone mensile effettivo con licenza software cloud, comande cassa banco, modulo KDS cucina in tempo reale, backup continuo e supporto prioritario.
+                  </div>
+                </td>
+                <td style="font-size:12px; color:#334155;">${inv.period || '1° Mese Post-Trial'}</td>
+                <td style="text-align:center; font-size:12px; color:#334155;">22%</td>
+                <td style="text-align:right; font-weight:700; font-size:13px; color:#0B1220;">${subtotal.toFixed(2)} €</td>
+              </tr>
+            ` : `
+              <tr>
+                <td>
+                  <strong style="font-size:13px; color:#0B1220;">Abbonamento BarPilot Pro — Canone mensile ricorrente</strong>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:4px; line-height:1.4;">
+                    Rinnovo mensile del servizio SaaS gestionale BarPilot: accesso illimitato alle funzionalità gestionali, postazione comande banco/cameriere, display cucina KDS, archiviazione scontrini e reportistica vendite.
+                  </div>
+                </td>
+                <td style="font-size:12px; color:#334155;">${inv.period || 'Canone Mensile'}</td>
+                <td style="text-align:center; font-size:12px; color:#334155;">22%</td>
+                <td style="text-align:right; font-weight:700; font-size:13px; color:#0B1220;">${subtotal.toFixed(2)} €</td>
+              </tr>
+            `}
           </tbody>
         </table>
 
-        <div class="total-box">
-          <div class="total-row"><span>Imponibile:</span><strong>${(inv.subtotal || 48.36).toFixed(2)} €</strong></div>
-          <div class="total-row"><span>IVA (22%):</span><strong>${(inv.tax || 10.64).toFixed(2)} €</strong></div>
-          <div class="total-row final"><span>Totale Dovuto:</span><span style="color:#FF8A24;">${inv.amount.toFixed(2)} €</span></div>
+        <!-- Totali e Clausole -->
+        <div class="totals-wrap">
+          <div class="legal-note">
+            ${isPostTrial ? `
+              <strong>Nota Contrattuale & Fiscale:</strong> Il presente documento attesta il primo addebito effettivo dell'abbonamento BarPilot Pro a seguito del completamento del periodo di prova gratuita di 14 giorni. Il canone si rinnoverà tacitamente ogni mese su Stripe Billing salvo disdetta da parte del gestore.<br>
+              Metodo di pagamento: <strong>${paymentMethod}</strong>. Corrispettivo riscosso.
+            ` : `
+              <strong>Nota Contrattuale & Fiscale:</strong> Addebito mensile ricorrente autorizzato ed eseguito tramite Stripe Billing. Documento conforme ai requisiti di deducibilità fiscale per servizi software SaaS.<br>
+              Nessun ulteriore pagamento dovuto per il periodo di competenza indicato.
+            `}
+          </div>
+
+          <div class="total-box">
+            <div class="total-row"><span>Imponibile Netto:</span><strong>${subtotal.toFixed(2)} €</strong></div>
+            <div class="total-row"><span>IVA (22%):</span><strong>${tax.toFixed(2)} €</strong></div>
+            <div class="total-row final"><span>Totale Fattura:</span><span style="color:#FF8A24;">${amount.toFixed(2)} €</span></div>
+            <div class="total-row" style="font-size:12px; color:#10B981; margin-top:4px; border-top:1px dashed #cbd5e1; padding-top:4px;">
+              <span>Totale Pagato:</span><strong>${amount.toFixed(2)} €</strong>
+            </div>
+            <div class="total-row" style="font-size:11px; color:#64748b;">
+              <span>Saldo a Pagare:</span><strong>0,00 €</strong>
+            </div>
+          </div>
         </div>
 
-        <div style="margin-top:60px; font-size:11px; color:#94a3b8; text-align:center;">
-          Documento generato automaticamente dalla piattaforma BarPilot · Conforme ai requisiti di fatturazione SaaS
+        <!-- Footer -->
+        <div class="footer">
+          Documento generato automaticamente dalla piattaforma BarPilot · Conforme ai requisiti di fatturazione SaaS europea.<br>
+          Fornitore: <strong>${compName}</strong> · Partita IVA: <strong>${compPiva}</strong> · Email: <strong>${compEmail}</strong> · <strong>${compWebsite}</strong>
         </div>
 
         <script>
-          window.onload = function() { window.print(); };
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
         </script>
       </body>
       </html>

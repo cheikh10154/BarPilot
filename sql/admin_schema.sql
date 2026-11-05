@@ -233,7 +233,7 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
 INSERT INTO public.admin_settings (id, setting_key, setting_value, updated_by)
 VALUES
   ('set_01', 'platform_name', 'BarPilot', 'Cheikh Gueye'),
-  ('set_02', 'support_email', 'support@barpilot.app', 'Cheikh Gueye'),
+  ('set_02', 'support_email', 'admin@barpilot.eu', 'Cheikh Gueye'),
   ('set_03', 'trial_days', '14', 'Cheikh Gueye'),
   ('set_04', 'default_plan', 'BarPilot Pro', 'Cheikh Gueye'),
   ('set_05', 'default_price', '59.00', 'Cheikh Gueye'),
@@ -241,7 +241,11 @@ VALUES
   ('set_07', 'timezone', 'Europe/Rome', 'Cheikh Gueye'),
   ('set_08', 'maintenance_mode', 'false', 'Cheikh Gueye'),
   ('set_09', 'admin_notifications', 'true', 'Cheikh Gueye'),
-  ('set_10', 'require_card_upfront', 'false', 'Cheikh Gueye')
+  ('set_10', 'require_card_upfront', 'false', 'Cheikh Gueye'),
+  ('set_11', 'company_name', 'BarPilot · Gestionale per Bar & Ristoranti', 'Cheikh Gueye'),
+  ('set_12', 'company_piva', '02799820036', 'Cheikh Gueye'),
+  ('set_13', 'billing_email', 'admin@barpilot.eu', 'Cheikh Gueye'),
+  ('set_14', 'company_website', 'www.barpilot.eu', 'Cheikh Gueye')
 ON CONFLICT (setting_key) DO UPDATE SET
   setting_value = EXCLUDED.setting_value,
   updated_at = now();
