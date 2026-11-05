@@ -1,266 +1,22 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BarPilot - Gestisci abbonamento</title>
-  <link rel="icon" type="image/png" href="/assets/images/logo.png">
-  <link rel="apple-touch-icon" href="/assets/images/logo.png">
-  <meta name="theme-color" content="#0B1220">
-  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/images/logo.png">
+  <link rel="apple-touch-icon" href="assets/images/logo.png">
+  <meta name="theme-color" content="#FF7A00">
+  <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #F8FAFC;
-      color: #0F172A;
-      min-height: 100vh;
-      display: flex;
-    }
-
-    /* ----------------------------------------------------
-       SIDEBAR (Desktop)
-       ---------------------------------------------------- */
-    .sidebar {
-      width: 260px;
-      background-color: #0B1220;
-      color: #FFFFFF;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      padding: 24px 16px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-    }
-
-    .sidebar-brand {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 12px 24px;
-      text-decoration: none;
-      color: #FFFFFF;
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-    }
-
-    .sidebar-brand span.pilot-text {
-      color: #FF8A24;
-    }
-
-    /* Bar Profile Widget */
-    .sidebar-profile {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 12px 0 24px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      margin-bottom: 20px;
-    }
-
-    .profile-avatar-wrap {
-      position: relative;
-      width: 72px;
-      height: 72px;
-      margin-bottom: 10px;
-    }
-
-    .profile-avatar {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      background: #1E293B;
-    }
-
-    .profile-bar-name {
-      font-size: 15px;
-      font-weight: 800;
-      color: #FFFFFF;
-      margin-bottom: 6px;
-    }
-
-    .profile-pro-badge {
-      display: inline-block;
-      background: #10B981;
-      color: #FFFFFF;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 2px 10px;
-      border-radius: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Nav Links */
-    .sidebar-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      color: #94A3B8;
-      text-decoration: none;
-      border-radius: 12px;
-      font-size: 14.5px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-
-    .nav-item:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: #FFFFFF;
-    }
-
-    .nav-item.active {
-      background: #FF8A24;
-      color: #FFFFFF;
-      font-weight: 700;
-      box-shadow: 0 4px 12px rgba(255, 138, 36, 0.35);
-    }
-
-    .nav-item-icon {
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-    }
-
-    /* ----------------------------------------------------
-       MAIN CONTENT
-       ---------------------------------------------------- */
-    .main-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      background: #F8FAFC;
-    }
-
-    /* Mobile Header (Hidden on Desktop) */
-    .mobile-header {
-      display: none;
-      background: #0B1220;
-      padding: 14px 20px;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-
-    .mobile-brand {
-      font-size: 22px;
-      font-weight: 900;
-      color: #FFFFFF;
-      text-decoration: none;
-    }
-
-    .mobile-brand span {
-      color: #FF8A24;
-    }
-
-    .mobile-actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .mobile-btn-bell {
-      background: none;
-      border: none;
-      color: #FFFFFF;
-      font-size: 20px;
-      position: relative;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-    }
-
-    .bell-badge-dot {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 8px;
-      height: 8px;
-      background: #FF8A24;
-      border-radius: 50%;
-      border: 1.5px solid #0B1220;
-    }
-
-    .mobile-btn-menu {
-      background: none;
-      border: none;
-      color: #FFFFFF;
-      font-size: 22px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-    }
-
-    /* Content Area */
-    .content-area {
-      padding: 32px 40px;
+    /* Content styling aligned with BarPilot UI */
+    .manage-sub-content {
+      padding: 24px 32px;
       max-width: 980px;
       width: 100%;
     }
 
-    /* Page Header */
-    .page-title-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 6px;
-    }
-
-    .page-header-icon {
-      width: 44px;
-      height: 44px;
-      background: #FFF7ED;
-      border: 1.5px solid #FFEDD5;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      color: #FF8A24;
-      flex-shrink: 0;
-    }
-
-    .page-title {
-      font-size: 26px;
-      font-weight: 900;
-      color: #0F172A;
-      letter-spacing: -0.5px;
-    }
-
-    .page-subtitle {
-      font-size: 14.5px;
-      color: #64748B;
-      margin-bottom: 28px;
-      margin-left: 58px;
-    }
-
-    /* Notification Banner */
+    /* Status Alert Banner */
     .alert-banner {
       padding: 14px 18px;
       border-radius: 12px;
@@ -273,42 +29,34 @@
     }
 
     .alert-banner-success {
-      background: #DCFCE7;
-      border: 1px solid #BBF7D0;
-      color: #166534;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34D399;
     }
 
     .alert-banner-cancelled {
-      background: #FEE2E2;
-      border: 1px solid #FECACA;
-      color: #991B1B;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #F87171;
     }
 
-    /* ----------------------------------------------------
-       CARDS
-       ---------------------------------------------------- */
-    .card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 18px;
-      padding: 26px;
+    /* Subscription Card */
+    .sub-card-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+      box-shadow: var(--shadow-sm);
     }
 
-    /* Main Subscription Card */
-    .sub-card-body {
+    .sub-card-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 28px;
     }
 
-    .sub-col-left {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sub-plan-header {
+    .sub-plan-head {
       display: flex;
       align-items: center;
       gap: 14px;
@@ -323,7 +71,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(255, 122, 0, 0.28);
+      box-shadow: 0 4px 14px rgba(255, 122, 0, 0.35);
       flex-shrink: 0;
     }
 
@@ -336,20 +84,20 @@
     .sub-plan-title {
       font-size: 22px;
       font-weight: 900;
-      color: #0F172A;
+      color: var(--text-main);
       margin-bottom: 2px;
     }
 
     .sub-plan-price {
       font-size: 20px;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--text-main);
     }
 
     .sub-plan-price span {
       font-size: 14px;
       font-weight: 500;
-      color: #64748B;
+      color: var(--text-muted);
     }
 
     .sub-features-list {
@@ -366,20 +114,20 @@
       gap: 10px;
       font-size: 13.5px;
       font-weight: 600;
-      color: #334155;
+      color: var(--text-main);
     }
 
     .sub-features-list li svg {
       width: 16px;
       height: 16px;
-      fill: #16A34A;
+      fill: #10B981;
       flex-shrink: 0;
     }
 
     /* Sub Column Right (Info box) */
-    .sub-col-right {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+    .sub-info-col {
+      background: var(--bg-card-alt, rgba(255, 255, 255, 0.03));
+      border: 1px solid var(--border-color);
       border-radius: 14px;
       padding: 20px;
       display: flex;
@@ -391,8 +139,9 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #DCFCE7;
-      color: #15803D;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
       font-size: 13px;
       font-weight: 800;
       padding: 6px 14px;
@@ -401,8 +150,9 @@
     }
 
     .status-badge.cancelled {
-      background: #FEE2E2;
-      color: #B91C1C;
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border-color: rgba(239, 68, 68, 0.3);
     }
 
     .sub-info-row {
@@ -413,11 +163,10 @@
 
     .sub-info-icon {
       font-size: 18px;
-      color: #475569;
-      margin-top: 1px;
       width: 20px;
       display: flex;
       justify-content: center;
+      margin-top: 1px;
     }
 
     .sub-info-content {
@@ -427,14 +176,14 @@
     .sub-info-label {
       font-size: 12px;
       font-weight: 700;
-      color: #64748B;
+      color: var(--text-muted);
       margin-bottom: 2px;
     }
 
     .sub-info-val {
       font-size: 14px;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -442,7 +191,7 @@
     }
 
     .btn-edit-link {
-      color: #EA580C;
+      color: #FF8A24;
       font-size: 13px;
       font-weight: 700;
       text-decoration: none;
@@ -453,7 +202,6 @@
       text-decoration: underline;
     }
 
-    /* Payment Brand Pill */
     .payment-brand-val {
       display: flex;
       align-items: center;
@@ -480,11 +228,9 @@
       margin-left: -6px;
     }
 
-    /* ----------------------------------------------------
-       ACTION CARDS (Disdici & Elimina)
-       ---------------------------------------------------- */
+    /* Action Cards */
     .action-card {
-      background: #FFFFFF;
+      background: var(--bg-card);
       border-radius: 14px;
       padding: 16px 20px;
       display: flex;
@@ -496,24 +242,22 @@
       text-decoration: none;
     }
 
-    /* Disdici abbonamento (Orange border) */
     .action-card-cancel {
-      border: 1.5px solid #FFD8B5;
+      border: 1.5px solid rgba(255, 138, 36, 0.4);
     }
 
     .action-card-cancel:hover {
       border-color: #FF8A24;
-      background: #FFFBF7;
+      background: rgba(255, 138, 36, 0.05);
     }
 
-    /* Elimina account (Red border) */
     .action-card-delete {
-      border: 1.5px solid #FECACA;
+      border: 1.5px solid rgba(239, 68, 68, 0.4);
     }
 
     .action-card-delete:hover {
       border-color: #EF4444;
-      background: #FEF2F2;
+      background: rgba(239, 68, 68, 0.05);
     }
 
     .action-card-left {
@@ -531,11 +275,11 @@
     }
 
     .action-card-cancel .action-icon {
-      color: #EA580C;
+      color: #FF8A24;
     }
 
     .action-card-delete .action-icon {
-      color: #DC2626;
+      color: #EF4444;
     }
 
     .action-title {
@@ -545,16 +289,16 @@
     }
 
     .action-card-cancel .action-title {
-      color: #EA580C;
+      color: #FF8A24;
     }
 
     .action-card-delete .action-title {
-      color: #DC2626;
+      color: #EF4444;
     }
 
     .action-desc {
       font-size: 13px;
-      color: #64748B;
+      color: var(--text-muted);
     }
 
     .action-chevron {
@@ -563,16 +307,14 @@
     }
 
     .action-card-cancel .action-chevron {
-      color: #EA580C;
+      color: #FF8A24;
     }
 
     .action-card-delete .action-chevron {
-      color: #DC2626;
+      color: #EF4444;
     }
 
-    /* ----------------------------------------------------
-       STORICO FATTURE
-       ---------------------------------------------------- */
+    /* Storico Fatture */
     .invoices-header {
       display: flex;
       align-items: center;
@@ -588,7 +330,7 @@
     .invoices-title {
       font-size: 18px;
       font-weight: 900;
-      color: #0F172A;
+      color: var(--text-main);
     }
 
     .invoices-table {
@@ -601,9 +343,9 @@
       text-align: left;
       padding: 12px 14px;
       font-weight: 700;
-      color: #475569;
-      background: #F8FAFC;
-      border-bottom: 1px solid #E2E8F0;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-color);
       font-size: 12.5px;
     }
 
@@ -613,8 +355,8 @@
 
     .invoices-table td {
       padding: 14px;
-      border-bottom: 1px solid #F1F5F9;
-      color: #1E293B;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
       font-weight: 600;
     }
 
@@ -626,19 +368,20 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #DCFCE7;
-      color: #15803D;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
       font-size: 12px;
       font-weight: 700;
       padding: 3px 10px;
       border-radius: 12px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
     .btn-download-action {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      color: #EA580C;
+      color: #FF8A24;
       font-weight: 700;
       text-decoration: none;
       font-size: 13px;
@@ -649,18 +392,16 @@
       text-decoration: underline;
     }
 
-    /* ----------------------------------------------------
-       MODALS
-       ---------------------------------------------------- */
+    /* Modals */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 10000;
       padding: 16px;
     }
 
@@ -669,19 +410,20 @@
     }
 
     .modal-box {
-      background: #FFFFFF;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 18px;
       max-width: 480px;
       width: 100%;
       padding: 26px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     }
 
     .modal-title {
       font-size: 19px;
       font-weight: 900;
       margin-bottom: 8px;
-      color: #0F172A;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -689,7 +431,7 @@
 
     .modal-desc {
       font-size: 13.5px;
-      color: #64748B;
+      color: var(--text-muted);
       line-height: 1.5;
       margin-bottom: 20px;
     }
@@ -702,24 +444,24 @@
       display: block;
       font-size: 12.5px;
       font-weight: 700;
-      color: #334155;
+      color: var(--text-main);
       margin-bottom: 6px;
     }
 
     .form-select-modal, .form-textarea-modal {
       width: 100%;
-      background: #F8FAFC;
-      border: 1px solid #CBD5E1;
+      background: var(--bg-input, rgba(255,255,255,0.05));
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 10px 12px;
-      color: #0F172A;
+      color: var(--text-main);
       font-size: 13.5px;
       outline: none;
+      box-sizing: border-box;
     }
 
     .form-select-modal:focus, .form-textarea-modal:focus {
       border-color: #FF8A24;
-      background: #FFFFFF;
     }
 
     .modal-actions {
@@ -730,9 +472,9 @@
     }
 
     .btn-modal-cancel {
-      background: #F1F5F9;
+      background: rgba(255, 255, 255, 0.08);
       border: none;
-      color: #475569;
+      color: var(--text-main);
       padding: 10px 18px;
       border-radius: 8px;
       font-size: 13.5px;
@@ -741,7 +483,7 @@
     }
 
     .btn-modal-cancel:hover {
-      background: #E2E8F0;
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .btn-modal-confirm-cancel {
@@ -759,53 +501,17 @@
       background: #DC2626;
     }
 
-    /* ----------------------------------------------------
-       RESPONSIVE (Mobile < 900px)
-       ---------------------------------------------------- */
     @media (max-width: 899px) {
-      body {
-        flex-direction: column;
+      .manage-sub-content {
+        padding: 16px;
       }
-
-      .sidebar {
-        display: none;
-      }
-
-      .mobile-header {
-        display: flex;
-      }
-
-      .content-area {
-        padding: 20px 16px 60px;
-      }
-
-      .page-title {
-        font-size: 22px;
-      }
-
-      .page-subtitle {
-        display: none;
-      }
-
-      .sub-card-body {
+      .sub-card-grid {
         grid-template-columns: 1fr;
         gap: 18px;
       }
-
-      .sub-col-right {
+      .sub-info-col {
         order: -1;
-        background: #FFFFFF;
-        border: none;
-        padding: 0 0 16px 0;
-        border-bottom: 1px solid #F1F5F9;
       }
-
-      .sub-features-list {
-        margin-top: 14px;
-        padding-top: 14px;
-        border-top: 1px solid #F1F5F9;
-      }
-
       .invoices-table th:nth-child(2),
       .invoices-table td:nth-child(2) {
         display: none;
@@ -815,282 +521,363 @@
 </head>
 <body>
 
-  <!-- DESKTOP SIDEBAR -->
-  <aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-      Bar<span class="pilot-text">Pilot</span>
-    </a>
+  <div class="app-container">
 
-    <!-- Bar Profile Widget -->
-    <div class="sidebar-profile">
-      <div class="profile-avatar-wrap">
-        <img src="/assets/images/barpilot-logo-app.png" id="sidebarBarImg" class="profile-avatar" alt="Bar Profile">
-      </div>
-      <div class="profile-bar-name" id="sidebarBarName">Café Dakar</div>
-      <span class="profile-pro-badge">Pro</span>
-    </div>
-
-    <!-- Navigation List -->
-    <nav class="sidebar-nav">
-      <a href="index.html#view-dashboard" class="nav-item">
-        <span class="nav-item-icon">🏠</span>
-        <span>Panoramica</span>
-      </a>
-      <a href="index.html#view-orders" class="nav-item">
-        <span class="nav-item-icon">📋</span>
-        <span>Ordini</span>
-      </a>
-      <a href="index.html#view-catalog" class="nav-item">
-        <span class="nav-item-icon">🍹</span>
-        <span>Menu</span>
-      </a>
-      <a href="index.html#view-stock" class="nav-item">
-        <span class="nav-item-icon">📦</span>
-        <span>Magazzino</span>
-      </a>
-      <a href="index.html#view-stats" class="nav-item">
-        <span class="nav-item-icon">📈</span>
-        <span>Report</span>
-      </a>
-      <a href="gestisci-abbonamento.html" class="nav-item active">
-        <span class="nav-item-icon">📅</span>
-        <span>Abbonamento</span>
-      </a>
-      <a href="index.html#view-settings" class="nav-item">
-        <span class="nav-item-icon">⚙️</span>
-        <span>Impostazioni</span>
-      </a>
-      <a href="index.html#view-support" class="nav-item">
-        <span class="nav-item-icon">🎧</span>
-        <span>Assistenza</span>
-      </a>
-    </nav>
-  </aside>
-
-  <!-- MAIN WRAPPER -->
-  <div class="main-wrap">
-
-    <!-- MOBILE TOP BAR -->
-    <header class="mobile-header">
-      <a href="index.html" class="mobile-brand">
-        Bar<span>Pilot</span>
-      </a>
-      <div class="mobile-actions">
-        <button type="button" class="mobile-btn-bell" onclick="alert('Nessuna nuova notifica.')" aria-label="Notifiche">
-          🔔
-          <span class="bell-badge-dot"></span>
-        </button>
-        <button type="button" class="mobile-btn-menu" onclick="window.location.href='index.html#view-dashboard'" aria-label="Menu">
-          ☰
-        </button>
-      </div>
-    </header>
-
-    <!-- CONTENT AREA -->
-    <main class="content-area">
-
-      <!-- Page Title -->
-      <div class="page-title-row">
-        <div class="page-header-icon">
-          📅
+    <!-- ========================================================
+         SIDEBAR IDENTICA AD INDEX.HTML
+         ======================================================== -->
+    <aside class="sidebar" id="appSidebar">
+      
+      <!-- Brand & Logo -->
+      <div class="brand-header">
+        <img src="assets/images/logo.png" alt="BarPilot Logo" class="brand-logo-img">
+        <div class="brand-title-wrap">
+          <span class="brand-title">Bar<span>Pilot</span></span>
         </div>
-        <h1 class="page-title">Gestisci abbonamento</h1>
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeSidebar()" aria-label="Chiudi menu" title="Chiudi menu">✕</button>
       </div>
-      <p class="page-subtitle">
-        Visualizza i dettagli del tuo piano, gestisci i pagamenti e le impostazioni.
-      </p>
 
-      <!-- Status notification banner (if cancelled or updated) -->
-      <div id="statusAlertBanner" style="display:none;"></div>
+      <!-- Navigation Menu -->
+      <nav class="nav-menu">
+        <button class="nav-item" data-view="dashboard" onclick="window.location.href='index.html#view-dashboard'">
+          <span class="nav-item-icon">📊</span>
+          <span data-i18n="navDashboard">Dashboard</span>
+        </button>
 
-      <!-- MAIN SUBSCRIPTION CARD -->
-      <div class="card">
-        <div class="sub-card-body">
+        <button class="nav-item" data-view="orders" onclick="window.location.href='index.html#view-orders'">
+          <span class="nav-item-icon">🧾</span>
+          <span data-i18n="navOrders">Comande</span>
+        </button>
 
-          <!-- Left Column: Plan & Checklist -->
-          <div class="sub-col-left">
-            <div class="sub-plan-header">
-              <div class="crown-circle">
-                <svg viewBox="0 0 24 24">
-                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                </svg>
-              </div>
-              <div>
-                <h2 class="sub-plan-title">BarPilot Pro</h2>
-                <div class="sub-plan-price">€59 <span>/ mese</span></div>
-              </div>
-            </div>
+        <button class="nav-item" data-view="floor" onclick="window.location.href='index.html#view-floor'">
+          <span class="nav-item-icon">🪑</span>
+          <span data-i18n="navFloorPlan">Plan de salle</span>
+        </button>
 
-            <ul class="sub-features-list">
-              <li>
-                <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Ordini illimitati
-              </li>
-              <li>
-                <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Gestione menu e magazzino
-              </li>
-              <li>
-                <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Statistiche e report avanzati
-              </li>
-              <li>
-                <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Supporto prioritario
-              </li>
-            </ul>
+        <button class="nav-item" data-view="kds" onclick="window.location.href='index.html#view-kds'">
+          <span class="nav-item-icon">🍳</span>
+          <span data-i18n="navKDS">Preparazione</span>
+        </button>
+
+        <button class="nav-item" data-view="products" onclick="window.location.href='index.html#view-products'">
+          <span class="nav-item-icon">☕</span>
+          <span data-i18n="navProducts">Prodotti</span>
+        </button>
+
+        <button class="nav-item" data-view="inventory" onclick="window.location.href='index.html#view-inventory'">
+          <span class="nav-item-icon">📦</span>
+          <span data-i18n="navInventory">Inventario</span>
+        </button>
+
+        <button class="nav-item" data-view="suppliers" onclick="window.location.href='index.html#view-suppliers'">
+          <span class="nav-item-icon">🚚</span>
+          <span data-i18n="navSuppliers">Fornitori</span>
+        </button>
+
+        <button class="nav-item" data-view="staff" onclick="window.location.href='index.html#view-staff'">
+          <span class="nav-item-icon">👥</span>
+          <span data-i18n="navStaff">Personale</span>
+        </button>
+
+        <button class="nav-item" data-view="reports" onclick="window.location.href='index.html#view-reports'">
+          <span class="nav-item-icon">📈</span>
+          <span data-i18n="navReports">Rapporti</span>
+        </button>
+
+        <button class="nav-item active" data-view="subscriptions" onclick="window.location.href='gestisci-abbonamento.html'">
+          <span class="nav-item-icon">💳</span>
+          <span data-i18n="navSubscriptions">Abbonamenti</span>
+          <span class="nav-badge-pro">14j</span>
+        </button>
+
+        <button class="nav-item" data-view="settings" onclick="window.location.href='index.html#view-settings'">
+          <span class="nav-item-icon">⚙️</span>
+          <span data-i18n="navSettings">Impostazioni</span>
+        </button>
+
+        <button class="nav-item" data-view="support" id="navSupportBtn" onclick="window.location.href='index.html#view-support'">
+          <span class="nav-item-icon">🎧</span>
+          <span>Assistenza</span>
+          <span class="nav-badge-pro" style="background:#FF8A24; color:#fff;">TICKET</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        
+        <!-- User Profile Card & Quick Actions -->
+        <div class="user-profile-card">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" class="user-avatar" id="sidebarUserAvatar" alt="Operatore" style="cursor:pointer;" title="Profilo">
+          <div class="user-info">
+            <span class="user-name" id="sidebarUserName">Marco Rossi</span>
+            <span class="user-role" id="sidebarUserRole" data-i18n="roleOwner">Proprietario</span>
           </div>
+          <button type="button" class="btn-sidebar-logout" onclick="window.location.href='index.html'" title="Disconnettiti dal gestionale">
+            🚪 <span data-i18n="logout">Esci</span>
+          </button>
+        </div>
 
-          <!-- Right Column: Info & Status -->
-          <div class="sub-col-right">
-            <div id="subStatusBadge" class="status-badge">
-              ✓ Abbonamento attivo
+        <button class="ctrl-btn" onclick="window.location.href='index.html'" style="width:100%; justify-content:center; gap:6px;">
+          <span>📱</span>
+          <span>Rivedi Storie di Benvenuto</span>
+        </button>
+
+        <!-- Theme & Language Toggles -->
+        <div class="sidebar-controls">
+          <button class="ctrl-btn" id="themeToggleBtn" onclick="toggleTheme()">
+            <span id="themeToggleIcon">☀️</span>
+            <span id="themeToggleText">Light</span>
+          </button>
+
+          <div class="lang-switch">
+            <button class="lang-btn active" data-lang="it">IT</button>
+            <button class="lang-btn" data-lang="fr">FR</button>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper" style="flex:1; display:flex; flex-direction:column; min-width:0; overflow-y:auto; height:100vh;">
+
+      <!-- Topbar Header Identica ad index.html -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="mobileMenuBtn" onclick="toggleSidebar()" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div>
+            <h1 class="greeting-title">
+              <span id="greetingTitleWrap">Gestisci abbonamento</span>
+            </h1>
+            <p class="greeting-subtitle">Visualizza i dettagli del tuo piano, gestisci i pagamenti e le impostazioni</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="topbar-date-ticket-group">
+            <div class="date-pill" id="liveDatePill">
+              <span>📅</span>
+              <span id="liveDateText">--</span>
             </div>
+            <button type="button" class="btn-topbar-ticket" id="btnTopbarOpenTicket" onclick="window.location.href='index.html#view-support'" title="Apri un ticket di assistenza">
+              <span class="btn-ticket-icon">🎧</span>
+              <span class="btn-ticket-text">Apri un ticket</span>
+            </button>
+          </div>
+          <button class="icon-btn" onclick="alert('Nessuna nuova notifica')" title="Notifiche">
+            🔔
+          </button>
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop" id="topbarUserAvatar" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" alt="Profilo">
+        </div>
+      </header>
 
-            <!-- Prossimo Rinnovo -->
-            <div class="sub-info-row">
-              <div class="sub-info-icon">📅</div>
-              <div class="sub-info-content">
-                <div class="sub-info-label">Prossimo rinnovo</div>
-                <div class="sub-info-val" id="valNextRenewal">19 Novembre 2026</div>
-              </div>
-            </div>
+      <!-- PAGE CONTENT (Ispirato all'immagine mockup) -->
+      <main class="manage-sub-content">
 
-            <!-- Metodo di pagamento -->
-            <div class="sub-info-row">
-              <div class="sub-info-icon">💳</div>
-              <div class="sub-info-content">
-                <div class="sub-info-label">Metodo di pagamento</div>
-                <div class="sub-info-val">
-                  <div class="payment-brand-val">
-                    <span class="mastercard-circles">
-                      <span class="mc-circle-red"></span>
-                      <span class="mc-circle-orange"></span>
-                    </span>
-                    <span>•••• 4242</span>
-                  </div>
-                  <a href="javascript:void(0)" class="btn-edit-link" onclick="openPaymentModal()">Modifica</a>
+        <!-- Status notification banner -->
+        <div id="statusAlertBanner" style="display:none;"></div>
+
+        <!-- MAIN SUBSCRIPTION CARD -->
+        <div class="sub-card-box">
+          <div class="sub-card-grid">
+
+            <!-- Left Column: Plan & Checklist -->
+            <div>
+              <div class="sub-plan-head">
+                <div class="crown-circle">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="sub-plan-title">BarPilot Pro</h2>
+                  <div class="sub-plan-price">€59 <span>/ mese</span></div>
                 </div>
               </div>
+
+              <ul class="sub-features-list">
+                <li>
+                  <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  Ordini illimitati
+                </li>
+                <li>
+                  <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  Gestione menu e magazzino
+                </li>
+                <li>
+                  <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  Statistiche e report avanzati
+                </li>
+                <li>
+                  <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  Supporto prioritario
+                </li>
+              </ul>
             </div>
 
-            <!-- Inizio abbonamento -->
-            <div class="sub-info-row">
-              <div class="sub-info-icon">🕒</div>
-              <div class="sub-info-content">
-                <div class="sub-info-label">Inizio abbonamento</div>
-                <div class="sub-info-val" id="valStartSubscription">19 Ottobre 2026</div>
+            <!-- Right Column: Info & Status -->
+            <div class="sub-info-col">
+              <div id="subStatusBadge" class="status-badge">
+                ✓ Abbonamento attivo
               </div>
+
+              <!-- Prossimo Rinnovo -->
+              <div class="sub-info-row">
+                <div class="sub-info-icon">📅</div>
+                <div class="sub-info-content">
+                  <div class="sub-info-label">Prossimo rinnovo</div>
+                  <div class="sub-info-val" id="valNextRenewal">19 Novembre 2026</div>
+                </div>
+              </div>
+
+              <!-- Metodo di pagamento -->
+              <div class="sub-info-row">
+                <div class="sub-info-icon">💳</div>
+                <div class="sub-info-content">
+                  <div class="sub-info-label">Metodo di pagamento</div>
+                  <div class="sub-info-val">
+                    <div class="payment-brand-val">
+                      <span class="mastercard-circles">
+                        <span class="mc-circle-red"></span>
+                        <span class="mc-circle-orange"></span>
+                      </span>
+                      <span>•••• 4242</span>
+                    </div>
+                    <a href="javascript:void(0)" class="btn-edit-link" onclick="openPaymentModal()">Modifica</a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Inizio abbonamento -->
+              <div class="sub-info-row">
+                <div class="sub-info-icon">🕒</div>
+                <div class="sub-info-content">
+                  <div class="sub-info-label">Inizio abbonamento</div>
+                  <div class="sub-info-val" id="valStartSubscription">19 Ottobre 2026</div>
+                </div>
+              </div>
+
             </div>
 
           </div>
-
-        </div>
-      </div>
-
-      <!-- ACTION CARD 1: DISDICI ABBONAMENTO -->
-      <div class="action-card action-card-cancel" id="btnActionCancelSub" onclick="openCancelModal()">
-        <div class="action-card-left">
-          <div class="action-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <line x1="10" y1="14" x2="14" y2="18"></line>
-              <line x1="14" y1="14" x2="10" y2="18"></line>
-            </svg>
-          </div>
-          <div>
-            <div class="action-title" id="actionCancelTitle">Disdici abbonamento</div>
-            <div class="action-desc" id="actionCancelDesc">Interrompi i rinnovi automatici alla prossima scadenza.</div>
-          </div>
-        </div>
-        <div class="action-chevron">›</div>
-      </div>
-
-      <!-- ACTION CARD 2: ELIMINA ACCOUNT -->
-      <div class="action-card action-card-delete" onclick="openDeleteAccountModal()">
-        <div class="action-card-left">
-          <div class="action-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-          </div>
-          <div>
-            <div class="action-title">Elimina account</div>
-            <div class="action-desc">Cancella definitivamente il tuo account e tutti i dati.</div>
-          </div>
-        </div>
-        <div class="action-chevron">›</div>
-      </div>
-
-      <!-- STORICO FATTURE CARD -->
-      <div class="card" style="padding: 22px;">
-        <div class="invoices-header">
-          <span class="invoices-header-icon">📄</span>
-          <h3 class="invoices-title">Storico fatture</h3>
         </div>
 
-        <table class="invoices-table">
-          <thead>
-            <tr>
-              <th>Fattura</th>
-              <th>Data</th>
-              <th>Importo</th>
-              <th>Stato</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="invoicesListBody">
-            <tr>
-              <td>BP-2026-0003</td>
-              <td>19 Ott 2026</td>
-              <td>€59,00</td>
-              <td><span class="status-pill-paid">✓ Pagata</span></td>
-              <td>
-                <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0003" target="_blank" class="btn-download-action">
-                  📥 Scarica
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>BP-2026-0002</td>
-              <td>19 Set 2026</td>
-              <td>€59,00</td>
-              <td><span class="status-pill-paid">✓ Pagata</span></td>
-              <td>
-                <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0002" target="_blank" class="btn-download-action">
-                  📥 Scarica
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>BP-2026-0001</td>
-              <td>19 Ago 2026</td>
-              <td>€59,00</td>
-              <td><span class="status-pill-paid">✓ Pagata</span></td>
-              <td>
-                <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0001" target="_blank" class="btn-download-action">
-                  📥 Scarica
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <!-- ACTION CARD 1: DISDICI ABBONAMENTO -->
+        <div class="action-card action-card-cancel" id="btnActionCancelSub" onclick="openCancelModal()">
+          <div class="action-card-left">
+            <div class="action-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <line x1="10" y1="14" x2="14" y2="18"></line>
+                <line x1="14" y1="14" x2="10" y2="18"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="action-title" id="actionCancelTitle">Disdici abbonamento</div>
+              <div class="action-desc" id="actionCancelDesc">Interrompi i rinnovi automatici alla prossima scadenza.</div>
+            </div>
+          </div>
+          <div class="action-chevron">›</div>
+        </div>
 
-    </main>
+        <!-- ACTION CARD 2: ELIMINA ACCOUNT -->
+        <div class="action-card action-card-delete" onclick="openDeleteAccountModal()">
+          <div class="action-card-left">
+            <div class="action-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="action-title">Elimina account</div>
+              <div class="action-desc">Cancella definitivamente il tuo account e tutti i dati.</div>
+            </div>
+          </div>
+          <div class="action-chevron">›</div>
+        </div>
+
+        <!-- STORICO FATTURE CARD -->
+        <div class="sub-card-box" style="padding: 22px;">
+          <div class="invoices-header">
+            <span class="invoices-header-icon">📄</span>
+            <h3 class="invoices-title">Storico fatture</h3>
+          </div>
+
+          <table class="invoices-table">
+            <thead>
+              <tr>
+                <th>Fattura</th>
+                <th>Data</th>
+                <th>Importo</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="invoicesListBody">
+              <tr>
+                <td>BP-2026-0003</td>
+                <td>19 Ott 2026</td>
+                <td>€59,00</td>
+                <td><span class="status-pill-paid">✓ Pagata</span></td>
+                <td>
+                  <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0003" target="_blank" class="btn-download-action">
+                    📥 Scarica
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td>BP-2026-0002</td>
+                <td>19 Set 2026</td>
+                <td>€59,00</td>
+                <td><span class="status-pill-paid">✓ Pagata</span></td>
+                <td>
+                  <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0002" target="_blank" class="btn-download-action">
+                    📥 Scarica
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td>BP-2026-0001</td>
+                <td>19 Ago 2026</td>
+                <td>€59,00</td>
+                <td><span class="status-pill-paid">✓ Pagata</span></td>
+                <td>
+                  <a href="/api/generate-invoice?barId=active&invoiceNumber=BP-2026-0001" target="_blank" class="btn-download-action">
+                    📥 Scarica
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </main>
+
+    </div>
+
   </div>
 
   <!-- MODAL: DISDICI ABBONAMENTO -->
   <div class="modal-backdrop" id="modalCancelSub">
     <div class="modal-box">
       <div class="modal-title">
-        <span style="color:#EA580C;">⚠️</span> Disdetta Abbonamento BarPilot Pro
+        <span style="color:#FF8A24;">⚠️</span> Disdetta Abbonamento BarPilot Pro
       </div>
       <p class="modal-desc">
         Vuoi davvero disdire il rinnovo automatico? L'accesso alle funzionalità complete rimarrà attivo fino al termine del periodo corrente. Non ti verrà più addebitato alcun costo.
@@ -1125,7 +912,7 @@
   <div class="modal-backdrop" id="modalDeleteAccount">
     <div class="modal-box">
       <div class="modal-title">
-        <span style="color:#DC2626;">🗑️</span> Eliminazione Account
+        <span style="color:#EF4444;">🗑️</span> Eliminazione Account
       </div>
       <p class="modal-desc">
         Questa azione è irreversibile. Tutti i dati relativi a comande, catalogo, tavoli, ricette e fatture verranno cancellati definitivamente.
@@ -1146,15 +933,15 @@
       <p class="modal-desc">
         Puoi aggiornare la tua carta di credito o cambiare con Google Pay / Stripe Customer Portal.
       </p>
-      <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin-bottom:18px;">
-        <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:#0F172A; margin-bottom:4px;">
+      <div style="background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text-main); margin-bottom:4px;">
           <span class="mastercard-circles">
             <span class="mc-circle-red"></span>
             <span class="mc-circle-orange"></span>
           </span>
           Mastercard che termina con 4242
         </div>
-        <div style="font-size:12.5px; color:#64748B;">Scadenza: 12/28 &bull; Predefinito</div>
+        <div style="font-size:12.5px; color:var(--text-muted);">Scadenza: 12/28 &bull; Predefinito</div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-modal-cancel" onclick="closePaymentModal()">Chiudi</button>
@@ -1164,78 +951,151 @@
   </div>
 
   <script>
-    // Inizializza dati del bar e sessione
-    function getBarData() {
-      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true";
+    // Gestione Sidebar (Desktop & Mobile)
+    function openSidebar() {
+      const sidebar = document.getElementById("appSidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      if (sidebar) {
+        sidebar.classList.add("mobile-open", "open");
+        sidebar.classList.remove("sidebar-closed", "closed");
+      }
+      if (backdrop) {
+        backdrop.classList.add("active");
+      }
+    }
+
+    function closeSidebar() {
+      const sidebar = document.getElementById("appSidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      if (sidebar) {
+        sidebar.classList.remove("mobile-open", "open");
+        sidebar.classList.add("sidebar-closed", "closed");
+      }
+      if (backdrop) {
+        backdrop.classList.remove("active");
+      }
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("appSidebar");
+      if (!sidebar) return;
+      if (sidebar.classList.contains("mobile-open") || sidebar.classList.contains("open")) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    }
+
+    // Gestione Tema (Dark / Light)
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("barpilot_theme", next);
+      const icon = document.getElementById("themeToggleIcon");
+      const text = document.getElementById("themeToggleText");
+      if (icon) icon.textContent = next === "light" ? "🌙" : "☀️";
+      if (text) text.textContent = next === "light" ? "Dark" : "Light";
+    }
+
+    // Inizializza data live e dati del bar
+    function initData() {
+      // Tema salvato
+      const savedTheme = localStorage.getItem("barpilot_theme") || "dark";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      const icon = document.getElementById("themeToggleIcon");
+      const text = document.getElementById("themeToggleText");
+      if (icon) icon.textContent = savedTheme === "light" ? "🌙" : "☀️";
+      if (text) text.textContent = savedTheme === "light" ? "Dark" : "Light";
+
+      // Data live
+      const dateEl = document.getElementById("liveDateText");
+      if (dateEl) {
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+      }
+
+      // Utente
       let loggedUser = null;
       try {
         loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
       } catch (e) {}
 
-      let barName = (loggedUser && (loggedUser.barName || loggedUser.name)) ? (loggedUser.barName || loggedUser.name) : "Café Dakar";
-      let isDemo = localStorage.getItem("barpilot_is_demo") === "true";
+      if (loggedUser) {
+        if (loggedUser.name) {
+          const userNameEl = document.getElementById("sidebarUserName");
+          if (userNameEl) userNameEl.textContent = loggedUser.name;
+        }
+        if (loggedUser.role) {
+          const userRoleEl = document.getElementById("sidebarUserRole");
+          if (userRoleEl) userRoleEl.textContent = loggedUser.role;
+        }
+      }
 
-      return {
-        barName,
-        isCancelled,
-        isDemo
-      };
-    }
-
-    function renderPage() {
-      const data = getBarData();
-      
-      const barNameEl = document.getElementById("sidebarBarName");
-      if (barNameEl) barNameEl.textContent = data.barName;
-
+      // Stato abbonamento
+      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true";
       const statusBadge = document.getElementById("subStatusBadge");
       const alertBanner = document.getElementById("statusAlertBanner");
       const cancelTitle = document.getElementById("actionCancelTitle");
       const cancelDesc = document.getElementById("actionCancelDesc");
 
-      if (data.isCancelled) {
-        statusBadge.className = "status-badge cancelled";
-        statusBadge.textContent = "✕ Abbonamento disdetto";
-
-        alertBanner.className = "alert-banner alert-banner-cancelled";
-        alertBanner.style.display = "flex";
-        alertBanner.innerHTML = `
-          <span>ℹ️</span>
-          <div>
-            <strong>Disdetta effettuata:</strong> Il rinnovo automatico è stato interrotto. L'accesso completo a BarPilot Pro resta attivo fino al <strong>19 Novembre 2026</strong>. Nessun costo futuro ti sarà addebitato.
-          </div>
-        `;
-
-        cancelTitle.textContent = "Riattiva abbonamento";
-        cancelTitle.style.color = "#15803D";
-        cancelDesc.textContent = "Clicca per annullare la disdetta e mantenere il rinnovo automatico.";
+      if (isCancelled) {
+        if (statusBadge) {
+          statusBadge.className = "status-badge cancelled";
+          statusBadge.textContent = "✕ Abbonamento disdetto";
+        }
+        if (alertBanner) {
+          alertBanner.className = "alert-banner alert-banner-cancelled";
+          alertBanner.style.display = "flex";
+          alertBanner.innerHTML = `
+            <span>ℹ️</span>
+            <div>
+              <strong>Disdetta effettuata:</strong> Il rinnovo automatico è stato interrotto. L'accesso completo a BarPilot Pro resta attivo fino al <strong>19 Novembre 2026</strong>. Nessun costo futuro ti sarà addebitato.
+            </div>
+          `;
+        }
+        if (cancelTitle) {
+          cancelTitle.textContent = "Riattiva abbonamento";
+          cancelTitle.style.color = "#10B981";
+        }
+        if (cancelDesc) {
+          cancelDesc.textContent = "Clicca per annullare la disdetta e mantenere il rinnovo automatico.";
+        }
       } else {
-        statusBadge.className = "status-badge";
-        statusBadge.textContent = "✓ Abbonamento attivo";
-
-        cancelTitle.textContent = "Disdici abbonamento";
-        cancelTitle.style.color = "#EA580C";
-        cancelDesc.textContent = "Interrompi i rinnovi automatici alla prossima scadenza.";
-        alertBanner.style.display = "none";
+        if (statusBadge) {
+          statusBadge.className = "status-badge";
+          statusBadge.textContent = "✓ Abbonamento attivo";
+        }
+        if (cancelTitle) {
+          cancelTitle.textContent = "Disdici abbonamento";
+          cancelTitle.style.color = "#FF8A24";
+        }
+        if (cancelDesc) {
+          cancelDesc.textContent = "Interrompi i rinnovi automatici alla prossima scadenza.";
+        }
+        if (alertBanner) {
+          alertBanner.style.display = "none";
+        }
       }
     }
 
     function openCancelModal() {
-      const data = getBarData();
-      if (data.isCancelled) {
-        // Riattiva direttamente
+      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true";
+      if (isCancelled) {
         localStorage.removeItem("barpilot_subscription_cancelled");
         localStorage.setItem("barpilot_is_subscribed", "true");
         localStorage.setItem("barpilot_subscription_confirmed", "true");
 
         const alertBanner = document.getElementById("statusAlertBanner");
-        alertBanner.className = "alert-banner alert-banner-success";
-        alertBanner.style.display = "flex";
-        alertBanner.innerHTML = `
-          <span>✓</span>
-          <div><strong>Abbonamento riattivato!</strong> Il tuo piano BarPilot Pro continuerà regolarmente.</div>
-        `;
-        renderPage();
+        if (alertBanner) {
+          alertBanner.className = "alert-banner alert-banner-success";
+          alertBanner.style.display = "flex";
+          alertBanner.innerHTML = `
+            <span>✓</span>
+            <div><strong>Abbonamento riattivato!</strong> Il tuo piano BarPilot Pro continuerà regolarmente.</div>
+          `;
+        }
+        initData();
         return;
       }
       document.getElementById("modalCancelSub").classList.add("active");
@@ -1255,20 +1115,17 @@
       const notes = document.getElementById("cancelNotesInput").value.trim();
       const fullReason = notes ? `${reason} - ${notes}` : reason;
 
-      const data = getBarData();
-
       try {
         await fetch("/api/cancel-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            barId: data.isDemo ? "bar_demo" : "bar_01",
-            barName: data.barName,
+            barId: "bar_01",
             reason: fullReason
           })
         });
       } catch (err) {
-        console.warn("Errore cancellazione server:", err);
+        console.warn("Errore disdetta API:", err);
       }
 
       localStorage.setItem("barpilot_subscription_cancelled", "true");
@@ -1279,7 +1136,7 @@
       btn.disabled = false;
       btn.textContent = "Conferma Disdetta";
 
-      renderPage();
+      initData();
     }
 
     function openDeleteAccountModal() {
@@ -1308,7 +1165,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      renderPage();
+      initData();
     });
   </script>
 </body>
