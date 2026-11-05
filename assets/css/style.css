@@ -5066,11 +5066,11 @@ input:checked + .toggle-slider:before {
 
 /* 2. Floating Action Button (FAB) at Bottom-Right */
 .fab-ticket-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 999;
-  display: inline-flex;
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  display: inline-flex !important;
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
@@ -5081,7 +5081,11 @@ input:checked + .toggle-slider:before {
   color: #ffffff;
   border: 2px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 10px 25px rgba(255, 107, 0, 0.42);
-  cursor: pointer;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .fab-ticket-btn:hover {
@@ -5093,6 +5097,10 @@ input:checked + .toggle-slider:before {
 }
 .fab-ticket-btn .fab-ticket-icon {
   font-size: 17px;
+  pointer-events: none;
+}
+.fab-ticket-btn .fab-ticket-text {
+  pointer-events: none;
 }
 .fab-pulse-dot {
   width: 8px;
@@ -5101,6 +5109,7 @@ input:checked + .toggle-slider:before {
   background: #10B981;
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   animation: fabPulse 2s infinite;
+  pointer-events: none;
 }
 @keyframes fabPulse {
   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -5110,10 +5119,13 @@ input:checked + .toggle-slider:before {
 
 @media (max-width: 640px) {
   .fab-ticket-btn {
-    bottom: 20px;
-    right: 18px;
-    padding: 10px 16px;
-    font-size: 13px;
+    bottom: 20px !important;
+    right: 18px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+    z-index: 999999 !important;
+    display: inline-flex !important;
+    pointer-events: auto !important;
   }
 }
 

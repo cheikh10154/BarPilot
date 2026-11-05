@@ -54,14 +54,15 @@ export default async function handler(req, res) {
       else resolvedCategory = 'Assistenza Generale';
     }
 
+    const RECIPIENT_EMAIL = 'admin@barpilot.eu';
     const ticketId = 'tkt_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
-    // 1. Inserisci il Ticket in public.support_tickets
+    // 1. Inserisci il Ticket in public.support_tickets (Destinatario ufficiale: admin@barpilot.eu)
     const ticketPayload = {
       id: ticketId,
       bar_id: barId || null,
       subject: cleanSubject,
-      description: `Mittente: ${cleanName} (${cleanEmail})\n\nMessaggio:\n${cleanMessage}`,
+      description: `[DESTINATARIO: ${RECIPIENT_EMAIL}]\nMittente: ${cleanName} (${cleanEmail})\nOggetto: ${cleanSubject}\n\nMessaggio:\n${cleanMessage}`,
       category: resolvedCategory,
       priority: priority,
       status: 'open',
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
       id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
       ticket_id: ticketId,
       sender_name: cleanName,
-      message: cleanMessage,
+      message: `[Inviato a ${RECIPIENT_EMAIL}]\n\n${cleanMessage}`,
       created_at: new Date().toISOString()
     };
 
@@ -92,7 +93,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(messagePayload)
     });
 
-    // 3. Registra log su public.admin_audit_logs
+    // 3. Registra log su public.admin_audit_logs con destinatario admin@barpilot.eu
     await supabaseFetch('admin_audit_logs', {
       method: 'POST',
       body: JSON.stringify({
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
         entity_type: 'ticket',
         entity_id: ticketId,
         new_values: {
+          recipient: RECIPIENT_EMAIL,
           fullName: cleanName,
           email: cleanEmail,
           subject: cleanSubject,
@@ -115,7 +117,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       ticketId: ticketId,
-      message: 'Ticket aperto con successo. Riceverai risposta a breve su ' + cleanEmail
+      recipient: RECIPIENT_EMAIL,
+      message: `Ticket inviato con successo ad ${RECIPIENT_EMAIL}. Riceverai risposta a breve su ${cleanEmail}`
     });
   } catch (err) {
     console.error('[Create Ticket] Exception:', err);

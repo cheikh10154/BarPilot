@@ -6181,7 +6181,7 @@ function showToast(msg, duration = 3800) {
     toast.id = "barpilot-toast";
     toast.style.cssText = `
       position: fixed;
-      bottom: 24px;
+      bottom: 84px;
       right: 24px;
       background: #111827;
       color: #FFFFFF;
@@ -6191,8 +6191,10 @@ function showToast(msg, duration = 3800) {
       box-shadow: 0 12px 30px rgba(0,0,0,0.6);
       font-size: 13.5px;
       font-weight: 600;
-      z-index: 999999;
+      z-index: 1000002;
       opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
       transform: translateY(10px);
       transition: all 0.25s ease;
       display: flex;
@@ -6202,10 +6204,13 @@ function showToast(msg, duration = 3800) {
     `;
     document.body.appendChild(toast);
   } else {
-    toast.style.zIndex = "999999";
+    toast.style.zIndex = "1000002";
+    toast.style.pointerEvents = "none";
   }
 
   toast.innerHTML = `<span>🍸</span> <span>${msg}</span>`;
+  toast.style.visibility = "visible";
+  toast.style.pointerEvents = "none";
   toast.style.opacity = "1";
   toast.style.transform = "translateY(0)";
 
@@ -6213,6 +6218,12 @@ function showToast(msg, duration = 3800) {
   barpilotToastTimeout = setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
+    setTimeout(() => {
+      if (toast && toast.style.opacity === "0") {
+        toast.style.visibility = "hidden";
+        toast.style.pointerEvents = "none";
+      }
+    }, 280);
   }, duration);
 }
 window.showToast = showToast;
@@ -8132,13 +8143,14 @@ async function handleProCheckoutSubmit(e) {
 window.handleProCheckoutSubmit = handleProCheckoutSubmit;
 
 // ============================================================================
-// ASSISTENZA BARPILOT & APERTURA TICKET (Matches Screenshot)
+// ASSISTENZA BARPILOT & APERTURA TICKET (Destinatario: admin@barpilot.eu)
 // ============================================================================
 function openSupportTicketModal(topic = null) {
   const modal = document.getElementById("supportTicketModal");
   if (modal) {
     modal.classList.add("active");
     modal.style.display = "flex";
+    modal.style.zIndex = "1000000";
   }
   if (topic) {
     prefillSupportTopic(topic);
@@ -8211,7 +8223,7 @@ async function handleSupportFormSubmit(event, formId) {
   // Visual loading state
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span>⏳</span> <span>Invio ticket in corso...</span>`;
+    submitBtn.innerHTML = `<span>⏳</span> <span>Invio ad admin@barpilot.eu...</span>`;
   }
 
   try {
@@ -8219,6 +8231,7 @@ async function handleSupportFormSubmit(event, formId) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        recipient: "admin@barpilot.eu",
         fullName,
         email,
         subject,
@@ -8231,7 +8244,7 @@ async function handleSupportFormSubmit(event, formId) {
 
     if (res.ok && data.success) {
       if (typeof showToast === "function") {
-        showToast(`✅ Ticket #${data.ticketId} aperto con successo! Ti risponderemo su ${email}`);
+        showToast(`✅ Ticket inviato con successo a admin@barpilot.eu! Risponderemo su ${email}`);
       }
       form.reset();
       if (formId === "supportTicketFormModal") {
@@ -8239,7 +8252,7 @@ async function handleSupportFormSubmit(event, formId) {
       }
     } else {
       if (typeof showToast === "function") {
-        showToast(`✅ Richiesta di assistenza ricevuta! Riceverai riscontro su ${email}`);
+        showToast(`✅ Ticket inviato a admin@barpilot.eu! Riceverai riscontro su ${email}`);
       }
       form.reset();
       if (formId === "supportTicketFormModal") {
@@ -8249,7 +8262,7 @@ async function handleSupportFormSubmit(event, formId) {
   } catch (err) {
     console.warn("[Support Form] Network fallback:", err);
     if (typeof showToast === "function") {
-      showToast(`✅ Richiesta inviata! Il team di supporto BarPilot ti contatterà su ${email}`);
+      showToast(`✅ Ticket inviato a admin@barpilot.eu! Ti contatteremo su ${email}`);
     }
     form.reset();
     if (formId === "supportTicketFormModal") {
@@ -8269,3 +8282,42 @@ async function handleSupportFormSubmit(event, formId) {
   }
 }
 window.handleSupportFormSubmit = handleSupportFormSubmit;
+
+// Inizializzazione garantita controlli per pulsante 'Apri un ticket' (Desktop & Mobile)
+function initSupportTicketControls() {
+  const fab = document.getElementById("fabSupportBtn");
+  if (fab) {
+    fab.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openSupportTicketModal();
+    };
+    fab.addEventListener("touchend", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openSupportTicketModal();
+    }, { passive: false });
+  }
+
+  const topbarBtn = document.getElementById("btnTopbarOpenTicket");
+  if (topbarBtn) {
+    topbarBtn.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openSupportTicketModal();
+    };
+  }
+
+  const modal = document.getElementById("supportTicketModal");
+  if (modal) {
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) {
+        closeSupportTicketModal();
+      }
+    });
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSupportTicketControls);
+} else {
+  initSupportTicketControls();
+}
