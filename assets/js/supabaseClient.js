@@ -128,8 +128,15 @@ class BarPilotSupabaseClient {
 
           // Se è recovery (reimpostazione password da link email)
           if (authType === "recovery") {
+            sessionStorage.setItem("barpilot_recovery_email", user.email);
             if (typeof window.openNewPasswordModal === "function") {
               window.openNewPasswordModal(user.email);
+            } else {
+              window.addEventListener("DOMContentLoaded", () => {
+                if (typeof window.openNewPasswordModal === "function") {
+                  window.openNewPasswordModal(user.email);
+                }
+              });
             }
             return;
           }
@@ -409,7 +416,7 @@ class BarPilotSupabaseClient {
     }
   }
 
-  // 6. Password Recovery Request
+  // 6. Password Recovery Request (utilizza il template email configurato su Supabase)
   async resetPasswordForEmail(email, options = {}) {
     if (!this.isConfigured) {
       return { data: {}, error: null };
@@ -425,7 +432,12 @@ class BarPilotSupabaseClient {
         })
       });
 
-      const data = await res.json();
+      let data = {};
+      try {
+        const text = await res.text();
+        if (text) data = JSON.parse(text);
+      } catch (_) {}
+
       if (!res.ok) {
         const rawMsg = data.message || data.msg || data.error_description || "Errore invio email di recupero";
         const itDesc = translateSupabaseMessage(rawMsg, data.code || data.error_code || "", "recovery");

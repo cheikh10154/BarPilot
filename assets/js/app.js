@@ -4313,28 +4313,97 @@ function confirmDeleteStaffAction() {
 
 
 // --------------------------------------------------------------------------
-// Password Recovery & Email Activation Controller (Supabase Auth & Direct Reset)
+// Password Recovery & Email Activation Controller (Supabase Auth & Email Template)
 // --------------------------------------------------------------------------
 function openPasswordRecoveryModal(prefillEmail) {
+  const modal = document.getElementById("passwordRecoveryModal");
+  if (!modal) return;
   const emailField = document.getElementById("authEmail");
   const targetEmail = (prefillEmail || (emailField ? emailField.value.trim() : "")).toLowerCase();
-  openNewPasswordModal(targetEmail);
+  const input = document.getElementById("recoveryEmailInput");
+  if (input) {
+    if (targetEmail) input.value = targetEmail;
+  }
+  modal.classList.add("active");
+  modal.style.display = "flex";
+  if (input) {
+    setTimeout(() => input.focus(), 120);
+  }
 }
+window.openPasswordRecoveryModal = openPasswordRecoveryModal;
 
 function closePasswordRecoveryModal() {
   const modal = document.getElementById("passwordRecoveryModal");
-  if (modal) modal.classList.remove("active");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
+window.closePasswordRecoveryModal = closePasswordRecoveryModal;
 
 async function handlePasswordRecoverySubmit(e) {
   if (e && typeof e.preventDefault === "function") e.preventDefault();
   const input = document.getElementById("recoveryEmailInput");
-  const email = input ? input.value.trim().toLowerCase() : "";
-  if (!email) return;
+  const email = (input ? input.value.trim() : "").toLowerCase();
+  const submitBtn = document.getElementById("recoverySubmitBtn");
 
-  closePasswordRecoveryModal();
-  openNewPasswordModal(email);
+  if (!email) {
+    if (window.showToast) window.showToast("⚠️ Inserisci prima il tuo indirizzo email.");
+    return;
+  }
+
+  // Visual feedback: stato di invio tramite Supabase
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>⏳</span> Invio link Supabase...`;
+  }
+
+  try {
+    const origin = window.location.origin || "https://www.barpilot.eu";
+    const path = (window.location.pathname && window.location.pathname !== "/") ? window.location.pathname : "/index.html";
+    const redirectTo = `${origin}${path}`;
+
+    let result = null;
+    if (window.supabase && window.supabase.auth && typeof window.supabase.auth.resetPasswordForEmail === "function") {
+      result = await window.supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    } else if (window.supabase && typeof window.supabase.resetPasswordForEmail === "function") {
+      result = await window.supabase.resetPasswordForEmail(email, { redirectTo });
+    }
+
+    if (result && result.error) {
+      const errMsg = (result.error.message || "").toLowerCase();
+      if (errMsg.includes("rate limit") || result.error.code === "over_email_send_rate_limit" || result.error.status === 429) {
+        if (window.showToast) {
+          window.showToast("⏳ Limite di sicurezza invio email raggiunto su Supabase. Attendi qualche minuto prima di riprovare.");
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(`⚠️ ${result.error.message || "Errore durante l'invio dell'email di reset"}`);
+        }
+      }
+    } else {
+      closePasswordRecoveryModal();
+      if (window.showToast) {
+        window.showToast(`📩 Email di reset inviata a ${email}! Controlla la posta e clicca sul link di Supabase per impostare la nuova password.`);
+      }
+      const loginSub = document.getElementById("authSubtitle");
+      if (loginSub) {
+        loginSub.innerHTML = `📩 Email di recupero inviata a <strong>${email}</strong> tramite il template Supabase. Clicca sul link nell'email.`;
+      }
+    }
+  } catch (err) {
+    console.error("[Password Recovery] Errore:", err);
+    if (window.showToast) {
+      window.showToast(`⚠️ Impossibile inviare l'email: ${err.message || "Riprova più tardi"}`);
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `Invia Link →`;
+    }
+  }
 }
+window.handlePasswordRecoverySubmit = handlePasswordRecoverySubmit;
 
 async function resendConfirmationEmail(email) {
   const targetEmail = (email || document.getElementById("authEmail")?.value || "").trim().toLowerCase();
@@ -4368,27 +4437,33 @@ async function resendConfirmationEmail(email) {
 }
 
 function openNewPasswordModal(email) {
+  closePasswordRecoveryModal();
   const modal = document.getElementById("newPasswordModal");
   if (!modal) return;
   const targetEmail = (email || document.getElementById("authEmail")?.value || "").trim().toLowerCase();
-  const currentPassword = (document.getElementById("authPassword")?.value || "").trim();
 
   const emailInfo = document.getElementById("newPasswordEmailDisplay");
   if (emailInfo) emailInfo.textContent = targetEmail || "il tuo account";
 
   const p1 = document.getElementById("newPasswordInput");
   const p2 = document.getElementById("confirmNewPasswordInput");
-  if (p1) p1.value = currentPassword || "";
-  if (p2) p2.value = currentPassword || "";
+  if (p1) p1.value = "";
+  if (p2) p2.value = "";
 
   modal.classList.add("active");
-  if (p1 && !currentPassword) p1.focus();
+  modal.style.display = "flex";
+  if (p1) setTimeout(() => p1.focus(), 150);
 }
+window.openNewPasswordModal = openNewPasswordModal;
 
 function closeNewPasswordModal() {
   const modal = document.getElementById("newPasswordModal");
-  if (modal) modal.classList.remove("active");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
 }
+window.closeNewPasswordModal = closeNewPasswordModal;
 
 async function handleNewPasswordSubmit(e) {
   if (e && typeof e.preventDefault === "function") e.preventDefault();
@@ -8317,7 +8392,33 @@ function initSupportTicketControls() {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initSupportTicketControls);
+  document.addEventListener("DOMContentLoaded", () => {
+    initSupportTicketControls();
+    checkPendingPasswordRecovery();
+  });
 } else {
   initSupportTicketControls();
+  checkPendingPasswordRecovery();
+}
+
+function checkPendingPasswordRecovery() {
+  const recoveryEmail = sessionStorage.getItem("barpilot_recovery_email");
+  if (recoveryEmail) {
+    sessionStorage.removeItem("barpilot_recovery_email");
+    openNewPasswordModal(recoveryEmail);
+    if (window.showToast) {
+      window.showToast("🔑 Link di recupero Supabase verificato! Inserisci la tua nuova password.");
+    }
+  } else if (window.location.hash && window.location.hash.includes("type=recovery")) {
+    setTimeout(() => {
+      const user = window.supabase?.session?.user;
+      const email = user?.email || "";
+      if (email) {
+        openNewPasswordModal(email);
+        if (window.showToast) {
+          window.showToast("🔑 Link di recupero Supabase verificato! Inserisci la tua nuova password.");
+        }
+      }
+    }, 350);
+  }
 }
