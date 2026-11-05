@@ -2228,10 +2228,10 @@ html.user-authenticated #authOverlay {
   background: linear-gradient(90deg, #FF7A00, #FFA726);
   border-radius: var(--radius-full);
   box-shadow: 0 0 12px var(--primary);
-  animation: splash3s 3s linear forwards;
+  animation: splashLoad 2.2s linear forwards;
 }
 
-@keyframes splash3s {
+@keyframes splashLoad {
   0% { width: 0%; }
   100% { width: 100%; }
 }

@@ -6473,13 +6473,34 @@ function initSplashScreen() {
     return;
   }
 
-  // STANDARD ONBOARDING: BarPilot Stories deve partire subito all'avvio!
-  if (splashTimer) clearTimeout(splashTimer);
-  if (splash) {
-    splash.classList.add("hidden");
-    splash.style.display = "none";
+  // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
+  splash.classList.remove("hidden");
+  splash.style.display = "flex";
+
+  const dismissSplash = () => {
+    if (splashTimer) clearTimeout(splashTimer);
+    if (splash) {
+      splash.classList.add("hidden");
+      setTimeout(() => {
+        splash.style.display = "none";
+      }, 500);
+    }
+    initStoriesOnboarding();
+  };
+
+  if (skipBtn) {
+    skipBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissSplash();
+    };
   }
-  initStoriesOnboarding();
+
+  // Durata caricamento logo: 2.2 secondi per mostrare il logo e la barra di caricamento
+  if (splashTimer) clearTimeout(splashTimer);
+  splashTimer = setTimeout(() => {
+    dismissSplash();
+  }, 2200);
 }
 
 // ==========================================================================
