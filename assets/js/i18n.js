@@ -710,7 +710,20 @@ window.i18n = {
       const key = el.getAttribute('data-i18n');
       const paramsAttr = el.getAttribute('data-i18n-params');
       const params = paramsAttr ? JSON.parse(paramsAttr) : {};
-      if (key === 'greeting' || key === 'greetingMorning' || key === 'greetingEvening') {
+      if (key === 'trialBanner') {
+        let remaining = 14;
+        try {
+          const regDateStr = localStorage.getItem('barpilot_registration_date');
+          if (regDateStr) {
+            const elapsed = Math.floor(Math.max(0, Date.now() - new Date(regDateStr).getTime()) / (1000 * 60 * 60 * 24));
+            remaining = 14 - elapsed;
+          }
+        } catch (_) {}
+        const isFr = this.currentLang === 'fr';
+        el.textContent = isFr
+          ? `Période d'essai : ${remaining} jour${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
+          : `Periodo di prova: ${remaining} giorn${remaining === 1 ? 'o' : 'i'} rimast${remaining === 1 ? 'o' : 'i'}`;
+      } else if (key === 'greeting' || key === 'greetingMorning' || key === 'greetingEvening') {
         const hour = new Date().getHours();
         // Dalle 03:00 alle 15:00 -> Buongiorno / Bonjour | Dalle 15:00 alle 03:00 -> Buonasera / Bonsoir
         const targetKey = (hour >= 3 && hour < 15) ? 'greetingMorning' : 'greetingEvening';

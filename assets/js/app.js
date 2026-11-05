@@ -758,6 +758,93 @@ function updateGreeting(name) {
 }
 window.updateGreeting = updateGreeting;
 
+// --------------------------------------------------------------------------
+// Trial Countdown & Registration Date Controller (14 Giorni di Prova)
+// --------------------------------------------------------------------------
+function getRegistrationDate() {
+  let regDate = localStorage.getItem("barpilot_registration_date");
+  if (!regDate) {
+    try {
+      const loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      if (loggedUser && (loggedUser.trial_start_date || loggedUser.created_at)) {
+        regDate = loggedUser.trial_start_date || loggedUser.created_at;
+      }
+    } catch (_) {}
+  }
+  if (!regDate && window.db) {
+    const bar = window.db.get("activeBar");
+    if (bar && (bar.trial_start_date || bar.created_at || bar.trialStartDate)) {
+      regDate = bar.trial_start_date || bar.created_at || bar.trialStartDate;
+    }
+  }
+  if (!regDate) {
+    regDate = new Date().toISOString();
+  }
+  try {
+    localStorage.setItem("barpilot_registration_date", regDate);
+  } catch (_) {}
+  return regDate;
+}
+
+function getTrialDaysRemaining() {
+  const regDateIso = getRegistrationDate();
+  const regTime = new Date(regDateIso).getTime();
+  const nowTime = Date.now();
+  const diffMs = Math.max(0, nowTime - regTime);
+  const elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const daysRemaining = 14 - elapsedDays;
+  return daysRemaining;
+}
+
+function updateTrialCountdown() {
+  const daysRemaining = getTrialDaysRemaining();
+
+  // Aggiorna activeBar in memoria
+  if (window.db) {
+    const bar = window.db.get("activeBar");
+    if (bar) {
+      bar.trialDaysRemaining = Math.max(0, daysRemaining);
+      window.db.set("activeBar", bar);
+    }
+  }
+
+  // 1. Badge vicino al pulsante Abbonamenti (.nav-badge-pro)
+  document.querySelectorAll(".nav-badge-pro").forEach(badge => {
+    // Non toccare il badge TICKET di Assistenza
+    if (badge.textContent.includes("TICKET")) return;
+
+    if (daysRemaining > 0) {
+      badge.textContent = `${daysRemaining}j`;
+      badge.style.display = "";
+    } else {
+      // Dopo 14 giorni il badge viene cancellato/nascosto
+      badge.style.display = "none";
+    }
+  });
+
+  // 2. Banner "Periodo di prova: X giorni rimasti" (id="trialBanner")
+  const trialBanner = document.getElementById("trialBanner");
+  if (trialBanner) {
+    if (daysRemaining > 0) {
+      trialBanner.style.display = "";
+      const textSpan = trialBanner.querySelector("[data-i18n='trialBanner']") || trialBanner.querySelector(".trial-banner-left span:last-child");
+      if (textSpan) {
+        textSpan.setAttribute("data-i18n-params", JSON.stringify({ days: String(daysRemaining) }));
+        const isFr = window.i18n && window.i18n.currentLang === "fr";
+        textSpan.textContent = isFr
+          ? `Période d'essai : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
+          : `Periodo di prova: ${daysRemaining} giorn${daysRemaining === 1 ? 'o' : 'i'} rimast${daysRemaining === 1 ? 'o' : 'i'}`;
+      }
+    } else {
+      // Dopo 14 giorni il banner viene cancellato/nascosto
+      trialBanner.style.display = "none";
+    }
+  }
+}
+window.getRegistrationDate = getRegistrationDate;
+window.getTrialDaysRemaining = getTrialDaysRemaining;
+window.updateTrialCountdown = updateTrialCountdown;
+
 function renderActiveBar() {
   const isDemo = (typeof isDemoMode === "function" && isDemoMode());
   const bar = (window.db ? window.db.get("activeBar") : null) || { name: "Bar Centrale", trialDaysRemaining: 14, managerName: "Marco Rossi" };
@@ -804,6 +891,9 @@ function renderActiveBar() {
     if (sidebarUserName) sidebarUserName.textContent = ownerName;
     updateGreeting(ownerName);
   }
+
+  // Sincronizza countdown 14 giorni di prova (badge & banner)
+  updateTrialCountdown();
 }
 
 // --------------------------------------------------------------------------
