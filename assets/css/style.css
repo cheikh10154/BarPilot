@@ -2357,15 +2357,26 @@ html.user-authenticated #authOverlay {
 }
 
 .story-skip-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  cursor: pointer;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
   backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  z-index: 30;
+}
+.story-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+.story-skip-btn:active {
+  transform: scale(0.96);
 }
 
 /* Touch tap areas for Prev / Next story */

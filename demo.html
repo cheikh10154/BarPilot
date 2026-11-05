@@ -57,28 +57,26 @@
   </div>
 
   <script>
-    // Fail-safe di emergenza per lo Splash Screen:
-    // garantisce che dopo massimo 1.5 secondi l'overlay di caricamento sia SEMPRE rimosso
-    // e che vengano avviate le Storie
-    setTimeout(function() {
+    // BarPilot Stories parte subito all'avvio
+    (function() {
       try {
-        var sp = document.getElementById("splashScreen");
-        if (sp && !sp.classList.contains("hidden")) {
-          sp.classList.add("hidden");
-        }
         var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
+        var isLogged = localStorage.getItem("barpilot_is_logged_in") === "true";
+        var sp = document.getElementById("splashScreen");
+        if (sp) {
+          sp.classList.add("hidden");
+          sp.style.display = "none";
+        }
         var stories = document.getElementById("storiesOverlay");
-        var auth = document.getElementById("authOverlay");
-        if (!isDemo && stories && stories.classList.contains("hidden") && auth && auth.classList.contains("hidden")) {
+        if (!isDemo && !isLogged && stories) {
+          stories.classList.remove("hidden");
+          stories.style.display = "flex";
           if (typeof initStoriesOnboarding === "function") {
             initStoriesOnboarding();
-          } else {
-            stories.classList.remove("hidden");
-            stories.style.display = "flex";
           }
         }
       } catch (_) {}
-    }, 1500);
+    })();
   </script>
 
   <!-- 2. INSTAGRAM-STYLE STORIES ONBOARDING (5 ANIMATIONS) -->

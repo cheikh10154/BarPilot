@@ -6461,22 +6461,25 @@ function initSplashScreen() {
     return;
   }
 
-  // STANDARD ONBOARDING FLOW FOR INDEX.HTML:
-  // After the loading menu splash, launch stories onboarding, then login/register screen!
-  const dismissSplash = () => {
+  // Se l'utente è già connesso, vai direttamente alla dashboard
+  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
     if (splashTimer) clearTimeout(splashTimer);
-    if (splash) splash.classList.add("hidden");
-    initStoriesOnboarding();
-  };
-
-  if (skipBtn) {
-    skipBtn.addEventListener("click", dismissSplash);
+    if (splash) {
+      splash.classList.add("hidden");
+      splash.style.display = "none";
+    }
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
+    return;
   }
 
-  // Fast 1.4s splash duration
-  splashTimer = setTimeout(() => {
-    dismissSplash();
-  }, 1400);
+  // STANDARD ONBOARDING: BarPilot Stories deve partire subito all'avvio!
+  if (splashTimer) clearTimeout(splashTimer);
+  if (splash) {
+    splash.classList.add("hidden");
+    splash.style.display = "none";
+  }
+  initStoriesOnboarding();
 }
 
 // ==========================================================================
@@ -6484,7 +6487,7 @@ function initSplashScreen() {
 // ==========================================================================
 let currentStory = 0;
 const totalStories = 5;
-const storyDurationMs = 5000; // 5s per story auto-play
+const storyDurationMs = 4000; // 4 secondi per storia
 let storyInterval = null;
 let storyElapsed = 0;
 let isStoryPaused = false;
@@ -6526,9 +6529,15 @@ function initStoriesOnboarding() {
 
   if (skipBtn) {
     skipBtn.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       finishStoriesAndGoToAuth("login");
     };
+    skipBtn.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      finishStoriesAndGoToAuth("login");
+    }, { passive: false });
   }
 
   // Hold to pause story (with guaranteed release on up/leave/cancel)
