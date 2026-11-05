@@ -31,6 +31,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "gestisci-abbonamento.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "gestisci-abbonamento/**",
+      "use": "@vercel/static"
+    },
+    {
       "src": "administration/**",
       "use": "@vercel/static"
     },
@@ -93,6 +101,10 @@
       "dest": "/api/create-ticket.js"
     },
     {
+      "src": "^/api/cancel-subscription/?$",
+      "dest": "/api/cancel-subscription.js"
+    },
+    {
       "src": "^/demo/?$",
       "dest": "/index.html"
     },
@@ -119,6 +131,14 @@
     {
       "src": "^/checkout.html$",
       "dest": "/checkout.html"
+    },
+    {
+      "src": "^/gestisci-abbonamento/?$",
+      "dest": "/gestisci-abbonamento.html"
+    },
+    {
+      "src": "^/gestisci-abbonamento.html$",
+      "dest": "/gestisci-abbonamento.html"
     },
     {
       "src": "^/administration/?$",
