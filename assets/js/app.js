@@ -5693,9 +5693,14 @@ function renderPlans() {
             <!-- Action Buttons: Google Play Pay (Recommended) + Standard S'abonner -->
       <div style="text-align:center; padding-top:14px; display:flex; flex-direction:column; align-items:center; gap:12px;">
         ${isSubscribed ? `
-          <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35);" onclick="openGooglePlayModal()">
-            ✓ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer / Modifier" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
+          <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35); cursor:pointer;" onclick="window.location.href='gestisci-abbonamento.html'">
+            ⚙️ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer / Résilier" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
           </button>
+          <div style="margin-top:4px;">
+            <a href="gestisci-abbonamento.html" style="color:var(--text-muted); font-size:12.5px; text-decoration:underline;">
+              ${isFr ? "Accéder à la gestion de l'abonnement et résiliation →" : "Gestisci l'abbonamento o effettua la disdetta →"}
+            </a>
+          </div>
         ` : `
           <!-- Primary CTA: Google Play Pay 1-Tap -->
           <button class="btn-gplay-subscribe" onclick="openGooglePlayModal()">
@@ -5723,6 +5728,11 @@ function renderPlans() {
           <button class="btn-primary btn-subscribe-hero" style="background:var(--bg-card); color:var(--text-main); border:1.5px solid var(--border-color); box-shadow:none; padding:12px 24px; font-size:13.5px;" onclick="openCheckoutModal()">
             💳 ${isFr ? "Ou s'abonner par Carte Bancaire (59 €/mois)" : "Oppure abbonati con Carta Bancaria (59 €/mese)"}
           </button>
+          <div style="margin-top:4px;">
+            <a href="gestisci-abbonamento.html" style="color:var(--text-muted); font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+              ⚙️ ${isFr ? "Gérer un abonnement existant ou résilier" : "Gestisci abbonamento esistente o disdici"}
+            </a>
+          </div>
         `}
         <p style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">
           🔒 ${isFr ? "Google Play Protect & Paiement 100% sécurisé · Premier prélèvement de 59 € automatique si non résilié" : "Google Play Protect & Pagamento sicuro 100% · Primo addebito di 59 € in automatico se non disdetto"}

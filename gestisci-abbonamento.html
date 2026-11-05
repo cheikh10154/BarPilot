@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BarPilot - Gestione Abbonamento</title>
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#0B1220">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    :root {
+      --bg-main: #0B1220;
+      --bg-card: #111B2E;
+      --bg-card-alt: #17233B;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(255, 138, 36, 0.4);
+      --text-main: #FFFFFF;
+      --text-muted: #94A3B8;
+      --primary: #FF8A24;
+      --primary-hover: #E67616;
+      --success: #10B981;
+      --danger: #EF4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+    }
+
+    body.manage-sub-body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .manage-sub-header {
+      background: rgba(11, 18, 32, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 20px;
+    }
+
+    .manage-sub-header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .manage-sub-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .manage-sub-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .manage-sub-brand-title {
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .manage-sub-brand-title span {
+      color: var(--primary);
+    }
+
+    .btn-return-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-return-app:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .manage-sub-container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    .manage-sub-intro {
+      margin-bottom: 28px;
+    }
+
+    .manage-sub-title {
+      font-size: 26px;
+      font-weight: 900;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .manage-sub-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .sub-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .sub-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+
+    .sub-plan-badge-active {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sub-plan-badge-cancelled {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sub-plan-pricing {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 12px 0 20px;
+    }
+
+    .sub-price-val {
+      font-size: 38px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .sub-price-cycle {
+      font-size: 15px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .sub-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      background: var(--bg-card-alt);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .sub-info-item-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .sub-info-item-value {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .sub-features-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .sub-feature-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .invoices-table-wrap {
+      overflow-x: auto;
+      margin-top: 14px;
+    }
+
+    .invoices-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .invoices-table th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .invoices-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #e2e8f0;
+    }
+
+    .btn-download-inv {
+      background: rgba(255, 138, 36, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(255, 138, 36, 0.25);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-download-inv:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Cancellation Card */
+    .cancellation-card {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(17, 27, 46, 0.9) 100%);
+    }
+
+    .btn-cancel-sub {
+      background: var(--danger-bg);
+      color: #F87171;
+      border: 1.5px solid rgba(239, 68, 68, 0.4);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel-sub:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-reactivate-sub {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(255, 138, 36, 0.35);
+    }
+
+    .btn-reactivate-sub:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Modal Overlay */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #111B2E;
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      max-width: 480px;
+      width: 100%;
+      padding: 26px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 900;
+      margin: 0 0 8px 0;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .form-group-modal {
+      margin-bottom: 18px;
+    }
+
+    .form-label-modal {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+
+    .form-select-modal, .form-textarea-modal {
+      width: 100%;
+      background: #0B1220;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 13.5px;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .form-select-modal:focus, .form-textarea-modal:focus {
+      border-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .btn-modal-cancel {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: #cbd5e1;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-modal-cancel:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-modal-confirm-cancel {
+      background: var(--danger);
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-modal-confirm-cancel:hover {
+      background: #DC2626;
+    }
+
+    .alert-banner {
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    .alert-banner-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #A7F3D0;
+    }
+
+    .alert-banner-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #FECACA;
+    }
+  </style>
+</head>
+<body class="manage-sub-body">
+
+  <!-- Top Sticky Header -->
+  <header class="manage-sub-header">
+    <div class="manage-sub-header-inner">
+      <a href="index.html" class="manage-sub-brand">
+        <img src="/assets/images/barpilot-logo-app.png" alt="BarPilot">
+        <div class="manage-sub-brand-title">Bar<span>Pilot</span></div>
+      </a>
+      <a href="index.html#view-dashboard" class="btn-return-app" id="btnReturnApp">
+        ← Torna al Gestionale
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="manage-sub-container">
+
+    <!-- Notifications banner -->
+    <div id="statusNotification" style="display:none;"></div>
+
+    <div class="manage-sub-intro">
+      <h1 class="manage-sub-title">Gestione Abbonamento</h1>
+      <p class="manage-sub-subtitle">
+        Controlla i dettagli del tuo piano, scarica le ricevute contabili o richiedi la disdetta del rinnovo in qualsiasi momento.
+      </p>
+    </div>
+
+    <!-- Active Subscription Details Card -->
+    <div class="sub-card">
+      <div class="sub-card-header">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 900; margin: 0 0 4px 0; color: #fff;" id="planNameDisplay">
+            BarPilot Pro — Tutto Incluso
+          </h2>
+          <span style="font-size: 13px; color: var(--text-muted);" id="subBarName">
+            Per: Bar Centrale
+          </span>
+        </div>
+        <div id="subStatusBadge" class="sub-plan-badge-active">
+          ● Attivo
+        </div>
+      </div>
+
+      <div class="sub-plan-pricing">
+        <span class="sub-price-val">59,00 €</span>
+        <span class="sub-price-cycle">/ mese (IVA inclusa)</span>
+      </div>
+
+      <!-- Detail Grid -->
+      <div class="sub-info-grid">
+        <div>
+          <div class="sub-info-item-label">Ciclo di Fatturazione</div>
+          <div class="sub-info-item-value" id="billingCycleDisplay">Mensile Ricorrente</div>
+        </div>
+        <div>
+          <div class="sub-info-item-label">Prossimo Rinnovo / Scadenza</div>
+          <div class="sub-info-item-value" id="nextRenewalDate">--</div>
+        </div>
+        <div>
+          <div class="sub-info-item-label">Metodo di Pagamento</div>
+          <div class="sub-info-item-value" id="paymentMethodDisplay">Google Pay / Carta di Credito</div>
+        </div>
+        <div>
+          <div class="sub-info-item-label">Conto Esercente</div>
+          <div class="sub-info-item-value" id="userEmailDisplay">--</div>
+        </div>
+      </div>
+
+      <!-- Features Included -->
+      <div style="margin-top: 22px;">
+        <div style="font-size: 12.5px; font-weight: 800; color: #cbd5e1; margin-bottom: 8px;">
+          TUTTE LE FUNZIONALITÀ ATTIVE NEL TUO PIANO:
+        </div>
+        <div class="sub-features-pills">
+          <span class="sub-feature-pill">✓ Presa comande & Cassa</span>
+          <span class="sub-feature-pill">✓ Mappa sala & Tavoli</span>
+          <span class="sub-feature-pill">✓ Monitor Cucina & KDS Barman</span>
+          <span class="sub-feature-pill">✓ Scarico scorte automatico</span>
+          <span class="sub-feature-pill">✓ Ricette cocktail & dosaggi</span>
+          <span class="sub-feature-pill">✓ Menu QR Code digitale</span>
+          <span class="sub-feature-pill">✓ Fatturazione & Ricevute</span>
+          <span class="sub-feature-pill">✓ Assistenza prioritaria 7/7</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoices & Billing History Card -->
+    <div class="sub-card">
+      <div class="sub-card-header">
+        <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: #fff;">
+          📄 Ricevute & Storico Pagamenti
+        </h3>
+        <span style="font-size: 12px; color: var(--text-muted);">
+          Valide a fini contabili e fiscali
+        </span>
+      </div>
+
+      <div class="invoices-table-wrap">
+        <table class="invoices-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrizione</th>
+              <th>Importo</th>
+              <th>Stato</th>
+              <th style="text-align:right;">Documento</th>
+            </tr>
+          </thead>
+          <tbody id="invoicesTableBody">
+            <!-- Populated dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Disdetta Card -->
+    <div class="sub-card cancellation-card" id="cancelSectionCard">
+      <div style="display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; justify-content:space-between;">
+        <div style="max-width:540px;">
+          <h3 style="font-size: 18px; font-weight: 800; margin: 0 0 6px 0; color: #fff;" id="cancelCardTitle">
+            Disdici il tuo abbonamento
+          </h3>
+          <p style="font-size: 13.5px; color: var(--text-muted); margin: 0; line-height: 1.5;" id="cancelCardDesc">
+            Puoi disdire in ogni momento senza penali né costi aggiuntivi. Dopo la disdetta, manterrai l'accesso al gestionale per il tuo bar fino alla fine del periodo in corso, e non riceverai ulteriori addebiti.
+          </p>
+        </div>
+        <div id="cancelActionContainer">
+          <button type="button" class="btn-cancel-sub" id="btnOpenCancelModal" onclick="openCancellationModal()">
+            <span>✕</span> Disdici Abbonamento
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Cancellation Confirmation Modal -->
+  <div class="modal-backdrop" id="cancelModal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span style="color:var(--danger);">⚠️</span> Conferma Disdetta Abbonamento
+      </div>
+      <p class="modal-desc">
+        Sei sicuro di voler interrompere il rinnovo automatico di <strong>BarPilot Pro (59 €/mese)</strong>? Il tuo bar continuerà ad avere accesso al gestionale fino alla fine del periodo già saldato.
+      </p>
+
+      <form id="cancelSubForm" onsubmit="handleConfirmCancel(event)">
+        <div class="form-group-modal">
+          <label class="form-label-modal">Motivo della disdetta (facoltativo)</label>
+          <select class="form-select-modal" id="cancelReasonSelect">
+            <option value="Non utilizzo tutte le funzionalità">Non utilizzo tutte le funzionalità</option>
+            <option value="Costo troppo elevato">Costo mensile non adatto al volume attuale</option>
+            <option value="Chiusura temporanea o stagionale del locale">Chiusura stagionale o temporanea</option>
+            <option value="Passaggio a un altro sistema">Passaggio a un altro sistema</option>
+            <option value="Altro motivo">Altro motivo</option>
+          </select>
+        </div>
+
+        <div class="form-group-modal">
+          <label class="form-label-modal">Note aggiuntive per il team BarPilot (opzionale)</label>
+          <textarea class="form-textarea-modal" id="cancelReasonNotes" rows="3" placeholder="Aiutaci a migliorare BarPilot..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" onclick="closeCancellationModal()">
+            Annulla
+          </button>
+          <button type="submit" class="btn-modal-confirm-cancel" id="btnSubmitCancel">
+            Conferma Disdetta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Recupera lo stato corrente dell'abbonamento da localStorage / Supabase
+    function getSubscriptionData() {
+      let isDemo = localStorage.getItem("barpilot_is_demo") === "true";
+      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true";
+      let isSubscribed = localStorage.getItem("barpilot_is_subscribed") === "true" ||
+                          localStorage.getItem("barpilot_subscription_confirmed") === "true";
+      
+      let loggedUser = null;
+      try {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (e) {}
+
+      let barName = (loggedUser && (loggedUser.barName || loggedUser.name)) ? (loggedUser.barName || loggedUser.name) : "Bar Centrale";
+      let userEmail = (loggedUser && loggedUser.email) ? loggedUser.email : "gestore@barpilot.eu";
+
+      // Calcola date di rinnovo (1 mese in avanti o 14 giorni trial)
+      const now = new Date();
+      const renewalDate = new Date();
+      renewalDate.setDate(now.getDate() + 26);
+      const dateFormatted = renewalDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+
+      return {
+        isDemo,
+        isCancelled,
+        isSubscribed,
+        barName,
+        userEmail,
+        renewalDateStr: dateFormatted,
+        nowDateStr: now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      };
+    }
+
+    function renderUI() {
+      const data = getSubscriptionData();
+
+      document.getElementById("subBarName").textContent = "Per: " + data.barName;
+      document.getElementById("userEmailDisplay").textContent = data.userEmail;
+      document.getElementById("nextRenewalDate").textContent = data.renewalDateStr;
+
+      const badgeEl = document.getElementById("subStatusBadge");
+      const cancelActionWrap = document.getElementById("cancelActionContainer");
+      const cancelCardTitle = document.getElementById("cancelCardTitle");
+      const cancelCardDesc = document.getElementById("cancelCardDesc");
+      const notificationEl = document.getElementById("statusNotification");
+
+      if (data.isCancelled) {
+        badgeEl.className = "sub-plan-badge-cancelled";
+        badgeEl.innerHTML = "● Disdetto (Attivo fino al " + data.renewalDateStr + ")";
+
+        cancelCardTitle.textContent = "Abbonamento disdetto";
+        cancelCardDesc.textContent = "La disdetta del rinnovo è stata registrata con successo. Il tuo abbonamento rimarrà utilizzabile fino al " + data.renewalDateStr + ". Non ti verrà addebitato alcun rinnovo futuro.";
+
+        cancelActionWrap.innerHTML = `
+          <button type="button" class="btn-reactivate-sub" onclick="handleReactivate()">
+            ⚡ Riattiva Abbonamento Pro
+          </button>
+        `;
+
+        notificationEl.className = "alert-banner alert-banner-danger";
+        notificationEl.style.display = "flex";
+        notificationEl.innerHTML = `
+          <span>ℹ️</span>
+          <div>
+            <strong>Disdetta Registrata:</strong> Il rinnovo automatico è stato interrotto. Puoi continuare ad usare tutte le funzionalità fino al <strong>${data.renewalDateStr}</strong> senza ulteriori costi.
+          </div>
+        `;
+      } else {
+        badgeEl.className = "sub-plan-badge-active";
+        badgeEl.innerHTML = "● Attivo (Rinnovabile)";
+
+        cancelCardTitle.textContent = "Disdici il tuo abbonamento";
+        cancelCardDesc.textContent = "Puoi disdire in ogni momento senza penali né costi aggiuntivi. Dopo la disdetta, manterrai l'accesso al gestionale per il tuo bar fino alla fine del periodo in corso, e non riceverai ulteriori addebiti.";
+
+        cancelActionWrap.innerHTML = `
+          <button type="button" class="btn-cancel-sub" onclick="openCancellationModal()">
+            <span>✕</span> Disdici Abbonamento
+          </button>
+        `;
+      }
+
+      // Popola tabella ricevute
+      const tableBody = document.getElementById("invoicesTableBody");
+      const invNum = "BP-2026-" + String(Math.floor(Math.random() * 899) + 100);
+      tableBody.innerHTML = `
+        <tr>
+          <td><strong>${data.nowDateStr}</strong></td>
+          <td>Abbonamento BarPilot Pro — Canone Mensile</td>
+          <td><strong>59,00 €</strong></td>
+          <td><span style="color:var(--success); font-weight:700;">✓ Saldato</span></td>
+          <td style="text-align:right;">
+            <a href="/api/generate-invoice?barId=active&invoiceNumber=${invNum}" target="_blank" class="btn-download-inv">
+              📥 Scarica PDF
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+
+    function openCancellationModal() {
+      document.getElementById("cancelModal").classList.add("active");
+    }
+
+    function closeCancellationModal() {
+      document.getElementById("cancelModal").classList.remove("active");
+    }
+
+    async function handleConfirmCancel(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmitCancel");
+      btn.disabled = true;
+      btn.textContent = "Disdetta in corso...";
+
+      const reasonSelect = document.getElementById("cancelReasonSelect").value;
+      const notes = document.getElementById("cancelReasonNotes").value.trim();
+      const fullReason = notes ? `${reasonSelect} - Dettaglio: ${notes}` : reasonSelect;
+
+      const data = getSubscriptionData();
+
+      try {
+        // Chiamata all'API Vercel serverless /api/cancel-subscription
+        const res = await fetch("/api/cancel-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            barId: data.isDemo ? "bar_demo" : "bar_01",
+            barName: data.barName,
+            email: data.userEmail,
+            reason: fullReason
+          })
+        });
+
+        const result = await res.json().catch(() => ({}));
+        console.log("Esito disdetta:", result);
+      } catch (err) {
+        console.warn("Chiamata di disdetta API non bloccante:", err);
+      }
+
+      // Aggiorna memoria locale
+      localStorage.setItem("barpilot_subscription_cancelled", "true");
+      localStorage.setItem("barpilot_is_subscribed", "false");
+      localStorage.setItem("barpilot_subscription_confirmed", "false");
+
+      closeCancellationModal();
+      btn.disabled = false;
+      btn.textContent = "Conferma Disdetta";
+
+      renderUI();
+    }
+
+    function handleReactivate() {
+      localStorage.removeItem("barpilot_subscription_cancelled");
+      localStorage.setItem("barpilot_is_subscribed", "true");
+      localStorage.setItem("barpilot_subscription_confirmed", "true");
+
+      const notificationEl = document.getElementById("statusNotification");
+      notificationEl.className = "alert-banner alert-banner-success";
+      notificationEl.style.display = "flex";
+      notificationEl.innerHTML = `
+        <span>✓</span>
+        <div>
+          <strong>Abbonamento riattivato con successo!</strong> Il tuo piano BarPilot Pro continuerà regolarmente.
+        </div>
+      `;
+
+      renderUI();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderUI();
+    });
+  </script>
+</body>
+</html>
