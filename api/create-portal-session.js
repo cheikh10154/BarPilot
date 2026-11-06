@@ -25,9 +25,12 @@ export default async function handler(req, res) {
     }
 
     const host = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
+    const referer = req.headers.referer || '';
+    const hasApp = referer.includes('/app') || host.includes('/app');
+    const returnDefault = `${host}${hasApp ? '/app' : ''}/gestisci-abbonamento.html`;
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: returnUrl || `${host}/`
+      return_url: returnUrl || returnDefault
     });
 
     return res.status(200).json({ url: portalSession.url });

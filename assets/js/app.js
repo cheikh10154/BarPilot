@@ -265,8 +265,8 @@ function isDemoMode() {
     }
     const bar = (window.db ? window.db.get("activeBar") : null) || {};
     if (bar && bar.isDemo === false) return false;
-    // Su index.html o root, la modalità demo non deve scavalcare l'onboarding e il login
-    if (path.endsWith("index.html") || path === "" || path.endsWith("/")) {
+    // Su index.html, root o /app, la modalità demo non deve scavalcare l'onboarding e il login
+    if (path.endsWith("index.html") || path === "" || path.endsWith("/") || path === "/app" || path === "/app/") {
       return false;
     }
     return localStorage.getItem("barpilot_is_demo") === "true";
@@ -374,7 +374,7 @@ function updateDashboardLockState() {
         <span class="trial-pulse-icon">⚡</span>
         <span><strong>Modalità Demo Libera:</strong> Accesso completo e navigazione senza limiti a tutte le funzioni.</span>
       </div>
-      <button class="trial-cta-btn" onclick="window.location.href='/pro.html'" style="background:#fff; color:#059669; font-weight:800;">Attiva BarPilot Pro</button>
+      <button class="trial-cta-btn" onclick="window.location.href='pro.html'" style="background:#fff; color:#059669; font-weight:800;">Attiva BarPilot Pro</button>
     `;
   }
 }
@@ -4777,7 +4777,8 @@ async function handleNewPasswordSubmit(e) {
     showToast("🎉 Password impostata con successo! Benvenuto nel tuo gestionale.");
 
     const curPath = (window.location.pathname || "").toLowerCase();
-    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || (!curPath.endsWith("index.html") && curPath !== "/" && !curPath.endsWith("/"))) {
+    const isAppRoot = curPath.endsWith("index.html") || curPath === "/" || curPath.endsWith("/") || curPath === "/app" || curPath === "/app/";
+    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || !isAppRoot) {
       window.location.href = "index.html#view-dashboard";
       return;
     }
@@ -8001,7 +8002,8 @@ async function handleAuthSubmit(e) {
 
     // ACCESSO AL GESTIONALE: reindirizza sempre alla pagina index.html
     const curPath = (window.location.pathname || "").toLowerCase();
-    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || (!curPath.endsWith("index.html") && curPath !== "/" && !curPath.endsWith("/"))) {
+    const isAppRoot = curPath.endsWith("index.html") || curPath === "/" || curPath.endsWith("/") || curPath === "/app" || curPath === "/app/";
+    if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || !isAppRoot) {
       window.location.href = "index.html#view-dashboard";
       return;
     }

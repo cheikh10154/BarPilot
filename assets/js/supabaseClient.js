@@ -214,7 +214,8 @@ class BarPilotSupabaseClient {
   // 1. Social OAuth 2.0 (Google & Facebook)
   async signInWithOAuth(options) {
     const { provider, redirectTo } = options;
-    const finalRedirect = redirectTo || `${window.location.origin}/auth/callback`;
+    const defaultCallback = `${window.location.origin}${window.location.pathname.startsWith('/app') ? '/app' : ''}/auth/callback`;
+    const finalRedirect = redirectTo || defaultCallback;
 
     if (!this.isConfigured) {
       console.warn(`[SupabaseAuth] Remote Supabase not configured yet for ${provider}. Simulating flow.`);

@@ -105,12 +105,76 @@
       "dest": "/api/cancel-subscription.js"
     },
     {
-      "src": "^/demo/?$",
+      "src": "^/app/?$",
       "dest": "/index.html"
     },
     {
-      "src": "^/demo.html$",
+      "src": "^/app/index.html$",
       "dest": "/index.html"
+    },
+    {
+      "src": "^/app/demo/?$",
+      "dest": "/demo.html"
+    },
+    {
+      "src": "^/app/demo.html$",
+      "dest": "/demo.html"
+    },
+    {
+      "src": "^/app/pro/?$",
+      "dest": "/pro.html"
+    },
+    {
+      "src": "^/app/pro.html$",
+      "dest": "/pro.html"
+    },
+    {
+      "src": "^/app/offerta/?$",
+      "dest": "/pro.html"
+    },
+    {
+      "src": "^/app/checkout/?$",
+      "dest": "/checkout.html"
+    },
+    {
+      "src": "^/app/checkout.html$",
+      "dest": "/checkout.html"
+    },
+    {
+      "src": "^/app/gestisci-abbonamento/?$",
+      "dest": "/gestisci-abbonamento.html"
+    },
+    {
+      "src": "^/app/gestisci-abbonamento.html$",
+      "dest": "/gestisci-abbonamento.html"
+    },
+    {
+      "src": "^/app/assets/(.*)$",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/app/api/(.*)$",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "^/app/manifest.json$",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "^/app/service-worker.js$",
+      "dest": "/service-worker.js"
+    },
+    {
+      "src": "^/app/(.*)$",
+      "dest": "/$1"
+    },
+    {
+      "src": "^/demo/?$",
+      "dest": "/demo.html"
+    },
+    {
+      "src": "^/demo.html$",
+      "dest": "/demo.html"
     },
     {
       "src": "^/pro/?$",

@@ -174,12 +174,16 @@ window.verifyCardWithStripe = verifyCardWithStripe;
 async function startStripeSubscriptionCheckout(options = {}) {
   const bar = (window.db && window.db.get("activeBar")) || {};
   const session = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "{}");
+  const isApp = window.location.pathname.startsWith('/app');
+  const appPrefix = isApp ? '/app' : '';
   const payload = {
     barId: options.barId || bar.id,
     userId: options.userId || session.user?.id,
     email: options.email || bar.managerEmail || session.user?.email,
     barName: options.barName || bar.name,
-    trialDays: options.trialDays || 14
+    trialDays: options.trialDays || 14,
+    successUrl: options.successUrl || `${window.location.origin}${appPrefix}/?checkout_status=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: options.cancelUrl || `${window.location.origin}${appPrefix}/checkout.html?checkout_status=canceled`
   };
 
   try {

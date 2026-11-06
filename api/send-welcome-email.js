@@ -25,7 +25,7 @@ function generateWelcomeHtml({ ownerName, barName, email, city, appUrl }) {
   const safeBar = barName || "Il Tuo Bar";
   const safeCity = city || "Italia";
   const safeEmail = email || "";
-  const safeUrl = appUrl || "https://barpilot.it";
+  const safeUrl = appUrl || "https://www.barpilot.eu/app";
 
   return `
 <!DOCTYPE html>
@@ -147,7 +147,7 @@ function generateWelcomeHtml({ ownerName, barName, email, city, appUrl }) {
       <!-- Footer -->
       <div class="footer">
         <p style="margin: 0 0 8px 0;">BarPilot · La tecnologia che fa decollare il tuo bar</p>
-        <p style="margin: 0; color: #475569;">Hai ricevuto questa email perché ti sei registrato su barpilot.it con l'indirizzo ${safeEmail}.</p>
+        <p style="margin: 0; color: #475569;">Hai ricevuto questa email perché ti sei registrato su barpilot.eu con l'indirizzo ${safeEmail}.</p>
       </div>
 
     </div>
@@ -201,7 +201,7 @@ module.exports = async function handler(req, res) {
       return res.end(JSON.stringify(err));
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://barpilot.it";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.barpilot.eu/app";
     const subject = `🎉 Benvenuto su BarPilot! Il tuo bar "${barName || 'Il Mio Bar'}" è pronto`;
     const htmlContent = generateWelcomeHtml({ ownerName, barName, email, city, appUrl });
 
@@ -221,7 +221,7 @@ module.exports = async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: process.env.EMAIL_FROM || 'BarPilot <benvenuto@barpilot.it>',
+            from: process.env.EMAIL_FROM || 'BarPilot <benvenuto@barpilot.eu>',
             to: [email],
             subject: subject,
             html: htmlContent
@@ -252,7 +252,7 @@ module.exports = async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            sender: { name: 'BarPilot', email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.it' },
+            sender: { name: 'BarPilot', email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.eu' },
             to: [{ email: email, name: ownerName || 'Gestore' }],
             subject: subject,
             htmlContent: htmlContent
@@ -280,7 +280,7 @@ module.exports = async function handler(req, res) {
           },
           body: JSON.stringify({
             personalizations: [{ to: [{ email: email, name: ownerName }] }],
-            from: { email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.it', name: 'BarPilot' },
+            from: { email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.eu', name: 'BarPilot' },
             subject: subject,
             content: [{ type: 'text/html', value: htmlContent }]
           })

@@ -32,7 +32,8 @@ class FacebookAuthManager {
 
     // 1. If Supabase is connected with Facebook OAuth
     if (window.supabase && window.supabase.isConfigured) {
-      window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=facebook&redirect_to=${encodeURIComponent(window.location.origin)}`;
+      const returnUrl = window.location.origin + window.location.pathname;
+      window.location.href = `${window.supabase.url}/auth/v1/authorize?provider=facebook&redirect_to=${encodeURIComponent(returnUrl)}`;
       return;
     }
 
