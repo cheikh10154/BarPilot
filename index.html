@@ -2654,7 +2654,47 @@
             </div>
           </div>
 
-          <!-- METHOD 2: Stripe Checkout (Link di Accesso Client Ufficiale) -->
+          <!-- METHOD 2: PayPal (Subito dopo il pagamento con carta) -->
+          <div class="checkout-pro-method-row" id="proMethodRowPaypal">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('paypal')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.872a.855.855 0 0 1 .843-.717h6.69c3.088 0 5.488.75 6.425 2.508.825 1.547.674 3.654-.45 5.25-1.077 1.528-2.85 2.457-5.127 2.686l-.604 3.826a.854.854 0 0 1-.843.722H8.44l-.731 4.634a.641.641 0 0 1-.633.556z" fill="#003087"/>
+                  <path d="M19.452 7.625c-.27-.08-.57-.145-.9-.196a8.91 8.91 0 0 0-1.895-.147h-5.26a.855.855 0 0 0-.844.721l-1.47 9.324h3.438l.604-3.826c.07-.447.457-.778.91-.778h1.616c3.272 0 5.834-1.328 6.578-5.215.34-1.77.01-3.136-.777-3.883z" fill="#0079C1"/>
+                  <path d="M18.552 7.429a8.91 8.91 0 0 0-1.895-.147h-5.26a.855.855 0 0 0-.844.721l-1.47 9.324h3.438l.604-3.826a.854.854 0 0 1 .843-.722h1.616c3.272 0 5.834-1.328 6.578-5.215.025-.13.045-.26.062-.39-.46-.38-1.06-.61-1.766-.745z" fill="#00457C"/>
+                </svg>
+              </div>
+              <span class="pro-method-title">PayPal</span>
+              <div class="pro-badges-row">
+                <span class="pro-badge-card" style="color:#003087; font-size:10px; font-weight:900; background:#F4F8FD; border-color:#D0E2F7;">PayPal</span>
+                <span class="pro-badge-card" style="color:#0079C1; font-size:9px; font-weight:700; background:#F0F9FF; border-color:#BAE6FD;">Paga in 3 rate</span>
+              </div>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyPaypal">
+              <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:12px; margin-bottom:12px; font-size:12px; line-height:1.5; color:#374151;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                  <span style="font-size:16px;">🛡️</span>
+                  <strong style="color:#111827;">Protezione acquisti PayPal inclusa</strong>
+                </div>
+                <div style="color:#6B7280; font-size:11.5px; margin-bottom:6px;">
+                  Paga con il tuo account PayPal o autorizza la prova gratuita di <strong>14 giorni a 0,00 €</strong>. Nessun addebito oggi.
+                </div>
+                <div style="font-size:11px; color:#4B5563; background:#EFF6FF; border:1px solid #DBEAFE; border-radius:6px; padding:6px 10px;">
+                  💡 Puoi scegliere di pagare anche in <strong>3 rate mensili senza interessi</strong>.
+                </div>
+              </div>
+              <button type="button" onclick="handlePayPalCheckoutSubmit()" style="background:#FFC439; border:1px solid #E0A800; border-radius:10px; width:100%; height:44px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:800; font-size:14px; color:#003087; box-shadow:0 1px 3px rgba(0,0,0,0.08); transition:background 0.15s;" onmouseover="this.style.background='#F2BA36'" onmouseout="this.style.background='#FFC439'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;">
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.872a.855.855 0 0 1 .843-.717h6.69c3.088 0 5.488.75 6.425 2.508.825 1.547.674 3.654-.45 5.25-1.077 1.528-2.85 2.457-5.127 2.686l-.604 3.826a.854.854 0 0 1-.843.722H8.44l-.731 4.634a.641.641 0 0 1-.633.556z" fill="#003087"/>
+                  <path d="M19.452 7.625c-.27-.08-.57-.145-.9-.196a8.91 8.91 0 0 0-1.895-.147h-5.26a.855.855 0 0 0-.844.721l-1.47 9.324h3.438l.604-3.826c.07-.447.457-.778.91-.778h1.616c3.272 0 5.834-1.328 6.578-5.215.34-1.77.01-3.136-.777-3.883z" fill="#0079C1"/>
+                </svg>
+                <span>Paga con <span style="font-weight:900;">PayPal</span></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- METHOD 3: Stripe Checkout (Link di Accesso Client Ufficiale) -->
           <div class="checkout-pro-method-row" id="proMethodRowStripe">
             <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('stripe')">
               <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>

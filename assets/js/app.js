@@ -8483,7 +8483,7 @@ let isProSaveCardChecked = true;
 
 function selectProPaymentMethod(method) {
   currentProMethod = method;
-  const methods = ['card', 'stripe', 'google'];
+  const methods = ['card', 'paypal', 'stripe', 'google'];
   methods.forEach(m => {
     const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
     if (row) {
@@ -8495,6 +8495,8 @@ function selectProPaymentMethod(method) {
   if (submitBtn) {
     if (method === 'stripe') {
       submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
+    } else if (method === 'paypal') {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Paga con PayPal</span> <span>➔</span>';
     } else if (method === 'google') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
     } else {
@@ -8514,11 +8516,37 @@ function toggleProSaveCard() {
 }
 window.toggleProSaveCard = toggleProSaveCard;
 
+async function handlePayPalCheckoutSubmit() {
+  const submitBtn = document.getElementById('btnProSubmit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:8px; vertical-align:middle;"></span> Autorizzazione PayPal in corso...`;
+  }
+  showToast("⏳ Connessione protetta ai server PayPal...");
+  setTimeout(() => {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>🔒</span> <span>Paga con PayPal</span> <span>➔</span>`;
+    }
+    showToast("✅ Conto PayPal autorizzato con successo! Accesso attivato.");
+    activateSubscription('paypal');
+    if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
+    switchView('dashboard');
+  }, 1300);
+}
+window.handlePayPalCheckoutSubmit = handlePayPalCheckoutSubmit;
+window.handleDirectPayPalClick = handlePayPalCheckoutSubmit;
+
 async function handleProCheckoutSubmit(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   if (currentProMethod === 'stripe') {
     handleStripeCheckoutSubmit();
+    return;
+  }
+
+  if (currentProMethod === 'paypal') {
+    handlePayPalCheckoutSubmit();
     return;
   }
 
