@@ -528,8 +528,8 @@
         console.error('Contact error:', err);
         showMsg(
           isFr
-            ? 'Une erreur est survenue. Veuillez écrire à info@barpilot.eu.'
-            : 'Si è verificato un errore durante l\'invio. Puoi scriverci direttamente a info@barpilot.eu.',
+            ? 'Une erreur est survenue. Veuillez écrire à admin@barpilot.eu.'
+            : 'Si è verificato un errore durante l\'invio. Puoi scriverci direttamente a admin@barpilot.eu.',
           'error'
         );
       } finally {
