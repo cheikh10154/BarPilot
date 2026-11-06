@@ -2853,11 +2853,18 @@ html.user-authenticated #authOverlay {
 /* ========================================================
    SETTINGS EXPANDED DASHBOARD
    ======================================================== */
+#view-settings {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .settings-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
   max-width: 960px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-tabs-nav {
@@ -2899,6 +2906,7 @@ html.user-authenticated #authOverlay {
 .settings-pane {
   display: none;
   animation: fadeIn 0.2s ease-in-out;
+  overflow: auto;
 }
 
 .settings-pane.active {
@@ -2912,6 +2920,11 @@ html.user-authenticated #authOverlay {
   padding: 24px;
   box-shadow: var(--shadow-card);
   margin-bottom: 20px;
+  overflow: auto;
+}
+
+.settings-card .form-input {
+  overflow: auto;
 }
 
 .settings-card-header {

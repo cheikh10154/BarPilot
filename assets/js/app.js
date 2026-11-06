@@ -137,6 +137,7 @@ function renderApp() {
   renderPlans();
   renderGoogleSetting();
   renderFacebookSetting();
+  renderGeneralSettings();
   updateDashboardLockState();
   if (typeof updateTicketButtonVisibility === "function") {
     updateTicketButtonVisibility();
@@ -594,6 +595,10 @@ function switchView(viewName) {
   document.querySelectorAll(".view-panel").forEach(panel => {
     panel.classList.toggle("active", panel.id === `view-${viewName}`);
   });
+
+  if (viewName === "settings") {
+    renderGeneralSettings();
+  }
 
   if (typeof updateTicketButtonVisibility === "function") {
     updateTicketButtonVisibility();
@@ -8121,21 +8126,117 @@ function switchSettingsTab(tabKey) {
   });
 }
 
-function saveGeneralSettings() {
-  const bar = window.db.get("activeBar");
+function renderGeneralSettings() {
+  const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
+
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+  const currentEmail = (loggedUser?.email || bar?.managerEmail || "").toLowerCase().trim();
+  const dbUsers = (typeof getDatabaseUsers === "function") ? getDatabaseUsers() : [];
+  const dbUser = dbUsers.find(u => u.email && u.email.toLowerCase().trim() === currentEmail);
+
+  const barNameVal = (!isDemo && (bar.name || bar.barName || loggedUser?.barName || dbUser?.barName)) || (isDemo ? "Bar Centrale" : "Il Mio Bar");
+  const vatVal = (!isDemo && (bar.vat || bar.piva || bar.vatNumber || loggedUser?.vat || loggedUser?.piva || loggedUser?.vatNumber || dbUser?.vat || dbUser?.piva)) || (isDemo ? "IT 12345678901" : "");
+  const phoneVal = (!isDemo && (bar.phone || bar.phoneNumber || bar.managerPhone || loggedUser?.phone || loggedUser?.phoneNumber || dbUser?.phone)) || (isDemo ? "+39 06 678 9123" : "");
+
   const nameInput = document.getElementById("setBarName");
+  if (nameInput) nameInput.value = barNameVal;
+
+  const vatInput = document.getElementById("setVat");
+  if (vatInput) vatInput.value = vatVal;
+
+  const phoneInput = document.getElementById("setPhone");
+  if (phoneInput) phoneInput.value = phoneVal;
+}
+
+function saveGeneralSettings() {
+  const bar = window.db ? (window.db.get("activeBar") || {}) : {};
+  const nameInput = document.getElementById("setBarName");
+  const vatInput = document.getElementById("setVat");
+  const phoneInput = document.getElementById("setPhone");
   const currencySelect = document.getElementById("setCurrency");
 
-  if (nameInput && nameInput.value) {
-    bar.name = nameInput.value;
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (e) {}
+
+  const currentEmail = (loggedUser?.email || bar?.managerEmail || "").toLowerCase().trim();
+
+  if (nameInput && nameInput.value !== undefined) {
+    const newName = nameInput.value.trim();
+    bar.name = newName;
+    bar.barName = newName;
+    if (loggedUser) {
+      loggedUser.barName = newName;
+      loggedUser["Nome bar"] = newName;
+    }
   }
+
+  if (vatInput && vatInput.value !== undefined) {
+    const newVat = vatInput.value.trim();
+    bar.vat = newVat;
+    bar.piva = newVat;
+    bar.vatNumber = newVat;
+    bar.taxCode = newVat;
+    if (loggedUser) {
+      loggedUser.vat = newVat;
+      loggedUser.piva = newVat;
+      loggedUser.vatNumber = newVat;
+      loggedUser.taxCode = newVat;
+      loggedUser["Partita IVA"] = newVat;
+    }
+  }
+
+  if (phoneInput && phoneInput.value !== undefined) {
+    const newPhone = phoneInput.value.trim();
+    bar.phone = newPhone;
+    bar.phoneNumber = newPhone;
+    bar.managerPhone = newPhone;
+    if (loggedUser) {
+      loggedUser.phone = newPhone;
+      loggedUser.phoneNumber = newPhone;
+    }
+  }
+
   if (currencySelect) {
     bar.currency = currencySelect.value === 'EUR' ? '€' : (currencySelect.value === 'USD' ? '$' : 'CHF');
   }
 
-  window.db.set("activeBar", bar);
+  if (window.db) {
+    window.db.set("activeBar", bar);
+    const barsList = window.db.get("barsList") || [];
+    const bIdx = barsList.findIndex(b => b.id === bar.id || b.name === bar.name);
+    if (bIdx >= 0) {
+      barsList[bIdx] = { ...barsList[bIdx], ...bar };
+      window.db.set("barsList", barsList);
+    }
+  }
+
+  if (loggedUser) {
+    localStorage.setItem("barpilot_logged_user", JSON.stringify(loggedUser));
+  }
+
+  if (currentEmail && typeof saveUserToDatabase === "function") {
+    saveUserToDatabase({
+      email: currentEmail,
+      barName: bar.name,
+      "Nome bar": bar.name,
+      vat: bar.vat,
+      piva: bar.vat,
+      vatNumber: bar.vat,
+      taxCode: bar.vat,
+      "Partita IVA": bar.vat,
+      phone: bar.phone,
+      phoneNumber: bar.phone
+    });
+  }
+
   renderActiveBar();
-  showToast(window.i18n.currentLang === 'it' ? "Impostazioni generali salvate!" : "Paramètres enregistrés !");
+  showToast(window.i18n && window.i18n.currentLang === 'fr' ? "Paramètres enregistrés !" : "Impostazioni generali salvate!");
 }
 
 // Pleasant bar notification chime via Web Audio API (No external file needed)
@@ -8318,6 +8419,8 @@ window.updateDashboardLockState = updateDashboardLockState;
 window.switchView = switchView;
 window.appState = appState;
 window.quickLoginDemo = quickLoginDemo;
+window.renderGeneralSettings = renderGeneralSettings;
+window.saveGeneralSettings = saveGeneralSettings;
 
 
 // --------------------------------------------------------------------------
