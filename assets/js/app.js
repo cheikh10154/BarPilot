@@ -3622,19 +3622,56 @@ function updateProductImagePreview(url) {
   }
 }
 
+function compressProductImage(file, maxWidth, maxHeight, quality, callback) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawData = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+        callback(compressedDataUrl);
+      } catch (err) {
+        callback(rawData);
+      }
+    };
+    img.onerror = function() {
+      callback(rawData);
+    };
+    img.src = rawData;
+  };
+  reader.onerror = function() {
+    console.warn("[Product Upload] Errore lettura file");
+  };
+  reader.readAsDataURL(file);
+}
+
 function handleProductFileUpload(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const dataUrl = e.target.result;
+  compressProductImage(file, 480, 480, 0.82, function(dataUrl) {
     const preview = document.getElementById("productImagePreview");
     const input = document.getElementById("newProdImage");
     if (preview) preview.src = dataUrl;
     if (input) input.value = dataUrl;
     document.querySelectorAll(".product-preset-thumb").forEach(t => t.classList.remove("selected"));
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function recalcProductMargin() {
@@ -3857,6 +3894,9 @@ function handleAddProductSubmit(e) {
         allergens
       };
       window.db.set("products", products);
+      try {
+        localStorage.setItem("barpilot_saved_products", JSON.stringify(products));
+      } catch (e) {}
       showToast(`✅ Prodotto "${name}" aggiornato con successo!`);
     }
   } else {
@@ -3878,6 +3918,9 @@ function handleAddProductSubmit(e) {
     };
     products.push(newProduct);
     window.db.set("products", products);
+    try {
+      localStorage.setItem("barpilot_saved_products", JSON.stringify(products));
+    } catch (e) {}
     showToast(`✅ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
   }
 
@@ -3932,6 +3975,9 @@ function confirmDeleteProductAction() {
   const target = products.find(p => p.id == productIdPendingDelete);
   const updated = products.filter(p => p.id != productIdPendingDelete);
   window.db.set("products", updated);
+  try {
+    localStorage.setItem("barpilot_saved_products", JSON.stringify(updated));
+  } catch (e) {}
 
   const deletedName = target ? target.name : "Prodotto";
   closeDeleteProductModal();
@@ -3953,6 +3999,9 @@ function toggleProductAvailabilityStatus(productId) {
 
   p.status = p.status === "out_of_stock" ? "active" : "out_of_stock";
   window.db.set("products", products);
+  try {
+    localStorage.setItem("barpilot_saved_products", JSON.stringify(products));
+  } catch (e) {}
 
   renderProducts();
   renderOrderCatalog();
@@ -7931,7 +7980,20 @@ function quickLoginDemo() {
     window.db.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
     window.db.data.orders = window.db.data.demoOrders;
     window.db.data.tables = window.db.data.demoTables;
-    window.db.data.products = JSON.parse(JSON.stringify(initialData.products));
+    // Preserva sempre le modifiche sui prodotti se presenti
+    const customProdsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+    let preservedProducts = null;
+    if (customProdsRaw) {
+      try {
+        const cp = JSON.parse(customProdsRaw);
+        if (Array.isArray(cp) && cp.length > 0) preservedProducts = cp;
+      } catch (e) {}
+    }
+    if (preservedProducts) {
+      window.db.data.products = preservedProducts;
+    } else if (!Array.isArray(window.db.data.products) || window.db.data.products.length === 0) {
+      window.db.data.products = JSON.parse(JSON.stringify(initialData.products));
+    }
     window.db.data.metrics = JSON.parse(JSON.stringify(initialData.metrics));
     window.db.data.hourlySales = JSON.parse(JSON.stringify(initialData.hourlySales));
     window.db.data.categorySales = JSON.parse(JSON.stringify(initialData.categorySales));

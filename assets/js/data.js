@@ -363,14 +363,27 @@ const initialData = {
 class BarPilotStorage {
   constructor() {
     const saved = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_store") : null;
+    const customProductsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+    let customProducts = null;
+    if (customProductsRaw) {
+      try {
+        const parsed = JSON.parse(customProductsRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          customProducts = parsed;
+        }
+      } catch (e) {}
+    }
+
     if (saved) {
       try {
         this.data = JSON.parse(saved);
+        if (customProducts) {
+          this.data.products = customProducts;
+        } else if (!Array.isArray(this.data.products)) {
+          this.data.products = initialData.products;
+        }
         if (!Array.isArray(this.data.users)) {
           this.data.users = initialData.users;
-        }
-        if (!Array.isArray(this.data.products)) {
-          this.data.products = initialData.products;
         }
         if (!Array.isArray(this.data.inventory)) {
           this.data.inventory = initialData.inventory;
@@ -404,14 +417,31 @@ class BarPilotStorage {
         this.persist();
       } catch (e) {
         this.initDefaults();
+        if (customProducts) {
+          this.data.products = customProducts;
+          this.persist();
+        }
       }
     } else {
       this.initDefaults();
+      if (customProducts) {
+        this.data.products = customProducts;
+        this.persist();
+      }
     }
   }
 
   initDefaults() {
     this.data = JSON.parse(JSON.stringify(initialData));
+    const customProductsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+    if (customProductsRaw) {
+      try {
+        const cp = JSON.parse(customProductsRaw);
+        if (Array.isArray(cp) && cp.length > 0) {
+          this.data.products = cp;
+        }
+      } catch (e) {}
+    }
     this.data.demoOrders = JSON.parse(JSON.stringify(initialData.orders));
     this.data.demoTables = JSON.parse(JSON.stringify(initialData.tables));
     this.data.liveOrders = {};
@@ -425,6 +455,11 @@ class BarPilotStorage {
         localStorage.setItem("barpilot_store", JSON.stringify(this.data));
       } catch (e) {
         console.warn("[BarPilotStorage] Persist error:", e);
+        try {
+          if (this.data && Array.isArray(this.data.products)) {
+            localStorage.setItem("barpilot_saved_products", JSON.stringify(this.data.products));
+          }
+        } catch (e2) {}
       }
     }
   }
@@ -502,10 +537,24 @@ class BarPilotStorage {
     }
 
     if (key === "products") {
-      if (this.isDemo()) {
-        return (this.data.products || initialData.products).map(p => ({ ...p }));
+      let currentProducts = this.data.products;
+      if (!currentProducts || !Array.isArray(currentProducts) || currentProducts.length === 0) {
+        const customProductsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+        if (customProductsRaw) {
+          try {
+            const parsed = JSON.parse(customProductsRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              currentProducts = parsed;
+              this.data.products = currentProducts;
+            }
+          } catch (e) {}
+        }
       }
-      const prods = (this.data.products || initialData.products).map(p => ({ ...p }));
+      const baseProds = currentProducts || initialData.products;
+      if (this.isDemo()) {
+        return baseProds.map(p => ({ ...p }));
+      }
+      const prods = baseProds.map(p => ({ ...p }));
       // Compute real sales count from active bar's orders
       const orders = this.get("orders") || [];
       const countMap = {};
@@ -597,6 +646,19 @@ class BarPilotStorage {
         this.data.liveTables[barId] = val;
       }
       this.data.tables = val;
+      this.persist();
+      return;
+    }
+
+    if (key === "products") {
+      this.data.products = val;
+      if (typeof localStorage !== "undefined") {
+        try {
+          localStorage.setItem("barpilot_saved_products", JSON.stringify(val));
+        } catch (e) {
+          console.warn("[BarPilotStorage] Errore salvataggio barpilot_saved_products:", e);
+        }
+      }
       this.persist();
       return;
     }
