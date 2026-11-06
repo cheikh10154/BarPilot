@@ -6642,6 +6642,19 @@ function initSplashScreen() {
     return;
   }
 
+  // Se l'utente è già connesso, mantieni la sessione attiva e non mostrare storie né login
+  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+    if (splashTimer) clearTimeout(splashTimer);
+    if (splash) {
+      splash.classList.add("hidden");
+      splash.style.display = "none";
+    }
+    if (storiesOverlay) storiesOverlay.classList.add("hidden");
+    if (authOverlay) authOverlay.classList.add("hidden");
+    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
+    return;
+  }
+
   // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
   splash.classList.remove("hidden");
   splash.style.display = "flex";

@@ -19,6 +19,11 @@
       .chart-bars-wrap .bar-col { flex: 0 0 38px !important; min-width: 38px !important; width: 38px !important; height: 100% !important; touch-action: pan-x pan-y !important; }
       .chart-scroll-hint { display: flex !important; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--primary); padding: 6px 0 2px 0; }
     }
+    html.user-authenticated #splashScreen,
+    html.user-authenticated #storiesOverlay,
+    html.user-authenticated #authOverlay {
+      display: none !important;
+    }
   </style>
   <!-- Instant Session Cache Check: Zero-Flicker Persistence -->
   <script>
@@ -63,12 +68,16 @@
       try {
         var sp = document.getElementById("splashScreen");
         var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
-        if (!isDemo && sp && !sp.classList.contains("hidden")) {
+        var isLogged = localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true");
+        if (!isDemo && !isLogged && sp && !sp.classList.contains("hidden")) {
           sp.classList.add("hidden");
           setTimeout(function() { sp.style.display = "none"; }, 500);
           if (typeof initStoriesOnboarding === "function") {
             initStoriesOnboarding();
           }
+        } else if (isLogged && sp) {
+          sp.classList.add("hidden");
+          sp.style.display = "none";
         }
       } catch (_) {}
     }, 2800);
