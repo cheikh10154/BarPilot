@@ -1283,25 +1283,25 @@
                 <div class="settings-grid-2">
                   <div class="form-group">
                     <label class="form-label">Nome stabilimento (Insegna)</label>
-                    <input type="text" class="form-input" id="setBarName" value="Bar Centrale">
+                    <input type="text" class="form-input" id="setBarName" placeholder="Es: Bar Centrale" value="">
                   </div>
                   <div class="form-group">
                     <label class="form-label" data-i18n="legalNameLabel">Ragione Sociale</label>
-                    <input type="text" class="form-input" value="Bar Centrale Roma S.r.l.">
+                    <input type="text" class="form-input" id="setLegalName" placeholder="Es: Bar Centrale Roma S.r.l." value="">
                   </div>
                   <div class="form-group">
                     <label class="form-label" data-i18n="vatLabel">Partita IVA / Cod. Fiscale</label>
-                    <input type="text" class="form-input" id="setVat" value="IT 12345678901">
+                    <input type="text" class="form-input" id="setVat" placeholder="Es: IT 12345678901" value="">
                   </div>
                   <div class="form-group">
                     <label class="form-label" data-i18n="phoneBarLabel">Telefono del Bar</label>
-                    <input type="text" class="form-input" id="setPhone" value="+39 06 678 9123">
+                    <input type="text" class="form-input" id="setPhone" placeholder="Es: +39 06 678 9123" value="">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label">Indirizzo completo</label>
-                  <input type="text" class="form-input" value="Via del Corso, 142 - 00186 Roma (RM)">
+                  <input type="text" class="form-input" id="setAddress" placeholder="Es: Via del Corso, 142 - 00186 Roma (RM)" value="">
                 </div>
 
                 <div class="settings-grid-2">

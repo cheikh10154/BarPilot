@@ -8138,9 +8138,11 @@ function renderGeneralSettings() {
   const dbUsers = (typeof getDatabaseUsers === "function") ? getDatabaseUsers() : [];
   const dbUser = dbUsers.find(u => u.email && u.email.toLowerCase().trim() === currentEmail);
 
-  const barNameVal = (!isDemo && (bar.name || bar.barName || loggedUser?.barName || dbUser?.barName)) || (isDemo ? "Bar Centrale" : "Il Mio Bar");
+  const barNameVal = (!isDemo && (bar.name || bar.barName || loggedUser?.barName || dbUser?.barName)) || (isDemo ? "Bar Centrale" : "");
   const vatVal = (!isDemo && (bar.vat || bar.piva || bar.vatNumber || loggedUser?.vat || loggedUser?.piva || loggedUser?.vatNumber || dbUser?.vat || dbUser?.piva)) || (isDemo ? "IT 12345678901" : "");
   const phoneVal = (!isDemo && (bar.phone || bar.phoneNumber || bar.managerPhone || loggedUser?.phone || loggedUser?.phoneNumber || dbUser?.phone)) || (isDemo ? "+39 06 678 9123" : "");
+  const legalVal = (!isDemo && (bar.legalName || loggedUser?.legalName || dbUser?.legalName)) || (isDemo ? "Bar Centrale Roma S.r.l." : "");
+  const addrVal = (!isDemo && (bar.address || loggedUser?.address || dbUser?.address)) || (isDemo ? "Via del Corso, 142 - 00186 Roma (RM)" : "");
 
   const nameInput = document.getElementById("setBarName");
   if (nameInput) nameInput.value = barNameVal;
@@ -8150,13 +8152,21 @@ function renderGeneralSettings() {
 
   const phoneInput = document.getElementById("setPhone");
   if (phoneInput) phoneInput.value = phoneVal;
+
+  const legalInput = document.getElementById("setLegalName");
+  if (legalInput) legalInput.value = legalVal;
+
+  const addrInput = document.getElementById("setAddress");
+  if (addrInput) addrInput.value = addrVal;
 }
 
 function saveGeneralSettings() {
   const bar = window.db ? (window.db.get("activeBar") || {}) : {};
   const nameInput = document.getElementById("setBarName");
+  const legalInput = document.getElementById("setLegalName");
   const vatInput = document.getElementById("setVat");
   const phoneInput = document.getElementById("setPhone");
+  const addrInput = document.getElementById("setAddress");
   const currencySelect = document.getElementById("setCurrency");
 
   let loggedUser = null;
@@ -8174,6 +8184,12 @@ function saveGeneralSettings() {
       loggedUser.barName = newName;
       loggedUser["Nome bar"] = newName;
     }
+  }
+
+  if (legalInput && legalInput.value !== undefined) {
+    const newLegal = legalInput.value.trim();
+    bar.legalName = newLegal;
+    if (loggedUser) loggedUser.legalName = newLegal;
   }
 
   if (vatInput && vatInput.value !== undefined) {
@@ -8202,6 +8218,12 @@ function saveGeneralSettings() {
     }
   }
 
+  if (addrInput && addrInput.value !== undefined) {
+    const newAddr = addrInput.value.trim();
+    bar.address = newAddr;
+    if (loggedUser) loggedUser.address = newAddr;
+  }
+
   if (currencySelect) {
     bar.currency = currencySelect.value === 'EUR' ? '€' : (currencySelect.value === 'USD' ? '$' : 'CHF');
   }
@@ -8225,6 +8247,8 @@ function saveGeneralSettings() {
       email: currentEmail,
       barName: bar.name,
       "Nome bar": bar.name,
+      legalName: bar.legalName || "",
+      address: bar.address || "",
       vat: bar.vat,
       piva: bar.vat,
       vatNumber: bar.vat,
