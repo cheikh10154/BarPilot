@@ -7313,11 +7313,11 @@ async function handleAuthSubmit(e) {
       if (rulesBox) rulesBox.style.display = "flex";
       return;
     }
-    const barName = document.getElementById("regBarName")?.value.trim() || "Il Mio Nuovo Bar";
-    const vatNumber = document.getElementById("regVat")?.value.trim() || "";
-    const ownerName = document.getElementById("regOwnerName")?.value.trim() || "Marco";
-    const city = document.getElementById("regCity")?.value.trim() || "Roma";
-    const phone = document.getElementById("regPhone")?.value.trim() || "+39 333 987 6543";
+    const barName = (document.getElementById("regBarName")?.value || "").trim() || "Il Mio Nuovo Bar";
+    const vatNumber = (document.getElementById("regVat")?.value || "").trim();
+    const ownerName = (document.getElementById("regOwnerName")?.value || "").trim() || "Marco";
+    const city = (document.getElementById("regCity")?.value || "").trim() || "Roma";
+    const phone = (document.getElementById("regPhone")?.value || "").trim();
     const emailNormalized = email.trim().toLowerCase();
 
     const submitBtnEmail = document.getElementById("authSubmitBtn");
@@ -7373,10 +7373,13 @@ async function handleAuthSubmit(e) {
       partita_iva: vatNumber,
       vat_number: vatNumber,
       piva: vatNumber,
+      tax_code: vatNumber,
       "Città": city,
       citta: city,
       city: city,
       bar_name: barName,
+      "Nome bar": barName,
+      barName: barName,
       address: `Via Principale, 1 - ${city}`,
       plan: "BarPilot Pro 59€",
       trial_days: 14,
@@ -7495,15 +7498,20 @@ async function handleAuthSubmit(e) {
       supabaseId: supabaseUser ? supabaseUser.id : null,
       supabaseSaved: supabaseSuccess,
       name: barName,
+      barName: barName,
       vat: vatNumber,
       piva: vatNumber,
+      vatNumber: vatNumber,
+      taxCode: vatNumber,
+      phone: phone,
+      phoneNumber: phone,
+      managerPhone: phone,
       city: city,
       address: `Via Principale, 1 - ${city}`,
       currency: "€",
       role: "Proprietario",
       managerName: ownerName,
       managerEmail: emailNormalized,
-      managerPhone: phone,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       plan: "Pro",
       isDemo: false,
@@ -7532,7 +7540,21 @@ async function handleAuthSubmit(e) {
     }
 
     const bars = window.db.get("barsList") || [];
-    bars.push({ id: activeBar.id, name: activeBar.name, city: activeBar.city, address: activeBar.address, vat: activeBar.vat, isDemo: false });
+    bars.push({
+      id: activeBar.id,
+      name: activeBar.name,
+      barName: activeBar.name,
+      city: activeBar.city,
+      address: activeBar.address,
+      vat: activeBar.vat,
+      piva: activeBar.piva,
+      vatNumber: activeBar.vatNumber,
+      taxCode: activeBar.taxCode,
+      phone: activeBar.phone,
+      phoneNumber: activeBar.phoneNumber,
+      managerPhone: activeBar.phone,
+      isDemo: false
+    });
 
     window.db.set("activeBar", activeBar);
     window.db.set("barsList", bars);
@@ -7545,13 +7567,18 @@ async function handleAuthSubmit(e) {
       type: "email",
       email: emailNormalized,
       phone: phone,
+      phoneNumber: phone,
       password: credential,
       pin: null,
       role: "Proprietario",
       name: ownerName,
       barName: barName,
+      "Nome bar": barName,
       vat: vatNumber,
       piva: vatNumber,
+      vatNumber: vatNumber,
+      taxCode: vatNumber,
+      "Partita IVA": vatNumber,
       city: city,
       date: new Date().toISOString()
     });
@@ -7563,10 +7590,13 @@ async function handleAuthSubmit(e) {
       ownerStaff.name = ownerName;
       ownerStaff.email = emailNormalized;
       ownerStaff.phone = phone;
+      ownerStaff.phoneNumber = phone;
       ownerStaff.pin = null;
       window.db.set("staff", staffList);
       if (currentStaff && currentStaff.role === "Proprietario") {
         currentStaff.name = ownerName;
+        currentStaff.phone = phone;
+        currentStaff.phoneNumber = phone;
         currentStaff.pin = null;
       }
     }
@@ -7590,7 +7620,15 @@ async function handleAuthSubmit(e) {
       name: ownerName, 
       email: emailNormalized, 
       phone: phone, 
+      phoneNumber: phone,
       barName: barName, 
+      "Nome bar": barName,
+      vat: vatNumber,
+      piva: vatNumber,
+      vatNumber: vatNumber,
+      taxCode: vatNumber,
+      "Partita IVA": vatNumber,
+      city: city,
       provider: "email",
       isDemo: false,
       supabaseId: supabaseUser ? supabaseUser.id : null
@@ -7719,9 +7757,13 @@ async function handleAuthSubmit(e) {
               email: emailNormalized,
               password: credential,
               name: meta.owner_name || meta.full_name || meta.name || emailNormalized.split("@")[0],
-              barName: meta.bar_name || "Il Mio Bar",
-              vat: meta.vat_number || meta.piva || "",
-              piva: meta.vat_number || meta.piva || "",
+              barName: meta.bar_name || meta["Nome bar"] || meta.barName || "Il Mio Bar",
+              vat: meta.vat_number || meta.piva || meta.partita_iva || meta["Partita IVA"] || meta.tax_code || "",
+              piva: meta.vat_number || meta.piva || meta.partita_iva || meta["Partita IVA"] || meta.tax_code || "",
+              vatNumber: meta.vat_number || meta.piva || meta.partita_iva || meta["Partita IVA"] || meta.tax_code || "",
+              taxCode: meta.vat_number || meta.piva || meta.partita_iva || meta["Partita IVA"] || meta.tax_code || "",
+              phone: meta.phone || meta.Phone || meta.phone_number || "",
+              phoneNumber: meta.phone || meta.Phone || meta.phone_number || "",
               city: meta.city || "Roma",
               role: meta.role || "Proprietario"
             };
@@ -7732,8 +7774,14 @@ async function handleAuthSubmit(e) {
             // Aggiorna activeBar con i dati recuperati da Supabase
             const currentActiveBar = window.db.get("activeBar") || {};
             currentActiveBar.name = userFound.barName;
+            currentActiveBar.barName = userFound.barName;
             currentActiveBar.vat = userFound.vat;
             currentActiveBar.piva = userFound.piva;
+            currentActiveBar.vatNumber = userFound.vatNumber;
+            currentActiveBar.taxCode = userFound.taxCode;
+            currentActiveBar.phone = userFound.phone;
+            currentActiveBar.phoneNumber = userFound.phoneNumber;
+            currentActiveBar.managerPhone = userFound.phone;
             currentActiveBar.city = userFound.city;
             currentActiveBar.managerName = userFound.name;
             currentActiveBar.managerEmail = userFound.email;
@@ -7912,6 +7960,14 @@ async function handleAuthSubmit(e) {
       email: email,
       role: role,
       barName: activeBar.name,
+      "Nome bar": activeBar.name,
+      vat: activeBar.vat || userFound?.vat || "",
+      piva: activeBar.piva || userFound?.piva || "",
+      vatNumber: activeBar.vatNumber || activeBar.vat || userFound?.vatNumber || userFound?.vat || "",
+      taxCode: activeBar.taxCode || activeBar.vat || userFound?.taxCode || userFound?.vat || "",
+      "Partita IVA": activeBar.vat || userFound?.vat || "",
+      phone: activeBar.phone || activeBar.managerPhone || userFound?.phone || "",
+      phoneNumber: activeBar.phoneNumber || activeBar.phone || activeBar.managerPhone || userFound?.phoneNumber || userFound?.phone || "",
       provider: "email",
       isDemo: false
     });
