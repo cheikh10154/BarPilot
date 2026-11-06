@@ -1,0 +1,292 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "Chi è BarPilot",
+    "services": "I nostri servizi",
+    "howItWorks": "Come funziona",
+    "kds": "KDS Live",
+    "pricing": "Prezzi",
+    "testimonials": "Testimonianze",
+    "faq": "FAQ",
+    "contact": "Contatti",
+    "login": "Accedi",
+    "freeTrial": "Prova gratuita 14 giorni"
+  },
+  "hero": {
+    "badge": "🚀 Il Gestionale Cloud di Nuova Generazione per Locali",
+    "titleMain": "Il tuo bar.",
+    "titleHighlight": "Tutto sotto controllo.",
+    "subtitle": "Gestisci comande, tavoli, magazzino e attività quotidiane da un'unica piattaforma intelligente. Più organizzazione, meno stress.",
+    "ctaTrial": "Inizia la prova gratuita di 14 giorni",
+    "ctaExplore": "Scopri come funziona",
+    "pillRealtime": "⚡ Comande in tempo reale",
+    "pillSmart": "🧠 Gestione intelligente scorte",
+    "pillAllInOne": "✨ Tutto in un unico posto",
+    "statTrial": "14 giorni gratis",
+    "statTrialSub": "Nessuna carta richiesta",
+    "statCloud": "100% Cloud & PWA",
+    "statCloudSub": "Funziona anche offline",
+    "statSetup": "Setup in 5 minuti",
+    "statSetupSub": "Intuitivo per tutto lo staff",
+    "mockupDashboard": "Dashboard BarPilot",
+    "mockupLiveOrders": "Comande Live",
+    "mockupKds": "Schermo KDS Barman",
+    "mockupPos": "Presa Comande Mobile"
+  },
+  "about": {
+    "tag": "Chi è BarPilot",
+    "title": "BarPilot: la tecnologia al servizio del tuo bar.",
+    "desc": "BarPilot è una piattaforma digitale progettata per semplificare il lavoro quotidiano di bar, pub e caffetterie. Dalla gestione delle comande al controllo del magazzino, ti aiuta a organizzare il tuo locale in modo più efficiente.",
+    "card1Title": "Semplicità d'uso",
+    "card1Desc": "Un'interfaccia moderna e reattiva progettata per il lavoro frenetico al banco. Il tuo staff impara a usarlo in meno di 5 minuti.",
+    "card2Title": "Organizzazione perfetta",
+    "card2Desc": "Addio comande perse e foglietti volanti. Ogni ordine passa fluidamente dalla sala al bancone, con tavoli e conti sempre sincronizzati.",
+    "card3Title": "Innovazione accessibile",
+    "card3Desc": "Nessun costoso registratore o hardware proprietario da acquistare. Utilizza qualsiasi tablet, computer o smartphone che possiedi già."
+  },
+  "services": {
+    "tag": "I nostri servizi",
+    "title": "Tutto ciò di cui il tuo locale ha bisogno in un'unica suite",
+    "subtitle": "Moduli completi, perfettamente integrati tra loro per eliminare le inefficienze e aumentare il fatturato del tuo bar.",
+    "learnMore": "Scopri di più",
+    "items": [
+      {
+        "id": "orders",
+        "icon": "receipt",
+        "title": "Gestione comande",
+        "desc": "Ricezione, organizzazione e aggiornamento degli ordini in tempo reale. Al banco, al tavolo o da asporto con invio immediato ai centri di preparazione."
+      },
+      {
+        "id": "tables",
+        "icon": "layout-grid",
+        "title": "Gestione tavoli",
+        "desc": "Mappa interattiva della sala con monitoraggio visivo dello stato dei tavoli (libero, occupato, conto richiesto), orario di permanenza e totale consumato."
+      },
+      {
+        "id": "kds",
+        "icon": "monitor",
+        "title": "KDS — Banco e cucina",
+        "desc": "Monitor digitale touch per visualizzare, preparare e smistare le comande senza carta. Segnali acustici e priorità visiva per evitare attese."
+      },
+      {
+        "id": "products",
+        "icon": "coffee",
+        "title": "Gestione prodotti",
+        "desc": "Catalogo dinamico con categorie personalizzate, listini orari, foto HD, calcolo automatico dell'IVA, etichette allergeni e schede ingredienti."
+      },
+      {
+        "id": "inventory",
+        "icon": "package",
+        "title": "Magazzino intelligente",
+        "desc": "Controllo continuo delle giacenze con scarico automatico al grammo e al millilitro. Notifiche automatiche in caso di esaurimento o sottoscorta."
+      },
+      {
+        "id": "analytics",
+        "icon": "bar-chart-3",
+        "title": "Statistiche e report",
+        "desc": "Analisi avanzata dei dati operativi e del fatturato orario, giornaliero e mensile. Visualizzazione dello scontrino medio e dei prodotti più venduti."
+      },
+      {
+        "id": "staff",
+        "icon": "users",
+        "title": "Gestione personale",
+        "desc": "Creazione di profili per baristi, camerieri e cassieri con PIN veloce a 4 cifre e permessi granulari per tutelare i dati riservati dell'attività."
+      },
+      {
+        "id": "multidevice",
+        "icon": "smartphone",
+        "title": "Accesso multi-dispositivo",
+        "desc": "Utilizzo universale da computer fisso, iPad, tablet Android e smartphone. Architettura PWA che garantisce operatività anche senza internet."
+      }
+    ]
+  },
+  "howItWorks": {
+    "tag": "Come funziona",
+    "title": "Operativo in 4 semplici passaggi",
+    "subtitle": "Nessuna installazione complessa, nessun tecnico da attendere: inizi a lavorare in pochi minuti.",
+    "steps": [
+      {
+        "step": "01",
+        "title": "Crea il tuo account",
+        "desc": "Registrati gratuitamente in meno di 60 secondi e attiva subito la tua prova gratuita di 14 giorni."
+      },
+      {
+        "step": "02",
+        "title": "Configura il tuo bar",
+        "desc": "Inserisci il nome del tuo locale, le sale disponibili e crea i profili con codice PIN per i tuoi collaboratori."
+      },
+      {
+        "step": "03",
+        "title": "Aggiungi prodotti e tavoli",
+        "desc": "Personalizza il tuo listino bevande, cocktail e cibo con prezzi, foto, allergeni e assegna la mappa dei tuoi tavoli."
+      },
+      {
+        "step": "04",
+        "title": "Inizia a gestire le comande",
+        "desc": "Apri la schermata comande da tablet o smartphone e sperimenta la velocità di un bar completamente digitalizzato."
+      }
+    ]
+  },
+  "kdsSection": {
+    "tag": "Demo Interattiva KDS",
+    "title": "Dalla comanda alla preparazione. Tutto in tempo reale.",
+    "subtitle": "Guarda come il Kitchen Display System (KDS) trasforma l'efficienza tra sala, bancone e cucina. Clicca sui pulsanti della demo per cambiare lo stato delle comande in tempo reale!",
+    "demoBadge": "DEMO INTERATTIVA · NON COLLEGATA A PRODUZIONE",
+    "instruction": "Tocca un pulsante per avanzare lo stato dell'ordine:",
+    "statusNew": "Nuova comanda",
+    "statusPrep": "In preparazione",
+    "statusReady": "Pronta",
+    "statusServed": "Servita",
+    "btnAdvance": "Avanza stato ordine ➔",
+    "btnReset": "Ripristina simulazione"
+  },
+  "pricing": {
+    "tag": "Tariffa trasparente",
+    "title": "Un'offerta unica tutto incluso. Senza sorprese.",
+    "subtitle": "Tutte le funzionalità di BarPilot in un unico piano chiaro e accessibile, con 14 giorni di prova gratuita per provarlo nel tuo locale.",
+    "planName": "BarPilot Pro",
+    "planBadge": "🌟 OFFERTA UNICA TUTTO INCLUSO · ACCESSO COMPLETO",
+    "planPrice": "59",
+    "planPeriod": "€ / mese / bar",
+    "planDesc": "L'intera piattaforma BarPilot senza alcun limite per gestire al meglio il tuo bar, pub o caffetteria.",
+    "freeTrialHighlight": "✓ 14 giorni di prova gratuita al 100%",
+    "noCommitment": "Senza vincoli",
+    "cancelAnytime": "Disdetta in 1 clic",
+    "featuresTitle": "Tutto ciò che include il tuo piano:",
+    "features": [
+      "Presa comande ultra-rapida al banco, tavolo o asporto",
+      "Piano di sala interattivo con tavoli e conti live",
+      "Schermo Barman (KDS) e Cucina su qualsiasi tablet",
+      "Catalogo prodotti, ricette cocktail e calcolo margini",
+      "Magazzino intelligente con scarico dosi e alert sottoscorta",
+      "Gestione anagrafica fornitori e buoni d'ordine diretti",
+      "Statistiche vendite, incassi orari ed export CSV",
+      "Accesso multi-dispositivo per tutto lo staff con PIN",
+      "Menu digitale con QR Code integrato per i clienti",
+      "Funzionamento Offline (PWA) e backup automatici su Cloud",
+      "Assistenza prioritaria dedicata 7 giorni su 7"
+    ],
+    "cta": "Inizia la prova gratuita di 14 giorni",
+    "note": "Rinnovo a 59 €/mese al termine del periodo di prova. Puoi annullare l'iscrizione in qualsiasi momento con un semplice clic dalla tua console."
+  },
+  "testimonials": {
+    "tag": "Cosa dicono di noi",
+    "title": "I professionisti del bar che scelgono BarPilot",
+    "subtitle": "Storie reali di gestori, barman e proprietari che hanno rivoluzionato l'organizzazione del proprio locale.",
+    "items": [
+      {
+        "quote": "Da quando usiamo il KDS di BarPilot al bancone abbiamo azzerato gli errori nelle comande durante l'orario aperitivo. I camerieri inviano l'ordine da smartphone e in 20 secondi i cocktail sono in preparazione.",
+        "author": "Marco Rossi",
+        "role": "Titolare",
+        "bar": "Bar Centrale, Roma",
+        "badge": "Aperitivi & Caffetteria"
+      },
+      {
+        "quote": "La gestione delle ricette con lo scarico automatico dei centilitri ha finalmente risolto il problema degli sprechi di bottiglie. So esattamente quanto consumo e quando ordinare dal fornitore.",
+        "author": "Alessio Moretti",
+        "role": "Head Bartender & Proprietario",
+        "bar": "The Velvet Lounge, Milano",
+        "badge": "Cocktail Bar & Speakeasy"
+      },
+      {
+        "quote": "Il personale ha imparato a usarlo il primo giorno. Niente configurazioni noiose: abbiamo aperto l'app sui nostri tablet e in mezz'ora eravamo operativi con tutti i tavoli della sala.",
+        "author": "Giulia Santoro",
+        "role": "General Manager",
+        "bar": "Caffè Garibaldi, Torino",
+        "badge": "Bistrot & Caffè Storico"
+      }
+    ]
+  },
+  "faq": {
+    "tag": "Domande Frequenti",
+    "title": "Tutto quello che c'è da sapere su BarPilot",
+    "subtitle": "Hai dubbi o domande? Ecco le risposte più comuni per iniziare al meglio.",
+    "items": [
+      {
+        "q": "Cos'è BarPilot?",
+        "a": "BarPilot è un software gestionale cloud (SaaS) sviluppato specificamente per bar, pub, caffetterie e cocktail bar. Integra in una sola piattaforma la presa delle comande, la gestione dei tavoli, lo schermo KDS per bancone e cucina, il magazzino con scarico dosi, le ricette e le statistiche di vendita."
+      },
+      {
+        "q": "Come funziona la prova gratuita di 14 giorni?",
+        "a": "La prova gratuita ti dà accesso completo e illimitato a tutte le funzionalità di BarPilot Pro per 14 giorni. Puoi testarlo con il tuo staff, inserire i tuoi prodotti e provarlo sul campo. Durante la prova puoi disdire in qualsiasi momento senza alcun costo con un semplice clic."
+      },
+      {
+        "q": "Posso utilizzare BarPilot su tablet o smartphone?",
+        "a": "Assolutamente sì! BarPilot è una Progressive Web App (PWA) progettata per funzionare su qualsiasi dispositivo moderno: iPad, tablet Android, smartphone iOS e Android, computer Windows, Mac e Linux. Non richiede hardware costoso o specifico."
+      },
+      {
+        "q": "Serve installare un software o avere un server locale nel locale?",
+        "a": "No, nessun software pesante o server fisico da installare. Tutto risiede nel cloud sicuro e vi si accede comodamente dal browser o installando l'icona dell'app sulla schermata principale del tuo dispositivo in 1 click."
+      },
+      {
+        "q": "Posso disdire l'abbonamento quando voglio?",
+        "a": "Sì, la massima trasparenza è uno dei nostri pilastri: l'abbonamento a BarPilot Pro non ha vincoli di durata. Puoi disdire in qualunque momento con 1 clic direttamente dalla pagina 'Gestisci Abbonamento' della tua console."
+      },
+      {
+        "q": "I miei dati e quelli del mio bar sono protetti?",
+        "a": "Sì, i tuoi dati sono salvati su infrastruttura cloud con crittografia SSL avanzata a 256 bit e backup giornalieri automatizzati. Rispettiamo rigorosamente gli standard europei di protezione dei dati (GDPR)."
+      },
+      {
+        "q": "BarPilot sostituisce il registratore di cassa fiscale?",
+        "a": "BarPilot è una piattaforma software dedicata alla gestione operativa, all'organizzazione delle comande, al controllo del magazzino e all'efficienza del servizio. Non sostituisce automaticamente gli strumenti fiscali e i registratori telematici obbligatori per legge per l'emissione dello scontrino fiscale in Italia."
+      }
+    ]
+  },
+  "contact": {
+    "tag": "Parliamone",
+    "title": "Siamo qui per aiutarti a far decollare il tuo bar",
+    "subtitle": "Hai domande particolari, necessiti di supporto per configurare il tuo locale o desideri una presentazione personalizzata? Contattaci subito.",
+    "infoTitle": "Canali diretti BarPilot",
+    "infoDesc": "Il nostro team di supporto è a tua completa disposizione tutti i giorni.",
+    "emailLabel": "Email aziendale",
+    "emailValue": "admin@barpilot.eu",
+    "hoursLabel": "Orari di assistenza",
+    "hoursValue": "Lunedì – Domenica: 08:00 – 22:00",
+    "locationLabel": "Sede operativa",
+    "locationValue": "Italia · Piattaforma Cloud Europea",
+    "formTitle": "Inviaci un messaggio",
+    "formDesc": "Compila il modulo sottostante: ti risponderemo entro poche ore.",
+    "nameLabel": "Nome e cognome *",
+    "namePlaceholder": "Mario Rossi",
+    "emailInputLabel": "Indirizzo email *",
+    "emailInputPlaceholder": "mario@barcentrale.it",
+    "barLabel": "Nome del tuo bar o locale (facoltativo)",
+    "barPlaceholder": "Es: Bar Centrale",
+    "subjectLabel": "Oggetto della richiesta *",
+    "subjectPlaceholder": "Seleziona o digita l'oggetto...",
+    "subjOption1": "Richiesta informazioni generali",
+    "subjOption2": "Supporto per la prova gratuita",
+    "subjOption3": "Consulenza per configurazione bar",
+    "subjOption4": "Partnership commerciale",
+    "messageLabel": "Il tuo messaggio *",
+    "messagePlaceholder": "Raccontaci le esigenze del tuo bar o cosa vorresti sapere...",
+    "privacyLabel": "Ho letto e accetto l'Informativa sulla Privacy *",
+    "btnSend": "Invia messaggio",
+    "btnSending": "Invio messaggio in corso...",
+    "successMsg": "✅ Grazie! Il tuo messaggio è stato inviato con successo. Ti risponderemo al più presto via email.",
+    "errorMsg": "⚠️ Si è verificato un errore durante l'invio. Verifica i campi o scrivici direttamente ad admin@barpilot.eu."
+  },
+  "map": {
+    "title": "Copertura del Servizio",
+    "desc": "BarPilot è attivo e utilizzato in tutta Italia e nei paesi europei di lingua francese.",
+    "badge": "100% CLOUD EUROPEO · DISPONIBILE OVUNQUE"
+  },
+  "footer": {
+    "desc": "La piattaforma digitale intelligente che trasforma la gestione di bar, pub e caffetterie. Comande rapide, tavoli live, KDS banco e magazzino in un'unica suite.",
+    "colProduct": "Piattaforma",
+    "colLinks": "Collegamenti",
+    "colLegal": "Note Legali",
+    "linkFeatures": "Funzionalità",
+    "linkKds": "Schermo KDS",
+    "linkPricing": "Prezzi & Offerta",
+    "linkTestimonials": "Testimonianze",
+    "linkFaq": "Domande Frequenti",
+    "linkContact": "Contatti",
+    "linkApp": "Accedi all'App",
+    "linkDemo": "Demo interattiva",
+    "privacy": "Informativa Privacy",
+    "cookies": "Cookie Policy",
+    "terms": "Termini e Condizioni",
+    "copyright": "© 2026 BarPilot — Tutti i diritti riservati."
+  }
+}

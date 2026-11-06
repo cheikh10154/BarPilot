@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarPilot | Il software gestionale intelligente per bar e pub</title>
+  <meta name="description" content="Gestisci comande, tavoli, magazzino e comande cucina da un'unica piattaforma intelligente. Prova BarPilot gratis per 14 giorni.">
+  <meta name="keywords" content="software bar, gestionale pub, comande tablet, KDS cucina, gestione tavoli, magazzino bar, punto cassa bar">
+  <meta name="author" content="BarPilot">
+  <meta name="robots" content="index, follow">
+
+  <!-- Zero-flicker Theme Initializer -->
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('barpilot_theme');
+        var theme = savedTheme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Canonical & Alternate Hreflang for SEO -->
+  <link rel="canonical" href="https://www.barpilot.eu/">
+  <link rel="alternate" hreflang="it" href="https://www.barpilot.eu/it/">
+  <link rel="alternate" hreflang="fr" href="https://www.barpilot.eu/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://www.barpilot.eu/">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.barpilot.eu/">
+  <meta property="og:title" content="BarPilot | Il software gestionale intelligente per bar e pub">
+  <meta property="og:description" content="Gestisci comande, tavoli, magazzino e KDS da un'unica piattaforma intelligente. Prova BarPilot gratis per 14 giorni.">
+  <meta property="og:image" content="https://www.barpilot.eu/assets/images/barpilot-logo-full.png">
+  <meta property="og:site_name" content="BarPilot">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:locale:alternate" content="fr_FR">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://www.barpilot.eu/">
+  <meta name="twitter:title" content="BarPilot | Il software gestionale intelligente per bar e pub">
+  <meta name="twitter:description" content="Gestisci comande, tavoli, magazzino e KDS da un'unica piattaforma intelligente. Prova BarPilot gratis per 14 giorni.">
+  <meta name="twitter:image" content="https://www.barpilot.eu/assets/images/barpilot-logo-full.png">
+
+  <!-- Favicon & Touch Icons -->
+  <link rel="icon" type="image/png" href="/assets/images/barpilot-icon.png">
+  <link rel="apple-touch-icon" href="/assets/images/barpilot-icon.png">
+  <meta name="theme-color" content="#0B1220">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Landing Stylesheet -->
+  <link rel="stylesheet" href="/assets/css/landing.css?v=1.0.0">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "BarPilot",
+        "operatingSystem": "Web, iOS, Android, macOS, Windows",
+        "applicationCategory": "BusinessApplication",
+        "description": "Piattaforma digitale e KDS per la gestione completa di comande, tavoli e magazzino per bar, pub e caffetterie.",
+        "offers": {
+          "@type": "Offer",
+          "price": "59.00",
+          "priceCurrency": "EUR",
+          "priceValidUntil": "2027-12-31"
+        },
+        "url": "https://www.barpilot.eu/",
+        "image": "https://www.barpilot.eu/assets/images/barpilot-logo-full.png"
+      },
+      {
+        "@type": "Organization",
+        "name": "BarPilot",
+        "url": "https://www.barpilot.eu/",
+        "logo": "https://www.barpilot.eu/assets/images/barpilot-logo-full.png",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "info@barpilot.eu",
+          "contactType": "customer support"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Cos'è BarPilot?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BarPilot è una piattaforma digitale SaaS progettata per semplificare e ottimizzare il lavoro quotidiano di bar, pub e caffetterie."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Sostituisce il registratore di cassa telematico?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. BarPilot è un software di gestione operativa e organizzativa per comande, tavoli e magazzino, non un registratore di cassa fiscale."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. NAVBAR (Sticky, Glassmorphism, Theme + Lang Switcher)
+       ======================================================================== -->
+  <header class="site-header" id="site-header">
+    <div class="header-container">
+      <!-- Brand Logo -->
+      <a href="#hero" class="brand-link" aria-label="BarPilot Home">
+        <img src="/assets/images/barpilot-logo-full.png" alt="BarPilot" class="brand-logo" width="160" height="42">
+      </a>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="desktop-nav" aria-label="Menu principale">
+        <ul class="nav-menu">
+          <li><a href="#hero" class="nav-link active" data-i18n="nav.home">Home</a></li>
+          <li><a href="#about" class="nav-link" data-i18n="nav.about">Chi è BarPilot</a></li>
+          <li><a href="#services" class="nav-link" data-i18n="nav.services">I nostri servizi</a></li>
+          <li><a href="#kds-demo" class="nav-link" data-i18n="nav.kds">KDS Interattivo</a></li>
+          <li><a href="#pricing" class="nav-link" data-i18n="nav.pricing">Prezzi</a></li>
+          <li><a href="#testimonials" class="nav-link" data-i18n="nav.testimonials">Testimonianze</a></li>
+          <li><a href="#faq" class="nav-link" data-i18n="nav.faq">FAQ</a></li>
+          <li><a href="#contact" class="nav-link" data-i18n="nav.contact">Contatti</a></li>
+        </ul>
+      </nav>
+
+      <!-- Header Controls & CTAs -->
+      <div class="header-actions">
+        <!-- Language Switcher Pill -->
+        <div class="lang-switcher" role="group" aria-label="Selettore Lingua">
+          <button type="button" class="lang-btn active" data-lang-btn="it" aria-label="Italiano">IT</button>
+          <span class="lang-divider">|</span>
+          <button type="button" class="lang-btn" data-lang-btn="fr" aria-label="Français">FR</button>
+        </div>
+
+        <!-- Dark/Light Mode Toggle -->
+        <button type="button" class="theme-toggle-btn" data-action="toggle-theme" aria-label="Cambia tema">
+          <span class="theme-icon">
+            <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </span>
+        </button>
+
+        <!-- Login Link to Real Webapp -->
+        <a href="/app" class="btn-ghost-nav" data-i18n="nav.login">Accedi</a>
+
+        <!-- Primary CTA to Free Trial -->
+        <a href="/app" class="btn-primary-nav" data-i18n="nav.freeTrial">Prova gratuita</a>
+
+        <!-- Mobile Hamburger Toggle -->
+        <button type="button" class="mobile-menu-toggle" aria-label="Apri menu" aria-expanded="false">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="nav-backdrop" aria-hidden="true"></div>
+  <aside class="mobile-nav-drawer" aria-label="Menu navigazione mobile">
+    <div class="drawer-header">
+      <img src="/assets/images/barpilot-logo-full.png" alt="BarPilot" class="drawer-logo" width="140" height="36">
+    </div>
+    <nav class="mobile-nav-links">
+      <a href="#hero" class="mobile-link" data-i18n="nav.home">Home</a>
+      <a href="#about" class="mobile-link" data-i18n="nav.about">Chi è BarPilot</a>
+      <a href="#services" class="mobile-link" data-i18n="nav.services">I nostri servizi</a>
+      <a href="#kds-demo" class="mobile-link" data-i18n="nav.kds">KDS Interattivo</a>
+      <a href="#pricing" class="mobile-link" data-i18n="nav.pricing">Prezzi</a>
+      <a href="#testimonials" class="mobile-link" data-i18n="nav.testimonials">Testimonianze</a>
+      <a href="#faq" class="mobile-link" data-i18n="nav.faq">FAQ</a>
+      <a href="#contact" class="mobile-link" data-i18n="nav.contact">Contatti</a>
+    </nav>
+    <div class="drawer-footer">
+      <div class="drawer-controls">
+        <div class="lang-switcher-drawer">
+          <button type="button" class="lang-btn active" data-lang-btn="it">Italiano</button>
+          <button type="button" class="lang-btn" data-lang-btn="fr">Français</button>
+        </div>
+        <button type="button" class="theme-toggle-btn mobile-theme-btn" data-action="toggle-theme" aria-label="Cambia tema">
+          <span class="theme-icon">
+            <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </span>
+          <span class="theme-label" data-i18n="nav.themeLabel">Tema</span>
+        </button>
+      </div>
+      <a href="/app" class="btn-drawer-login" data-i18n="nav.login">Accedi al tuo locale</a>
+      <a href="/app" class="btn-drawer-primary" data-i18n="hero.ctaPrimary">Inizia 14 giorni gratis</a>
+    </div>
+  </aside>
+
+  <main id="main-content">
+    <!-- ========================================================================
+         2. HERO SECTION (Spectacular, Multi-device Mockup, Floating Badges)
+         ======================================================================== -->
+    <section class="hero-section" id="hero">
+      <div class="hero-bg-glow glow-1"></div>
+      <div class="hero-bg-glow glow-2"></div>
+      <div class="hero-container">
+        <div class="hero-content reveal-on-scroll">
+          <div class="hero-pill-badge">
+            <span class="pill-dot"></span>
+            <span data-i18n="hero.badge">Nuova Generazione Gestionale Bar</span>
+          </div>
+
+          <h1 class="hero-title" data-i18n="hero.title">Il tuo bar. Tutto sotto controllo.</h1>
+          <p class="hero-subtitle" data-i18n="hero.subtitle">
+            Gestisci comande, tavoli, magazzino e attività quotidiane da un'unica piattaforma intelligente. Più organizzazione, meno stress.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="/app" class="btn-primary hero-btn-main" data-i18n="hero.ctaPrimary">
+              <span>Prova gratis per 14 giorni</span>
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+            <a href="#about" class="btn-secondary hero-btn-secondary" data-i18n="hero.ctaSecondary">
+              <span>Scopri BarPilot</span>
+            </a>
+          </div>
+
+          <div class="hero-guarantees">
+            <div class="guarantee-item">
+              <svg class="lucide-icon text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span data-i18n="hero.feature1">Nessuna carta di credito</span>
+            </div>
+            <div class="guarantee-item">
+              <svg class="lucide-icon text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span data-i18n="hero.feature2">Attivazione immediata</span>
+            </div>
+            <div class="guarantee-item">
+              <svg class="lucide-icon text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span data-i18n="hero.feature3">Disdici in un clic</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Device Mockup Stage -->
+        <div class="hero-mockup-wrapper reveal-on-scroll">
+          <!-- Floating Badge Top Left -->
+          <div class="floating-badge badge-top-left">
+            <div class="floating-badge-icon icon-orange">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="floating-badge-text">
+              <strong data-i18n="hero.floatingBadge1">Comande in tempo reale</strong>
+              <span>Zero comande perse</span>
+            </div>
+          </div>
+
+          <!-- Floating Badge Bottom Right -->
+          <div class="floating-badge badge-bottom-right">
+            <div class="floating-badge-icon icon-green">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+            </div>
+            <div class="floating-badge-text">
+              <strong data-i18n="hero.floatingBadge2">Gestione intelligente</strong>
+              <span>Sincronizzato al secondo</span>
+            </div>
+          </div>
+
+          <!-- Desktop Mockup Frame -->
+          <div class="mockup-frame laptop-frame">
+            <div class="mockup-header-bar">
+              <span class="window-dot dot-red"></span>
+              <span class="window-dot dot-yellow"></span>
+              <span class="window-dot dot-green"></span>
+              <div class="mockup-search-sim">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>barpilot.eu/app</span>
+              </div>
+            </div>
+            <div class="mockup-screen-inner">
+              <div class="mockup-sidebar-sim">
+                <div class="mockup-side-logo">
+                  <img src="/assets/images/barpilot-icon.png" alt="BarPilot" width="28" height="28">
+                  <span>BarPilot</span>
+                </div>
+                <div class="mockup-menu-pill active">Comande</div>
+                <div class="mockup-menu-pill">Tavoli</div>
+                <div class="mockup-menu-pill">KDS Banco</div>
+                <div class="mockup-menu-pill">Magazzino</div>
+                <div class="mockup-menu-pill">Statistiche</div>
+              </div>
+              <div class="mockup-main-sim">
+                <div class="mockup-dash-header">
+                  <div>
+                    <h4>Dashboard Bar Centrale</h4>
+                    <span class="text-muted">Turno Aperto • 14 Tavoli Attivi</span>
+                  </div>
+                  <span class="status-chip live-pulse">In Servizio</span>
+                </div>
+                <div class="mockup-stat-row">
+                  <div class="mockup-stat-box">
+                    <span class="stat-caption">Comande Oggi</span>
+                    <strong class="stat-number">68</strong>
+                  </div>
+                  <div class="mockup-stat-box">
+                    <span class="stat-caption">Tavoli Occupati</span>
+                    <strong class="stat-number">12 / 18</strong>
+                  </div>
+                  <div class="mockup-stat-box">
+                    <span class="stat-caption">Tempo Medio</span>
+                    <strong class="stat-number">3.2 min</strong>
+                  </div>
+                </div>
+                <div class="mockup-active-orders-grid">
+                  <div class="mockup-order-mini">
+                    <div class="m-ord-head"><strong>Tavolo 4</strong> <span class="tag-prep">In prep</span></div>
+                    <span class="m-ord-items">2 Aperol Spritz, 1 Tagliere</span>
+                  </div>
+                  <div class="mockup-order-mini">
+                    <div class="m-ord-head"><strong>Banco 1</strong> <span class="tag-ready">Pronta</span></div>
+                    <span class="m-ord-items">1 Espresso, 1 Croissant</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Smartphone Floating Mockup (Mobile POS) -->
+          <div class="mockup-frame phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen-inner">
+              <div class="phone-top-bar">
+                <span>BarPilot Mobile</span>
+                <span class="badge-online">Online</span>
+              </div>
+              <div class="phone-order-box">
+                <div class="phone-table-head">
+                  <strong>Tavolo 7</strong>
+                  <span class="price-pill">€ 18.50</span>
+                </div>
+                <div class="phone-item-row">
+                  <span>2x Gin Tonic</span>
+                  <span class="check-ok">✓</span>
+                </div>
+                <div class="phone-item-row">
+                  <span>1x Pinsa Rustica</span>
+                  <span class="check-ok">✓</span>
+                </div>
+                <div class="phone-action-btn">Invia a KDS Banco</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         3. SECTION: CHI È BARPILOT (About & 3 Pillars)
+         ======================================================================== -->
+    <section class="section about-section" id="about">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="about.tag">Chi Siamo</span>
+          <h2 class="section-title" data-i18n="about.title">BarPilot: la tecnologia al servizio del tuo bar.</h2>
+          <p class="section-description" data-i18n="about.description">
+            BarPilot è una piattaforma digitale progettata per semplificare il lavoro quotidiano di bar, pub e caffetterie. Dalla gestione delle comande al controllo del magazzino, ti aiuta a organizzare il tuo locale in modo più efficiente.
+          </p>
+        </div>
+
+        <div class="about-grid">
+          <!-- Pillar 1: Semplicità -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="card-icon-wrapper">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="about.card1Title">Semplicità d'uso</h3>
+            <p class="card-text" data-i18n="about.card1Desc">
+              Interfaccia intuitiva che puoi padroneggiare in 5 minuti. Nessuna formazione complessa per il personale: si impara usandolo.
+            </p>
+            <div class="card-bullet-list">
+              <div class="bullet-item">✓ Zero installazioni complesse</div>
+              <div class="bullet-item">✓ Funziona su qualsiasi browser</div>
+            </div>
+          </div>
+
+          <!-- Pillar 2: Organizzazione -->
+          <div class="feature-card highlight-card reveal-on-scroll">
+            <div class="card-icon-wrapper">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="about.card2Title">Organizzazione impeccabile</h3>
+            <p class="card-text" data-i18n="about.card2Desc">
+              Elimina i biglietti cartacei smarriti e le incomprensioni tra banco, tavoli e cucina con la sincronizzazione in tempo reale.
+            </p>
+            <div class="card-bullet-list">
+              <div class="bullet-item">✓ Tavoli e stati sempre aggiornati</div>
+              <div class="bullet-item">✓ Comande instradate automaticamente</div>
+            </div>
+          </div>
+
+          <!-- Pillar 3: Innovazione -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="card-icon-wrapper">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="about.card3Title">Innovazione accessibile</h3>
+            <p class="card-text" data-i18n="about.card3Desc">
+              Tecnologia cloud di livello enterprise pensata per le realtà indipendenti. Monitoraggio scorte e analisi statistiche chiare.
+            </p>
+            <div class="card-bullet-list">
+              <div class="bullet-item">✓ Allerta prodotti in esaurimento</div>
+              <div class="bullet-item">✓ Report vendite sempre a portata di mano</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         4. SECTION: I NOSTRI SERVIZI (8 Functional Cards Grid)
+         ======================================================================== -->
+    <section class="section services-section" id="services">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="services.tag">Funzionalità Complete</span>
+          <h2 class="section-title" data-i18n="services.title">Tutto ciò che serve per gestire il tuo locale</h2>
+          <p class="section-description" data-i18n="services.subtitle">
+            Un ecosistema coordinato per orchestrare il servizio, dal primo caffè della mattina all'ultimo cocktail della serata.
+          </p>
+        </div>
+
+        <div class="services-grid">
+          <!-- Service 1: Gestione comande -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s1Title">Gestione comande</h3>
+            <p class="service-desc" data-i18n="services.s1Desc">
+              Ricezione, organizzazione e aggiornamento degli ordini in tempo reale. Aggiungi varianti e note con un tocco.
+            </p>
+            <a href="#kds-demo" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 2: Gestione tavoli -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s2Title">Gestione tavoli</h3>
+            <p class="service-desc" data-i18n="services.s2Desc">
+              Mappa visiva dei tavoli con stato libero, occupato o in conto. Gestisci sale interne e dehors con la massima semplicità.
+            </p>
+            <a href="#about" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 3: KDS Banco e Cucina -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s3Title">KDS — Banco e cucina</h3>
+            <p class="service-desc" data-i18n="services.s3Desc">
+              Monitor digitale per visualizzare e preparare le comande senza biglietti cartacei. Tempi e priorità sotto controllo.
+            </p>
+            <a href="#kds-demo" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 4: Gestione prodotti -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s4Title">Gestione prodotti</h3>
+            <p class="service-desc" data-i18n="services.s4Desc">
+              Catalogo prodotti con categorie, varianti di prezzo, disponibilità e note allergeni per una cassa sempre ordinata.
+            </p>
+            <a href="#about" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 5: Magazzino intelligente -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s5Title">Magazzino intelligente</h3>
+            <p class="service-desc" data-i18n="services.s5Desc">
+              Controllo delle scorte in tempo reale e segnalazione proattiva degli articoli vicini all'esaurimento.
+            </p>
+            <a href="#about" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 6: Statistiche e report -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s6Title">Statistiche e report</h3>
+            <p class="service-desc" data-i18n="services.s6Desc">
+              Grafici chiari sulle vendite registrate, prodotti più ordinati e fasce orarie di punta per decisioni informate.
+            </p>
+            <a href="#pricing" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 7: Gestione personale -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s7Title">Gestione personale</h3>
+            <p class="service-desc" data-i18n="services.s7Desc">
+              Account dedicati per baristi, camerieri e manager con autorizzazioni su misura per proteggere le impostazioni riservate.
+            </p>
+            <a href="#about" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+
+          <!-- Service 8: Accesso multi-dispositivo -->
+          <div class="service-card reveal-on-scroll">
+            <div class="service-icon-box">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <h3 class="service-title" data-i18n="services.s8Title">Accesso multi-dispositivo</h3>
+            <p class="service-desc" data-i18n="services.s8Desc">
+              Utilizzabile da computer, tablet Android o iPad, e smartphone senza necessità di acquistare hardware proprietario.
+            </p>
+            <a href="#pricing" class="service-link" data-i18n="services.more">Scopri di più →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         5. SECTION: COME FUNZIONA (4-Step Timeline)
+         ======================================================================== -->
+    <section class="section workflow-section" id="how-it-works">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="howItWorks.tag">Semplicità Operativa</span>
+          <h2 class="section-title" data-i18n="howItWorks.title">Attivo nel tuo locale in 4 semplici passaggi</h2>
+          <p class="section-description" data-i18n="howItWorks.subtitle">
+            Dalla prima registrazione alla prima comanda evasa in meno di dieci minuti.
+          </p>
+        </div>
+
+        <div class="workflow-timeline">
+          <!-- Step 1 -->
+          <div class="timeline-step reveal-on-scroll">
+            <div class="step-badge">1</div>
+            <div class="step-icon">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <h3 class="step-title" data-i18n="howItWorks.step1Title">Crea il tuo account</h3>
+            <p class="step-desc" data-i18n="howItWorks.step1Desc">
+              Registrati in 30 secondi inserendo il nome del tuo bar e la tua email. Nessuna carta di credito richiesta.
+            </p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="timeline-step reveal-on-scroll">
+            <div class="step-badge">2</div>
+            <div class="step-icon">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <h3 class="step-title" data-i18n="howItWorks.step2Title">Configura il tuo bar</h3>
+            <p class="step-desc" data-i18n="howItWorks.step2Desc">
+              Imposta il nome delle sale (es. Sala interna, Terrazza, Banco) e definisci il layout dei tuoi tavoli.
+            </p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="timeline-step reveal-on-scroll">
+            <div class="step-badge">3</div>
+            <div class="step-icon">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+            <h3 class="step-title" data-i18n="howItWorks.step3Title">Aggiungi prodotti e tavoli</h3>
+            <p class="step-desc" data-i18n="howItWorks.step3Desc">
+              Carica i tuoi articoli suddivisi in categorie: caffetteria, aperitivi, drink, panini con i relativi prezzi.
+            </p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="timeline-step reveal-on-scroll">
+            <div class="step-badge">4</div>
+            <div class="step-icon">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3 class="step-title" data-i18n="howItWorks.step4Title">Inizia a gestire le comande</h3>
+            <p class="step-desc" data-i18n="howItWorks.step4Desc">
+              Prendi gli ordini da smartphone o tablet e inviali al monitor KDS. Il tuo bar è pronto per lavorare al massimo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         6. SECTION: KDS INTERATTIVO (Live Interactive Simulation)
+         ======================================================================== -->
+    <section class="section kds-section" id="kds-demo">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="kds.tag">KDS Kitchen Display System</span>
+          <h2 class="section-title" data-i18n="kds.title">Dalla comanda alla preparazione. Tutto in tempo reale.</h2>
+          <p class="section-description" data-i18n="kds.subtitle">
+            Il monitor intelligente per banco e cucina che sostituisce la carta. Prova tu stesso il flusso operativo cliccando sulle comande qui sotto:
+          </p>
+        </div>
+
+        <!-- Interactive KDS Tablet Mockup Frame -->
+        <div class="kds-tablet-container reveal-on-scroll">
+          <div class="kds-tablet-bezel">
+            <!-- Tablet Top Bar -->
+            <div class="kds-tablet-header">
+              <div class="kds-header-brand">
+                <img src="/assets/images/barpilot-icon.png" alt="BarPilot KDS" width="24" height="24">
+                <strong>BarPilot KDS</strong>
+                <span class="kds-station-name">Monitor Banco & Cucina</span>
+              </div>
+              <div class="kds-header-controls">
+                <span class="kds-badge-sim" data-i18n="kds.interactiveBanner">SIMULAZIONE DIMOSTRATIVA INTERATTIVA</span>
+                <button type="button" class="btn-kds-reset" data-action="reset-kds" data-i18n="kds.resetBtn">Reimposta demo</button>
+              </div>
+            </div>
+
+            <!-- Flow Legend Steps -->
+            <div class="kds-flow-legend">
+              <div class="legend-step legend-new">
+                <span class="step-num">1</span>
+                <span data-i18n="kds.stepNew">Nuova comanda</span>
+              </div>
+              <span class="legend-arrow">→</span>
+              <div class="legend-step legend-prep">
+                <span class="step-num">2</span>
+                <span data-i18n="kds.stepPrep">In preparazione</span>
+              </div>
+              <span class="legend-arrow">→</span>
+              <div class="legend-step legend-ready">
+                <span class="step-num">3</span>
+                <span data-i18n="kds.stepReady">Pronta al banco</span>
+              </div>
+              <span class="legend-arrow">→</span>
+              <div class="legend-step legend-served">
+                <span class="step-num">4</span>
+                <span data-i18n="kds.stepServed">Servita al tavolo</span>
+              </div>
+            </div>
+
+            <!-- Dynamic Interactive Orders Container -->
+            <div class="kds-cards-grid" id="kds-orders-container">
+              <!-- Rendered via landing.js -->
+            </div>
+
+            <div class="kds-tablet-footer">
+              <span class="kds-live-hint">
+                💡 Clicca sui pulsanti delle singole comande per simulare l'avanzamento dello stato in tempo reale.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         7. SECTION: PREZZI (BarPilot Pro €59/mese, 14gg Trial)
+         ======================================================================== -->
+    <section class="section pricing-section" id="pricing">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="pricing.tag">Trasparenza Totale</span>
+          <h2 class="section-title" data-i18n="pricing.title">Un piano unico, senza sorprese né commissioni nascoste</h2>
+          <p class="section-description" data-i18n="pricing.subtitle">
+            Tutte le funzionalità di BarPilot incluse in un unico abbonamento mensile chiaro e trasparente.
+          </p>
+        </div>
+
+        <div class="pricing-card-wrapper reveal-on-scroll">
+          <div class="pricing-card featured-pricing">
+            <div class="pricing-popular-badge" data-i18n="pricing.planBadge">PIANO TUTTO INCLUSO</div>
+
+            <div class="pricing-head">
+              <h3 class="plan-name" data-i18n="pricing.planName">BarPilot Pro</h3>
+              <p class="plan-desc" data-i18n="pricing.planDesc">Accesso completo a tutte le funzioni per il tuo locale.</p>
+              <div class="pricing-price-box">
+                <span class="price-val" data-i18n="pricing.priceVal">€59</span>
+                <span class="price-period" data-i18n="pricing.pricePeriod">/ mese</span>
+              </div>
+              <div class="trial-tag" data-i18n="pricing.trialTag">14 giorni di prova gratuita inclusi</div>
+            </div>
+
+            <hr class="pricing-divider">
+
+            <div class="pricing-features">
+              <span class="features-title" data-i18n="pricing.featuresTitle">Cosa include l'abbonamento:</span>
+              <ul class="features-list">
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f1">Gestione comande illimitate</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f2">Gestione tavoli e sale personalizzabili</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f3">KDS digitale per banco e cucina</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f4">Catalogo prodotti e categorie senza limiti</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f5">Monitoraggio scorte magazzino e allerte</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f6">Statistiche e report vendite dettagliati</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f7">Account collaboratori con ruoli protetti</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f8">Accesso da smartphone, tablet e PC</span></li>
+                <li><span class="check-icon">✓</span> <span data-i18n="pricing.f9">Assistenza tecnica prioritaria via email e ticket</span></li>
+              </ul>
+            </div>
+
+            <div class="pricing-action">
+              <a href="/app" class="btn-primary btn-block pricing-btn" data-i18n="pricing.cta">Inizia la prova gratuita</a>
+              <p class="pricing-note" data-i18n="pricing.conditions">
+                Nessun vincolo contrattuale a lungo termine. Puoi disdire in qualsiasi momento con un solo clic dal tuo pannello di gestione abbonamento.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         8. SECTION: TESTIMONIANZE (Carousel Slider)
+         ======================================================================== -->
+    <section class="section testimonials-section" id="testimonials">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="testimonials.tag">Esperienze Sul Campo</span>
+          <h2 class="section-title" data-i18n="testimonials.title">Cosa dicono i gestori che usano BarPilot</h2>
+          <p class="section-description" data-i18n="testimonials.subtitle">
+            Esperienze di baristi e proprietari che hanno semplificato le loro serate e ottimizzato i tempi di servizio.
+          </p>
+        </div>
+
+        <div class="testimonials-carousel-wrapper reveal-on-scroll">
+          <div class="testimonials-viewport">
+            <div class="testimonials-track">
+              <!-- Testimonial 1 -->
+              <div class="testimonial-card">
+                <div class="quote-icon">“</div>
+                <p class="testimonial-quote" data-i18n="testimonials.t1Quote">
+                  "Nel momento di punta dell'aperitivo i biglietti volavano e i camerieri si accavallavano al banco. Con il KDS di BarPilot ognuno sa esattamente cosa preparare e i tempi di attesa dei clienti si sono dimezzati."
+                </p>
+                <div class="testimonial-author">
+                  <div class="author-avatar avatar-1">MB</div>
+                  <div class="author-info">
+                    <strong class="author-name" data-i18n="testimonials.t1Author">Marco B.</strong>
+                    <span class="author-venue" data-i18n="testimonials.t1Role">Titolare, Caffè Vittorio</span>
+                    <span class="author-city" data-i18n="testimonials.t1City">Torino, Italia</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Testimonial 2 -->
+              <div class="testimonial-card">
+                <div class="quote-icon">“</div>
+                <p class="testimonial-quote" data-i18n="testimonials.t2Quote">
+                  "Finalmente un software che non richiede di comprare terminali costosi. Abbiamo utilizzato i nostri tablet esistenti e in 10 minuti il sistema era operativo. Il supporto è rapido e sempre disponibile."
+                </p>
+                <div class="testimonial-author">
+                  <div class="author-avatar avatar-2">SL</div>
+                  <div class="author-info">
+                    <strong class="author-name" data-i18n="testimonials.t2Author">Sophie L.</strong>
+                    <span class="author-venue" data-i18n="testimonials.t2Role">Gérante, Le Bistrot des Arts</span>
+                    <span class="author-city" data-i18n="testimonials.t2City">Lione, Francia</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Testimonial 3 -->
+              <div class="testimonial-card">
+                <div class="quote-icon">“</div>
+                <p class="testimonial-quote" data-i18n="testimonials.t3Quote">
+                  "La gestione delle scorte e l'allerta prodotti in esaurimento ci evitano di finire senza bottiglie chiave il sabato sera. La trasparenza a 59€ al mese senza costi nascosti fa davvero la differenza."
+                </p>
+                <div class="testimonial-author">
+                  <div class="author-avatar avatar-3">AR</div>
+                  <div class="author-info">
+                    <strong class="author-name" data-i18n="testimonials.t3Author">Alessandro R.</strong>
+                    <span class="author-venue" data-i18n="testimonials.t3Role">Bar Manager, Lounge & Cocktail Bar</span>
+                    <span class="author-city" data-i18n="testimonials.t3City">Milano, Italia</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Carousel Controls -->
+          <div class="carousel-navigation">
+            <button type="button" class="carousel-nav-btn prev-btn" data-action="prev-testimonial" aria-label="Testimonianza precedente">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="carousel-dots">
+              <!-- Dots built via JS -->
+            </div>
+            <button type="button" class="carousel-nav-btn next-btn" data-action="next-testimonial" aria-label="Prossima testimonianza">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         9. SECTION: FAQ (Accordion)
+         ======================================================================== -->
+    <section class="section faq-section" id="faq">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="faq.tag">Domande Frequenti</span>
+          <h2 class="section-title" data-i18n="faq.title">Tutto quello che vuoi sapere su BarPilot</h2>
+          <p class="section-description" data-i18n="faq.subtitle">
+            Risposte chiare e trasparenti alle domande più comuni sul software e sul funzionamento.
+          </p>
+        </div>
+
+        <div class="faq-accordion-wrapper reveal-on-scroll">
+          <!-- FAQ 1 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q1">Cos'è BarPilot?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a1">
+                BarPilot è una piattaforma digitale SaaS progettata per semplificare e ottimizzare il lavoro quotidiano di bar, pub e caffetterie. Permette di prendere comande da qualsiasi dispositivo, inviarle in tempo reale allo schermo KDS del banco o cucina, monitorare lo stato dei tavoli e gestire il magazzino.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 2 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q2">Serve un hardware specifico?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a2">
+                No, non devi acquistare costosi registratori o terminali proprietari. BarPilot è una web application compatibile con qualsiasi dispositivo moderno dotato di browser (Chrome, Safari, Firefox, Edge): smartphone iOS/Android per i camerieri, tablet per il banco o monitor per la cucina, e PC/Mac per l'amministrazione.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 3 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q3">Come funziona la prova gratuita di 14 giorni?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a3">
+                Puoi registrarti e testare tutte le funzionalità di BarPilot Pro senza alcun costo per 14 giorni. Durante la prova potrai configurare i tuoi tavoli, inserire i prodotti e svolgere veri turni di servizio per verificare quanto semplifica il tuo lavoro.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 4 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q4">Posso usarlo su più dispositivi contemporaneamente?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a4">
+                Sì! BarPilot è progettato fin dal primo giorno per l'utilizzo multi-dispositivo simultaneo. Tutti i membri dello staff (camerieri tra i tavoli, baristi al banco, cuochi in preparazione e titolari al computer) lavorano sincronizzati in tempo reale.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 5 (CRITICAL CLARIFICATION) -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q5">Sostituisce il registratore di cassa telematico?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a5">
+                No. BarPilot è un software di gestione operativa e organizzativa per comande, tavoli, preparazioni e magazzino. Non è un registratore di cassa fiscale abilitato all'invio telematico dei corrispettivi all'Agenzia delle Entrate. Continuerai ad emettere lo scontrino fiscale dal tuo registratore di cassa abituale.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 6 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q6">I miei dati sono al sicuro?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a6">
+                I tuoi dati sono archiviati su server cloud protetti conformi al regolamento GDPR europeo, con crittografia end-to-end e backup automatici quotidiani. Sei l'unico proprietario delle informazioni relative al tuo locale e ai tuoi prodotti.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ 7 -->
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span class="q-text" data-i18n="faq.q7">Posso disdire in qualsiasi momento?</span>
+              <span class="faq-chevron">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="faq-answer">
+              <p data-i18n="faq.a7">
+                Assolutamente sì. Non applichiamo contratti vincolanti a 12 o 24 mesi. Puoi gestire o interrompere il tuo abbonamento autonomamente in qualsiasi momento dalla pagina "Gestisci abbonamento" con un semplice clic.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         10. SECTION: CONTATTI (2-Column Form + Info & Coverage)
+         ======================================================================== -->
+    <section class="section contact-section" id="contact">
+      <div class="container">
+        <div class="section-header text-center reveal-on-scroll">
+          <span class="section-tag" data-i18n="contact.tag">Siamo Qui Per Te</span>
+          <h2 class="section-title" data-i18n="contact.title">Hai una domanda o desideri una demo personalizzata?</h2>
+          <p class="section-description" data-i18n="contact.subtitle">
+            Il nostro team di supporto è a tua disposizione per qualsiasi chiarimento tecnico o commerciale.
+          </p>
+        </div>
+
+        <div class="contact-grid">
+          <!-- Column 1: Info & Coverage -->
+          <div class="contact-info-col reveal-on-scroll">
+            <div class="contact-card-info">
+              <h3 class="info-heading" data-i18n="contact.infoTitle">Parla con il team BarPilot</h3>
+              <p class="info-sub" data-i18n="contact.infoSub">
+                Siamo a disposizione di baristi, titolari e catene per rispondere a qualsiasi domanda prima o dopo l'attivazione.
+              </p>
+
+              <div class="info-items-list">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                  <div>
+                    <span class="info-caption" data-i18n="contact.emailLabel">Email di contatto</span>
+                    <a href="mailto:info@barpilot.eu" class="info-val">info@barpilot.eu</a>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <div class="info-icon">
+                    <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <div>
+                    <span class="info-caption" data-i18n="contact.hoursLabel">Orari di assistenza</span>
+                    <span class="info-val" data-i18n="contact.hoursVal">Lunedì – Sabato: 09:00 – 20:00</span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <div class="info-icon">
+                    <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div>
+                    <span class="info-caption" data-i18n="contact.coverageLabel">Copertura geografica</span>
+                    <span class="info-val" data-i18n="contact.coverageVal">Italia & Francia (Unione Europea)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Coverage Visual Box -->
+              <div class="coverage-box">
+                <div class="coverage-header">
+                  <span class="coverage-indicator"></span>
+                  <strong>Servizio attivo in tutta Europa</strong>
+                </div>
+                <p class="coverage-text">Piattaforma localizzata in Italiano e Francese con server ad alta affidabilità su Francoforte e Parigi.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Working Contact Form -->
+          <div class="contact-form-col reveal-on-scroll">
+            <div class="form-wrapper">
+              <div id="contact-alert" class="contact-alert hidden" role="alert"></div>
+
+              <form id="contact-form" novalidate>
+                <!-- Anti-spam Honeypot -->
+                <div class="honeypot-field" style="display:none;" aria-hidden="true">
+                  <label for="company_fax">Leave this field blank</label>
+                  <input type="text" name="company_fax" id="company_fax" tabindex="-1" autocomplete="off">
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="contact-name" class="form-label" data-i18n="contact.nameLabel">Il tuo nome *</label>
+                    <input type="text" id="contact-name" class="form-control" data-i18n-placeholder="contact.namePlaceholder" placeholder="Mario Rossi" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="contact-email" class="form-label" data-i18n="contact.emailFieldLabel">Indirizzo email *</label>
+                    <input type="email" id="contact-email" class="form-control" data-i18n-placeholder="contact.emailPlaceholder" placeholder="mario@barcentrale.it" required>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="contact-bar" class="form-label" data-i18n="contact.barLabel">Nome del tuo locale</label>
+                    <input type="text" id="contact-bar" class="form-control" data-i18n-placeholder="contact.barPlaceholder" placeholder="Bar Centrale">
+                  </div>
+                  <div class="form-group">
+                    <label for="contact-phone" class="form-label" data-i18n="contact.phoneLabel">Numero di telefono</label>
+                    <input type="tel" id="contact-phone" class="form-control" data-i18n-placeholder="contact.phonePlaceholder" placeholder="+39 340 1234567">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="contact-message" class="form-label" data-i18n="contact.messageLabel">Come possiamo aiutarti? *</label>
+                  <textarea id="contact-message" class="form-control" rows="4" data-i18n-placeholder="contact.messagePlaceholder" placeholder="Scrivi qui la tua domanda o richiesta..." required></textarea>
+                </div>
+
+                <div class="form-consent">
+                  <input type="checkbox" id="contact-consent" required checked>
+                  <label for="contact-consent" data-i18n="contact.consent">
+                    Acconsento al trattamento dei dati personali per ricevere risposta alla richiesta, in conformità con la Privacy Policy.
+                  </label>
+                </div>
+
+                <button type="submit" class="btn-primary btn-block submit-btn">
+                  <span data-i18n="contact.sendBtn">Invia messaggio</span>
+                  <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================================
+       11. FOOTER (Midnight Navy, Legal, i18n, Real App Links)
+       ======================================================================== -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-top">
+        <!-- Brand Col -->
+        <div class="footer-brand-col">
+          <a href="#hero" class="footer-brand">
+            <img src="/assets/images/barpilot-logo-full.png" alt="BarPilot" class="footer-logo" width="160" height="42">
+          </a>
+          <p class="footer-tagline" data-i18n="footer.tagline">
+            La piattaforma digitale progettata per semplificare il lavoro quotidiano di bar, pub e caffetterie.
+          </p>
+          <div class="footer-status-pill">
+            <span class="status-live-dot"></span>
+            <span>Server Cloud EU Operativi al 99.9%</span>
+          </div>
+        </div>
+
+        <!-- Links Navigation Col 1: Prodotto -->
+        <div class="footer-col">
+          <h4 class="footer-col-title" data-i18n="footer.colProduct">Prodotto</h4>
+          <ul class="footer-links">
+            <li><a href="#services" data-i18n="nav.services">I nostri servizi</a></li>
+            <li><a href="#kds-demo" data-i18n="nav.kds">KDS Interattivo</a></li>
+            <li><a href="#pricing" data-i18n="nav.pricing">Prezzi e Prova Gratuita</a></li>
+            <li><a href="#how-it-works" data-i18n="footer.howWorks">Come Funziona</a></li>
+            <li><a href="/app" data-i18n="footer.appLink">Accedi a BarPilot App</a></li>
+          </ul>
+        </div>
+
+        <!-- Links Navigation Col 2: Azienda & Supporto -->
+        <div class="footer-col">
+          <h4 class="footer-col-title" data-i18n="footer.colSupport">Supporto</h4>
+          <ul class="footer-links">
+            <li><a href="#about" data-i18n="nav.about">Chi è BarPilot</a></li>
+            <li><a href="#testimonials" data-i18n="nav.testimonials">Testimonianze</a></li>
+            <li><a href="#faq" data-i18n="nav.faq">Domande Frequenti</a></li>
+            <li><a href="#contact" data-i18n="nav.contact">Contatta il Supporto</a></li>
+            <li><a href="mailto:info@barpilot.eu">info@barpilot.eu</a></li>
+          </ul>
+        </div>
+
+        <!-- Links Navigation Col 3: Legale -->
+        <div class="footer-col">
+          <h4 class="footer-col-title" data-i18n="footer.colLegal">Note Legali</h4>
+          <ul class="footer-links">
+            <li><a href="#faq" data-i18n="footer.privacy">Privacy Policy (GDPR)</a></li>
+            <li><a href="#faq" data-i18n="footer.terms">Termini di Servizio</a></li>
+            <li><a href="#faq" data-i18n="footer.cookies">Cookie Policy</a></li>
+            <li><span class="fiscal-note" data-i18n="footer.fiscalNote">BarPilot è un software operativo per la gestione interna del locale e non sostituisce il registratore di cassa telematico.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <hr class="footer-divider">
+
+      <div class="footer-bottom">
+        <p class="copyright-text">
+          &copy; <span id="current-year">2026</span> BarPilot. <span data-i18n="footer.rights">Tutti i diritti riservati.</span>
+        </p>
+
+        <div class="footer-bottom-controls">
+          <div class="footer-lang">
+            <span class="lang-caption" data-i18n="footer.langLabel">Lingua:</span>
+            <button type="button" class="lang-text-btn active" data-lang-btn="it">Italiano</button>
+            <span>•</span>
+            <button type="button" class="lang-text-btn" data-lang-btn="fr">Français</button>
+          </div>
+
+          <a href="#hero" class="back-to-top" aria-label="Torna in alto">
+            <span data-i18n="footer.backToTop">Torna in cima</span>
+            <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript Controller -->
+  <script src="/assets/js/landing.js?v=1.0.0"></script>
+</body>
+</html>

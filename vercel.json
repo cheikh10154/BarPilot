@@ -7,6 +7,22 @@
       "use": "@vercel/static"
     },
     {
+      "src": "landing.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "locales/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "sitemap.xml",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "robots.txt",
+      "use": "@vercel/static"
+    },
+    {
       "src": "demo.html",
       "use": "@vercel/static"
     },
@@ -103,6 +119,34 @@
     {
       "src": "^/api/cancel-subscription/?$",
       "dest": "/api/cancel-subscription.js"
+    },
+    {
+      "src": "^/api/contact/?$",
+      "dest": "/api/contact.js"
+    },
+    {
+      "src": "^/sitemap.xml$",
+      "dest": "/sitemap.xml"
+    },
+    {
+      "src": "^/robots.txt$",
+      "dest": "/robots.txt"
+    },
+    {
+      "src": "^/locales/(.*)$",
+      "dest": "/locales/$1"
+    },
+    {
+      "src": "^/landing(\\.html)?/?$",
+      "dest": "/landing.html"
+    },
+    {
+      "src": "^/(it|fr)/?$",
+      "dest": "/landing.html"
+    },
+    {
+      "src": "^/$",
+      "dest": "/landing.html"
     },
     {
       "src": "^/app/?$",

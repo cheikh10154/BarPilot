@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /administration/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://www.barpilot.eu/sitemap.xml
