@@ -54,6 +54,29 @@ export default async function handler(req, res) {
 
     console.log(`[Register Bar] Inizio registrazione per ${cleanBarName} (${normalizedEmail})`);
 
+    // 0. Sincronizzazione diretta su auth.users.phone tramite Supabase Admin API se presente service role key
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
+    if (userId && cleanPhone && serviceRoleKey) {
+      try {
+        const adminUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`;
+        await fetch(adminUrl, {
+          method: 'PUT',
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            phone_confirm: true
+          })
+        });
+        console.log(`[Register Bar] ✅ auth.users.phone sincronizzato con successo per ${userId}`);
+      } catch (adminErr) {
+        console.warn('[Register Bar] Nota aggiornamento auth.users.phone:', adminErr.message);
+      }
+    }
+
     // 1. Controllo Idempotenza: Cerca se il bar esiste già per questa email
     let existingBar = null;
     const findRes = await supabaseFetch(`bars?email=eq.${encodeURIComponent(normalizedEmail)}&select=*`);
