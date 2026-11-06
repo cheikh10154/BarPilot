@@ -7568,14 +7568,9 @@ async function handleAuthSubmit(e) {
         : "✅ Bar enregistré et email de bienvenue envoyé avec succès !");
     }
 
-    // DOPO LA REGISTRAZIONE: reindirizza alla pagina index.html per accedere al gestionale reale
-    const currentPath = (window.location.pathname || "").toLowerCase();
-    if (currentPath.endsWith("demo.html") || currentPath.endsWith("demo.tml") || (!currentPath.endsWith("index.html") && currentPath !== "/" && !currentPath.endsWith("/"))) {
-      window.location.href = "index.html#view-dashboard";
-      return;
-    } else {
-      switchView("dashboard");
-    }
+    // DOPO LA REGISTRAZIONE: reindirizza alla pagina di checkout
+    window.location.href = "checkout.html";
+    return;
   } else {
     // 3. ACCESSO AL GESTIONALE: Verifica delle credenziali nel database (Locale & Supabase)
     const submitBtnEmail = document.getElementById("authSubmitBtn");
