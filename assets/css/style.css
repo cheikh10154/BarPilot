@@ -241,14 +241,19 @@ body {
   color: var(--primary);
 }
 
-/* Zero-Flicker Session Persistence across Cache */
-html.user-authenticated #splashScreen,
-html.user-authenticated #storiesOverlay,
-html.user-authenticated #authOverlay {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+/* Stories & Auth Overlay Visibility Rules */
+.stories-overlay:not(.hidden) {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.auth-overlay:not(.hidden) {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 /* Sidebar Footer Profile & Utilities */

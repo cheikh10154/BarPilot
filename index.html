@@ -63,8 +63,7 @@
       try {
         var sp = document.getElementById("splashScreen");
         var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
-        var isLogged = localStorage.getItem("barpilot_is_logged_in") === "true";
-        if (!isDemo && !isLogged && sp && !sp.classList.contains("hidden")) {
+        if (!isDemo && sp && !sp.classList.contains("hidden")) {
           sp.classList.add("hidden");
           setTimeout(function() { sp.style.display = "none"; }, 500);
           if (typeof initStoriesOnboarding === "function") {

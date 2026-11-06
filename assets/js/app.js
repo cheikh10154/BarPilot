@@ -166,14 +166,6 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
-      if (view === "dashboard" && !isUserSubscribed()) {
-        showToast(window.i18n && window.i18n.currentLang === 'fr'
-          ? "🔒 Accès refusé : Le Tableau de Bord est bloqué jusqu'à confirmation du paiement."
-          : "🔒 Accesso negato : La Dashboard è bloccata finché il sistema non conferma il pagamento.");
-        window.location.href = "/checkout.html";
-        if (window.innerWidth <= 1024) closeSidebar();
-        return;
-      }
       if (currentStaff) {
         const perms = ROLE_PERMISSIONS[currentStaff.role] || ROLE_PERMISSIONS.Proprietario;
         if (!perms.views.includes(view)) {
@@ -183,9 +175,7 @@ function setupNavigation() {
       }
       switchView(view);
       // Close sidebar only on mobile
-      if (window.innerWidth <= 1024) {
-        closeSidebar();
-      }
+      if (window.innerWidth <= 1024) closeSidebar();
     });
   });
 
@@ -575,15 +565,6 @@ async function confirmGooglePlaySubscription() {
 }
 
 function switchView(viewName) {
-  // Gatekeep dashboard ONLY if user is not in demo and not subscribed
-  if (!isDemoMode() && viewName === "dashboard" && !isUserSubscribed()) {
-    showToast(window.i18n && window.i18n.currentLang === 'fr'
-      ? "🔒 Accès refusé : Le Tableau de Bord est bloqué jusqu'à confirmation du paiement."
-      : "🔒 Accesso negato : La Dashboard è bloccata finché il sistema non conferma il pagamento.");
-    window.location.href = "/checkout.html";
-    return;
-  }
-
   appState.activeView = viewName;
   
   // Update sidebar active item
@@ -6661,18 +6642,6 @@ function initSplashScreen() {
     return;
   }
 
-  // Se l'utente è già connesso, vai direttamente alla dashboard
-  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
-    if (splashTimer) clearTimeout(splashTimer);
-    if (splash) {
-      splash.classList.add("hidden");
-      splash.style.display = "none";
-    }
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-    return;
-  }
-
   // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
   splash.classList.remove("hidden");
   splash.style.display = "flex";
@@ -6685,6 +6654,7 @@ function initSplashScreen() {
         splash.style.display = "none";
       }, 500);
     }
+    // Dopo il caricamento del logo, manda alle storie poi ai login e registrazione bar
     initStoriesOnboarding();
   };
 
@@ -7660,8 +7630,8 @@ async function handleAuthSubmit(e) {
         : "✅ Bar enregistré et email de bienvenue envoyé avec succès !");
     }
 
-    // DOPO LA REGISTRAZIONE: reindirizza alla pagina di checkout
-    window.location.href = "checkout.html";
+    // DOPO LA REGISTRAZIONE: reindirizza alla pagina pro.html
+    window.location.href = "pro.html";
     return;
   } else {
     // 3. ACCESSO AL GESTIONALE: Verifica delle credenziali nel database (Locale & Supabase)
