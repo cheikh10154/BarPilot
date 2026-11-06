@@ -1728,10 +1728,12 @@ body {
    SUBSCRIPTION & 14-DAY TRIAL VIEW
    ======================================================== */
 .plans-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  margin: 24px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 24px auto;
 }
 
 .plan-card {
@@ -1940,7 +1942,9 @@ body {
     height: auto;
   }
   .plans-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
 }
 
@@ -3740,6 +3744,7 @@ input:checked + .toggle-slider:before {
    SINGLE UNIQUE SUBSCRIPTION OFFER (59€) & CHECKOUT
    ======================================================== */
 .single-plan-hero {
+  width: 100%;
   max-width: 880px;
   margin: 10px auto 30px auto;
   background: var(--bg-card);
