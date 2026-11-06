@@ -124,7 +124,7 @@ class BarPilotSupabaseClient {
           const barName = user.user_metadata?.bar_name || "Il Mio Bar";
           const city = user.user_metadata?.city || "Roma";
           const vat = user.user_metadata?.vat_number || user.user_metadata?.piva || "";
-          const phone = user.user_metadata?.phone || "";
+          const phone = user.phone || user.user_metadata?.phone || user.user_metadata?.Phone || user.user_metadata?.phone_number || "";
 
           // Se è recovery (reimpostazione password da link email)
           if (authType === "recovery") {
@@ -169,6 +169,9 @@ class BarPilotSupabaseClient {
             bar.name = barName;
             bar.city = city;
             bar.vat = vat;
+            bar.phone = phone;
+            bar.phoneNumber = phone;
+            bar.managerPhone = phone;
             bar.managerName = fullName;
             bar.managerEmail = user.email.toLowerCase().trim();
             bar.isDemo = false;

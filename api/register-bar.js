@@ -151,6 +151,7 @@ export default async function handler(req, res) {
           new_values: {
             name: cleanBarName,
             email: normalizedEmail,
+            phone: cleanPhone,
             city: cleanCity,
             trial_days: 14,
             trial_end: trialEnd.toISOString()
@@ -170,6 +171,7 @@ export default async function handler(req, res) {
           ownerName: cleanOwner,
           barName: cleanBarName,
           email: normalizedEmail,
+          phone: cleanPhone,
           city: cleanCity,
           appUrl: appHost
         })

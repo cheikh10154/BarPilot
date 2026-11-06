@@ -7460,12 +7460,30 @@ async function handleAuthSubmit(e) {
           barPayload.owner_id = supabaseUser.id;
         }
 
+        const sbHeaders = window.supabase ? {
+          ...window.supabase.getHeaders(false),
+          "Prefer": "resolution=merge-duplicates,return=representation"
+        } : {};
+
         await fetch(`${window.supabase.url}/rest/v1/bars`, {
           method: "POST",
-          headers: window.supabase.getHeaders(false),
+          headers: sbHeaders,
           body: JSON.stringify(barPayload)
         });
+
+        // Aggiorna anche se il bar esiste già tramite email per garantire il salvataggio del telefono su Supabase
+        await fetch(`${window.supabase.url}/rest/v1/bars?email=eq.${encodeURIComponent(emailNormalized)}`, {
+          method: "PATCH",
+          headers: window.supabase.getHeaders(false),
+          body: JSON.stringify({ phone: phone, updated_at: new Date().toISOString() })
+        });
       } catch (e) {}
+    }
+
+    if (phone) {
+      try {
+        localStorage.setItem("barpilot_registered_phone", phone);
+      } catch (_) {}
     }
 
     const activeBar = {
@@ -8108,9 +8126,20 @@ function renderGeneralSettings() {
   const dbUsers = (typeof getDatabaseUsers === "function") ? getDatabaseUsers() : [];
   const dbUser = dbUsers.find(u => u.email && u.email.toLowerCase().trim() === currentEmail);
 
+  let sbPhone = "";
+  try {
+    const sbSession = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "null");
+    const sbUser = sbSession?.user || window.supabase?.session?.user;
+    if (sbUser) {
+      sbPhone = sbUser.phone || sbUser.user_metadata?.phone || sbUser.user_metadata?.Phone || sbUser.user_metadata?.phone_number || "";
+    }
+  } catch (_) {}
+
+  const savedRegPhone = localStorage.getItem("barpilot_registered_phone") || "";
+
   const barNameVal = (!isDemo && (bar.name || bar.barName || loggedUser?.barName || dbUser?.barName)) || (isDemo ? "Bar Centrale" : "");
   const vatVal = (!isDemo && (bar.vat || bar.piva || bar.vatNumber || loggedUser?.vat || loggedUser?.piva || loggedUser?.vatNumber || dbUser?.vat || dbUser?.piva)) || (isDemo ? "IT 12345678901" : "");
-  const phoneVal = (!isDemo && (bar.phone || bar.phoneNumber || bar.managerPhone || loggedUser?.phone || loggedUser?.phoneNumber || dbUser?.phone)) || (isDemo ? "+39 06 678 9123" : "");
+  const phoneVal = (!isDemo && (bar.phone || bar.phoneNumber || bar.managerPhone || loggedUser?.phone || loggedUser?.phoneNumber || dbUser?.phone || dbUser?.phoneNumber || sbPhone || savedRegPhone)) || (isDemo ? "+39 06 678 9123" : "");
   const legalVal = (!isDemo && (bar.legalName || loggedUser?.legalName || dbUser?.legalName)) || (isDemo ? "Bar Centrale Roma S.r.l." : "");
   const addrVal = (!isDemo && (bar.address || loggedUser?.address || dbUser?.address)) || (isDemo ? "Via del Corso, 142 - 00186 Roma (RM)" : "");
 
@@ -8128,6 +8157,33 @@ function renderGeneralSettings() {
 
   const addrInput = document.getElementById("setAddress");
   if (addrInput) addrInput.value = addrVal;
+
+  // Se l'utente è registrato e il telefono è presente su Supabase, assicura il caricamento dinamico
+  if (!isDemo && window.supabase && currentEmail) {
+    (async () => {
+      try {
+        const res = await fetch(`${window.supabase.url}/rest/v1/bars?email=eq.${encodeURIComponent(currentEmail)}&select=phone&limit=1`, {
+          headers: window.supabase.getHeaders(false)
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          if (rows && rows[0] && rows[0].phone) {
+            const fetchedPhone = rows[0].phone;
+            const targetPhoneInput = document.getElementById("setPhone");
+            if (targetPhoneInput && (!targetPhoneInput.value || targetPhoneInput.value === "+39 06 678 9123")) {
+              targetPhoneInput.value = fetchedPhone;
+            }
+            if (bar) {
+              bar.phone = fetchedPhone;
+              bar.phoneNumber = fetchedPhone;
+              bar.managerPhone = fetchedPhone;
+              if (window.db) window.db.set("activeBar", bar);
+            }
+          }
+        }
+      } catch (_) {}
+    })();
+  }
 }
 
 function saveGeneralSettings() {
