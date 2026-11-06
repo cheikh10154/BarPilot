@@ -7500,7 +7500,8 @@ async function handleAuthSubmit(e) {
       phoneNumber: phone,
       managerPhone: phone,
       city: city,
-      address: `Via Principale, 1 - ${city}`,
+      address: "",
+      hasCustomAddress: false,
       currency: "€",
       role: "Proprietario",
       managerName: ownerName,
@@ -8141,7 +8142,8 @@ function renderGeneralSettings() {
   const vatVal = (!isDemo && (bar.vat || bar.piva || bar.vatNumber || loggedUser?.vat || loggedUser?.piva || loggedUser?.vatNumber || dbUser?.vat || dbUser?.piva)) || (isDemo ? "IT 12345678901" : "");
   const phoneVal = (!isDemo && (bar.phone || bar.phoneNumber || bar.managerPhone || loggedUser?.phone || loggedUser?.phoneNumber || dbUser?.phone || dbUser?.phoneNumber || sbPhone || savedRegPhone)) || (isDemo ? "+39 06 678 9123" : "");
   const legalVal = (!isDemo && (bar.legalName || loggedUser?.legalName || dbUser?.legalName)) || (isDemo ? "Bar Centrale Roma S.r.l." : "");
-  const addrVal = (!isDemo && (bar.address || loggedUser?.address || dbUser?.address)) || (isDemo ? "Via del Corso, 142 - 00186 Roma (RM)" : "");
+  const hasCustomAddr = !isDemo && Boolean(bar.hasCustomAddress || (bar.address && !bar.address.startsWith("Via Principale") && bar.address !== "Via del Corso, 142 - 00186 Roma (RM)"));
+  const addrVal = hasCustomAddr ? (bar.address || loggedUser?.address || dbUser?.address || "") : "";
 
   const nameInput = document.getElementById("setBarName");
   if (nameInput) nameInput.value = barNameVal;
@@ -8156,7 +8158,10 @@ function renderGeneralSettings() {
   if (legalInput) legalInput.value = legalVal;
 
   const addrInput = document.getElementById("setAddress");
-  if (addrInput) addrInput.value = addrVal;
+  if (addrInput) {
+    addrInput.value = addrVal;
+    addrInput.placeholder = "Es: Via del Corso, 142 - 00186 Roma (RM)";
+  }
 
   // Se l'utente è registrato e il telefono è presente su Supabase, assicura il caricamento dinamico
   if (!isDemo && window.supabase && currentEmail) {
@@ -8247,7 +8252,11 @@ function saveGeneralSettings() {
   if (addrInput && addrInput.value !== undefined) {
     const newAddr = addrInput.value.trim();
     bar.address = newAddr;
-    if (loggedUser) loggedUser.address = newAddr;
+    bar.hasCustomAddress = Boolean(newAddr);
+    if (loggedUser) {
+      loggedUser.address = newAddr;
+      loggedUser.hasCustomAddress = Boolean(newAddr);
+    }
   }
 
   if (currencySelect) {
