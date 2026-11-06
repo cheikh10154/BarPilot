@@ -537,40 +537,46 @@ class BarPilotStorage {
     }
 
     if (key === "products") {
-      let currentProducts = this.data.products;
-      if (!currentProducts || !Array.isArray(currentProducts) || currentProducts.length === 0) {
-        const customProductsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
-        if (customProductsRaw) {
-          try {
-            const parsed = JSON.parse(customProductsRaw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              currentProducts = parsed;
-              this.data.products = currentProducts;
+      let currentProducts = null;
+      const customProductsRaw = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+      if (customProductsRaw) {
+        try {
+          const parsed = JSON.parse(customProductsRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            currentProducts = parsed;
+            this.data.products = currentProducts;
+            if (typeof initialData !== "undefined" && initialData) {
+              initialData.products = currentProducts;
             }
-          } catch (e) {}
-        }
+          }
+        } catch (e) {}
       }
-      const baseProds = currentProducts || initialData.products;
-      if (this.isDemo()) {
-        return baseProds.map(p => ({ ...p }));
+      if (!currentProducts) {
+        currentProducts = (this.data && Array.isArray(this.data.products) && this.data.products.length > 0)
+          ? this.data.products
+          : initialData.products;
       }
-      const prods = baseProds.map(p => ({ ...p }));
-      // Compute real sales count from active bar's orders
+      // Prodotti rigorosamente condivisi e identici per tutti gli utenti (demo e registrati)
+      const prods = currentProducts.map(p => ({ ...p }));
       const orders = this.get("orders") || [];
       const countMap = {};
+      let hasOrderSales = false;
       orders.forEach(ord => {
         const s = (ord.status || "").toLowerCase();
         if (s !== "cancelled" && s !== "draft") {
           if (Array.isArray(ord.items)) {
             ord.items.forEach(it => {
               countMap[it.id] = (countMap[it.id] || 0) + (Number(it.qty) || 0);
+              hasOrderSales = true;
             });
           }
         }
       });
-      prods.forEach(p => {
-        p.salesCount = countMap[p.id] || 0;
-      });
+      if (hasOrderSales) {
+        prods.forEach(p => {
+          if (countMap[p.id] !== undefined) p.salesCount = countMap[p.id];
+        });
+      }
       return prods;
     }
 
@@ -652,6 +658,9 @@ class BarPilotStorage {
 
     if (key === "products") {
       this.data.products = val;
+      if (typeof initialData !== "undefined" && initialData) {
+        initialData.products = val;
+      }
       if (typeof localStorage !== "undefined") {
         try {
           localStorage.setItem("barpilot_saved_products", JSON.stringify(val));
@@ -660,6 +669,11 @@ class BarPilotStorage {
         }
       }
       this.persist();
+      if (typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(new CustomEvent("barpilot_products_updated", { detail: val }));
+        } catch (_) {}
+      }
       return;
     }
 
@@ -674,6 +688,29 @@ class BarPilotStorage {
 
 window.BarPilotStorage = BarPilotStorage;
 window.db = new BarPilotStorage();
+
+// Sincronizzazione in tempo reale dei prodotti salvati in Demo tra schede e utenti
+if (typeof window !== "undefined") {
+  const syncProductsListener = (e) => {
+    if (e && e.key && e.key !== "barpilot_saved_products") return;
+    const raw = localStorage.getItem("barpilot_saved_products");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0 && window.db) {
+          window.db.data.products = parsed;
+          if (typeof initialData !== "undefined" && initialData) {
+            initialData.products = parsed;
+          }
+          if (typeof renderProducts === "function") renderProducts();
+          if (typeof renderOrderCatalog === "function") renderOrderCatalog();
+        }
+      } catch (_) {}
+    }
+  };
+  window.addEventListener("storage", syncProductsListener);
+  window.addEventListener("barpilot_products_updated", syncProductsListener);
+}
 
 // Ensure active session is kept in cache on load
 if (localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true")) {

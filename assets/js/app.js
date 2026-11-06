@@ -7543,6 +7543,16 @@ async function handleAuthSubmit(e) {
         orderId: null,
         alert: null
       }));
+      // Preserva sempre i prodotti salvati nella demo per tutti i nuovi utenti
+      const savedProds = typeof localStorage !== "undefined" ? localStorage.getItem("barpilot_saved_products") : null;
+      if (savedProds) {
+        try {
+          const parsed = JSON.parse(savedProds);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.db.data.products = parsed;
+          }
+        } catch (_) {}
+      }
       window.db.persist();
     }
 
