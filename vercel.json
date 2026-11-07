@@ -157,7 +157,7 @@
       "dest": "/index.html"
     },
     {
-      "src": "^/app/index(\\.html)?/?$",
+      "src": "^/app/index.html$",
       "dest": "/index.html"
     },
     {
@@ -165,7 +165,7 @@
       "dest": "/demo.html"
     },
     {
-      "src": "^/app/demo(\\.html)?/?$",
+      "src": "^/app/demo.html$",
       "dest": "/demo.html"
     },
     {
@@ -173,7 +173,7 @@
       "dest": "/pro.html"
     },
     {
-      "src": "^/app/pro(\\.html)?/?$",
+      "src": "^/app/pro.html$",
       "dest": "/pro.html"
     },
     {
@@ -185,7 +185,7 @@
       "dest": "/checkout.html"
     },
     {
-      "src": "^/app/checkout(\\.html)?/?$",
+      "src": "^/app/checkout.html$",
       "dest": "/checkout.html"
     },
     {
@@ -193,32 +193,12 @@
       "dest": "/gestisci-abbonamento.html"
     },
     {
-      "src": "^/app/gestisci-abbonamento(\\.html)?/?$",
+      "src": "^/app/gestisci-abbonamento.html$",
       "dest": "/gestisci-abbonamento.html"
-    },
-    {
-      "src": "^/app/administration/?$",
-      "dest": "/administration/index.html"
-    },
-    {
-      "src": "^/app/administration/(.*)$",
-      "dest": "/administration/$1"
-    },
-    {
-      "src": "^/app/admin/?$",
-      "dest": "/administration/index.html"
-    },
-    {
-      "src": "^/app/admin/(.*)$",
-      "dest": "/admin/$1"
     },
     {
       "src": "^/app/assets/(.*)$",
       "dest": "/assets/$1"
-    },
-    {
-      "src": "^/app/locales/(.*)$",
-      "dest": "/locales/$1"
     },
     {
       "src": "^/app/api/(.*)$",
@@ -241,7 +221,7 @@
       "dest": "/demo.html"
     },
     {
-      "src": "^/demo\\.html$",
+      "src": "^/demo.html$",
       "dest": "/demo.html"
     },
     {
@@ -249,7 +229,7 @@
       "dest": "/pro.html"
     },
     {
-      "src": "^/pro\\.html$",
+      "src": "^/pro.html$",
       "dest": "/pro.html"
     },
     {
@@ -261,7 +241,7 @@
       "dest": "/checkout.html"
     },
     {
-      "src": "^/checkout\\.html$",
+      "src": "^/checkout.html$",
       "dest": "/checkout.html"
     },
     {
@@ -269,7 +249,7 @@
       "dest": "/gestisci-abbonamento.html"
     },
     {
-      "src": "^/gestisci-abbonamento\\.html$",
+      "src": "^/gestisci-abbonamento.html$",
       "dest": "/gestisci-abbonamento.html"
     },
     {
