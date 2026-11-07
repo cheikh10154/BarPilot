@@ -311,7 +311,7 @@
       const isSub = localStorage.getItem("barpilot_is_subscribed") === "true" || 
                     localStorage.getItem("barpilot_subscription_confirmed") === "true";
       if (isSub) {
-        window.location.replace("https://www.barpilot.eu/app/index.html#view-dashboard");
+        window.location.replace("https://www.barpilot.eu/app");
         return;
       }
 
@@ -323,7 +323,7 @@
                            urlParams.get('session_id');
       if (isPaidReturn) {
         confirmAndUnlockSubscription("stripe_checkout", urlParams.get('session_id') || ("cs_live_" + Date.now()), "Stripe Checkout");
-        window.location.replace("https://www.barpilot.eu/app/index.html#view-dashboard");
+        window.location.replace("https://www.barpilot.eu/app");
         return;
       }
 
@@ -668,12 +668,12 @@
 
       // Automatically navigate to dashboard after 2.2 seconds
       setTimeout(() => {
-        window.location.href = "https://www.barpilot.eu/app/index.html#view-dashboard";
+        window.location.href = "https://www.barpilot.eu/app";
       }, 2200);
     }
 
     function proceedToDashboard() {
-      window.location.href = "https://www.barpilot.eu/app/index.html#view-dashboard";
+      window.location.href = "https://www.barpilot.eu/app";
     }
 
     function handleDirectStripeClick() {
@@ -999,8 +999,8 @@
         <div style="display:flex; justify-content:space-between;"><span style="color:#6B7280;">Metodo:</span> <strong id="successModalMethod">Carta di Credito</strong></div>
         <div style="display:flex; justify-content:space-between;"><span style="color:#6B7280;">Stato Abbonamento:</span> <strong style="color:#059669;">Attivo (14 giorni gratis)</strong></div>
       </div>
-      <button type="button" id="btnVaiNellaDashboard" class="btn-primary" onclick="proceedToDashboard()" style="width:100%; height:48px; background:#FF7A00; border-color:#FF7A00; border-radius:10px; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;">
-        <span>Vai nella dashboard</span> <span>➔</span>
+      <button type="button" id="btnEntraSubitoDashboard" class="btn-primary" onclick="proceedToDashboard()" style="width:100%; height:48px; background:#FF7A00; border-color:#FF7A00; border-radius:10px; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;">
+        <span>Entra subito nella dashboard</span> <span>➔</span>
       </button>
     </div>
   </div>
