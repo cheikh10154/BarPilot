@@ -307,14 +307,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      // Se l'utente o il bar ha già un abbonamento confermato, entra direttamente nella Dashboard senza richiedere pagamento
-      const isSub = localStorage.getItem("barpilot_is_subscribed") === "true" || 
-                    localStorage.getItem("barpilot_subscription_confirmed") === "true";
-      if (isSub) {
-        window.location.replace("https://www.barpilot.eu/app");
-        return;
-      }
-
       // Se si ritorna dopo aver completato il pagamento su Stripe o Gateway
       const urlParams = new URLSearchParams(window.location.search);
       const isPaidReturn = urlParams.get('payment') === 'success' || 

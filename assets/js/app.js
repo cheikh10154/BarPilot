@@ -5945,13 +5945,6 @@ function selectPlan(planName) {
 }
 
 function openCheckoutModal(isForcedMandatory = false) {
-  // If in demo mode or already subscribed: never open checkout modal!
-  if (isDemoMode() || isUserSubscribed()) {
-    closeCheckoutModal(true);
-    closeGooglePlayModal(true);
-    return;
-  }
-
   const modal = document.getElementById("subscriptionCheckoutModal");
   if (!modal) return;
 
