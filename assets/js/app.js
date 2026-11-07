@@ -4779,7 +4779,7 @@ async function handleNewPasswordSubmit(e) {
     const curPath = (window.location.pathname || "").toLowerCase();
     const isAppRoot = curPath.endsWith("index.html") || curPath === "/" || curPath.endsWith("/") || curPath === "/app" || curPath === "/app/";
     if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || !isAppRoot) {
-      window.location.href = "index.html#view-dashboard";
+      window.location.href = "https://www.barpilot.eu/app/index.html#view-dashboard";
       return;
     }
     switchView("dashboard");
@@ -8004,7 +8004,7 @@ async function handleAuthSubmit(e) {
     const curPath = (window.location.pathname || "").toLowerCase();
     const isAppRoot = curPath.endsWith("index.html") || curPath === "/" || curPath.endsWith("/") || curPath === "/app" || curPath === "/app/";
     if (curPath.endsWith("demo.html") || curPath.endsWith("demo.tml") || !isAppRoot) {
-      window.location.href = "index.html#view-dashboard";
+      window.location.href = "https://www.barpilot.eu/app/index.html#view-dashboard";
       return;
     }
     switchView("dashboard");
