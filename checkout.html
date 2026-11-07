@@ -315,6 +315,18 @@
         return;
       }
 
+      // Se si ritorna dopo aver completato il pagamento su Stripe o Gateway
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPaidReturn = urlParams.get('payment') === 'success' || 
+                           urlParams.get('checkout_status') === 'success' || 
+                           urlParams.get('confirmed') === 'true' || 
+                           urlParams.get('session_id');
+      if (isPaidReturn) {
+        confirmAndUnlockSubscription("stripe_checkout", urlParams.get('session_id') || ("cs_live_" + Date.now()), "Stripe Checkout");
+        window.location.replace("https://www.barpilot.eu/app/index.html#view-dashboard");
+        return;
+      }
+
       // Ensure Stripe preview is always in Italian
       const stripePreview = document.getElementById("checkoutProStripeLinkPreview");
       if (stripePreview) {

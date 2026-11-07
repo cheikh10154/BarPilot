@@ -80,6 +80,23 @@ function initBarPilotApp() {
       const search = (window.location.search || "").toLowerCase();
       const pathname = (window.location.pathname || "").toLowerCase();
 
+      // Check if returning from completed checkout / payment via URL parameters
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("checkout_status") === "success" || urlParams.get("payment") === "success" || urlParams.get("confirmed") === "true" || urlParams.get("session_id")) {
+          if (typeof activateSubscription === "function") {
+            activateSubscription("stripe_checkout");
+          }
+          if (typeof switchView === "function") {
+            switchView("dashboard");
+          }
+          if (window.location.hash !== "#view-dashboard") {
+            window.location.hash = "view-dashboard";
+          }
+          return;
+        }
+      } catch (_) {}
+
       // Check if demo is requested via URL (/demo, ?demo, #demo)
       if (hash === "#demo" || search.includes("demo=") || pathname.startsWith("/demo") || pathname.includes("demo.html") || pathname.includes("demo.tml")) {
         quickLoginDemo();
@@ -455,7 +472,16 @@ function activateSubscription(method = "google_pay") {
   const userName = (loggedUser && loggedUser.name) || bar.managerName || "Gestore";
 
   // Redirect to dashboard and give warm welcome!
+  const curPath = (window.location.pathname || "").toLowerCase();
+  const isAppRoot = curPath.includes("/app") || curPath.endsWith("index.html") || curPath === "/";
+  if (!isAppRoot) {
+    window.location.href = "https://www.barpilot.eu/app/index.html#view-dashboard";
+    return;
+  }
   switchView("dashboard");
+  if (window.location.hash !== "#view-dashboard") {
+    window.location.hash = "view-dashboard";
+  }
 
   showToast(
     isFr

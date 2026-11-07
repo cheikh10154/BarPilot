@@ -182,7 +182,7 @@ async function startStripeSubscriptionCheckout(options = {}) {
     email: options.email || bar.managerEmail || session.user?.email,
     barName: options.barName || bar.name,
     trialDays: options.trialDays || 14,
-    successUrl: options.successUrl || `${window.location.origin}${appPrefix}/?checkout_status=success&session_id={CHECKOUT_SESSION_ID}`,
+    successUrl: options.successUrl || "https://www.barpilot.eu/app/index.html?checkout_status=success&session_id={CHECKOUT_SESSION_ID}#view-dashboard",
     cancelUrl: options.cancelUrl || `${window.location.origin}${appPrefix}/checkout.html?checkout_status=canceled`
   };
 

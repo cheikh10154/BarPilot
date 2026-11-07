@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const refererHeader = req.headers.referer || '';
     const hasAppPath = refererHeader.includes('/app') || originHeader.includes('/app');
     const appPrefix = hasAppPath ? '/app' : '';
-    const finalSuccessUrl = successUrl || `${originHeader}${appPrefix}/?checkout_status=success&session_id={CHECKOUT_SESSION_ID}`;
+    const finalSuccessUrl = successUrl || 'https://www.barpilot.eu/app/index.html?checkout_status=success&session_id={CHECKOUT_SESSION_ID}#view-dashboard';
     const finalCancelUrl = cancelUrl || `${originHeader}${appPrefix}/checkout.html?checkout_status=canceled`;
 
     // 1. Line Items: Usa priceId configurato o genera price_data al volo per BarPilot Pro (€59.00 / mese)
