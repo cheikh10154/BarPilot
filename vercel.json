@@ -238,48 +238,39 @@
     },
     {
       "src": "^/demo/?$",
-      "status": 307,
-      "headers": { "Location": "/app/demo.html" }
+      "dest": "/demo.html"
     },
     {
       "src": "^/demo\\.html$",
-      "status": 307,
-      "headers": { "Location": "/app/demo.html" }
+      "dest": "/demo.html"
     },
     {
       "src": "^/pro/?$",
-      "status": 307,
-      "headers": { "Location": "/app/pro.html" }
+      "dest": "/pro.html"
     },
     {
       "src": "^/pro\\.html$",
-      "status": 307,
-      "headers": { "Location": "/app/pro.html" }
+      "dest": "/pro.html"
     },
     {
       "src": "^/offerta/?$",
-      "status": 307,
-      "headers": { "Location": "/app/pro.html" }
+      "dest": "/pro.html"
     },
     {
       "src": "^/checkout/?$",
-      "status": 307,
-      "headers": { "Location": "/app/checkout.html" }
+      "dest": "/checkout.html"
     },
     {
       "src": "^/checkout\\.html$",
-      "status": 307,
-      "headers": { "Location": "/app/checkout.html" }
+      "dest": "/checkout.html"
     },
     {
       "src": "^/gestisci-abbonamento/?$",
-      "status": 307,
-      "headers": { "Location": "/app/gestisci-abbonamento.html" }
+      "dest": "/gestisci-abbonamento.html"
     },
     {
       "src": "^/gestisci-abbonamento\\.html$",
-      "status": 307,
-      "headers": { "Location": "/app/gestisci-abbonamento.html" }
+      "dest": "/gestisci-abbonamento.html"
     },
     {
       "src": "^/administration/?$",

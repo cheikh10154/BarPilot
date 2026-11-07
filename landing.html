@@ -13,6 +13,20 @@
   <script>
     (function() {
       try {
+        var search = window.location.search || "";
+        var hash = window.location.hash || "";
+        // Se si richiede la dashboard (#view-dashboard) o si ritorna da pagamento completato
+        var isPaymentReturn = search.indexOf("session_id") !== -1 ||
+                              search.indexOf("checkout_status=success") !== -1 ||
+                              search.indexOf("payment=success") !== -1 ||
+                              search.indexOf("confirmed=true") !== -1;
+        var isDashboardRequest = hash.indexOf("view-dashboard") !== -1 || hash.indexOf("dashboard") !== -1;
+        
+        if (isPaymentReturn || isDashboardRequest) {
+          window.location.replace("https://www.barpilot.eu/app" + search + hash);
+          return;
+        }
+
         var savedTheme = localStorage.getItem('barpilot_theme');
         var theme = savedTheme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
