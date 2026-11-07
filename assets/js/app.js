@@ -1934,35 +1934,14 @@ function renderFloorPlan() {
       </button>
     ` : "";
 
-    // Dedicated reservation action button on each table
-    const reserveBtn = `
-      <button type="button" class="table-node-reserve-btn" onclick="event.stopPropagation(); openReserveTableModal('${t.id}')" title="Prenota tavolo ${t.id}" aria-label="Prenota tavolo ${t.id}">
-        📅
-      </button>
-    `;
-
-    // Reservation badge display with seats and date/time
-    let reservationHtml = "";
-    if (t.status === "reserved" || t.reservation || t.reservationDate) {
-      const resDateText = t.reservationDate ? t.reservationDate : (t.reservation || "");
-      const resSeatsText = t.reservedSeats ? ` · ${t.reservedSeats} posti` : "";
-      const resNameText = t.reservedName ? ` (${t.reservedName})` : "";
-      reservationHtml = `
-        <div class="table-node-res-badge" title="Prenotata per ${resDateText}${resSeatsText}">
-          📅 ${resDateText}${resSeatsText}${resNameText}
-        </div>
-      `;
-    }
-
     return `
       <div class="table-node ${statusClass}" onclick="handleTableClick('${t.id}')">
         ${deleteBtn}
-        ${reserveBtn}
         ${t.alert ? `<span class="table-node-alert">${t.alert}</span>` : ""}
         <span class="table-node-number">${t.id}</span>
         <span class="table-node-info">${t.capacity} ${window.i18n.t("occupants")} · ${statusText}</span>
         ${t.amount > 0 ? `<span class="table-node-amount">${t.amount.toFixed(2)} €</span>` : ""}
-        ${reservationHtml}
+        ${t.reservation ? `<span style="font-size:11px; color:var(--status-reserved); font-weight:700;">${t.reservation}</span>` : ""}
       </div>
     `;
   }).join("");
@@ -1978,12 +1957,6 @@ function renderFloorPlan() {
 }
 
 function handleTableClick(tableId) {
-  const tables = (window.db ? window.db.get("tables") : []) || [];
-  const t = tables.find(x => x.id === tableId);
-  if (t && t.status === "reserved") {
-    openReserveTableModal(tableId);
-    return;
-  }
   appState.selectedTable = `Tavolo ${tableId.replace("T", "")}`;
   const selectEl = document.getElementById("orderTableSelect");
   if (selectEl) selectEl.value = appState.selectedTable;
@@ -2146,169 +2119,6 @@ function syncOrderTableSelect() {
   if (currentVal && Array.from(selectEl.options).some(o => o.value === currentVal)) {
     selectEl.value = currentVal;
   }
-}
-
-// --------------------------------------------------------------------------
-// Table Reservation Management (Plan de salle: Prenotata, Posti, Data)
-// --------------------------------------------------------------------------
-function openReserveTableModal(targetTableId) {
-  const modal = document.getElementById("reserveTableModal");
-  if (!modal) return;
-
-  const tables = (window.db ? window.db.get("tables") : []) || [];
-  const selectEl = document.getElementById("reserveTableId");
-
-  if (selectEl) {
-    selectEl.innerHTML = tables.map(t => {
-      let statusTag = " (🟢 Libero)";
-      if (t.status === "reserved") statusTag = " (🟣 Prenotata)";
-      else if (t.status === "occupied") statusTag = " (🟠 Occupata)";
-      else if (t.status === "to_pay") statusTag = " (🟡 Da pagare)";
-      return `<option value="${t.id}">${t.id} - ${t.area} (${t.capacity} posti)${statusTag}</option>`;
-    }).join("");
-
-    if (targetTableId) {
-      selectEl.value = targetTableId;
-    } else if (tables.length > 0) {
-      const firstFreeOrRes = tables.find(t => t.status === "free" || t.status === "reserved");
-      selectEl.value = firstFreeOrRes ? firstFreeOrRes.id : tables[0].id;
-    }
-  }
-
-  onReserveTableSelectChange();
-  modal.classList.add("active");
-}
-
-function closeReserveTableModal() {
-  const modal = document.getElementById("reserveTableModal");
-  if (modal) modal.classList.remove("active");
-}
-
-function onReserveTableSelectChange() {
-  const selectEl = document.getElementById("reserveTableId");
-  if (!selectEl) return;
-  const tableId = selectEl.value;
-  const tables = (window.db ? window.db.get("tables") : []) || [];
-  const t = tables.find(x => x.id === tableId);
-  if (!t) return;
-
-  const statusEl = document.getElementById("reserveTableStatus");
-  const seatsEl = document.getElementById("reserveTableSeats");
-  const dateEl = document.getElementById("reserveTableDateTime");
-  const custEl = document.getElementById("reserveTableCustomer");
-
-  if (statusEl) {
-    statusEl.value = t.status === "reserved" ? "reserved" : (t.status === "occupied" ? "occupied" : "reserved");
-  }
-
-  if (seatsEl) {
-    seatsEl.value = t.reservedSeats || t.capacity || 4;
-  }
-
-  if (custEl) {
-    custEl.value = t.reservedName || "";
-  }
-
-  if (dateEl) {
-    if (t.reservationIso) {
-      dateEl.value = t.reservationIso;
-    } else {
-      const now = new Date();
-      now.setHours(now.getHours() + 1);
-      now.setMinutes(0);
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      const hours = String(now.getHours()).padStart(2, "0");
-      const mins = String(now.getMinutes()).padStart(2, "0");
-      dateEl.value = `${year}-${month}-${day}T${hours}:${mins}`;
-    }
-  }
-
-  onReserveStatusChange();
-}
-
-function onReserveStatusChange() {
-  const statusEl = document.getElementById("reserveTableStatus");
-  const fieldsGroup = document.getElementById("reserveFieldsGroup");
-  if (!statusEl || !fieldsGroup) return;
-
-  if (statusEl.value === "reserved") {
-    fieldsGroup.style.display = "block";
-  } else {
-    fieldsGroup.style.display = "none";
-  }
-}
-
-function handleReserveTableSubmit(e) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const selectEl = document.getElementById("reserveTableId");
-  const statusEl = document.getElementById("reserveTableStatus");
-  const seatsEl = document.getElementById("reserveTableSeats");
-  const dateEl = document.getElementById("reserveTableDateTime");
-  const custEl = document.getElementById("reserveTableCustomer");
-
-  if (!selectEl) return;
-  const tableId = selectEl.value;
-  const tables = (window.db ? window.db.get("tables") : []) || [];
-  const tIndex = tables.findIndex(x => x.id === tableId);
-  if (tIndex === -1) {
-    showToast("⚠️ Tavolo non trovato.");
-    return;
-  }
-
-  const newStatus = statusEl ? statusEl.value : "reserved";
-  const t = tables[tIndex];
-
-  if (newStatus === "reserved") {
-    const seats = seatsEl ? (parseInt(seatsEl.value, 10) || t.capacity || 4) : 4;
-    const rawDateTime = dateEl ? dateEl.value : "";
-    let formattedDate = "";
-
-    if (rawDateTime) {
-      try {
-        const d = new Date(rawDateTime);
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const mins = String(d.getMinutes()).padStart(2, "0");
-        formattedDate = `${day}/${month} ${hours}:${mins}`;
-      } catch (err) {
-        formattedDate = rawDateTime;
-      }
-    } else {
-      formattedDate = "Oggi";
-    }
-
-    const customer = custEl ? custEl.value.trim() : "";
-
-    t.status = "reserved";
-    t.capacity = seats;
-    t.reservedSeats = seats;
-    t.reservation = formattedDate;
-    t.reservationDate = formattedDate;
-    t.reservationIso = rawDateTime;
-    t.reservedName = customer;
-
-    showToast(`✅ Tavolo ${tableId} impostato su "Prenotata" (${seats} posti, ${formattedDate})!`);
-  } else if (newStatus === "free") {
-    t.status = "free";
-    t.reservation = null;
-    t.reservationDate = null;
-    t.reservationIso = null;
-    t.reservedSeats = null;
-    t.reservedName = null;
-    showToast(`✅ Prenotazione rimossa: tavolo ${tableId} ora è Libero!`);
-  } else if (newStatus === "occupied") {
-    t.status = "occupied";
-    showToast(`✅ Tavolo ${tableId} impostato come Occupato!`);
-  }
-
-  window.db.set("tables", tables);
-  renderFloorPlan();
-  syncOrderTableSelect();
-  closeReserveTableModal();
 }
 
 // --------------------------------------------------------------------------
