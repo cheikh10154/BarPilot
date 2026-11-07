@@ -54,6 +54,15 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // Landing vs App routing
+  if (pathname === '/' || pathname === '/index.html') {
+    pathname = '/landing.html';
+  } else if (pathname === '/app' || pathname === '/app/' || pathname === '/app/index.html') {
+    pathname = '/index.html';
+  } else if (pathname.startsWith('/app/')) {
+    pathname = pathname.substring(4); // strip '/app' prefix so '/app/checkout.html' -> '/checkout.html'
+  }
+
   // Normalize path & prevent directory traversal
   let safePath = path.normalize(path.join(ROOT_DIR, pathname));
   if (!safePath.startsWith(ROOT_DIR)) {
