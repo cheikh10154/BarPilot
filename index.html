@@ -575,14 +575,13 @@
           <!-- Subscription Required Strict Lock for Dashboard -->
           <div id="dashboardSubLockBanner" class="dashboard-strict-lock-container" style="display:none;">
             <div style="font-size:52px; margin-bottom:12px;">🔒</div>
-            <h3 style="font-size:24px; font-weight:800; color:#FFFFFF; margin-bottom:10px;">Accesso Dashboard Bloccato</h3>
-            <p style="font-size:14px; color:#94A3B8; max-width:480px; line-height:1.55; margin-bottom:24px;">
-              L'accesso alla Dashboard e a tutti i dati del locale è riservato agli abbonati con pagamento confermato dal sistema.<br>
-              Completa l'abbonamento con Google Pay, Carta o Stripe per sbloccare la Dashboard.
+            <h3 style="font-size:24px; font-weight:800; color:#FFFFFF; margin-bottom:10px;">Account Non Più Attivo</h3>
+            <p style="font-size:15px; color:#E2E8F0; max-width:540px; line-height:1.6; margin-bottom:24px;">
+              Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, aggiungi un metodo di pagamento e riattiva il tuo abbonamento.
             </p>
-            <a href="checkout.html" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:13px 28px; font-weight:800; font-size:15px; background:#FF7A00; text-decoration:none; border-radius:12px; box-shadow:0 8px 24px rgba(255,122,0,0.35);">
-              <span>🔒</span> <span>Completa e Conferma il Pagamento</span> <span>➔</span>
-            </a>
+            <button type="button" class="btn-primary" onclick="reactivateSubscriptionFlow()" style="display:inline-flex; align-items:center; gap:8px; padding:14px 32px; font-weight:800; font-size:15px; background:#FF7A00; border:none; text-decoration:none; border-radius:12px; box-shadow:0 8px 24px rgba(255,122,0,0.35); cursor:pointer; color:#FFFFFF;">
+              <span>⚡</span> <span>Riattiva il mio abbonamento</span> <span>➔</span>
+            </button>
           </div>
 
           <!-- Dashboard Global Period Filter & Live Status Toolbar -->

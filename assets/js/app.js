@@ -53,6 +53,11 @@ function initBarPilotApp() {
       syncTrialDateFromSupabase();
     }
 
+    // Sincronizza stato abbonamento sicuro lato server da Supabase & Stripe
+    if (typeof syncSubscriptionStatusFromServer === "function") {
+      syncSubscriptionStatusFromServer();
+    }
+
     // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno)
     if (typeof initLiveDateTime === "function") initLiveDateTime();
 
@@ -188,6 +193,13 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
+      const isSubscribed = isUserSubscribed();
+      if (!isSubscribed && view !== "subscriptions") {
+        showToast("⚠️ Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, aggiungi un metodo di pagamento e riattiva il tuo abbonamento.");
+        switchView("subscriptions");
+        if (window.innerWidth <= 1024) closeSidebar();
+        return;
+      }
       if (currentStaff) {
         const perms = ROLE_PERMISSIONS[currentStaff.role] || ROLE_PERMISSIONS.Proprietario;
         if (!perms.views.includes(view)) {
@@ -300,44 +312,52 @@ window.isDemoMode = isDemoMode;
 
 function isUserSubscribed() {
   try {
-    // IN DEMO MODE: the demo page and all features are 100% free, unrestricted, and open!
+    // 1. IN MODALITÀ DEMO: accesso 100% aperto
     if (localStorage.getItem("barpilot_is_demo") === "true" || isDemoMode()) {
       return true;
     }
-    const storedSub = localStorage.getItem("barpilot_is_subscribed") === "true";
-    const confirmedSub = localStorage.getItem("barpilot_subscription_confirmed") === "true";
 
-    const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    const barActive = Boolean(bar && (bar.subscriptionStatus === "active" || bar.isSubscribed === true || bar.paymentConfirmed === true));
-
-    // Check subscribed lists
-    let subEmails = [];
-    let subBars = [];
-    try {
-      subEmails = JSON.parse(localStorage.getItem("barpilot_subscribed_emails") || "[]");
-      subBars = JSON.parse(localStorage.getItem("barpilot_subscribed_bars") || "[]");
-    } catch (_) {}
-
-    let loggedUser = null;
-    try {
-      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-    } catch (_) {}
-
-    const userEmail = (loggedUser?.email || bar?.managerEmail || "").toLowerCase().trim();
-    const isEmailInSubList = Boolean(userEmail && subEmails.includes(userEmail));
-    const isBarInSubList = Boolean((bar?.id && subBars.includes(bar.id)) || (bar?.name && subBars.includes(bar.name)));
-
-    if (storedSub || confirmedSub || barActive || isEmailInSubList || isBarInSubList) {
-      if (!storedSub) localStorage.setItem("barpilot_is_subscribed", "true");
-      if (!confirmedSub) localStorage.setItem("barpilot_subscription_confirmed", "true");
-      if (bar && (!bar.isSubscribed || bar.subscriptionStatus !== "active")) {
-        bar.isSubscribed = true;
-        bar.subscriptionStatus = "active";
-        bar.paymentConfirmed = true;
-        if (window.db) window.db.set("activeBar", bar);
-      }
+    // 2. Controllo Prova Gratuita di 14 giorni (da Supabase auth.users created_at)
+    // Regola fondamentale: la disdetta NON deve interrompere i 14 giorni di prova gratuita già iniziati!
+    const trialDaysRemaining = typeof getTrialDaysRemaining === "function" ? getTrialDaysRemaining() : 0;
+    if (trialDaysRemaining > 0) {
+      // Prova gratuita ancora valida: accesso completo garantito
       return true;
     }
+
+    // 3. Prova gratuita scaduta (0 giorni rimasti):
+    // Verifichiamo se esiste una sottoscrizione a pagamento attiva e non scaduta
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    const cancelAtPeriodEnd = localStorage.getItem("barpilot_cancel_at_period_end") === "true" || Boolean(bar.cancel_at_period_end);
+
+    // Controlla se c'è un periodo pagato ancora valido
+    const paidUntil = bar.paidUntil || bar.currentPeriodEnd || localStorage.getItem("barpilot_paid_until");
+    if (paidUntil) {
+      const isPeriodStillValid = new Date(paidUntil).getTime() > Date.now();
+      if (isPeriodStillValid) {
+        return true;
+      }
+    }
+
+    // Se il rinnovo è stato disdetto ed il periodo/prova è scaduto: ACCESSO BLOCCATO
+    if (cancelAtPeriodEnd) {
+      return false;
+    }
+
+    // Se la sottoscrizione è esplicitamente contrassegnata come cancellata o non attiva
+    if (localStorage.getItem("barpilot_subscription_cancelled") === "true" || bar.subscriptionStatus === "canceled") {
+      return false;
+    }
+
+    // Verifica flags locali di pagamento attivo
+    const storedSub = localStorage.getItem("barpilot_is_subscribed") === "true";
+    const confirmedSub = localStorage.getItem("barpilot_subscription_confirmed") === "true";
+    const barActive = Boolean(bar && (bar.subscriptionStatus === "active" || bar.paymentConfirmed === true));
+
+    if (storedSub || confirmedSub || barActive) {
+      return true;
+    }
+
     return false;
   } catch (e) {
     return false;
@@ -345,12 +365,125 @@ function isUserSubscribed() {
 }
 window.isUserSubscribed = isUserSubscribed;
 
+// Sincronizzazione automatica stato abbonamento con Supabase & Stripe
+async function syncSubscriptionStatusFromServer() {
+  try {
+    if (isDemoMode()) return;
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    let loggedUser = null;
+    try {
+      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+    } catch (_) {}
+    const email = loggedUser?.email || bar.managerEmail;
+    const barId = bar.id;
+
+    if (!email && !barId) return;
+
+    const res = await fetch("/api/subscription-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, barId })
+    });
+
+    if (res.ok) {
+      const statusData = await res.json();
+      if (statusData.cancelAtPeriodEnd !== undefined) {
+        localStorage.setItem("barpilot_cancel_at_period_end", String(statusData.cancelAtPeriodEnd));
+        if (bar) bar.cancel_at_period_end = statusData.cancelAtPeriodEnd;
+      }
+      if (statusData.currentPeriodEnd) {
+        localStorage.setItem("barpilot_paid_until", statusData.currentPeriodEnd);
+        if (bar) bar.paidUntil = statusData.currentPeriodEnd;
+      }
+      if (statusData.isAccessActive === false) {
+        localStorage.setItem("barpilot_is_subscribed", "false");
+        localStorage.setItem("barpilot_subscription_confirmed", "false");
+        if (bar) {
+          bar.isSubscribed = false;
+          bar.subscriptionStatus = "canceled";
+        }
+      } else if (statusData.isAccessActive === true && statusData.status === "active") {
+        localStorage.setItem("barpilot_is_subscribed", "true");
+        localStorage.setItem("barpilot_subscription_confirmed", "true");
+        if (bar) {
+          bar.isSubscribed = true;
+          bar.subscriptionStatus = "active";
+          bar.paymentConfirmed = true;
+        }
+      }
+      if (window.db && bar) window.db.set("activeBar", bar);
+      updateDashboardLockState();
+    }
+  } catch (err) {
+    console.warn("[BarPilot] Sincronizzazione server stato abbonamento:", err);
+  }
+}
+window.syncSubscriptionStatusFromServer = syncSubscriptionStatusFromServer;
+
+// Flusso automatico di riattivazione abbonamento
+async function reactivateSubscriptionFlow() {
+  try {
+    showToast("⏳ Verifica stato abbonamento in corso...");
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    let loggedUser = null;
+    try {
+      loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+    } catch (_) {}
+    const email = loggedUser?.email || bar.managerEmail;
+    const barId = bar.id;
+
+    const res = await fetch("/api/reactivate-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ barId, email })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.reactivated) {
+        activateSubscription("stripe_reactivated");
+        localStorage.removeItem("barpilot_cancel_at_period_end");
+        localStorage.removeItem("barpilot_subscription_cancelled");
+        if (window.db) {
+          const b = window.db.get("activeBar") || {};
+          b.cancel_at_period_end = false;
+          b.subscriptionStatus = "active";
+          b.isSubscribed = true;
+          window.db.set("activeBar", b);
+        }
+        updateDashboardLockState();
+        renderApp();
+        showToast("🎉 Abbonamento riattivato con successo! Accesso a tutte le funzionalità ripristinato.");
+        switchView("dashboard");
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn("Reactivate flow error:", err);
+  }
+
+  // Se è necessario un nuovo pagamento (periodo scaduto)
+  if (typeof openCheckoutModal === "function") {
+    openCheckoutModal(true);
+  } else {
+    window.location.href = "checkout.html";
+  }
+}
+window.reactivateSubscriptionFlow = reactivateSubscriptionFlow;
+
 function updateDashboardLockState() {
   const isDemo = isDemoMode();
   const subscribed = isDemo || isUserSubscribed();
-  const dashNavBtn = document.querySelector('.nav-item[data-view="dashboard"]');
-  if (dashNavBtn) {
-    let lockPill = dashNavBtn.querySelector(".dash-nav-lock");
+
+  // 1. Sidebar menu items: solo la voce "Abbonamento" è accessibile se l'account non è attivo
+  document.querySelectorAll(".nav-item[data-view]").forEach(item => {
+    const v = item.getAttribute("data-view");
+    if (v === "subscriptions") {
+      item.style.opacity = "";
+      item.removeAttribute("title");
+      return;
+    }
+    let lockPill = item.querySelector(".dash-nav-lock");
     if (!subscribed) {
       if (!lockPill) {
         lockPill = document.createElement("span");
@@ -358,17 +491,18 @@ function updateDashboardLockState() {
         lockPill.innerHTML = "🔒";
         lockPill.style.marginLeft = "auto";
         lockPill.style.fontSize = "11px";
-        dashNavBtn.appendChild(lockPill);
+        item.appendChild(lockPill);
       }
-      dashNavBtn.title = (window.i18n && window.i18n.currentLang === "fr")
-        ? "Abonnement requis pour accéder au Tableau de Bord"
-        : "Abbonamento richiesto per accedere alla Dashboard";
+      item.style.opacity = "0.55";
+      item.title = "Account non attivo: riattiva l'abbonamento per accedere";
     } else {
       if (lockPill) lockPill.remove();
-      dashNavBtn.removeAttribute("title");
+      item.style.opacity = "";
+      item.removeAttribute("title");
     }
-  }
+  });
 
+  // 2. Banner blocco Dashboard
   const dashLockBanner = document.getElementById("dashboardSubLockBanner");
   const metricsGrid = document.querySelector(".metrics-grid");
   const chartsSection = document.querySelector(".charts-section");
@@ -385,6 +519,11 @@ function updateDashboardLockState() {
   }
   if (staffActivity) {
     staffActivity.style.display = subscribed ? "" : "none";
+  }
+
+  // Se l'abbonamento non è attivo e l'utente si trova su una vista bloccata, reindirizza ad abbonamenti
+  if (!subscribed && appState.activeView && appState.activeView !== "subscriptions" && appState.activeView !== "dashboard") {
+    switchView("subscriptions");
   }
 
   // Update top global banner in demo mode
@@ -424,9 +563,12 @@ function activateSubscription(method = "google_pay") {
     window.db.set("barsList", barsList);
   }
 
-  // Persistent storage flags
+  // Persistent storage flags & clear cancellation
+  localStorage.removeItem("barpilot_subscription_cancelled");
+  localStorage.removeItem("barpilot_cancel_at_period_end");
   localStorage.setItem("barpilot_is_subscribed", "true");
   localStorage.setItem("barpilot_subscription_confirmed", "true");
+  bar.cancel_at_period_end = false;
 
   let loggedUser = null;
   try {
@@ -596,6 +738,10 @@ async function confirmGooglePlaySubscription() {
 }
 
 function switchView(viewName) {
+  const isSubscribed = isUserSubscribed();
+  if (!isSubscribed && viewName !== "subscriptions" && viewName !== "dashboard") {
+    viewName = "subscriptions";
+  }
   appState.activeView = viewName;
   
   // Update sidebar active item

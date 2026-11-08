@@ -66,13 +66,18 @@ export default async function handler(req, res) {
           }
         }
 
-        // 3. Aggiorna record su Supabase (public.subscriptions)
+        // 3. Verifica scadenza: mantieni l'accesso attivo fino al termine del periodo pagato o di prova
+        const periodEnd = sub.current_period_end || sub.trial_end;
+        const isStillValid = periodEnd ? (new Date(periodEnd).getTime() > Date.now()) : true;
+
+        // Aggiorna record su Supabase (public.subscriptions) con cancel_at_period_end = true
+        // Mantiene l'accesso fino alla scadenza del periodo pagato o di prova
         const patchRes = await supabaseFetch(`subscriptions?id=eq.${encodeURIComponent(sub.id)}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            status: 'canceled',
+            status: isStillValid ? (sub.status || 'active') : 'canceled',
             cancel_at_period_end: true,
-            cancelled_at: now.toISOString(),
+            cancel_requested_at: now.toISOString(),
             cancellation_reason: reason,
             updated_at: now.toISOString()
           })
@@ -83,13 +88,14 @@ export default async function handler(req, res) {
           updatedSubscription = patchRows && patchRows.length > 0 ? patchRows[0] : sub;
         }
 
-        // 4. Aggiorna la tabella public.bars
+        // 4. Aggiorna la tabella public.bars senza cancellare alcun dato
         const targetBarId = sub.bar_id || barId;
         if (targetBarId) {
           await supabaseFetch(`bars?id=eq.${encodeURIComponent(targetBarId)}`, {
             method: 'PATCH',
             body: JSON.stringify({
-              status: 'canceled',
+              cancel_at_period_end: true,
+              status: isStillValid ? (sub.status === 'trialing' ? 'trial' : 'active') : 'canceled',
               updated_at: now.toISOString()
             })
           });

@@ -1108,10 +1108,21 @@
       }
     }
 
-    function openCancelModal() {
-      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true";
+    async function openCancelModal() {
+      let isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true" || localStorage.getItem("barpilot_cancel_at_period_end") === "true";
       if (isCancelled) {
+        try {
+          await fetch("/api/reactivate-subscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              barId: "bar_01"
+            })
+          });
+        } catch (_) {}
+
         localStorage.removeItem("barpilot_subscription_cancelled");
+        localStorage.removeItem("barpilot_cancel_at_period_end");
         localStorage.setItem("barpilot_is_subscribed", "true");
         localStorage.setItem("barpilot_subscription_confirmed", "true");
 
@@ -1158,8 +1169,7 @@
       }
 
       localStorage.setItem("barpilot_subscription_cancelled", "true");
-      localStorage.setItem("barpilot_is_subscribed", "false");
-      localStorage.setItem("barpilot_subscription_confirmed", "false");
+      localStorage.setItem("barpilot_cancel_at_period_end", "true");
 
       closeCancelModal();
       btn.disabled = false;

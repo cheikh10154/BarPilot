@@ -63,12 +63,15 @@ export default async function handler(req, res) {
     }
 
     // 2. Opzioni Sessione Stripe Checkout
+    const parsedTrialDays = parseInt(trialDays, 10);
+    const isTrialEligible = !isNaN(parsedTrialDays) ? parsedTrialDays > 0 : true;
+
     const sessionConfig = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: lineItems,
       subscription_data: {
-        trial_period_days: Math.max(1, parseInt(trialDays, 10) || 14),
+        ...(isTrialEligible ? { trial_period_days: parsedTrialDays || 14 } : {}),
         metadata: {
           bar_id: barId || '',
           user_id: userId || '',
