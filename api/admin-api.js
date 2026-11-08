@@ -201,7 +201,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
             title: 'Nuovo bar registrato',
-            message: `${cleanName} (${cleanCity}) è stato registrato dal Super Admin con prova gratuita attiva.`,
+            message: `${cleanName} (${cleanCity}) e' stato registrato dal Super Admin con prova gratuita attiva.`,
             type: 'success',
             link: '#view-bars',
             created_at: new Date().toISOString()
@@ -267,7 +267,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
             title: isSuspended ? 'Bar sospeso' : 'Bar riattivato',
-            message: `Lo stato del bar ${barName} è stato modificato in "${newStatus}".`,
+            message: `Lo stato del bar ${barName} e' stato modificato in "${newStatus}".`,
             type: isSuspended ? 'warning' : 'success',
             link: '#view-bars',
             created_at: new Date().toISOString()
@@ -435,7 +435,7 @@ export default async function handler(req, res) {
 
         const cleanCode = (code || '').trim().toUpperCase();
         if (!cleanCode) {
-          return res.status(400).json({ error: 'Il codice promozionale è obbligatorio.' });
+          return res.status(400).json({ error: 'Il codice promozionale e\' obbligatorio.' });
         }
 
         const promoPayload = {
