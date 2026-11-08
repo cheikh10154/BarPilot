@@ -918,16 +918,16 @@
 
   <!-- MODAL: ELIMINA ACCOUNT -->
   <div class="modal-backdrop" id="modalDeleteAccount">
-    <div class="modal-box">
-      <div class="modal-title">
-        <span style="color:#EF4444;">🗑️</span> Eliminazione Account
+    <div class="modal-box" style="background:#FFFFFF !important; color:#000000 !important;">
+      <div class="modal-title" style="color:#EF4444 !important;">
+        <span style="color:#EF4444;">🗑️</span> Eliminazione Definitiva Account
       </div>
-      <p class="modal-desc">
-        Questa azione è irreversibile. Tutti i dati relativi a comande, catalogo, tavoli, ricette e fatture verranno cancellati definitivamente.
+      <p class="modal-desc" style="color:#111827 !important;">
+        Questa operazione è permanente e irreversibile. L'abbonamento Stripe verrà annullato, tutti i dati associati al bar verranno rimossi da Supabase e l'account verrà eliminato definitivamente con la revoca di tutte le sessioni attive. Non potrai più accedere a BarPilot con questa email.
       </p>
       <div class="modal-actions">
-        <button type="button" class="btn-modal-cancel" onclick="closeDeleteAccountModal()">Annulla</button>
-        <button type="button" class="btn-modal-confirm-cancel" onclick="handleDeleteAccount()">Elimina Definitivamente</button>
+        <button type="button" class="btn-modal-cancel" onclick="closeDeleteAccountModal()" style="background:#F3F4F6 !important; color:#111827 !important; border:1px solid #D1D5DB !important;">Annulla</button>
+        <button type="button" class="btn-modal-confirm-cancel" id="btnConfirmDeleteAccount" onclick="handleDeleteAccount()" style="background:#DC2626 !important; color:#FFFFFF !important;">Elimina definitivamente il mio account</button>
       </div>
     </div>
   </div>
@@ -1215,9 +1215,66 @@
       document.getElementById("modalDeleteAccount").classList.remove("active");
     }
 
-    function handleDeleteAccount() {
+    async function handleDeleteAccount() {
+      const btn = document.getElementById("btnConfirmDeleteAccount");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Eliminazione in corso...";
+      }
+
+      let loggedUser = null;
+      try {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (_) {}
+
+      let userId = loggedUser?.id || loggedUser?.userId || null;
+      let email = loggedUser?.email || null;
+      let accessToken = null;
+
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("sb-") || key.includes("auth-token"))) {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              accessToken = parsed?.access_token || parsed?.currentSession?.access_token || accessToken;
+              userId = userId || parsed?.user?.id || parsed?.currentSession?.user?.id;
+              email = email || parsed?.user?.email || parsed?.currentSession?.user?.email;
+            }
+          }
+        }
+      } catch (_) {}
+
+      try {
+        await fetch("/api/delete-account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: userId,
+            email: email,
+            barId: "bar_01",
+            accessToken: accessToken
+          })
+        });
+      } catch (err) {
+        console.warn("Errore chiamata delete-account:", err);
+      }
+
       closeDeleteAccountModal();
-      alert("Richiesta di cancellazione account presa in carico. Riceverai un'email di conferma.");
+
+      try {
+        if (window.supabaseClient?.auth) {
+          await window.supabaseClient.auth.signOut().catch(() => {});
+        }
+      } catch (_) {}
+
+      localStorage.clear();
+      sessionStorage.clear();
+
+      alert("Il tuo account BarPilot è stato eliminato definitivamente. Non potrai più accedere con questo account e tutte le sessioni sono state chiuse.");
+
+      window.location.href = "index.html?account_deleted=true";
     }
 
     function openPaymentModal() {

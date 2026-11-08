@@ -1635,9 +1635,23 @@
                     <button type="button" onclick="logoutUser()" class="btn-secondary" style="padding:8px 14px; font-size:12px; font-weight:700; color:#EF4444; border-color:rgba(239,68,68,0.3); display:inline-flex; align-items:center; gap:6px;">
                       🚪 <span data-i18n="logout">Esci</span>
                     </button>
+                  <!-- Danger Zone: Permanent Account Deletion -->
+                  <div style="background:rgba(239,68,68,0.06); padding:16px; border-radius:var(--radius-lg); border:1px solid rgba(239,68,68,0.25); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <h4 style="font-size:14px; font-weight:800; color:#EF4444; display:flex; align-items:center; gap:6px;">
+                        <span>⚠️</span> Zona Pericolo: Chiusura & Eliminazione Account
+                      </h4>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:2px; max-width:520px;">
+                        Elimina in modo definitivo il tuo account da Supabase Auth, cancella tutti i dati e interrompi l'abbonamento Stripe.
+                      </p>
+                    </div>
+                    <button type="button" onclick="openDeleteAccountModal()" class="btn-danger" style="background:#DC2626; color:#fff; border:none; padding:8px 16px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                      🗑️ Elimina definitivamente il mio account
+                    </button>
                   </div>
-
-            <!-- Pane: Advanced Backup & Export Settings -->
+                </div>
+              </div>
+            </div>
             <div class="settings-pane" id="pane-settings-export">
               <div class="settings-card">
                 <div class="settings-card-header">
@@ -3109,7 +3123,22 @@
   </div>
 
   <!-- ========================================================================
-       MODAL: ASSISTENZA BARPILOT & APERTURA TICKET (Matches Screenshot)
+       MODAL: ELIMINA DEFINITIVAMENTE ACCOUNT (GDPR)
+       ======================================================================== -->
+  <div class="modal-overlay" id="modalDeleteAccount" style="display:none; align-items:center; justify-content:center; z-index:999999;">
+    <div class="modal-box" style="background:#FFFFFF !important; color:#000000 !important; max-width:480px; width:92%; padding:26px; border-radius:18px; box-shadow:0 25px 60px rgba(0,0,0,0.5);">
+      <div style="font-size:19px; font-weight:900; margin-bottom:8px; color:#EF4444 !important; display:flex; align-items:center; gap:8px;">
+        <span>🗑️</span> Eliminazione Definitiva Account
+      </div>
+      <p style="font-size:13.5px; color:#111827 !important; line-height:1.5; margin-bottom:20px;">
+        Questa operazione è permanente e irreversibile. L'abbonamento Stripe verrà annullato, tutti i dati associati al bar verranno rimossi da Supabase e l'account verrà eliminato definitivamente con la revoca di tutte le sessioni attive. Non potrai più accedere a BarPilot con questa email.
+      </p>
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" class="btn-secondary" onclick="closeDeleteAccountModal()" style="background:#F3F4F6 !important; color:#111827 !important; border:1px solid #D1D5DB !important; padding:10px 18px; border-radius:8px; font-weight:700; font-size:13.5px; cursor:pointer;">Annulla</button>
+        <button type="button" class="btn-danger" id="btnConfirmDeleteAccount" onclick="handleDeleteAccount()" style="background:#DC2626 !important; color:#FFFFFF !important; border:none; padding:10px 20px; border-radius:8px; font-weight:800; font-size:13.5px; cursor:pointer;">Elimina definitivamente il mio account</button>
+      </div>
+    </div>
+  </div>
        ======================================================================== -->
   <div class="modal-overlay" id="supportTicketModal">
     <div class="modal-box-clean">

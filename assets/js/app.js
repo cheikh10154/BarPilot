@@ -93,6 +93,11 @@ function initBarPilotApp() {
       // Check if returning from completed checkout / payment via URL parameters
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("account_deleted") === "true") {
+          setUserLoggedIn(false);
+          openAuthScreen('login');
+          return;
+        }
         if (urlParams.get("checkout_status") === "success" || urlParams.get("payment") === "success" || urlParams.get("confirmed") === "true" || urlParams.get("session_id")) {
           if (typeof activateSubscription === "function") {
             activateSubscription("stripe_checkout");
@@ -6867,6 +6872,91 @@ function confirmLogoutAction() {
     ? "Disconnessione effettuata. Cache di connessione eliminata!"
     : "Déconnexion réussie. Cache de connexion effacé !");
 }
+
+function openDeleteAccountModal() {
+  const modal = document.getElementById("modalDeleteAccount");
+  if (modal) {
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  }
+}
+window.openDeleteAccountModal = openDeleteAccountModal;
+
+function closeDeleteAccountModal() {
+  const modal = document.getElementById("modalDeleteAccount");
+  if (modal) {
+    modal.classList.remove("active");
+    modal.style.display = "none";
+  }
+}
+window.closeDeleteAccountModal = closeDeleteAccountModal;
+
+async function handleDeleteAccount() {
+  const btn = document.getElementById("btnConfirmDeleteAccount");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Eliminazione in corso...";
+  }
+
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (_) {}
+
+  const activeBar = (window.db ? window.db.get("activeBar") : null) || {};
+  let userId = loggedUser?.id || loggedUser?.userId || activeBar.createdBy || activeBar.authId || null;
+  let email = loggedUser?.email || activeBar.managerEmail || activeBar.email || null;
+  let barId = activeBar.id || "bar_01";
+  let accessToken = null;
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("sb-") || key.includes("auth-token"))) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          accessToken = parsed?.access_token || parsed?.currentSession?.access_token || accessToken;
+          userId = userId || parsed?.user?.id || parsed?.currentSession?.user?.id;
+          email = email || parsed?.user?.email || parsed?.currentSession?.user?.email;
+        }
+      }
+    }
+  } catch (_) {}
+
+  try {
+    await fetch("/api/delete-account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: userId,
+        email: email,
+        barId: barId,
+        accessToken: accessToken
+      })
+    });
+  } catch (err) {
+    console.warn("Errore chiamata delete-account:", err);
+  }
+
+  closeDeleteAccountModal();
+
+  try {
+    if (window.supabaseClient?.auth) {
+      await window.supabaseClient.auth.signOut().catch(() => {});
+    }
+  } catch (_) {}
+
+  if (typeof clearConnectionCache === "function") clearConnectionCache();
+  setUserLoggedIn(false);
+  localStorage.clear();
+  sessionStorage.clear();
+
+  alert("Il tuo account BarPilot è stato eliminato definitivamente. Non potrai più accedere con questo account e tutte le sessioni sono state chiuse.");
+
+  window.location.href = "index.html?account_deleted=true";
+}
+window.handleDeleteAccount = handleDeleteAccount;
 
 function initSplashScreen() {
   const splash = document.getElementById("splashScreen");

@@ -52,6 +52,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email e Nome del Bar sono campi obbligatori.' });
     }
 
+    // Controllo di sicurezza e GDPR: verifica che l'email non corrisponda a un account eliminato definitivamente
+    try {
+      const crypto = require('crypto');
+      const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+      const checkDeletedRes = await supabaseFetch(`admin_audit_logs?action=eq.account_deleted_permanently&entity_id=eq.${emailHash}&select=id`);
+      if (checkDeletedRes.ok) {
+        const deletedRecords = await checkDeletedRes.json();
+        if (deletedRecords && deletedRecords.length > 0) {
+          return res.status(403).json({
+            error: 'Questo indirizzo email appartiene a un account eliminato definitivamente e non può essere utilizzato per una nuova registrazione.'
+          });
+        }
+      }
+    } catch (gdprCheckErr) {
+      console.warn('[Register Bar] Controllo email eliminata:', gdprCheckErr.message);
+    }
+
     console.log(`[Register Bar] Inizio registrazione per ${cleanBarName} (${normalizedEmail})`);
 
     // 0. Sincronizzazione diretta su auth.users.phone tramite Supabase Admin API se presente service role key
