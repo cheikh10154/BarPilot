@@ -117,6 +117,19 @@ export default async function handler(req, res) {
           created_at: now.toISOString()
         })
       });
+
+      // 5b. Notifica per il Super Admin in public.admin_notifications
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: `Disdetta abbonamento: ${barName || 'Bar'}`,
+          message: `${barName || 'Un bar'} ha richiesto la disdetta dell'abbonamento. Motivo: "${reason || 'Non specificato'}".`,
+          type: 'warning',
+          link: '#view-subscriptions',
+          created_at: now.toISOString()
+        })
+      });
     } catch (auditErr) {
       console.warn('[Audit Log Warning]', auditErr.message);
     }

@@ -114,6 +114,21 @@ export default async function handler(req, res) {
       })
     });
 
+    // 4. Invia notifica immediata al Super Admin in public.admin_notifications
+    try {
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: `Nuovo ticket: ${cleanSubject.substring(0, 40)}`,
+          message: `${cleanName} (${cleanEmail}) ha aperto un ticket nella categoria "${resolvedCategory}".`,
+          type: priority === 'urgent' || priority === 'high' ? 'danger' : 'info',
+          link: '#view-support',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (e) {}
+
     return res.status(200).json({
       success: true,
       ticketId: ticketId,

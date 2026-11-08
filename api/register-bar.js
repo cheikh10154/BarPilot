@@ -214,6 +214,19 @@ export default async function handler(req, res) {
           created_at: now.toISOString()
         })
       });
+
+      // 5b. Registra notifica per il Super Admin in public.admin_notifications
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: 'Nuovo bar registrato',
+          message: `${cleanBarName} (${cleanCity}) si è registrato e ha attivato i 14 giorni di prova gratuita.`,
+          type: 'success',
+          link: '#view-bars',
+          created_at: now.toISOString()
+        })
+      });
     } catch (e) {}
 
     // 6. Tenta l'invio dell'email di benvenuto

@@ -762,6 +762,10 @@ function switchView(viewName) {
     renderGeneralSettings();
   }
 
+  if (viewName === "support" && typeof renderClientSupportTickets === "function") {
+    renderClientSupportTickets();
+  }
+
   if (typeof updateTicketButtonVisibility === "function") {
     updateTicketButtonVisibility();
   }
@@ -9171,6 +9175,9 @@ async function handleSupportFormSubmit(event, formId) {
     submitBtn.innerHTML = `<span>⏳</span> <span>Invio ad admin@barpilot.eu...</span>`;
   }
 
+  // Dynamic active bar ID resolution
+  const activeBarId = (window.currentUserBar && window.currentUserBar.id) || (localStorage.getItem("barpilot_active_bar_id")) || (window.currentBarId) || "bar_centrale_01";
+
   try {
     const res = await fetch("/api/create-ticket", {
       method: "POST",
@@ -9181,7 +9188,7 @@ async function handleSupportFormSubmit(event, formId) {
         email,
         subject,
         message,
-        barId: "bar_centrale_01"
+        barId: activeBarId
       })
     });
 
@@ -9192,6 +9199,7 @@ async function handleSupportFormSubmit(event, formId) {
         showToast(`✅ Ticket inviato con successo a admin@barpilot.eu! Risponderemo su ${email}`);
       }
       form.reset();
+      if (typeof renderClientSupportTickets === "function") renderClientSupportTickets();
       if (formId === "supportTicketFormModal") {
         setTimeout(closeSupportTicketModal, 1500);
       }
@@ -9200,6 +9208,7 @@ async function handleSupportFormSubmit(event, formId) {
         showToast(`✅ Ticket inviato a admin@barpilot.eu! Riceverai riscontro su ${email}`);
       }
       form.reset();
+      if (typeof renderClientSupportTickets === "function") renderClientSupportTickets();
       if (formId === "supportTicketFormModal") {
         setTimeout(closeSupportTicketModal, 1500);
       }
@@ -9210,6 +9219,7 @@ async function handleSupportFormSubmit(event, formId) {
       showToast(`✅ Ticket inviato a admin@barpilot.eu! Ti contatteremo su ${email}`);
     }
     form.reset();
+    if (typeof renderClientSupportTickets === "function") renderClientSupportTickets();
     if (formId === "supportTicketFormModal") {
       setTimeout(closeSupportTicketModal, 1500);
     }
@@ -9227,6 +9237,74 @@ async function handleSupportFormSubmit(event, formId) {
   }
 }
 window.handleSupportFormSubmit = handleSupportFormSubmit;
+
+// Visualizzazione dei Ticket Inviati dal Bar e relative Risposte dal Super Admin
+async function renderClientSupportTickets() {
+  const container = document.getElementById("clientTicketsListContainer");
+  if (!container) return;
+  try {
+    const activeEmail = (window.currentUserBar && window.currentUserBar.email) || localStorage.getItem("barpilot_user_email") || "";
+    const activeBarId = (window.currentUserBar && window.currentUserBar.id) || localStorage.getItem("barpilot_active_bar_id") || "";
+
+    let query = "support_tickets?select=*&order=created_at.desc&limit=10";
+    if (activeBarId) query += `&bar_id=eq.${encodeURIComponent(activeBarId)}`;
+
+    const res = await fetch(`https://cprxxxlgaofopmogeuer.supabase.co/rest/v1/${query}`, {
+      headers: {
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"
+      }
+    });
+
+    if (res.ok) {
+      const tickets = await res.json();
+      if (Array.isArray(tickets) && tickets.length > 0) {
+        container.innerHTML = `
+          <div style="background:var(--bg-card); border-radius:14px; padding:20px; margin-top:24px; border:1px solid var(--border-color); box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+              <h4 style="font-size:15px; font-weight:800; color:#fff; margin:0; display:flex; align-items:center; gap:8px;">
+                <span>💬</span> <span>I tuoi ticket di assistenza & risposte Super Admin</span>
+              </h4>
+              <button type="button" class="btn-primary" onclick="openSupportTicketModal()" style="font-size:12px; padding:6px 14px; border-radius:8px;">+ Nuovo ticket</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              ${tickets.map(t => `
+                <div style="background:var(--bg-card-secondary); border-radius:10px; padding:14px; border:1px solid var(--border-color);">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:8px;">
+                    <div>
+                      <strong style="color:#FF8A24; font-size:14px;">${t.subject}</strong>
+                      <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ticket ID: ${t.id} · Categoria: ${t.category} · Inviato il ${new Date(t.created_at).toLocaleDateString('it-IT')}</div>
+                    </div>
+                    <span class="status-pill ${t.status === 'resolved' ? 'status-active' : 'status-trial'}" style="font-size:11px; font-weight:700;">
+                      ${t.status === 'resolved' ? '✓ Risolto' : (t.status === 'in_progress' ? '⚙️ In corso' : '⏳ In attesa')}
+                    </span>
+                  </div>
+                  <p style="font-size:12.5px; color:#cbd5e1; margin:8px 0; line-height:1.4; white-space:pre-wrap;">${t.description || t.message || ''}</p>
+                  ${t.response ? `
+                    <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; padding:10px 12px; border-radius:6px; margin-top:10px;">
+                      <div style="font-size:11.5px; font-weight:800; color:#10B981; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                        <span>🛡️</span> <span>Risposta Ufficiale Super Admin BarPilot</span>
+                        ${t.response_at ? `<span style="font-size:10px; color:#94a3b8; font-weight:normal;">(${new Date(t.response_at).toLocaleDateString('it-IT')})</span>` : ''}
+                      </div>
+                      <div style="font-size:13px; color:#fff; line-height:1.5; white-space:pre-wrap;">${t.response}</div>
+                    </div>
+                  ` : `
+                    <div style="font-size:11.5px; color:#94a3b8; margin-top:8px; font-style:italic;">
+                      ⏳ La richiesta è stata presa in carico dal Super Admin. Riceverai risposta qui e via email.
+                    </div>
+                  `}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+  } catch (e) {
+    console.warn("[Client Support Tickets] Note:", e.message);
+  }
+}
+window.renderClientSupportTickets = renderClientSupportTickets;
 
 // Inizializzazione garantita controlli per pulsante 'Apri un ticket' (Desktop & Mobile)
 function initSupportTicketControls() {

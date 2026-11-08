@@ -288,6 +288,20 @@ async function handleCheckoutCompleted({ barId, email, customerId, subscriptionI
       entityId: targetBarId || sessionId,
       newValues: { customerId, subscriptionId, amountTotal }
     });
+
+    try {
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: 'Abbonamento Pro attivato',
+          message: `Pagamento Stripe completato (${amountTotal} €) per ${email || targetBarId || 'Bar'}.`,
+          type: 'success',
+          link: '#view-subscriptions',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
   } catch (e) {
     console.error('[Stripe Webhook] handleCheckoutCompleted error:', e);
   }
@@ -396,6 +410,20 @@ async function handleSubscriptionCancelled(sub) {
             updated_at: new Date().toISOString()
           })
         });
+
+        try {
+          await supabaseFetch('admin_notifications', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+              title: 'Abbonamento cancellato',
+              message: `L'abbonamento Stripe per il bar ${barId} è stato cancellato.`,
+              type: 'warning',
+              link: '#view-subscriptions',
+              created_at: new Date().toISOString()
+            })
+          });
+        } catch (_) {}
       }
     }
   } catch (e) {
@@ -443,6 +471,20 @@ async function syncInvoicePaid(invoice) {
       body: JSON.stringify(invPayload)
     });
 
+    try {
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: `Pagamento fallito per fattura ${invPayload.invoice_number}`,
+          message: `Tentativo di addebito Stripe fallito. Bar ${barId || 'registrato'} impostato in past_due.`,
+          type: 'danger',
+          link: '#view-invoices',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
+
     // Se il bar era past_due, riattivalo!
     if (barId) {
       await supabaseFetch(`bars?id=eq.${barId}`, {
@@ -450,6 +492,20 @@ async function syncInvoicePaid(invoice) {
         body: JSON.stringify({ status: 'active', updated_at: new Date().toISOString() })
       });
     }
+
+    try {
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: `Fattura ${invNumber} saldata`,
+          message: `Incasso di ${amountTotal.toFixed(2)} € registrato con successo via Stripe.`,
+          type: 'info',
+          link: '#view-invoices',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
   } catch (e) {
     console.error('[Stripe Webhook] syncInvoicePaid error:', e);
   }
@@ -491,6 +547,20 @@ async function handleInvoicePaymentFailed(invoice) {
       method: 'POST',
       body: JSON.stringify(invPayload)
     });
+
+    try {
+      await supabaseFetch('admin_notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          title: `Pagamento fallito per fattura ${invPayload.invoice_number}`,
+          message: `Tentativo di addebito Stripe fallito. Bar ${barId || 'registrato'} impostato in past_due.`,
+          type: 'danger',
+          link: '#view-invoices',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
   } catch (e) {
     console.error('[Stripe Webhook] handleInvoicePaymentFailed error:', e);
   }

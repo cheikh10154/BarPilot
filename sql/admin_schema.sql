@@ -1,21 +1,6 @@
 -- ============================================================================
--- BarPilot Super Admin Enterprise Database Schema for Supabase
--- Versione Ufficiale Conforme alle Specifiche:
--- Tabella 1 — bars
--- Tabella 2 — bar_members
--- Tabella 3 — subscriptions
--- Tabella 4 — subscription_plans
--- Tabella 5 — invoices
--- Tabella 6 — payments
--- Tabella 7 — support_tickets
--- Tabella 8 — support_messages
--- Tabella 9 — admin_settings
--- Tabella 10 — admin_audit_logs
--- Tabella 11 — webhook_events
--- Vista: admin_overview_live
---
--- Esegui questo script completo nell'editor SQL di Supabase:
--- https://supabase.com/dashboard/project/cprxxxlgaofopmogeuer/sql
+-- BarPilot Super Admin Enterprise Complete Database Schema
+-- Integrazione completa tra Applicazione, Super Amministrazione, Supabase e Stripe
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -74,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.bars (
   status TEXT NOT NULL DEFAULT 'trial', -- trial, active, past_due, suspended, cancelled
   subscription_id TEXT,
   notes TEXT,
+  invite_code TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -87,6 +73,7 @@ ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'IT';
 ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS subscription_id TEXT;
 ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS invite_code TEXT;
 ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.bars ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
@@ -119,6 +106,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   current_period_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days'),
   cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
   cancelled_at TIMESTAMPTZ,
+  cancellation_reason TEXT,
   payment_method TEXT DEFAULT 'Stripe / Carta',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -132,6 +120,8 @@ ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS current_period_start T
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ DEFAULT (now() + INTERVAL '14 days');
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN DEFAULT false;
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'Stripe / Carta';
 
 -- ----------------------------------------------------------------------------
 -- 5. TABELLA: invoices
@@ -201,10 +191,15 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
   priority TEXT NOT NULL DEFAULT 'medium', -- low, medium, high, urgent
   status TEXT NOT NULL DEFAULT 'open', -- open, in_progress, waiting_customer, resolved, closed
   assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  response TEXT,
+  response_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   resolved_at TIMESTAMPTZ
 );
+
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS response TEXT;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS response_at TIMESTAMPTZ;
 
 -- ----------------------------------------------------------------------------
 -- 8. TABELLA: support_messages
@@ -215,12 +210,81 @@ CREATE TABLE IF NOT EXISTS public.support_messages (
   sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   sender_name TEXT,
   message TEXT NOT NULL,
+  is_admin BOOLEAN NOT NULL DEFAULT false,
   attachment_path TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.support_messages ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+
 -- ----------------------------------------------------------------------------
--- 9. TABELLA: admin_settings
+-- 9. TABELLA: admin_notifications
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_notifications (
+  id TEXT PRIMARY KEY DEFAULT ('notif_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'info', -- info, success, warning, danger
+  link TEXT,
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- 10. TABELLA: promo_codes & promo_redemptions
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+  id TEXT PRIMARY KEY DEFAULT ('prm_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  code TEXT UNIQUE NOT NULL,
+  description TEXT,
+  discount_percent NUMERIC(5,2) DEFAULT 0.00,
+  discount_amount NUMERIC(10,2) DEFAULT 0.00,
+  max_uses INT DEFAULT 1000,
+  current_uses INT DEFAULT 0,
+  partner_name TEXT,
+  partner_email TEXT,
+  commission_percent NUMERIC(5,2) DEFAULT 10.00,
+  expires_at TIMESTAMPTZ,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.promo_redemptions (
+  id TEXT PRIMARY KEY DEFAULT ('red_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  promo_code_id TEXT REFERENCES public.promo_codes(id) ON DELETE CASCADE,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  discount_applied NUMERIC(10,2) DEFAULT 0.00,
+  redeemed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- 11. TABELLA: affiliates & affiliate_referrals
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.affiliates (
+  id TEXT PRIMARY KEY DEFAULT ('aff_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  commission_rate NUMERIC(5,2) DEFAULT 15.00,
+  total_earnings NUMERIC(10,2) DEFAULT 0.00,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.affiliate_referrals (
+  id TEXT PRIMARY KEY DEFAULT ('ref_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+  affiliate_id TEXT REFERENCES public.affiliates(id) ON DELETE CASCADE,
+  bar_id TEXT REFERENCES public.bars(id) ON DELETE CASCADE,
+  commission_amount NUMERIC(10,2) DEFAULT 8.85,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, paid
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- 12. TABELLA: admin_settings
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.admin_settings (
   id TEXT PRIMARY KEY DEFAULT ('set_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
@@ -230,28 +294,8 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-INSERT INTO public.admin_settings (id, setting_key, setting_value, updated_by)
-VALUES
-  ('set_01', 'platform_name', 'BarPilot', 'Cheikh Gueye'),
-  ('set_02', 'support_email', 'admin@barpilot.eu', 'Cheikh Gueye'),
-  ('set_03', 'trial_days', '14', 'Cheikh Gueye'),
-  ('set_04', 'default_plan', 'BarPilot Pro', 'Cheikh Gueye'),
-  ('set_05', 'default_price', '59.00', 'Cheikh Gueye'),
-  ('set_06', 'currency', 'EUR', 'Cheikh Gueye'),
-  ('set_07', 'timezone', 'Europe/Rome', 'Cheikh Gueye'),
-  ('set_08', 'maintenance_mode', 'false', 'Cheikh Gueye'),
-  ('set_09', 'admin_notifications', 'true', 'Cheikh Gueye'),
-  ('set_10', 'require_card_upfront', 'false', 'Cheikh Gueye'),
-  ('set_11', 'company_name', 'BarPilot · Gestionale per Bar & Ristoranti', 'Cheikh Gueye'),
-  ('set_12', 'company_piva', '02799820036', 'Cheikh Gueye'),
-  ('set_13', 'billing_email', 'admin@barpilot.eu', 'Cheikh Gueye'),
-  ('set_14', 'company_website', 'www.barpilot.eu', 'Cheikh Gueye')
-ON CONFLICT (setting_key) DO UPDATE SET
-  setting_value = EXCLUDED.setting_value,
-  updated_at = now();
-
 -- ----------------------------------------------------------------------------
--- 10. TABELLA: admin_audit_logs
+-- 13. TABELLA: admin_audit_logs
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
   id TEXT PRIMARY KEY DEFAULT ('log_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
@@ -265,7 +309,7 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
 );
 
 -- ----------------------------------------------------------------------------
--- 11. TABELLA: webhook_events
+-- 14. TABELLA: webhook_events
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.webhook_events (
   id TEXT PRIMARY KEY DEFAULT ('evt_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
@@ -279,42 +323,7 @@ CREATE TABLE IF NOT EXISTS public.webhook_events (
 );
 
 -- ----------------------------------------------------------------------------
--- LIVE METRICS VIEW PER SUPER ADMIN
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW public.admin_overview_live AS
-SELECT
-  (SELECT count(*)::int FROM public.bars) AS total_bars,
-  (SELECT count(*)::int FROM public.bars WHERE status = 'trial') AS trial_bars,
-  (SELECT count(*)::int FROM public.bars WHERE status = 'active') AS active_bars,
-  (SELECT count(*)::int FROM public.bars WHERE status = 'past_due') AS past_due_bars,
-  (SELECT count(*)::int FROM public.bars WHERE status = 'suspended') AS suspended_bars,
-  (SELECT count(*)::int FROM public.bars WHERE status = 'cancelled') AS cancelled_bars,
-  (SELECT count(*)::int FROM public.subscriptions WHERE status = 'active') AS active_subscriptions,
-  COALESCE(
-    (SELECT sum(p.price)::numeric(10,2)
-     FROM public.subscriptions s
-     JOIN public.subscription_plans p ON s.plan_id = p.id
-     WHERE s.status = 'active'),
-    0.00
-  ) AS mrr,
-  COALESCE(
-    (SELECT sum(p.price * 12)::numeric(10,2)
-     FROM public.subscriptions s
-     JOIN public.subscription_plans p ON s.plan_id = p.id
-     WHERE s.status = 'active'),
-    0.00
-  ) AS arr,
-  COALESCE(
-    (SELECT sum(amount)::numeric(10,2)
-     FROM public.payments
-     WHERE status = 'succeeded'),
-    0.00
-  ) AS total_collected,
-  (SELECT count(*)::int FROM public.payments WHERE status = 'failed') AS failed_payments_count,
-  (SELECT count(*)::int FROM public.support_tickets WHERE status IN ('open', 'in_progress', 'waiting_customer')) AS open_tickets_count;
-
--- ----------------------------------------------------------------------------
--- ROW LEVEL SECURITY (RLS) & POLICIES
+-- 15. ROW LEVEL SECURITY (RLS) & POLICIES
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bars ENABLE ROW LEVEL SECURITY;
@@ -324,6 +333,11 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promo_redemptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.affiliates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.affiliate_referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
@@ -341,6 +355,11 @@ BEGIN
     'payments',
     'support_tickets',
     'support_messages',
+    'admin_notifications',
+    'promo_codes',
+    'promo_redemptions',
+    'affiliates',
+    'affiliate_referrals',
     'admin_settings',
     'admin_audit_logs',
     'webhook_events'
@@ -361,46 +380,8 @@ BEGIN
 END $$;
 
 -- ----------------------------------------------------------------------------
--- SEED INIZIALE REALE DI ESEMPIO (Garantisce che il Super Admin veda subito i dati)
+-- 16. REALTIME PUBLICATION
 -- ----------------------------------------------------------------------------
-INSERT INTO public.bars (id, name, business_name, vat_number, email, phone, city, address, status)
-VALUES
-  ('bar_centrale_01', 'Bar Centrale', 'Bar Centrale S.r.l.', 'IT09876543210', 'marco@barcentrale.it', '+39 02 87654321', 'Milano', 'Via Roma 123', 'active'),
-  ('bar_porto_02', 'Caffè del Porto', 'Porto Cafè D.I.', 'IT01234567890', 'giulia@caffedelporto.it', '+39 010 3344556', 'Genova', 'Calata Molo Vecchio 4', 'active'),
-  ('bar_dolce_03', 'La Dolce Vita', 'Dolce Vita Bar SAS', 'IT04567891234', 'alessandro@ladolcevita.it', '+39 081 7766554', 'Napoli', 'Piazza Plebiscito 12', 'trial'),
-  ('bar_moderno_04', 'Bar Moderno', 'Moderno Bistrot Snc', 'IT07891234567', 'sara@barmoderno.it', '+39 051 9988776', 'Bologna', 'Via Indipendenza 45', 'past_due')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
-
-INSERT INTO public.subscriptions (id, bar_id, plan_id, status, trial_start, trial_end, current_period_end)
-VALUES
-  ('sub_01', 'bar_centrale_01', 'plan_barpilot_pro', 'active', now() - INTERVAL '30 days', now() - INTERVAL '16 days', now() + INTERVAL '14 days'),
-  ('sub_02', 'bar_porto_02', 'plan_barpilot_pro', 'active', now() - INTERVAL '20 days', now() - INTERVAL '6 days', now() + INTERVAL '24 days'),
-  ('sub_03', 'bar_dolce_03', 'plan_barpilot_pro', 'trialing', now() - INTERVAL '4 days', now() + INTERVAL '10 days', now() + INTERVAL '10 days'),
-  ('sub_04', 'bar_moderno_04', 'plan_barpilot_pro', 'past_due', now() - INTERVAL '45 days', now() - INTERVAL '31 days', now() - INTERVAL '1 day')
-ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
-
-INSERT INTO public.invoices (id, bar_id, subscription_id, invoice_number, amount_total, amount_paid, status, invoice_date)
-VALUES
-  ('inv_01', 'bar_centrale_01', 'sub_01', '#2026-0001', 59.00, 59.00, 'paid', now() - INTERVAL '16 days'),
-  ('inv_02', 'bar_porto_02', 'sub_02', '#2026-0002', 59.00, 59.00, 'paid', now() - INTERVAL '6 days'),
-  ('inv_03', 'bar_moderno_04', 'sub_04', '#2026-0003', 59.00, 0.00, 'open', now() - INTERVAL '1 day')
-ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
-
-INSERT INTO public.payments (id, bar_id, subscription_id, invoice_id, amount, currency, status, payment_method_type)
-VALUES
-  ('pay_01', 'bar_centrale_01', 'sub_01', 'inv_01', 59.00, 'EUR', 'succeeded', 'card'),
-  ('pay_02', 'bar_porto_02', 'sub_02', 'inv_02', 59.00, 'EUR', 'succeeded', 'google_pay'),
-  ('pay_03', 'bar_moderno_04', 'sub_04', 'inv_03', 59.00, 'EUR', 'failed', 'card')
-ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
-
-INSERT INTO public.support_tickets (id, bar_id, subject, description, category, priority, status)
-VALUES
-  ('tkt_01', 'bar_centrale_01', 'Configurazione stampante KDS cucina', 'Vorremmo affiancare un secondo tablet per il forno pizze', 'KDS Banco', 'medium', 'resolved'),
-  ('tkt_02', 'bar_moderno_04', 'Aggiornamento carta di credito aziendale', 'Abbiamo sostituito la carta di debito aziendale, come aggiorniamo il pagamento?', 'Pagamenti', 'high', 'open'),
-  ('tkt_03', 'bar_dolce_03', 'Personalizzazione comande aperitivi', 'Come raggruppare cocktail alcolici e analcolici nei filtri?', 'Software', 'low', 'in_progress')
-ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
-
--- Realtime Publication
 DO $$
 BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.bars; EXCEPTION WHEN duplicate_object THEN NULL; END;
@@ -408,5 +389,8 @@ BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.payments; EXCEPTION WHEN duplicate_object THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.invoices; EXCEPTION WHEN duplicate_object THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_notifications; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.promo_codes; EXCEPTION WHEN duplicate_object THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_settings; EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
