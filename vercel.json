@@ -213,6 +213,46 @@
       "dest": "/service-worker.js"
     },
     {
+      "src": "^/app/administration/?$",
+      "dest": "/administration/index.html"
+    },
+    {
+      "src": "^/app/administration/admin\\.js$",
+      "dest": "/administration/admin.js"
+    },
+    {
+      "src": "^/app/administration/admin\\.css$",
+      "dest": "/administration/admin.css"
+    },
+    {
+      "src": "^/app/administration/(.*)$",
+      "dest": "/administration/$1"
+    },
+    {
+      "src": "^/app/admin/?$",
+      "dest": "/admin/index.html"
+    },
+    {
+      "src": "^/app/admin/admin\\.js$",
+      "dest": "/admin/admin.js"
+    },
+    {
+      "src": "^/app/admin/admin\\.css$",
+      "dest": "/admin/admin.css"
+    },
+    {
+      "src": "^/app/admin/(.*)$",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "^/app/admin\\.js$",
+      "dest": "/administration/admin.js"
+    },
+    {
+      "src": "^/app/admin\\.css$",
+      "dest": "/administration/admin.css"
+    },
+    {
       "src": "^/app/(.*)$",
       "dest": "/$1"
     },
