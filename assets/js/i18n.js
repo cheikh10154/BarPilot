@@ -713,10 +713,14 @@ window.i18n = {
       if (key === 'trialBanner') {
         let remaining = 14;
         try {
-          const regDateStr = localStorage.getItem('barpilot_registration_date');
-          if (regDateStr) {
-            const elapsed = Math.floor(Math.max(0, Date.now() - new Date(regDateStr).getTime()) / (1000 * 60 * 60 * 24));
-            remaining = 14 - elapsed;
+          if (typeof window.getTrialDaysRemaining === 'function') {
+            remaining = window.getTrialDaysRemaining();
+          } else {
+            const regDateStr = localStorage.getItem('barpilot_registration_date');
+            if (regDateStr) {
+              const elapsed = Math.floor(Math.max(0, Date.now() - new Date(regDateStr).getTime()) / (1000 * 60 * 60 * 24));
+              remaining = Math.max(0, 14 - elapsed);
+            }
           }
         } catch (_) {}
         const isFr = this.currentLang === 'fr';

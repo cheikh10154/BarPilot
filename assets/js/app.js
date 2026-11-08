@@ -48,6 +48,11 @@ function initBarPilotApp() {
     // 4. Render Initial State
     if (typeof renderApp === "function") renderApp();
 
+    // Sincronizza countdown periodo di prova da Supabase auth.users
+    if (typeof syncTrialDateFromSupabase === "function") {
+      syncTrialDateFromSupabase();
+    }
+
     // Initialize Real-Time Clock & Date Controller (sempre aggiornato: giorno, mese, anno)
     if (typeof initLiveDateTime === "function") initLiveDateTime();
 
@@ -771,27 +776,55 @@ function updateGreeting(name) {
 window.updateGreeting = updateGreeting;
 
 // --------------------------------------------------------------------------
-// Trial Countdown & Registration Date Controller (14 Giorni di Prova)
+// Trial Countdown & Registration Date Controller (14 Giorni di Prova da Supabase auth.users)
 // --------------------------------------------------------------------------
 function getRegistrationDate() {
-  let regDate = localStorage.getItem("barpilot_registration_date");
+  let regDate = null;
+
+  // 1. Fonte primaria da Supabase Authentication > Users (created_at da sessione auth)
+  try {
+    const sbSessionStr = localStorage.getItem("barpilot_supabase_session");
+    if (sbSessionStr) {
+      const sbSession = JSON.parse(sbSessionStr);
+      if (sbSession?.user?.created_at) {
+        regDate = sbSession.user.created_at;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Dati Supabase in-memory
+  if (!regDate && window.supabase?.session?.user?.created_at) {
+    regDate = window.supabase.session.user.created_at;
+  }
+
+  // 3. Dati utente loggato memorizzati (con created_at originario da Supabase)
   if (!regDate) {
     try {
       const loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-      if (loggedUser && (loggedUser.trial_start_date || loggedUser.created_at)) {
-        regDate = loggedUser.trial_start_date || loggedUser.created_at;
+      if (loggedUser && (loggedUser.created_at || loggedUser.trial_start_date)) {
+        regDate = loggedUser.created_at || loggedUser.trial_start_date;
       }
     } catch (_) {}
   }
+
+  // 4. Bar registrato attivo (created_at o trial_start_date)
   if (!regDate && window.db) {
     const bar = window.db.get("activeBar");
-    if (bar && (bar.trial_start_date || bar.created_at || bar.trialStartDate)) {
-      regDate = bar.trial_start_date || bar.created_at || bar.trialStartDate;
+    if (bar && (bar.created_at || bar.trial_start_date || bar.trialStartDate)) {
+      regDate = bar.created_at || bar.trial_start_date || bar.trialStartDate;
     }
   }
+
+  // 5. Data salvata in cache
+  if (!regDate) {
+    regDate = localStorage.getItem("barpilot_registration_date");
+  }
+
+  // 6. Fallback a data corrente se non ancora registrato
   if (!regDate) {
     regDate = new Date().toISOString();
   }
+
   try {
     localStorage.setItem("barpilot_registration_date", regDate);
   } catch (_) {}
@@ -804,7 +837,7 @@ function getTrialDaysRemaining() {
   const nowTime = Date.now();
   const diffMs = Math.max(0, nowTime - regTime);
   const elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const daysRemaining = 14 - elapsedDays;
+  const daysRemaining = Math.max(0, 14 - elapsedDays);
   return daysRemaining;
 }
 
@@ -815,47 +848,74 @@ function updateTrialCountdown() {
   if (window.db) {
     const bar = window.db.get("activeBar");
     if (bar) {
-      bar.trialDaysRemaining = Math.max(0, daysRemaining);
+      bar.trialDaysRemaining = daysRemaining;
       window.db.set("activeBar", bar);
     }
   }
 
   // 1. Badge vicino al pulsante Abbonamenti (.nav-badge-pro)
+  const navSubBadge = document.querySelector("#navSubscriptions .nav-badge-pro");
+  if (navSubBadge) {
+    navSubBadge.textContent = `${daysRemaining}j`;
+    navSubBadge.style.display = "";
+  }
   document.querySelectorAll(".nav-badge-pro").forEach(badge => {
     // Non toccare il badge TICKET di Assistenza
-    if (badge.textContent.includes("TICKET")) return;
-
-    if (daysRemaining > 0) {
-      badge.textContent = `${daysRemaining}j`;
-      badge.style.display = "";
-    } else {
-      // Dopo 14 giorni il badge viene cancellato/nascosto
-      badge.style.display = "none";
-    }
+    if (badge.textContent.includes("TICKET") || badge.id === "ticketBadge") return;
+    badge.textContent = `${daysRemaining}j`;
+    badge.style.display = "";
   });
 
-  // 2. Banner "Periodo di prova: X giorni rimasti" (id="trialBanner")
+  // 2. Sbarra sopra arancione "Periodo di prova: X giorni rimasti" (id="trialBanner")
   const trialBanner = document.getElementById("trialBanner");
   if (trialBanner) {
-    if (daysRemaining > 0) {
-      trialBanner.style.display = "";
-      const textSpan = trialBanner.querySelector("[data-i18n='trialBanner']") || trialBanner.querySelector(".trial-banner-left span:last-child");
-      if (textSpan) {
-        textSpan.setAttribute("data-i18n-params", JSON.stringify({ days: String(daysRemaining) }));
-        const isFr = window.i18n && window.i18n.currentLang === "fr";
-        textSpan.textContent = isFr
-          ? `Période d'essai : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
-          : `Periodo di prova: ${daysRemaining} giorn${daysRemaining === 1 ? 'o' : 'i'} rimast${daysRemaining === 1 ? 'o' : 'i'}`;
-      }
-    } else {
-      // Dopo 14 giorni il banner viene cancellato/nascosto
-      trialBanner.style.display = "none";
+    trialBanner.style.display = "";
+    const textSpan = trialBanner.querySelector("[data-i18n='trialBanner']") || trialBanner.querySelector(".trial-banner-left span:last-child");
+    if (textSpan) {
+      textSpan.setAttribute("data-i18n-params", JSON.stringify({ days: String(daysRemaining) }));
+      const isFr = window.i18n && window.i18n.currentLang === "fr";
+      textSpan.textContent = isFr
+        ? `Période d'essai : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
+        : `Periodo di prova: ${daysRemaining} giorn${daysRemaining === 1 ? 'o' : 'i'} rimast${daysRemaining === 1 ? 'o' : 'i'}`;
     }
   }
 }
+
+async function syncTrialDateFromSupabase() {
+  try {
+    const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+    if (isDemo) return;
+
+    // 1. Verifica sessione Supabase già salvata
+    const sbSessionStr = localStorage.getItem("barpilot_supabase_session");
+    if (sbSessionStr) {
+      try {
+        const sbSession = JSON.parse(sbSessionStr);
+        if (sbSession?.user?.created_at) {
+          localStorage.setItem("barpilot_registration_date", sbSession.user.created_at);
+          updateTrialCountdown();
+        }
+      } catch (_) {}
+    }
+
+    // 2. Interroga direttamente Supabase Authentication > Users per data aggiornata
+    if (window.supabase && typeof window.supabase.getUser === "function") {
+      const res = await window.supabase.getUser();
+      const sbUser = res?.data?.user;
+      if (sbUser && sbUser.created_at) {
+        localStorage.setItem("barpilot_registration_date", sbUser.created_at);
+        updateTrialCountdown();
+      }
+    }
+  } catch (err) {
+    console.warn("[BarPilot] Sincronizzazione data prova da Supabase:", err);
+  }
+}
+
 window.getRegistrationDate = getRegistrationDate;
 window.getTrialDaysRemaining = getTrialDaysRemaining;
 window.updateTrialCountdown = updateTrialCountdown;
+window.syncTrialDateFromSupabase = syncTrialDateFromSupabase;
 
 function renderActiveBar() {
   const isDemo = (typeof isDemoMode === "function" && isDemoMode());
@@ -7543,6 +7603,8 @@ async function handleAuthSubmit(e) {
       plan: "Pro",
       isDemo: false,
       trialDaysRemaining: 14,
+      trial_start_date: supabaseUser?.created_at || new Date().toISOString(),
+      created_at: supabaseUser?.created_at || new Date().toISOString(),
       trialEndDate: trialEndIso
     };
 
@@ -7653,6 +7715,11 @@ async function handleAuthSubmit(e) {
       window.db.set("activeBar", activeBar);
     }
 
+    const sbCreatedAt = (supabaseUser && supabaseUser.created_at) ? supabaseUser.created_at : new Date().toISOString();
+    try {
+      localStorage.setItem("barpilot_registration_date", sbCreatedAt);
+    } catch (_) {}
+
     setUserLoggedIn(true, { 
       name: ownerName, 
       email: emailNormalized, 
@@ -7668,6 +7735,8 @@ async function handleAuthSubmit(e) {
       city: city,
       provider: "email",
       isDemo: false,
+      created_at: sbCreatedAt,
+      trial_start_date: sbCreatedAt,
       supabaseId: supabaseUser ? supabaseUser.id : null
     });
     closeAuthScreen();
@@ -7786,6 +7855,11 @@ async function handleAuthSubmit(e) {
             isValid = true;
             const sbUser = authRes.data.user;
             const meta = sbUser.user_metadata || {};
+            if (sbUser.created_at) {
+              try {
+                localStorage.setItem("barpilot_registration_date", sbUser.created_at);
+              } catch (_) {}
+            }
 
             userFound = {
               id: "usr_sb_" + sbUser.id,
@@ -7802,7 +7876,9 @@ async function handleAuthSubmit(e) {
               phone: meta.phone || meta.Phone || meta.phone_number || "",
               phoneNumber: meta.phone || meta.Phone || meta.phone_number || "",
               city: meta.city || "Roma",
-              role: meta.role || "Proprietario"
+              role: meta.role || "Proprietario",
+              created_at: sbUser.created_at || new Date().toISOString(),
+              trial_start_date: sbUser.created_at || new Date().toISOString()
             };
 
             // Salva nei dati utente locali per le sessioni future
@@ -7822,8 +7898,15 @@ async function handleAuthSubmit(e) {
             currentActiveBar.city = userFound.city;
             currentActiveBar.managerName = userFound.name;
             currentActiveBar.managerEmail = userFound.email;
+            if (sbUser.created_at) {
+              currentActiveBar.created_at = sbUser.created_at;
+              currentActiveBar.trial_start_date = sbUser.created_at;
+            }
             if (meta.plan) currentActiveBar.plan = meta.plan;
             window.db.set("activeBar", currentActiveBar);
+            if (typeof updateTrialCountdown === "function") {
+              updateTrialCountdown();
+            }
           } else if (authRes && authRes.error) {
             sbAuthError = authRes.error;
             const rawMsg = (authRes.error.rawMessage || authRes.error.message || "").toLowerCase();

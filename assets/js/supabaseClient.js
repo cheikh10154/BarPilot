@@ -118,6 +118,11 @@ class BarPilotSupabaseClient {
             user
           };
           localStorage.setItem("barpilot_supabase_session", JSON.stringify(this.session));
+          if (user && user.created_at) {
+            try {
+              localStorage.setItem("barpilot_registration_date", user.created_at);
+            } catch (_) {}
+          }
           console.log("[SupabaseAuth] Session established for:", user.email, "type:", authType);
 
           const fullName = user.user_metadata?.owner_name || user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split("@")[0] : "Utente");
@@ -153,7 +158,9 @@ class BarPilotSupabaseClient {
             piva: vat,
             city: city,
             phone: phone,
-            role: "Proprietario"
+            role: "Proprietario",
+            created_at: user.created_at || new Date().toISOString(),
+            trial_start_date: user.created_at || new Date().toISOString()
           };
 
           if (typeof window.saveUserToDatabase === "function") {
@@ -174,8 +181,13 @@ class BarPilotSupabaseClient {
             bar.managerPhone = phone;
             bar.managerName = fullName;
             bar.managerEmail = user.email.toLowerCase().trim();
+            bar.created_at = user.created_at || new Date().toISOString();
+            bar.trial_start_date = user.created_at || new Date().toISOString();
             bar.isDemo = false;
             window.db.set("activeBar", bar);
+          }
+          if (typeof window.updateTrialCountdown === "function") {
+            window.updateTrialCountdown();
           }
 
           if (typeof window.closeAuthScreen === "function") window.closeAuthScreen();
@@ -266,6 +278,11 @@ class BarPilotSupabaseClient {
 
       this.session = data;
       localStorage.setItem("barpilot_supabase_session", JSON.stringify(data));
+      if (data && data.user && data.user.created_at) {
+        try {
+          localStorage.setItem("barpilot_registration_date", data.user.created_at);
+        } catch (_) {}
+      }
       return { data: { user: data.user, session: data }, error: null };
     } catch (err) {
       return { data: null, error: err };
