@@ -859,7 +859,7 @@ class AdminConsole {
     });
 
     const titles = {
-      overview: { title: "Panoramica", sub: "Tutti i dati della tua piattaforma BarPilot in tempo reale da Supabase." },
+      overview: { title: "", sub: "" },
       bars: { title: "Bar Iscritti", sub: "Elenco completo e gestione dei locali registrati sulla piattaforma." },
       subscriptions: { title: "Abbonamenti & Scadenze", sub: "Monitoraggio dei rinnovi, canoni mensili di 59 € e date di scadenza." },
       invoices: { title: "Fatturazione & Ricevute", sub: "Storico fatture emesse, pagate e da riscuotere." },
@@ -872,8 +872,14 @@ class AdminConsole {
     const info = titles[viewId] || { title: "Admin Console", sub: "Pannello di controllo BarPilot" };
     const tTitle = document.getElementById("topbarTitle");
     const tSub = document.getElementById("topbarSubtitle");
-    if (tTitle) tTitle.textContent = info.title;
-    if (tSub) tSub.textContent = info.sub;
+    if (tTitle) {
+      tTitle.textContent = info.title;
+      tTitle.style.display = info.title ? "" : "none";
+    }
+    if (tSub) {
+      tSub.textContent = info.sub;
+      tSub.style.display = info.sub ? "" : "none";
+    }
 
     document.querySelectorAll(".page-view").forEach(page => {
       page.classList.remove("active");
