@@ -431,7 +431,7 @@ class AdminConsole {
           });
           if (apiRes.ok) {
             const apiData = await apiRes.json();
-            if (apiData.success && Array.isArray(apiData.users) && apiData.users.length > 0) {
+            if (apiData.success && Array.isArray(apiData.users)) {
               this.data.bars = apiData.users.map(u => this.mapAuthUserToBar(u));
               authUsersLoaded = true;
             }

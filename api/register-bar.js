@@ -42,37 +42,13 @@ export default async function handler(req, res) {
             'Authorization': `Bearer ${serviceRoleKey}`
           }
         });
-        let cprTest = null;
-        try {
-          const cprRes = await fetch("https://cprxxxlgaofopmogeuer.supabase.co/auth/v1/admin/users?page=1&per_page=200", {
-            headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${serviceRoleKey}` }
-          });
-          const cprJson = await cprRes.json();
-          cprTest = { status: cprRes.status, data: cprJson };
-        } catch (cprErr) {
-          cprTest = { error: cprErr.message };
-        }
-
         if (aRes.ok) {
           const aData = await aRes.json();
           const usersList = aData.users || (Array.isArray(aData) ? aData : []);
-          let keyPayload = null;
-          try {
-            const parts = serviceRoleKey.split('.');
-            if (parts[1]) {
-              keyPayload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-            }
-          } catch (_) {}
-
           return res.status(200).json({
             success: true,
             source: 'auth.users',
-            supabaseUrl: SUPABASE_URL,
-            keyRef: keyPayload ? keyPayload.ref : null,
-            keyRole: keyPayload ? keyPayload.role : null,
             total: usersList.length,
-            cprTest: cprTest,
-            debug: aData,
             users: usersList
           });
         }
