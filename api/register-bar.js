@@ -45,12 +45,20 @@ export default async function handler(req, res) {
         if (aRes.ok) {
           const aData = await aRes.json();
           const usersList = aData.users || (Array.isArray(aData) ? aData : []);
+          let keyPayload = null;
+          try {
+            const parts = serviceRoleKey.split('.');
+            if (parts[1]) {
+              keyPayload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            }
+          } catch (_) {}
+
           return res.status(200).json({
             success: true,
             source: 'auth.users',
             supabaseUrl: SUPABASE_URL,
-            hasServiceRoleKey: Boolean(serviceRoleKey),
-            serviceKeyPrefix: serviceRoleKey ? serviceRoleKey.substring(0, 15) + '...' : null,
+            keyRef: keyPayload ? keyPayload.ref : null,
+            keyRole: keyPayload ? keyPayload.role : null,
             total: usersList.length,
             debug: aData,
             users: usersList
