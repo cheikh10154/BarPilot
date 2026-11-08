@@ -7643,6 +7643,7 @@ async function handleAuthSubmit(e) {
     const ownerName = (document.getElementById("regOwnerName")?.value || "").trim() || "Marco";
     const city = (document.getElementById("regCity")?.value || "").trim() || "Roma";
     const phone = (document.getElementById("regPhone")?.value || "").trim();
+    const promoCode = (document.getElementById("regPromoCode")?.value || "").trim();
     const emailNormalized = email.trim().toLowerCase();
 
     const submitBtnEmail = document.getElementById("authSubmitBtn");
@@ -7708,6 +7709,7 @@ async function handleAuthSubmit(e) {
       address: `Via Principale, 1 - ${city}`,
       plan: "BarPilot Pro 59€",
       trial_days: 14,
+      promo_code: promoCode || null,
       trial_start_date: new Date().toISOString(),
       trial_end_date: trialEndIso,
       role: "Proprietario",
