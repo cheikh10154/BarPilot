@@ -48,6 +48,8 @@ export default async function handler(req, res) {
           return res.status(200).json({
             success: true,
             source: 'auth.users',
+            total: usersList.length,
+            debug: aData,
             users: usersList
           });
         }
