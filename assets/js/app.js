@@ -7709,6 +7709,10 @@ async function handleAuthSubmit(e) {
       address: `Via Principale, 1 - ${city}`,
       plan: "BarPilot Pro 59€",
       trial_days: 14,
+      "Codice invito": promoCode || null,
+      "Codice Invito": promoCode || null,
+      codice_invito: promoCode || null,
+      invite_code: promoCode || null,
       promo_code: promoCode || null,
       trial_start_date: new Date().toISOString(),
       trial_end_date: trialEndIso,
@@ -7781,7 +7785,9 @@ async function handleAuthSubmit(e) {
             phone: phone,
             vatNumber: vatNumber,
             city: city,
-            address: `Via Principale, 1 - ${city}`
+            address: `Via Principale, 1 - ${city}`,
+            inviteCode: promoCode || null,
+            promoCode: promoCode || null
           })
         });
         if (regRes.ok) {
@@ -7805,6 +7811,8 @@ async function handleAuthSubmit(e) {
           address: `Via Principale, 1 - ${city}`,
           country: 'IT',
           status: 'trial',
+          invite_code: promoCode || null,
+          "Codice invito": promoCode || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };

@@ -47,6 +47,7 @@ export default async function handler(req, res) {
     const cleanVat = (vatNumber || '').trim();
     const cleanPhone = (phone || '').trim();
     const cleanAddress = (address || `Via Centrale 1, ${cleanCity}`).trim();
+    const cleanInviteCode = (body.inviteCode || body.promoCode || '').trim();
 
     if (!normalizedEmail || !cleanBarName) {
       return res.status(400).json({ error: 'Email e Nome del Bar sono campi obbligatori.' });
@@ -71,26 +72,39 @@ export default async function handler(req, res) {
 
     console.log(`[Register Bar] Inizio registrazione per ${cleanBarName} (${normalizedEmail})`);
 
-    // 0. Sincronizzazione diretta su auth.users.phone tramite Supabase Admin API se presente service role key
+    // 0. Sincronizzazione diretta su auth.users (phone & Codice invito) tramite Supabase Admin API
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
-    if (userId && cleanPhone && serviceRoleKey) {
+    if (userId && serviceRoleKey) {
       try {
         const adminUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`;
-        await fetch(adminUrl, {
-          method: 'PUT',
-          headers: {
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            phone: cleanPhone,
-            phone_confirm: true
-          })
-        });
-        console.log(`[Register Bar] ✅ auth.users.phone sincronizzato con successo per ${userId}`);
+        const updateBody = {};
+        if (cleanPhone) {
+          updateBody.phone = cleanPhone;
+          updateBody.phone_confirm = true;
+        }
+        if (cleanInviteCode) {
+          updateBody.user_metadata = {
+            "Codice invito": cleanInviteCode,
+            "Codice Invito": cleanInviteCode,
+            codice_invito: cleanInviteCode,
+            invite_code: cleanInviteCode,
+            promo_code: cleanInviteCode
+          };
+        }
+        if (Object.keys(updateBody).length > 0) {
+          await fetch(adminUrl, {
+            method: 'PUT',
+            headers: {
+              'apikey': serviceRoleKey,
+              'Authorization': `Bearer ${serviceRoleKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateBody)
+          });
+          console.log(`[Register Bar] ✅ auth.users aggiornato con successo per ${userId}`);
+        }
       } catch (adminErr) {
-        console.warn('[Register Bar] Nota aggiornamento auth.users.phone:', adminErr.message);
+        console.warn('[Register Bar] Nota aggiornamento auth.users:', adminErr.message);
       }
     }
 
@@ -125,7 +139,8 @@ export default async function handler(req, res) {
       country: 'IT',
       status: existingBar ? existingBar.status : 'trial',
       subscription_id: subId,
-      notes: `Registrato da ${cleanOwner} - Prova 14 giorni`,
+      notes: cleanInviteCode ? `Registrato da ${cleanOwner} - Codice invito: ${cleanInviteCode}` : `Registrato da ${cleanOwner} - Prova 14 giorni`,
+      invite_code: cleanInviteCode || null,
       updated_at: now.toISOString()
     };
 
