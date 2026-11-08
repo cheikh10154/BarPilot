@@ -48,6 +48,9 @@ export default async function handler(req, res) {
           return res.status(200).json({
             success: true,
             source: 'auth.users',
+            supabaseUrl: SUPABASE_URL,
+            hasServiceRoleKey: Boolean(serviceRoleKey),
+            serviceKeyPrefix: serviceRoleKey ? serviceRoleKey.substring(0, 15) + '...' : null,
             total: usersList.length,
             debug: aData,
             users: usersList
