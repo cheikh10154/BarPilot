@@ -853,31 +853,53 @@ function updateTrialCountdown() {
     }
   }
 
-  // 1. Badge vicino al pulsante Abbonamenti (.nav-badge-pro)
+  // 1. Scritta/badge vicino alla voce di menu Abbonamenti (.nav-badge-pro)
   const navSubBadge = document.querySelector("#navSubscriptions .nav-badge-pro");
   if (navSubBadge) {
-    navSubBadge.textContent = `${daysRemaining}j`;
-    navSubBadge.style.display = "";
+    if (daysRemaining > 0) {
+      navSubBadge.textContent = `${daysRemaining}j`;
+      navSubBadge.style.display = "";
+    } else {
+      // Quando i giorni arrivano a 0 / passati i 14 giorni: cancella la scritta vicino ad Abbonamenti
+      navSubBadge.textContent = "";
+      navSubBadge.style.display = "none";
+    }
   }
   document.querySelectorAll(".nav-badge-pro").forEach(badge => {
     // Non toccare il badge TICKET di Assistenza
     if (badge.textContent.includes("TICKET") || badge.id === "ticketBadge") return;
-    badge.textContent = `${daysRemaining}j`;
-    badge.style.display = "";
+    if (daysRemaining > 0) {
+      badge.textContent = `${daysRemaining}j`;
+      badge.style.display = "";
+    } else {
+      // Quando i giorni arrivano a 0 / passati i 14 giorni: cancella la scritta vicino ad Abbonamenti
+      badge.textContent = "";
+      badge.style.display = "none";
+    }
   });
 
-  // 2. Sbarra sopra arancione "Periodo di prova: X giorni rimasti" (id="trialBanner")
+  // 2. Sbarra del periodo di prova (id="trialBanner" e "globalTrialBanner")
   const trialBanner = document.getElementById("trialBanner");
   if (trialBanner) {
-    trialBanner.style.display = "";
-    const textSpan = trialBanner.querySelector("[data-i18n='trialBanner']") || trialBanner.querySelector(".trial-banner-left span:last-child");
-    if (textSpan) {
-      textSpan.setAttribute("data-i18n-params", JSON.stringify({ days: String(daysRemaining) }));
-      const isFr = window.i18n && window.i18n.currentLang === "fr";
-      textSpan.textContent = isFr
-        ? `Période d'essai : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
-        : `Periodo di prova: ${daysRemaining} giorn${daysRemaining === 1 ? 'o' : 'i'} rimast${daysRemaining === 1 ? 'o' : 'i'}`;
+    if (daysRemaining > 0) {
+      trialBanner.style.display = "";
+      const textSpan = trialBanner.querySelector("[data-i18n='trialBanner']") || trialBanner.querySelector(".trial-banner-left span:last-child");
+      if (textSpan) {
+        textSpan.setAttribute("data-i18n-params", JSON.stringify({ days: String(daysRemaining) }));
+        const isFr = window.i18n && window.i18n.currentLang === "fr";
+        textSpan.textContent = isFr
+          ? `Période d'essai : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`
+          : `Periodo di prova: ${daysRemaining} giorn${daysRemaining === 1 ? 'o' : 'i'} rimast${daysRemaining === 1 ? 'o' : 'i'}`;
+      }
+    } else {
+      // Quando i giorni arrivano a 0 / passati i 14 giorni: cancella e nasconde la sbarra
+      trialBanner.style.display = "none";
     }
+  }
+
+  const globalTrialBanner = document.getElementById("globalTrialBanner");
+  if (globalTrialBanner && daysRemaining <= 0) {
+    globalTrialBanner.style.display = "none";
   }
 }
 

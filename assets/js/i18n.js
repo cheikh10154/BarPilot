@@ -723,10 +723,20 @@ window.i18n = {
             }
           }
         } catch (_) {}
-        const isFr = this.currentLang === 'fr';
-        el.textContent = isFr
-          ? `Période d'essai : ${remaining} jour${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
-          : `Periodo di prova: ${remaining} giorn${remaining === 1 ? 'o' : 'i'} rimast${remaining === 1 ? 'o' : 'i'}`;
+        if (remaining <= 0) {
+          const bannerEl = document.getElementById('trialBanner') || el.closest('#trialBanner') || el.closest('.trial-banner');
+          if (bannerEl) bannerEl.style.display = 'none';
+          const subBadge = document.querySelector('#navSubscriptions .nav-badge-pro');
+          if (subBadge) {
+            subBadge.textContent = '';
+            subBadge.style.display = 'none';
+          }
+        } else {
+          const isFr = this.currentLang === 'fr';
+          el.textContent = isFr
+            ? `Période d'essai : ${remaining} jour${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`
+            : `Periodo di prova: ${remaining} giorn${remaining === 1 ? 'o' : 'i'} rimast${remaining === 1 ? 'o' : 'i'}`;
+        }
       } else if (key === 'greeting' || key === 'greetingMorning' || key === 'greetingEvening') {
         const hour = new Date().getHours();
         // Dalle 03:00 alle 15:00 -> Buongiorno / Bonjour | Dalle 15:00 alle 03:00 -> Buonasera / Bonsoir
