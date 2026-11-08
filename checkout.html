@@ -658,10 +658,10 @@
         modal.style.display = "flex";
       }
 
-      // Reindirizzamento automatico alla dashboard dopo aver dato tempo di leggere l'avviso email
+      // Lascia la finestra aperta finché non la chiude l'utente o almeno per 1 minuto (60 secondi)
       setTimeout(() => {
         window.location.href = "https://www.barpilot.eu/app";
-      }, 7000);
+      }, 60000);
     }
 
     function proceedToDashboard() {
@@ -980,7 +980,8 @@
 
   <!-- Success Confirmation Modal -->
   <div id="checkoutSuccessModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.78); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
-    <div style="background:#FFFFFF; border-radius:20px; max-width:440px; width:100%; padding:30px 24px; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.35); box-sizing:border-box;">
+    <div style="position:relative; background:#FFFFFF; border-radius:20px; max-width:440px; width:100%; padding:30px 24px; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.35); box-sizing:border-box;">
+      <button type="button" onclick="proceedToDashboard()" style="position:absolute; top:14px; right:16px; background:transparent; border:none; font-size:22px; color:#9CA3AF; cursor:pointer; line-height:1; padding:4px;" title="Chiudi">✕</button>
       <div style="width:60px; height:60px; background:#D1FAE5; color:#059669; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 16px;">✓</div>
       <h3 style="font-size:21px; font-weight:800; color:#111827; margin-bottom:6px;">Pagamento Confermato!</h3>
       <p style="font-size:13px; color:#4B5563; line-height:1.45; margin-bottom:14px;">
