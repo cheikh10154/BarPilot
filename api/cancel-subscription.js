@@ -66,16 +66,11 @@ export default async function handler(req, res) {
           }
         }
 
-        // 3. Verifica scadenza: mantieni l'accesso attivo fino al termine del periodo pagato o di prova
-        const periodEnd = sub.current_period_end || sub.trial_end;
-        const isStillValid = periodEnd ? (new Date(periodEnd).getTime() > Date.now()) : true;
-
-        // Aggiorna record su Supabase (public.subscriptions) con cancel_at_period_end = true
-        // Mantiene l'accesso fino alla scadenza del periodo pagato o di prova
+        // 3. Disdetta: quando un utente disdice, tutto il sito gli viene bloccato (accesso solo al menu Abbonamenti)
         const patchRes = await supabaseFetch(`subscriptions?id=eq.${encodeURIComponent(sub.id)}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            status: isStillValid ? (sub.status || 'active') : 'canceled',
+            status: 'canceled',
             cancel_at_period_end: true,
             cancel_requested_at: now.toISOString(),
             cancellation_reason: reason,
@@ -88,14 +83,14 @@ export default async function handler(req, res) {
           updatedSubscription = patchRows && patchRows.length > 0 ? patchRows[0] : sub;
         }
 
-        // 4. Aggiorna la tabella public.bars senza cancellare alcun dato
+        // 4. Aggiorna la tabella public.bars senza cancellare alcun dato (stato canceled)
         const targetBarId = sub.bar_id || barId;
         if (targetBarId) {
           await supabaseFetch(`bars?id=eq.${encodeURIComponent(targetBarId)}`, {
             method: 'PATCH',
             body: JSON.stringify({
               cancel_at_period_end: true,
-              status: isStillValid ? (sub.status === 'trialing' ? 'trial' : 'active') : 'canceled',
+              status: 'canceled',
               updated_at: now.toISOString()
             })
           });
@@ -128,7 +123,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: 'Abbonamento disdetto con successo. Il tuo accesso rimane attivo fino al termine del periodo pagato o di prova.',
+      message: 'Abbonamento disdetto con successo. Il tuo account BarPilot non è più attivo; puoi accedere solo alla sezione Abbonamenti per riattivare il tuo abbonamento.',
       cancelled_at: now.toISOString(),
       subscription: updatedSubscription
     });

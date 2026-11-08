@@ -114,18 +114,19 @@ export default async function handler(req, res) {
       subStatus = sub.status;
     }
 
-    // 4. Se la prova gratuita è ancora in corso (es. giorni 0-14), l'accesso è SEMPRE attivo
-    // anche se l'utente ha disdetto il rinnovo automatico!
+    // 4. Regola: Quando un utente disdice l'abbonamento (cancelAtPeriodEnd o status === 'canceled'),
+    // tutto il sito gli viene bloccato (isAccessActive = false), e può accedere solo al menu Abbonamenti
     let isAccessActive = false;
-    if (isTrialActive) {
+    if (cancelAtPeriodEnd || subStatus === 'canceled') {
+      isAccessActive = false;
+      subStatus = 'canceled';
+    } else if (isTrialActive) {
       isAccessActive = true;
-      subStatus = cancelAtPeriodEnd ? 'trialing' : (sub ? sub.status : 'trialing');
+      subStatus = 'trialing';
     } else if (isPaidPeriodActive) {
-      // Periodo pagato attivo
       isAccessActive = true;
       subStatus = 'active';
     } else {
-      // Prova finita E nessun periodo pagato attivo -> BLOCCATO
       isAccessActive = false;
       subStatus = 'canceled';
     }

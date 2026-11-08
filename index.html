@@ -1255,6 +1255,18 @@
              10. ABBONAMENTI & 14-DAY TRIAL VIEW
              ======================================================== -->
         <section class="view-panel" id="view-subscriptions">
+          <!-- Subscription Required Strict Lock for Abbonamenti View -->
+          <div id="subViewLockBanner" style="display:none; background:rgba(255,122,0,0.08); border:1px solid #FF8A24; border-radius:16px; padding:24px; max-width:680px; margin:0 auto 28px; text-align:center;">
+            <div style="font-size:36px; margin-bottom:8px;">🔒</div>
+            <h3 style="font-size:20px; font-weight:800; color:#FFFFFF; margin-bottom:10px;">Account Non Più Attivo</h3>
+            <p style="font-size:14.5px; color:#E2E8F0; line-height:1.6; margin-bottom:20px;">
+              Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, aggiungi un metodo di pagamento e riattiva il tuo abbonamento.
+            </p>
+            <button type="button" class="btn-primary" onclick="reactivateSubscriptionFlow()" style="display:inline-flex; align-items:center; gap:8px; padding:12px 28px; font-weight:800; font-size:14px; background:#FF7A00; border:none; text-decoration:none; border-radius:12px; box-shadow:0 6px 20px rgba(255,122,0,0.35); cursor:pointer; color:#FFFFFF;">
+              <span>⚡</span> <span>Riattiva il mio abbonamento</span> <span>➔</span>
+            </button>
+          </div>
+
           <div style="text-align:center; max-width:680px; margin: 0 auto 30px;">
             <h2 style="font-size:26px; font-weight:900;" data-i18n="subTitle">Offerte di abbonamento BarPilot</h2>
             <p style="font-size:14px; color:var(--text-muted); margin-top:8px;" data-i18n="subSubtitle">

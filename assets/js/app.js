@@ -317,36 +317,31 @@ function isUserSubscribed() {
       return true;
     }
 
+    const bar = (window.db ? window.db.get("activeBar") : null) || {};
+    const isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true" ||
+                        localStorage.getItem("barpilot_cancel_at_period_end") === "true" ||
+                        Boolean(bar.cancel_at_period_end) ||
+                        bar.subscriptionStatus === "canceled";
+
+    // QUANDO UN UTENTE DISDICE L'ABBONAMENTO:
+    // Tutto il sito gli viene bloccato immediatamente, può accedere solo al menu Abbonamenti!
+    if (isCancelled) {
+      return false;
+    }
+
     // 2. Controllo Prova Gratuita di 14 giorni (da Supabase auth.users created_at)
-    // Regola fondamentale: la disdetta NON deve interrompere i 14 giorni di prova gratuita già iniziati!
     const trialDaysRemaining = typeof getTrialDaysRemaining === "function" ? getTrialDaysRemaining() : 0;
     if (trialDaysRemaining > 0) {
-      // Prova gratuita ancora valida: accesso completo garantito
       return true;
     }
 
-    // 3. Prova gratuita scaduta (0 giorni rimasti):
-    // Verifichiamo se esiste una sottoscrizione a pagamento attiva e non scaduta
-    const bar = (window.db ? window.db.get("activeBar") : null) || {};
-    const cancelAtPeriodEnd = localStorage.getItem("barpilot_cancel_at_period_end") === "true" || Boolean(bar.cancel_at_period_end);
-
-    // Controlla se c'è un periodo pagato ancora valido
+    // 3. Prova gratuita scaduta (0 giorni rimasti): verifichiamo se esiste una sottoscrizione attiva
     const paidUntil = bar.paidUntil || bar.currentPeriodEnd || localStorage.getItem("barpilot_paid_until");
     if (paidUntil) {
       const isPeriodStillValid = new Date(paidUntil).getTime() > Date.now();
       if (isPeriodStillValid) {
         return true;
       }
-    }
-
-    // Se il rinnovo è stato disdetto ed il periodo/prova è scaduto: ACCESSO BLOCCATO
-    if (cancelAtPeriodEnd) {
-      return false;
-    }
-
-    // Se la sottoscrizione è esplicitamente contrassegnata come cancellata o non attiva
-    if (localStorage.getItem("barpilot_subscription_cancelled") === "true" || bar.subscriptionStatus === "canceled") {
-      return false;
     }
 
     // Verifica flags locali di pagamento attivo
@@ -511,6 +506,10 @@ function updateDashboardLockState() {
   if (dashLockBanner) {
     dashLockBanner.style.display = subscribed ? "none" : "flex";
   }
+  const subViewLockBanner = document.getElementById("subViewLockBanner");
+  if (subViewLockBanner) {
+    subViewLockBanner.style.display = subscribed ? "none" : "block";
+  }
   if (metricsGrid) {
     metricsGrid.style.display = subscribed ? "" : "none";
   }
@@ -521,8 +520,8 @@ function updateDashboardLockState() {
     staffActivity.style.display = subscribed ? "" : "none";
   }
 
-  // Se l'abbonamento non è attivo e l'utente si trova su una vista bloccata, reindirizza ad abbonamenti
-  if (!subscribed && appState.activeView && appState.activeView !== "subscriptions" && appState.activeView !== "dashboard") {
+  // Se l'abbonamento non è attivo, l'utente può accedere SOLO al menu Abbonamenti: tutto il resto è bloccato
+  if (!subscribed && appState.activeView !== "subscriptions") {
     switchView("subscriptions");
   }
 
@@ -739,7 +738,7 @@ async function confirmGooglePlaySubscription() {
 
 function switchView(viewName) {
   const isSubscribed = isUserSubscribed();
-  if (!isSubscribed && viewName !== "subscriptions" && viewName !== "dashboard") {
+  if (!isSubscribed && viewName !== "subscriptions") {
     viewName = "subscriptions";
   }
   appState.activeView = viewName;

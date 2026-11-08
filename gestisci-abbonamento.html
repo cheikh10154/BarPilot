@@ -1090,9 +1090,9 @@
           alertBanner.className = "alert-banner alert-banner-cancelled";
           alertBanner.style.display = "flex";
           alertBanner.innerHTML = `
-            <span>ℹ️</span>
+            <span>⚠️</span>
             <div>
-              <strong>Disdetta effettuata:</strong> Il rinnovo automatico è stato interrotto. L'accesso completo a BarPilot Pro resta attivo fino al <strong>19 Novembre 2026</strong>. Nessun costo futuro ti sarà addebitato.
+              <strong>Disdetta effettuata:</strong> Il rinnovo automatico è stato interrotto. Il tuo account non è più attivo e l'accesso al gestionale è stato bloccato: puoi accedere solo al menu Abbonamenti per riattivare il servizio. Nessun costo futuro ti sarà addebitato.
             </div>
           `;
         }
@@ -1101,8 +1101,22 @@
           cancelTitle.style.color = "#10B981";
         }
         if (cancelDesc) {
-          cancelDesc.textContent = "Clicca per annullare la disdetta e mantenere il rinnovo automatico.";
+          cancelDesc.textContent = "Clicca per annullare la disdetta e riattivare l'accesso completo.";
         }
+
+        // Blocca le altre voci della sidebar lasciando accessibile solo Abbonamenti
+        document.querySelectorAll(".nav-item[data-view]").forEach(item => {
+          const v = item.getAttribute("data-view");
+          if (v !== "subscriptions") {
+            item.style.opacity = "0.5";
+            item.title = "Account non attivo: riattiva l'abbonamento per accedere";
+            item.onclick = function(e) {
+              e.preventDefault();
+              alert("Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, riattiva il tuo abbonamento.");
+              return false;
+            };
+          }
+        });
       } else {
         if (statusBadge) {
           statusBadge.className = "status-badge";
@@ -1183,6 +1197,8 @@
 
       localStorage.setItem("barpilot_subscription_cancelled", "true");
       localStorage.setItem("barpilot_cancel_at_period_end", "true");
+      localStorage.setItem("barpilot_is_subscribed", "false");
+      localStorage.setItem("barpilot_subscription_confirmed", "false");
 
       closeCancelModal();
       btn.disabled = false;
