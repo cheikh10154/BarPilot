@@ -22,8 +22,69 @@ async function supabaseFetch(endpoint, options = {}) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-pin');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // GET: Restituisce l'elenco dei bar direttamente da Supabase Authentication > Users
+  if (req.method === 'GET') {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
+    if (serviceRoleKey) {
+      try {
+        const adminUsersUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=200`;
+        const aRes = await fetch(adminUsersUrl, {
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`
+          }
+        });
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          const usersList = aData.users || (Array.isArray(aData) ? aData : []);
+          return res.status(200).json({
+            success: true,
+            source: 'auth.users',
+            users: usersList
+          });
+        }
+      } catch (errAuth) {
+        console.warn('[Register Bar GET] Errore fetch auth.users:', errAuth.message);
+      }
+    }
+
+    try {
+      const viewRes = await supabaseFetch('auth_users?select=*&order=created_at.desc');
+      if (viewRes.ok) {
+        const viewUsers = await viewRes.json();
+        return res.status(200).json({
+          success: true,
+          source: 'public.auth_users',
+          users: viewUsers
+        });
+      }
+    } catch (_) {}
+
+    try {
+      const barsRes = await supabaseFetch('bars?select=*&order=created_at.desc');
+      if (barsRes.ok) {
+        const barsData = await barsRes.json();
+        return res.status(200).json({
+          success: true,
+          source: 'public.bars',
+          users: barsData
+        });
+      }
+    } catch (_) {}
+
+    return res.status(200).json({ success: true, source: 'empty', users: [] });
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'GET, POST, OPTIONS');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 

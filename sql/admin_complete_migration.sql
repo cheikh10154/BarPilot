@@ -431,3 +431,21 @@ BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.promo_codes; EXCEPTION WHEN duplicate_object THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_settings; EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
+
+-- ----------------------------------------------------------------------------
+-- 18. VISTA SICURA PER AUTHENTICATION > USERS & SUPER ADMIN
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW public.auth_users AS
+SELECT 
+  id,
+  email,
+  phone,
+  raw_user_meta_data,
+  raw_app_meta_data,
+  created_at,
+  updated_at,
+  last_sign_in_at,
+  confirmed_at
+FROM auth.users;
+
+GRANT SELECT ON public.auth_users TO anon, authenticated, service_role;

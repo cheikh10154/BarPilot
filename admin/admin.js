@@ -296,6 +296,14 @@ class AdminConsole {
           this.realtimeChannel.unsubscribe();
         }
         this.realtimeChannel = this.realtimeClient.channel("admin_realtime_feed")
+          .on("postgres_changes", { event: "*", schema: "auth", table: "users" }, (p) => {
+            console.log("[Supabase Realtime] Evento su Authentication > Users:", p);
+            this.syncWithSupabase(false);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "auth_users" }, (p) => {
+            console.log("[Supabase Realtime] Evento su auth_users:", p);
+            this.syncWithSupabase(false);
+          })
           .on("postgres_changes", { event: "*", schema: "public", table: "bars" }, (p) => {
             console.log("[Supabase Realtime] Evento su bars:", p);
             this.syncWithSupabase(false);
@@ -338,6 +346,62 @@ class AdminConsole {
         console.warn("[Realtime] Setup note:", err);
       }
     }
+    // Sincronizzazione continua in background (ogni 10s) con Authentication > Users
+    if (!this.realtimeAuthInterval) {
+      this.realtimeAuthInterval = setInterval(() => {
+        this.syncWithSupabase(false);
+      }, 10000);
+    }
+  }
+
+  // ==========================================================================
+  // Mapper: Da Supabase Authentication > Users (auth.users) al Bar Data Model
+  // ==========================================================================
+  mapAuthUserToBar(u) {
+    const meta = u.user_metadata || u.raw_user_meta_data || {};
+    const barName = u.name || meta.bar_name || meta.barName || meta["Nome bar"] || meta.name || (u.email ? `Bar ${u.email.split('@')[0]}` : "Nuovo Bar");
+    const ownerName = u.owner || meta.owner_name || meta.ownerName || meta.full_name || meta.fullName || (meta.first_name ? `${meta.first_name} ${meta.last_name || ''}`.trim() : null) || barName;
+    const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "Roma";
+    const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || "+39 02 1234567";
+    const address = u.address || meta.address || meta.indirizzo || `Via Centrale 1, ${city}`;
+    const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || "";
+    const vatNumber = u.vat_number || u.vatNumber || u.piva || meta.vat_number || meta.vatNumber || meta.partita_iva || meta["Partita IVA"] || meta.piva || "";
+    const createdAt = u.created_at ? new Date(u.created_at) : (u.rawCreatedAt ? new Date(u.rawCreatedAt) : new Date());
+    const trialEnd = u.trial_end ? new Date(u.trial_end) : (meta.trial_end_date ? new Date(meta.trial_end_date) : (meta.trial_end ? new Date(meta.trial_end) : new Date(createdAt.getTime() + 14 * 24 * 3600 * 1000)));
+    const daysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 3600 * 24)));
+    const plan = u.plan || meta.plan || "BarPilot Pro 59€";
+    let status = u.status || meta.status || (daysRemaining > 0 ? "trial" : "active");
+    if (status === "active_trial") status = "trial";
+
+    return {
+      id: u.id,
+      authId: u.id,
+      name: barName,
+      businessName: u.business_name || meta.business_name || barName,
+      owner: ownerName,
+      email: u.email || "",
+      phone: phone,
+      address: address,
+      city: city,
+      postalCode: u.postal_code || meta.postal_code || "00186",
+      inviteCode: inviteCode,
+      vatNumber: vatNumber,
+      piva: vatNumber || "09876543210",
+      plan: plan,
+      status: status,
+      nextInvoice: u.next_invoice || trialEnd.toLocaleDateString('it-IT'),
+      monthlyRevenue: (status === 'active' || daysRemaining === 0) ? 59.00 : 0.00,
+      createdAt: createdAt.toLocaleDateString('it-IT'),
+      rawCreatedAt: u.created_at || createdAt.toISOString(),
+      lastAccess: u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('it-IT') : (u.last_access || "Recente"),
+      avatar: (barName || "BP").substring(0, 2).toUpperCase(),
+      photo: u.logo_url || u.photo || meta.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
+      taxCode: u.tax_code || meta.tax_code || vatNumber || "",
+      sdiCode: u.sdi_code || meta.sdi_code || "0000000",
+      notes: u.notes || meta.notes || (inviteCode ? `Codice Invito: ${inviteCode}` : ""),
+      trialDaysRemaining: daysRemaining,
+      source: "Authentication > Users"
+    };
   }
 
   // ==========================================================================
@@ -356,41 +420,54 @@ class AdminConsole {
         "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
       };
 
-      // 1. Fetch Bars
+      // 1. Fetch Bars direttamente dalla tabella Supabase Authentication > Users (auth.users)
       try {
-        const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
-        if (barsRes.ok) {
-          const remoteBars = await barsRes.json();
-          if (Array.isArray(remoteBars) && remoteBars.length > 0) {
-            this.data.bars = remoteBars.map(rb => {
-              const trialEnd = rb.trial_end ? new Date(rb.trial_end) : new Date(new Date(rb.created_at || Date.now()).getTime() + 14 * 24 * 3600 * 1000);
-              const daysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 3600 * 24)));
-              return {
-                id: rb.id,
-                name: rb.name,
-                businessName: rb.business_name || rb.name,
-                owner: rb.owner || rb.business_name || rb.name,
-                email: rb.email,
-                phone: rb.phone || "+39 02 1234567",
-                address: rb.address || "Via Centrale 1",
-                city: rb.city || rb["Città"] || "Roma",
-                postalCode: rb.postal_code || rb.postalCode || "00186",
-                plan: rb.plan || "BarPilot Pro",
-                status: rb.status || "trial",
-                nextInvoice: rb.next_invoice || trialEnd.toLocaleDateString('it-IT'),
-                monthlyRevenue: rb.status === 'active' ? 59.00 : 0.00,
-                createdAt: rb.created_at ? new Date(rb.created_at).toLocaleDateString('it-IT') : "Recente",
-                rawCreatedAt: rb.created_at,
-                lastAccess: rb.last_access || "Recente",
-                avatar: rb.avatar || (rb.name ? rb.name.substring(0, 2).toUpperCase() : "BP"),
-                photo: rb.logo_url || rb.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-                piva: rb.vat_number || rb.tax_code || rb.piva || "09876543210",
-                taxCode: rb.tax_code || rb.taxCode || rb.vat_number || "",
-                sdiCode: rb.sdi_code || rb.sdiCode || "0000000",
-                notes: rb.notes || "",
-                trialDaysRemaining: daysRemaining
-              };
-            });
+        let authUsersLoaded = false;
+
+        // Metodo 1: Endpoint serverless /api/register-bar (usa Service Role Key per interrogare auth/v1/admin/users)
+        try {
+          const apiRes = await fetch("/api/register-bar", {
+            headers: { "x-admin-pin": "101540" }
+          });
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData.success && Array.isArray(apiData.users) && apiData.users.length > 0) {
+              this.data.bars = apiData.users.map(u => this.mapAuthUserToBar(u));
+              authUsersLoaded = true;
+            }
+          }
+        } catch (apiErr) {
+          console.warn("[Admin] Note /api/register-bar GET:", apiErr);
+        }
+
+        // Metodo 2: Vista PostgreSQL auth_users (diretto Supabase REST su auth.users)
+        if (!authUsersLoaded) {
+          try {
+            const viewRes = await fetch(`${this.supabaseConfig.url}/rest/v1/auth_users?select=*&order=created_at.desc`, { headers });
+            if (viewRes.ok) {
+              const viewUsers = await viewRes.json();
+              if (Array.isArray(viewUsers) && viewUsers.length > 0) {
+                this.data.bars = viewUsers.map(u => this.mapAuthUserToBar(u));
+                authUsersLoaded = true;
+              }
+            }
+          } catch (viewErr) {
+            console.warn("[Admin] Note /rest/v1/auth_users:", viewErr);
+          }
+        }
+
+        // Metodo 3: Tabella pubblica bars (fallback compatibilità)
+        if (!authUsersLoaded) {
+          try {
+            const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
+            if (barsRes.ok) {
+              const remoteBars = await barsRes.json();
+              if (Array.isArray(remoteBars) && remoteBars.length > 0) {
+                this.data.bars = remoteBars.map(rb => this.mapAuthUserToBar(rb));
+              }
+            }
+          } catch (barsErr) {
+            console.warn("[Admin] Note /rest/v1/bars:", barsErr);
           }
         }
       } catch (e) {
@@ -1147,6 +1224,11 @@ class AdminConsole {
     };
 
     let list = this.data.bars;
+    const headerTitle = document.querySelector("#view-bars .section-box-title");
+    if (headerTitle) {
+      headerTitle.textContent = `Directory Completa Bar Iscritti (${list.length})`;
+    }
+
     if (this.searchQuery) {
       list = list.filter(b => b.name.toLowerCase().includes(this.searchQuery) || b.email.toLowerCase().includes(this.searchQuery) || b.city.toLowerCase().includes(this.searchQuery));
     }
