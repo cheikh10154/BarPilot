@@ -410,20 +410,21 @@
     }
 
     .modal-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
       border-radius: 18px;
       max-width: 480px;
       width: 100%;
       padding: 26px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      color: #000000 !important;
     }
 
     .modal-title {
       font-size: 19px;
       font-weight: 900;
       margin-bottom: 8px;
-      color: var(--text-main);
+      color: #000000 !important;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -431,7 +432,7 @@
 
     .modal-desc {
       font-size: 13.5px;
-      color: var(--text-muted);
+      color: #111827 !important;
       line-height: 1.5;
       margin-bottom: 20px;
     }
@@ -444,24 +445,35 @@
       display: block;
       font-size: 12.5px;
       font-weight: 700;
-      color: var(--text-main);
+      color: #000000 !important;
       margin-bottom: 6px;
     }
 
     .form-select-modal, .form-textarea-modal {
       width: 100%;
-      background: var(--bg-input, rgba(255,255,255,0.05));
-      border: 1px solid var(--border-color);
+      background: #FFFFFF !important;
+      border: 1px solid #D1D5DB !important;
       border-radius: 8px;
       padding: 10px 12px;
-      color: var(--text-main);
+      color: #000000 !important;
       font-size: 13.5px;
       outline: none;
       box-sizing: border-box;
     }
 
+    .form-select-modal option {
+      background: #FFFFFF !important;
+      color: #000000 !important;
+    }
+
+    .form-textarea-modal::placeholder {
+      color: #6B7280 !important;
+    }
+
     .form-select-modal:focus, .form-textarea-modal:focus {
-      border-color: #FF8A24;
+      border-color: #FF8A24 !important;
+      background: #FFFFFF !important;
+      color: #000000 !important;
     }
 
     .modal-actions {
@@ -472,9 +484,9 @@
     }
 
     .btn-modal-cancel {
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: var(--text-main);
+      background: #F3F4F6 !important;
+      border: 1px solid #D1D5DB !important;
+      color: #111827 !important;
       padding: 10px 18px;
       border-radius: 8px;
       font-size: 13.5px;
@@ -483,7 +495,7 @@
     }
 
     .btn-modal-cancel:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: #E5E7EB !important;
     }
 
     .btn-modal-confirm-cancel {
@@ -870,34 +882,34 @@
 
   <!-- MODAL: DISDICI ABBONAMENTO -->
   <div class="modal-backdrop" id="modalCancelSub">
-    <div class="modal-box">
-      <div class="modal-title">
+    <div class="modal-box" style="background:#FFFFFF !important; color:#000000 !important;">
+      <div class="modal-title" style="color:#000000 !important;">
         <span style="color:#FF8A24;">⚠️</span> Disdetta Abbonamento BarPilot Pro
       </div>
-      <p class="modal-desc">
+      <p class="modal-desc" style="color:#111827 !important;">
         Vuoi davvero disdire il rinnovo automatico? L'accesso alle funzionalità complete rimarrà attivo fino al termine del periodo corrente. Non ti verrà più addebitato alcun costo.
       </p>
 
       <form id="formCancelSub" onsubmit="submitCancellation(event)">
         <div class="form-group-modal">
-          <label class="form-label-modal">Motivo della disdetta</label>
-          <select class="form-select-modal" id="cancelReasonInput">
-            <option value="💰 Prezzo troppo elevato — Il costo dell'abbonamento non è adatto al mio budget.">💰 Prezzo troppo elevato — Il costo dell'abbonamento non è adatto al mio budget.</option>
-            <option value="⚙️ Funzionalità insufficienti — BarPilot non offre tutte le funzionalità di cui ho bisogno.">⚙️ Funzionalità insufficienti — BarPilot non offre tutte le funzionalità di cui ho bisogno.</option>
-            <option value="🐛 Problemi tecnici — Ho riscontrato errori, rallentamenti o difficoltà nell'utilizzo.">🐛 Problemi tecnici — Ho riscontrato errori, rallentamenti o difficoltà nell'utilizzo.</option>
-            <option value="🔄 Utilizzo un altro software — Ho deciso di passare a un'altra piattaforma gestionale.">🔄 Utilizzo un altro software — Ho deciso di passare a un'altra piattaforma gestionale.</option>
-            <option value="🏪 Non ho più bisogno del servizio — Ho chiuso, sospeso o modificato la mia attività.">🏪 Non ho più bisogno del servizio — Ho chiuso, sospeso o modificato la mia attività.</option>
-            <option value="Altro">Altro</option>
+          <label class="form-label-modal" style="color:#000000 !important;">Motivo della disdetta</label>
+          <select class="form-select-modal" id="cancelReasonInput" style="background:#FFFFFF !important; color:#000000 !important; border:1px solid #D1D5DB !important;">
+            <option style="background:#FFFFFF; color:#000000;" value="💰 Prezzo troppo elevato — Il costo dell'abbonamento non è adatto al mio budget.">💰 Prezzo troppo elevato — Il costo dell'abbonamento non è adatto al mio budget.</option>
+            <option style="background:#FFFFFF; color:#000000;" value="⚙️ Funzionalità insufficienti — BarPilot non offre tutte le funzionalità di cui ho bisogno.">⚙️ Funzionalità insufficienti — BarPilot non offre tutte le funzionalità di cui ho bisogno.</option>
+            <option style="background:#FFFFFF; color:#000000;" value="🐛 Problemi tecnici — Ho riscontrato errori, rallentamenti o difficoltà nell'utilizzo.">🐛 Problemi tecnici — Ho riscontrato errori, rallentamenti o difficoltà nell'utilizzo.</option>
+            <option style="background:#FFFFFF; color:#000000;" value="🔄 Utilizzo un altro software — Ho deciso di passare a un'altra piattaforma gestionale.">🔄 Utilizzo un altro software — Ho deciso di passare a un'altra piattaforma gestionale.</option>
+            <option style="background:#FFFFFF; color:#000000;" value="🏪 Non ho più bisogno del servizio — Ho chiuso, sospeso o modificato la mia attività.">🏪 Non ho più bisogno del servizio — Ho chiuso, sospeso o modificato la mia attività.</option>
+            <option style="background:#FFFFFF; color:#000000;" value="Altro">Altro</option>
           </select>
         </div>
 
         <div class="form-group-modal">
-          <label class="form-label-modal">Note aggiuntive (facoltativo)</label>
-          <textarea class="form-textarea-modal" id="cancelNotesInput" rows="3" placeholder="Dicci come possiamo migliorare..."></textarea>
+          <label class="form-label-modal" style="color:#000000 !important;">Note aggiuntive (facoltativo)</label>
+          <textarea class="form-textarea-modal" id="cancelNotesInput" rows="3" placeholder="Dicci come possiamo migliorare..." style="background:#FFFFFF !important; color:#000000 !important; border:1px solid #D1D5DB !important;"></textarea>
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn-modal-cancel" onclick="closeCancelModal()">Annulla</button>
+          <button type="button" class="btn-modal-cancel" onclick="closeCancelModal()" style="background:#F3F4F6 !important; color:#111827 !important; border:1px solid #D1D5DB !important;">Annulla</button>
           <button type="submit" class="btn-modal-confirm-cancel" id="btnConfirmCancel">Conferma Disdetta</button>
         </div>
       </form>
