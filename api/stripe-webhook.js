@@ -471,20 +471,6 @@ async function syncInvoicePaid(invoice) {
       body: JSON.stringify(invPayload)
     });
 
-    try {
-      await supabaseFetch('admin_notifications', {
-        method: 'POST',
-        body: JSON.stringify({
-          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-          title: `Pagamento fallito per fattura ${invPayload.invoice_number}`,
-          message: `Tentativo di addebito Stripe fallito. Bar ${barId || 'registrato'} impostato in past_due.`,
-          type: 'danger',
-          link: '#view-invoices',
-          created_at: new Date().toISOString()
-        })
-      });
-    } catch (_) {}
-
     // Se il bar era past_due, riattivalo!
     if (barId) {
       await supabaseFetch(`bars?id=eq.${barId}`, {
@@ -497,7 +483,7 @@ async function syncInvoicePaid(invoice) {
       await supabaseFetch('admin_notifications', {
         method: 'POST',
         body: JSON.stringify({
-          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
           title: `Fattura ${invNumber} saldata`,
           message: `Incasso di ${amountTotal.toFixed(2)} € registrato con successo via Stripe.`,
           type: 'info',

@@ -71,6 +71,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "admin.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin.js",
+      "use": "@vercel/static"
+    },
+    {
       "src": "assets/**",
       "use": "@vercel/static"
     },
@@ -81,6 +89,10 @@
     {
       "src": "service-worker.js",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
     },
     {
       "src": "api/**/*.js",
@@ -119,6 +131,10 @@
     {
       "src": "^/api/admin-api/?$",
       "dest": "/api/admin-api.js"
+    },
+    {
+      "src": "^/api/delete-account/?$",
+      "dest": "/api/delete-account.js"
     },
     {
       "src": "^/api/cancel-subscription/?$",

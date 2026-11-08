@@ -35,11 +35,25 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Verifica Autenticazione Super Admin con PIN 101540
-  const pinHeader = req.headers['x-admin-pin'] || req.headers['x-super-admin-pin'];
-  const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-  const pinParam = req.query.adminPin || body.adminPin || pinHeader;
+  // Estrazione sicura body, query e headers
+  let body = {};
+  if (req.body) {
+    if (typeof req.body === 'string') {
+      try {
+        body = JSON.parse(req.body);
+      } catch (_) {
+        body = {};
+      }
+    } else if (typeof req.body === 'object') {
+      body = req.body;
+    }
+  }
+  const query = req.query || {};
+  const headers = req.headers || {};
+  const pinHeader = headers['x-admin-pin'] || headers['x-super-admin-pin'];
+  const pinParam = query.adminPin || body.adminPin || pinHeader;
 
+  // Verifica Autenticazione Super Admin con PIN 101540
   if (pinParam !== SUPER_ADMIN_PIN) {
     console.warn(`[Admin API] Tentativo di accesso non autorizzato con PIN errato.`);
     return res.status(401).json({
@@ -47,7 +61,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const action = req.query.action || body.action;
+  const action = query.action || body.action;
 
   try {
     switch (action) {
