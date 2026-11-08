@@ -8825,7 +8825,7 @@ async function handleProCheckoutSubmit(e) {
 
       // Success
       if (submitBtn) submitBtn.disabled = false;
-      showToast("✅ Carta verificata con successo da Stripe! Accesso sbloccato.");
+      showToast("✅ Pagamento verificato con successo! Controlla la tua email per confermare l'account e accedere alla dashboard.");
       activateSubscription('stripe_card');
       switchView('dashboard');
     } catch (err) {
