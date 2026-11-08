@@ -1476,37 +1476,73 @@ class AdminConsole {
     }
 
     try {
-      const res = await fetch("/api/admin-api?action=reply_ticket", {
-        method: "POST",
+      const nowIso = new Date().toISOString();
+      // 1. Aggiorna support_tickets
+      const resTkt = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${encodeURIComponent(tktId)}`, {
+        method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          ticketId: tktId,
-          replyMessage: responseText,
-          newStatus
+          response: responseText,
+          response_at: nowIso,
+          status: newStatus,
+          updated_at: nowIso
         })
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        this.showToast("✉️ Risposta inviata con successo al gestore del bar!");
-        this.closeSupportReplyModal();
+      // 2. Inserisci in support_messages
+      await fetch(`${this.supabaseConfig.url}/rest/v1/support_messages`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          ticket_id: tktId,
+          sender_name: "Super Admin BarPilot",
+          message: responseText,
+          is_admin: true,
+          created_at: nowIso
+        })
+      });
 
-        const tkt = (this.data.tickets || []).find(t => t.id === tktId);
-        if (tkt) {
-          tkt.response = responseText;
-          tkt.status = newStatus;
-        }
-        this.renderSupportTable();
-        await this.syncWithSupabase(false);
-      } else {
-        this.showToast(`⚠️ ${data.error || "Errore durante l'invio della risposta."}`);
+      // 3. Registra Audit Log
+      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_audit_logs`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: 'log_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          admin_id: "cheikh_superadmin",
+          action: "superadmin_reply_ticket",
+          entity_type: "support_ticket",
+          entity_id: tktId,
+          new_values: { status: newStatus, replyLength: responseText.length },
+          created_at: nowIso
+        })
+      });
+
+      this.showToast("✉️ Risposta inviata con successo al gestore del bar!");
+      this.closeSupportReplyModal();
+
+      const tkt = (this.data.tickets || []).find(t => t.id === tktId);
+      if (tkt) {
+        tkt.response = responseText;
+        tkt.status = newStatus;
       }
+      this.renderSupportTable();
+      await this.syncWithSupabase(false);
     } catch (err) {
       console.error("Support reply error:", err);
-      this.showToast("⚠️ Errore di connessione.");
+      this.showToast("⚠️ Errore durante l'invio della risposta.");
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -1779,30 +1815,45 @@ class AdminConsole {
     if (!confirm(confirmMsg)) return;
 
     try {
-      const res = await fetch("/api/admin-api?action=toggle_bar_status", {
-        method: "POST",
+      const nowIso = new Date().toISOString();
+      await fetch(`${this.supabaseConfig.url}/rest/v1/bars?id=eq.${encodeURIComponent(this.selectedBar.id)}`, {
+        method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          barId: this.selectedBar.id,
-          newStatus: nextStatus
+          status: nextStatus,
+          updated_at: nowIso
         })
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        this.selectedBar.status = nextStatus;
-        this.showToast(isSuspended ? `🟢 Bar "${barName}" riattivato!` : `⏸️ Bar "${barName}" sospeso temporaneamente.`);
-        this.openBarDetail(this.selectedBar.id);
-        await this.syncWithSupabase(false);
-      } else {
-        this.showToast(`⚠️ ${data.error || "Errore aggiornamento stato bar."}`);
-      }
+      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_audit_logs`, {
+        method: "POST",
+        headers: {
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: 'log_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          admin_id: "cheikh_superadmin",
+          action: "superadmin_toggle_bar_status",
+          entity_type: "bar",
+          entity_id: this.selectedBar.id,
+          new_values: { status: nextStatus },
+          created_at: nowIso
+        })
+      });
+
+      this.selectedBar.status = nextStatus;
+      this.showToast(isSuspended ? `🟢 Bar "${barName}" riattivato!` : `⏸️ Bar "${barName}" sospeso temporaneamente.`);
+      this.openBarDetail(this.selectedBar.id);
+      await this.syncWithSupabase(false);
     } catch (err) {
       console.error("Toggle suspend error:", err);
-      this.showToast("⚠️ Errore di rete.");
+      this.showToast("⚠️ Errore durante l'aggiornamento dello stato.");
     }
   }
 
@@ -1925,13 +1976,14 @@ class AdminConsole {
     (this.notifications || []).forEach(n => { n.is_read = true; });
     this.renderNotifications();
     try {
-      await fetch("/api/admin-api?action=mark_notifications_read", {
-        method: "POST",
+      await fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?is_read=eq.false`, {
+        method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ notificationId: "all" })
+        body: JSON.stringify({ is_read: true })
       });
     } catch (e) {}
     this.showToast("Notifiche contrassegnate come lette");
@@ -1946,13 +1998,14 @@ class AdminConsole {
     if (menu) menu.style.display = "none";
 
     try {
-      fetch("/api/admin-api?action=mark_notifications_read", {
-        method: "POST",
+      fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?id=eq.${encodeURIComponent(id)}`, {
+        method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
+          "apikey": this.supabaseConfig.anonKey,
+          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ notificationId: id })
+        body: JSON.stringify({ is_read: true })
       });
     } catch (e) {}
 
@@ -2001,20 +2054,18 @@ class AdminConsole {
     }
 
     try {
-      const res = await fetch("/api/admin-api?action=create_bar", {
+      const res = await fetch("/api/register-bar", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          name,
-          ownerName,
+          barName: name,
+          ownerName: ownerName || name,
           email,
           phone,
-          city,
-          plan: "BarPilot Pro",
-          trialDays: 14
+          city: city || "Roma",
+          address: `Via Centrale 1, ${city || 'Roma'}`
         })
       });
 
