@@ -117,10 +117,6 @@
       "dest": "/api/create-ticket.js"
     },
     {
-      "src": "^/api/admin-api/?$",
-      "dest": "/api/admin-api.js"
-    },
-    {
       "src": "^/api/cancel-subscription/?$",
       "dest": "/api/cancel-subscription.js"
     },
