@@ -241,18 +241,6 @@
         </div>
 
         <div class="topbar-right">
-          <!-- Supabase Live Status Badge & Global Sync Actions -->
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div id="supabaseStatusBadge" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#10B981; background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.syncWithSupabase()" title="Clicca per sincronizzare subito con Supabase">
-              <span>🟢</span> <span>Supabase DB Connesso</span>
-            </div>
-            <button type="button" class="btn-supabase-push" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#fff; background:#FF6B00; border:none; padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer; box-shadow:0 2px 8px rgba(255,107,0,0.3);" onclick="window.adminConsole.pushAllDataToSupabase()" title="Salva tutti i dati delle 8 sezioni su Supabase">
-              <span>☁️</span> <span>Salva su Supabase</span>
-            </button>
-            <button type="button" class="btn-supabase-sql" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text-main); background:var(--bg-card); border:1px solid var(--border-color); padding:0 12px; height:38px; border-radius:var(--radius-md); cursor:pointer;" onclick="window.adminConsole.copySupabaseSql()" title="Copia lo script SQL per creare le tabelle nel tuo progetto Supabase">
-              <span>📋</span> <span>Crea Tabelle SQL</span>
-            </button>
-          </div>
 
           <!-- Live Search Input -->
           <div class="search-box-wrap">
