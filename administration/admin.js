@@ -906,7 +906,6 @@ class AdminConsole {
       this.showToast("🔓 Accesso autorizzato come Super Admin!");
       this.handleHashRouting();
     } else {
-    } else {
       if (err) err.style.display = "block";
       input.value = "";
       input.style.borderColor = "#EF4444";
