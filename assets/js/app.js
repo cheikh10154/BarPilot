@@ -171,6 +171,9 @@ function renderApp() {
   renderFacebookSetting();
   renderGeneralSettings();
   updateDashboardLockState();
+  if (typeof renderClientSupportTickets === "function") {
+    renderClientSupportTickets();
+  }
   if (typeof updateTicketButtonVisibility === "function") {
     updateTicketButtonVisibility();
   }
@@ -199,7 +202,7 @@ function setupNavigation() {
     item.addEventListener("click", () => {
       const view = item.getAttribute("data-view");
       const isSubscribed = isUserSubscribed();
-      if (!isSubscribed && view !== "subscriptions") {
+      if (!isSubscribed && view !== "subscriptions" && view !== "support") {
         showToast("⚠️ Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, aggiungi un metodo di pagamento e riattiva il tuo abbonamento.");
         switchView("subscriptions");
         if (window.innerWidth <= 1024) closeSidebar();
@@ -478,7 +481,7 @@ function updateDashboardLockState() {
   // 1. Sidebar menu items: solo la voce "Abbonamento" è accessibile se l'account non è attivo
   document.querySelectorAll(".nav-item[data-view]").forEach(item => {
     const v = item.getAttribute("data-view");
-    if (v === "subscriptions") {
+    if (v === "subscriptions" || v === "support") {
       item.style.opacity = "";
       item.removeAttribute("title");
       return;
@@ -743,7 +746,7 @@ async function confirmGooglePlaySubscription() {
 
 function switchView(viewName) {
   const isSubscribed = isUserSubscribed();
-  if (!isSubscribed && viewName !== "subscriptions") {
+  if (!isSubscribed && viewName !== "subscriptions" && viewName !== "support") {
     viewName = "subscriptions";
   }
   appState.activeView = viewName;
