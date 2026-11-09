@@ -864,7 +864,8 @@ class AdminConsole {
 
   handleHashRouting() {
     const rawHash = (window.location.hash || "").replace(/^#/, "").toLowerCase();
-    if (rawHash === "supporto" || rawHash === "support" || rawHash === "view-support") {
+    const rawPath = (window.location.pathname || "").toLowerCase();
+    if (rawHash === "supporto" || rawHash === "support" || rawHash === "view-support" || rawPath.endsWith("/supporto") || rawPath.includes("/administration/supporto")) {
       this.switchView("support");
     }
   }
@@ -1617,7 +1618,22 @@ class AdminConsole {
 
     try {
       const nowIso = new Date().toISOString();
-      // 1. Aggiorna support_tickets
+      // 1. Aggiorna API backend /api/create-ticket per persistenza immediata
+      try {
+        await fetch("/api/create-ticket", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: tktId,
+            response: responseText,
+            status: newStatus
+          })
+        });
+      } catch (errApi) {
+        console.warn("[Admin] Note /api/create-ticket PATCH:", errApi);
+      }
+
+      // 2. Aggiorna support_tickets su Supabase (se configurato)
       const resTkt = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${encodeURIComponent(tktId)}`, {
         method: "PATCH",
         headers: {
@@ -1699,6 +1715,12 @@ class AdminConsole {
     this.renderSupportTable();
 
     try {
+      fetch("/api/create-ticket", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: tkt.id, status: tkt.status })
+      }).catch(() => {});
+
       await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${tkt.id}`, {
         method: "PATCH",
         headers: {
@@ -1723,6 +1745,12 @@ class AdminConsole {
       this.renderSupportTable();
 
       try {
+        fetch("/api/create-ticket", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: tkt.id, response: tkt.response, status: "resolved" })
+        }).catch(() => {});
+
         await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?id=eq.${tkt.id}`, {
           method: "PATCH",
           headers: {

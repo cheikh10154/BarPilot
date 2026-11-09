@@ -58,7 +58,7 @@ async function supabaseFetch(endpoint, options = {}) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-pin');
 
   if (req.method === 'OPTIONS') {
@@ -76,6 +76,15 @@ export default async function handler(req, res) {
           const ids = new Set(tickets.map(t => t.id));
           sbTickets.forEach(st => {
             if (!ids.has(st.id)) tickets.push(st);
+            else {
+              // Sincronizza stato e risposta da Supabase se più recenti
+              const localTkt = tickets.find(t => t.id === st.id);
+              if (localTkt && st.response && !localTkt.response) {
+                localTkt.response = st.response;
+                localTkt.response_at = st.response_at || st.updated_at;
+                localTkt.status = st.status || localTkt.status;
+              }
+            }
           });
         }
       }
@@ -84,8 +93,52 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, tickets });
   }
 
+  // PATCH: Aggiorna stato o risposta di un ticket da parte del Super Admin
+  if (req.method === 'PATCH') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const { id, response, status } = body;
+      if (!id) {
+        return res.status(400).json({ error: 'ID ticket mancante' });
+      }
+
+      const currentTickets = readTicketsStore();
+      const tkt = currentTickets.find(t => t.id === id);
+      const nowIso = new Date().toISOString();
+
+      if (tkt) {
+        if (response !== undefined) {
+          tkt.response = response;
+          tkt.response_at = nowIso;
+        }
+        if (status) tkt.status = status;
+        tkt.updated_at = nowIso;
+        writeTicketsStore(currentTickets);
+      }
+
+      // Aggiorna anche su Supabase
+      try {
+        const patchBody = { updated_at: nowIso };
+        if (response !== undefined) {
+          patchBody.response = response;
+          patchBody.response_at = nowIso;
+        }
+        if (status) patchBody.status = status;
+        await supabaseFetch(`support_tickets?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patchBody)
+        });
+      } catch (_) {}
+
+      return res.status(200).json({ success: true, ticket: tkt });
+    } catch (err) {
+      console.error('[Patch Ticket] Error:', err);
+      return res.status(500).json({ error: 'Errore interno durante aggiornamento ticket', details: err.message });
+    }
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'GET, POST, OPTIONS');
+    res.setHeader('Allow', 'GET, POST, PATCH, OPTIONS');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 

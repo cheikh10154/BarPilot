@@ -213,6 +213,14 @@
       "dest": "/service-worker.js"
     },
     {
+      "src": "^/app/supporto/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/app/administration/supporto/?$",
+      "dest": "/administration/index.html"
+    },
+    {
       "src": "^/app/administration/?$",
       "dest": "/administration/index.html"
     },

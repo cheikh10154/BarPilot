@@ -123,7 +123,7 @@ function initBarPilotApp() {
           switchView("subscriptions");
           setTimeout(() => openCheckoutModal(true), 200);
         }
-      } else if (hash === "#support" || hash === "#ticket" || hash === "#assistenza") {
+      } else if (hash === "#support" || hash === "#supporto" || hash === "#ticket" || hash === "#assistenza" || pathname.endsWith("/supporto")) {
         switchView("support");
       } else if (hash.startsWith("#view-")) {
         const v = hash.replace("#view-", "");
@@ -9253,69 +9253,231 @@ async function handleSupportFormSubmit(event, formId) {
 window.handleSupportFormSubmit = handleSupportFormSubmit;
 
 // Visualizzazione dei Ticket Inviati dal Bar e relative Risposte dal Super Admin
-async function renderClientSupportTickets() {
+window.clientSupportFilter = "all";
+
+function setClientSupportFilter(newFilter) {
+  window.clientSupportFilter = newFilter;
+  if (typeof renderClientSupportTickets === "function") {
+    renderClientSupportTickets(false);
+  }
+}
+window.setClientSupportFilter = setClientSupportFilter;
+
+let supportPollInterval = null;
+
+async function renderClientSupportTickets(doFetch = true) {
   const container = document.getElementById("clientTicketsListContainer");
   if (!container) return;
-  try {
-    const activeEmail = (window.currentUserBar && window.currentUserBar.email) || localStorage.getItem("barpilot_user_email") || "";
-    const activeBarId = (window.currentUserBar && window.currentUserBar.id) || localStorage.getItem("barpilot_active_bar_id") || "";
 
-    let query = "support_tickets?select=*&order=created_at.desc&limit=10";
-    if (activeBarId) query += `&bar_id=eq.${encodeURIComponent(activeBarId)}`;
-
-    const res = await fetch(`https://cprxxxlgaofopmogeuer.supabase.co/rest/v1/${query}`, {
-      headers: {
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"
+  if (doFetch || !window.cachedClientTickets) {
+    let tickets = [];
+    // 1. Fetch da API backend serverless /api/create-ticket
+    try {
+      const apiRes = await fetch("/api/create-ticket");
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.success && Array.isArray(apiData.tickets)) {
+          tickets = apiData.tickets;
+        }
       }
-    });
+    } catch (_) {}
 
-    if (res.ok) {
-      const tickets = await res.json();
-      if (Array.isArray(tickets) && tickets.length > 0) {
-        container.innerHTML = `
-          <div style="background:var(--bg-card); border-radius:14px; padding:20px; margin-top:24px; border:1px solid var(--border-color); box-shadow:0 4px 20px rgba(0,0,0,0.15);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-              <h4 style="font-size:15px; font-weight:800; color:#fff; margin:0; display:flex; align-items:center; gap:8px;">
-                <span>💬</span> <span>I tuoi ticket di assistenza & risposte Super Admin</span>
-              </h4>
-              <button type="button" class="btn-primary" onclick="openSupportTicketModal()" style="font-size:12px; padding:6px 14px; border-radius:8px;">+ Nuovo ticket</button>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-              ${tickets.map(t => `
-                <div style="background:var(--bg-card-secondary); border-radius:10px; padding:14px; border:1px solid var(--border-color);">
-                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:8px;">
-                    <div>
-                      <strong style="color:#FF8A24; font-size:14px;">${t.subject}</strong>
-                      <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Ticket ID: ${t.id} · Categoria: ${t.category} · Inviato il ${new Date(t.created_at).toLocaleDateString('it-IT')}</div>
+    // 2. Fallback Supabase
+    try {
+      const query = "support_tickets?select=*&order=created_at.desc&limit=50";
+      const res = await fetch(`https://cprxxxlgaofopmogeuer.supabase.co/rest/v1/${query}`, {
+        headers: {
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"
+        }
+      });
+      if (res.ok) {
+        const sbTkts = await res.json();
+        if (Array.isArray(sbTkts)) {
+          const ids = new Set(tickets.map(t => t.id));
+          sbTkts.forEach(st => {
+            if (!ids.has(st.id)) tickets.push(st);
+            else {
+              const ex = tickets.find(t => t.id === st.id);
+              if (ex && st.response && !ex.response) {
+                ex.response = st.response;
+                ex.response_at = st.response_at || st.updated_at;
+                ex.status = st.status || ex.status;
+              }
+            }
+          });
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback localStorage
+    try {
+      const local = JSON.parse(localStorage.getItem("barpilot_support_tickets") || "[]");
+      if (Array.isArray(local)) {
+        const ids = new Set(tickets.map(t => t.id));
+        local.forEach(lt => {
+          if (!ids.has(lt.id)) tickets.push(lt);
+        });
+      }
+    } catch (_) {}
+
+    window.cachedClientTickets = tickets;
+  }
+
+  const allTickets = window.cachedClientTickets || [];
+  const activeEmail = (window.currentUserBar && window.currentUserBar.email) || localStorage.getItem("barpilot_user_email") || "";
+  const activeBarId = (window.currentUserBar && window.currentUserBar.id) || localStorage.getItem("barpilot_active_bar_id") || "";
+
+  // Filtra per bar se presente, altrimenti mostra tutti i ticket registrati dal client
+  let barTickets = allTickets;
+  if (activeEmail || activeBarId) {
+    const matched = allTickets.filter(t => 
+      (activeBarId && (t.barId === activeBarId || t.bar_id === activeBarId)) ||
+      (activeEmail && (t.email === activeEmail || t.contactEmail === activeEmail || t.contact_email === activeEmail))
+    );
+    if (matched.length > 0) barTickets = matched;
+  }
+
+  // Suddivisione per stato
+  const openTkts = barTickets.filter(t => !t.status || t.status === "open" || t.status === "waiting_customer");
+  const inProgTkts = barTickets.filter(t => t.status === "in_progress");
+  const resolvedTkts = barTickets.filter(t => t.status === "resolved" || t.status === "closed");
+
+  const currentTab = window.clientSupportFilter || "all";
+  let displayedTkts = barTickets;
+  if (currentTab === "open") displayedTkts = openTkts;
+  else if (currentTab === "in_progress") displayedTkts = inProgTkts;
+  else if (currentTab === "resolved") displayedTkts = resolvedTkts;
+
+  const escapeHtml = (str) => {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  const getStatusBadge = (status) => {
+    const s = (status || "open").toLowerCase();
+    if (s === "resolved" || s === "closed") {
+      return `<span style="background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3); padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">✓ Risolto</span>`;
+    }
+    if (s === "in_progress") {
+      return `<span style="background:rgba(59,130,246,0.15); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">⚙️ In corso</span>`;
+    }
+    return `<span style="background:rgba(255,138,36,0.15); color:#FF8A24; border:1px solid rgba(255,138,36,0.3); padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">⏳ Aperto</span>`;
+  };
+
+  container.innerHTML = `
+    <div style="background:var(--bg-card); border-radius:18px; padding:24px; margin-top:28px; border:1px solid var(--border-color); box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+      <!-- Header Sezione Ticket -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px; font-weight:900; color:#fff; margin:0 0 4px 0; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">🎧</span>
+            <span>I tuoi ticket di assistenza & risposte Super Admin</span>
+          </h3>
+          <p style="font-size:12.5px; color:var(--text-muted); margin:0;">
+            Visualizza lo stato dei tuoi ticket (aperti, in corso, risolti) e leggi le risposte ufficiali del Super Admin.
+          </p>
+        </div>
+        <button type="button" class="btn-primary" onclick="openSupportTicketModal()" style="font-size:13px; font-weight:700; padding:8px 16px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
+          <span>+</span> <span>Apri nuovo ticket</span>
+        </button>
+      </div>
+
+      <!-- Filtri Stato: Aperti, In corso, Risolti -->
+      <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+        <button type="button" onclick="setClientSupportFilter('all')" style="padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${currentTab === 'all' ? '#FF6B00' : 'var(--border-color)'}; background:${currentTab === 'all' ? '#FF6B00' : 'var(--bg-card-secondary)'}; color:${currentTab === 'all' ? '#fff' : 'var(--text-muted)'}; transition:all 0.15s;">
+          Tutti i ticket (${barTickets.length})
+        </button>
+        <button type="button" onclick="setClientSupportFilter('open')" style="padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${currentTab === 'open' ? '#FF8A24' : 'var(--border-color)'}; background:${currentTab === 'open' ? '#FF8A24' : 'var(--bg-card-secondary)'}; color:${currentTab === 'open' ? '#fff' : 'var(--text-muted)'}; transition:all 0.15s;">
+          ⏳ Aperti (${openTkts.length})
+        </button>
+        <button type="button" onclick="setClientSupportFilter('in_progress')" style="padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${currentTab === 'in_progress' ? '#3B82F6' : 'var(--border-color)'}; background:${currentTab === 'in_progress' ? '#3B82F6' : 'var(--bg-card-secondary)'}; color:${currentTab === 'in_progress' ? '#fff' : 'var(--text-muted)'}; transition:all 0.15s;">
+          ⚙️ In corso (${inProgTkts.length})
+        </button>
+        <button type="button" onclick="setClientSupportFilter('resolved')" style="padding:8px 16px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid ${currentTab === 'resolved' ? '#10B981' : 'var(--border-color)'}; background:${currentTab === 'resolved' ? '#10B981' : 'var(--bg-card-secondary)'}; color:${currentTab === 'resolved' ? '#fff' : 'var(--text-muted)'}; transition:all 0.15s;">
+          ✓ Risolti (${resolvedTkts.length})
+        </button>
+      </div>
+
+      <!-- Lista Card Ticket -->
+      ${displayedTkts.length === 0 ? `
+        <div style="background:var(--bg-card-secondary); border-radius:12px; padding:36px 20px; text-align:center; border:1px dashed var(--border-color);">
+          <div style="font-size:32px; margin-bottom:8px;">📬</div>
+          <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:4px;">Nessun ticket in questa categoria</div>
+          <p style="font-size:12.5px; color:var(--text-muted); margin:0 auto 14px; max-width:400px;">
+            ${currentTab === 'all' ? 'Non hai ancora inviato richieste di assistenza. Compila il modulo sopra per contattare il supporto.' : 'Non ci sono ticket corrispondenti a questo filtro.'}
+          </p>
+        </div>
+      ` : `
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          ${displayedTkts.map(t => {
+            const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (t.date || 'Oggi');
+            const respDateStr = t.response_at ? new Date(t.response_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            return `
+              <div style="background:var(--bg-card-secondary); border-radius:14px; padding:18px; border:1px solid var(--border-color); box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                      <span style="background:linear-gradient(135deg, #FF6B00 0%, #FF8A00 100%); color:#fff; font-weight:900; font-size:11.5px; padding:2px 8px; border-radius:6px; letter-spacing:0.5px;">${t.id}</span>
+                      <strong style="color:#fff; font-size:15px; font-weight:800;">${escapeHtml(t.subject)}</strong>
                     </div>
-                    <span class="status-pill ${t.status === 'resolved' ? 'status-active' : 'status-trial'}" style="font-size:11px; font-weight:700;">
-                      ${t.status === 'resolved' ? '✓ Risolto' : (t.status === 'in_progress' ? '⚙️ In corso' : '⏳ In attesa')}
+                    <div style="font-size:11.5px; color:var(--text-muted);">
+                      <span>🏷️ ${escapeHtml(t.category || 'Assistenza Generale')}</span>
+                      <span style="margin:0 6px;">·</span>
+                      <span>📅 Inviato: ${dateStr}</span>
+                    </div>
+                  </div>
+                  <div>
+                    ${getStatusBadge(t.status)}
+                  </div>
+                </div>
+
+                <!-- Testo richiesta del bar -->
+                <div style="background:rgba(0,0,0,0.25); border-radius:10px; padding:12px 14px; margin-top:8px; border-left:3px solid #64748B;">
+                  <div style="font-size:11px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">La tua richiesta:</div>
+                  <p style="font-size:13px; color:#E2E8F0; line-height:1.5; margin:0; white-space:pre-wrap;">${escapeHtml(t.description || t.message || '')}</p>
+                </div>
+
+                <!-- Risposta del Super Admin -->
+                ${t.response ? `
+                  <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; padding:14px; border-radius:10px; margin-top:12px;">
+                    <div style="font-size:12px; font-weight:800; color:#10B981; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span>🛡️</span>
+                        <span>Risposta Ufficiale Super Admin BarPilot</span>
+                      </div>
+                      ${respDateStr ? `<span style="font-size:11px; color:#6EE7B7; font-weight:normal;">${respDateStr}</span>` : ''}
+                    </div>
+                    <div style="font-size:13.5px; color:#FFFFFF; line-height:1.55; white-space:pre-wrap;">${escapeHtml(t.response)}</div>
+                  </div>
+                ` : `
+                  <div style="background:rgba(255,138,36,0.06); border-left:3px solid #FF8A24; padding:10px 14px; border-radius:8px; margin-top:12px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:14px;">⏳</span>
+                    <span style="font-size:12px; color:#CBD5E1;">
+                      Il ticket è stato inviato al Super Admin su <strong>/app/administration/supporto</strong>. La risposta apparirà direttamente qui appena inviata.
                     </span>
                   </div>
-                  <p style="font-size:12.5px; color:#cbd5e1; margin:8px 0; line-height:1.4; white-space:pre-wrap;">${t.description || t.message || ''}</p>
-                  ${t.response ? `
-                    <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; padding:10px 12px; border-radius:6px; margin-top:10px;">
-                      <div style="font-size:11.5px; font-weight:800; color:#10B981; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-                        <span>🛡️</span> <span>Risposta Ufficiale Super Admin BarPilot</span>
-                        ${t.response_at ? `<span style="font-size:10px; color:#94a3b8; font-weight:normal;">(${new Date(t.response_at).toLocaleDateString('it-IT')})</span>` : ''}
-                      </div>
-                      <div style="font-size:13px; color:#fff; line-height:1.5; white-space:pre-wrap;">${t.response}</div>
-                    </div>
-                  ` : `
-                    <div style="font-size:11.5px; color:#94a3b8; margin-top:8px; font-style:italic;">
-                      ⏳ La richiesta è stata presa in carico dal Super Admin. Riceverai risposta qui e via email.
-                    </div>
-                  `}
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `;
+
+  // Avvia polling periodico (ogni 10s) se siamo sulla sezione supporto
+  if (!supportPollInterval) {
+    supportPollInterval = setInterval(() => {
+      if (appState && appState.activeView === "support") {
+        renderClientSupportTickets(true);
       }
-    }
-  } catch (e) {
-    console.warn("[Client Support Tickets] Note:", e.message);
+    }, 10000);
   }
 }
 window.renderClientSupportTickets = renderClientSupportTickets;
