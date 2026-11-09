@@ -1,9 +1,48 @@
 // api/create-ticket.js - Vercel Serverless Function (Node.js)
 // Gestione ricezione ticket di assistenza da www.barpilot.eu
-// Salva direttamente su Supabase nelle tabelle support_tickets, support_messages e admin_audit_logs
+// Salva direttamente su Supabase e store serverless con ID progressivi tkt001, tkt002, tkt003...
+
+import fs from 'fs';
+import path from 'path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cprxxxlgaofopmogeuer.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
+
+const TICKETS_FILE = path.join('/tmp', 'barpilot_tickets.json');
+
+function readTicketsStore() {
+  try {
+    if (fs.existsSync(TICKETS_FILE)) {
+      const data = fs.readFileSync(TICKETS_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('[Tickets Store] Read error:', e.message);
+  }
+  return [];
+}
+
+function writeTicketsStore(tickets) {
+  try {
+    fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('[Tickets Store] Write error:', e.message);
+  }
+}
+
+function getNextSequentialId(existingTickets) {
+  let maxNum = 0;
+  for (const t of existingTickets) {
+    const m = String(t.id || '').match(/tkt[_\s-]?(\d+)/i);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = maxNum + 1;
+  return `tkt${String(nextNum).padStart(3, '0')}`;
+}
 
 async function supabaseFetch(endpoint, options = {}) {
   const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${endpoint}`;
@@ -26,19 +65,23 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET: Restituisce l'elenco dei ticket di supporto
+  // GET: Restituisce l'elenco dei ticket di supporto ordinati cronologicamente
   if (req.method === 'GET') {
+    let tickets = readTicketsStore();
     try {
       const ticketsRes = await supabaseFetch('support_tickets?select=*&order=created_at.desc');
       if (ticketsRes.ok) {
-        const tickets = await ticketsRes.json();
-        return res.status(200).json({ success: true, source: 'supabase', tickets });
+        const sbTickets = await ticketsRes.json();
+        if (Array.isArray(sbTickets) && sbTickets.length > 0) {
+          const ids = new Set(tickets.map(t => t.id));
+          sbTickets.forEach(st => {
+            if (!ids.has(st.id)) tickets.push(st);
+          });
+        }
       }
-      const errText = await ticketsRes.text();
-      return res.status(200).json({ success: false, error: errText, tickets: [] });
-    } catch (e) {
-      return res.status(200).json({ success: false, error: e.message, tickets: [] });
-    }
+    } catch (_) {}
+
+    return res.status(200).json({ success: true, tickets });
   }
 
   if (req.method !== 'POST') {
@@ -55,7 +98,8 @@ export default async function handler(req, res) {
       message,
       category,
       priority = 'medium',
-      barId
+      barId,
+      barName
     } = body;
 
     if (!fullName || !email || !subject || !message) {
@@ -66,6 +110,7 @@ export default async function handler(req, res) {
     const cleanName = fullName.trim();
     const cleanSubject = subject.trim();
     const cleanMessage = message.trim();
+    const cleanBarName = (barName || cleanName || 'Bar').trim();
 
     // Determina categoria
     let resolvedCategory = category;
@@ -78,85 +123,87 @@ export default async function handler(req, res) {
     }
 
     const RECIPIENT_EMAIL = 'admin@barpilot.eu';
-    const ticketId = 'tkt_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    const currentTickets = readTicketsStore();
+    const ticketId = getNextSequentialId(currentTickets);
 
-    // 1. Inserisci il Ticket in public.support_tickets (Destinatario ufficiale: admin@barpilot.eu)
-    const ticketPayload = {
+    const ticketObj = {
       id: ticketId,
+      barId: barId || null,
       bar_id: barId || null,
+      barName: cleanBarName,
+      bar_name: cleanBarName,
+      contactEmail: cleanEmail,
+      contact_email: cleanEmail,
+      email: cleanEmail,
+      userName: cleanName,
+      user_name: cleanName,
       subject: cleanSubject,
-      description: `[DESTINATARIO: ${RECIPIENT_EMAIL}]\nMittente: ${cleanName} (${cleanEmail})\nOggetto: ${cleanSubject}\n\nMessaggio:\n${cleanMessage}`,
       category: resolvedCategory,
-      priority: priority,
       status: 'open',
+      date: new Date().toLocaleDateString('it-IT'),
+      message: cleanMessage,
+      description: cleanMessage,
+      response: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    const ticketRes = await supabaseFetch('support_tickets', {
-      method: 'POST',
-      body: JSON.stringify(ticketPayload)
-    });
+    currentTickets.unshift(ticketObj);
+    writeTicketsStore(currentTickets);
 
-    if (!ticketRes.ok) {
-      console.warn('[Create Ticket] Warning on support_tickets insert:', await ticketRes.text());
-    }
-
-    // 2. Inserisci il primo messaggio in public.support_messages
-    const messagePayload = {
-      id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-      ticket_id: ticketId,
-      sender_name: cleanName,
-      message: `[Inviato a ${RECIPIENT_EMAIL}]\n\n${cleanMessage}`,
-      created_at: new Date().toISOString()
-    };
-
-    await supabaseFetch('support_messages', {
-      method: 'POST',
-      body: JSON.stringify(messagePayload)
-    });
-
-    // 3. Registra log su public.admin_audit_logs con destinatario admin@barpilot.eu
-    await supabaseFetch('admin_audit_logs', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: 'log_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-        admin_id: 'system_contact_form',
-        action: 'support_ticket_opened',
-        entity_type: 'ticket',
-        entity_id: ticketId,
-        new_values: {
-          recipient: RECIPIENT_EMAIL,
-          fullName: cleanName,
-          email: cleanEmail,
+    // 1. Inserisci il Ticket in public.support_tickets (se disponibile)
+    try {
+      await supabaseFetch('support_tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: ticketId,
+          bar_id: barId || null,
+          bar_name: cleanBarName,
+          contact_email: cleanEmail,
           subject: cleanSubject,
+          description: cleanMessage,
           category: resolvedCategory,
-          priority: priority
-        },
-        created_at: new Date().toISOString()
-      })
-    });
+          status: 'open',
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
 
-    // 4. Invia notifica immediata al Super Admin in public.admin_notifications
+    // 2. Inserisci messaggio in public.support_messages
+    try {
+      await supabaseFetch('support_messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          ticket_id: ticketId,
+          sender_name: cleanName,
+          message: `[Inviato ad ${RECIPIENT_EMAIL}]\n\n${cleanMessage}`,
+          created_at: new Date().toISOString()
+        })
+      });
+    } catch (_) {}
+
+    // 3. Notifica amministratore con link diretto a #supporto
     try {
       await supabaseFetch('admin_notifications', {
         method: 'POST',
         body: JSON.stringify({
           id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-          title: `Nuovo ticket: ${cleanSubject.substring(0, 40)}`,
-          message: `${cleanName} (${cleanEmail}) ha aperto un ticket nella categoria "${resolvedCategory}".`,
-          type: priority === 'urgent' || priority === 'high' ? 'danger' : 'info',
-          link: '#view-support',
+          title: `Nuovo ticket ${ticketId}: ${cleanSubject.substring(0, 40)}`,
+          message: `${cleanBarName} (${cleanEmail}) ha aperto un ticket nella categoria "${resolvedCategory}".`,
+          type: 'info',
+          link: '#supporto',
           created_at: new Date().toISOString()
         })
       });
-    } catch (e) {}
+    } catch (_) {}
 
     return res.status(200).json({
       success: true,
       ticketId: ticketId,
+      ticket: ticketObj,
       recipient: RECIPIENT_EMAIL,
-      message: `Ticket inviato con successo ad ${RECIPIENT_EMAIL}. Riceverai risposta a breve su ${cleanEmail}`
+      message: `Ticket ${ticketId} inviato con successo ad ${RECIPIENT_EMAIL}. Riceverai risposta a breve su ${cleanEmail}`
     });
   } catch (err) {
     console.error('[Create Ticket] Exception:', err);

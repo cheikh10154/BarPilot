@@ -9177,6 +9177,11 @@ async function handleSupportFormSubmit(event, formId) {
 
   // Dynamic active bar ID resolution
   const activeBarId = (window.currentUserBar && window.currentUserBar.id) || (localStorage.getItem("barpilot_active_bar_id")) || (window.currentBarId) || "bar_centrale_01";
+  const activeBarName = (window.currentUserBar && (window.currentUserBar.name || window.currentUserBar.businessName)) ||
+    (localStorage.getItem("barpilot_bar_name")) ||
+    (localStorage.getItem("barpilot_active_bar_name")) ||
+    (window.currentBar && (window.currentBar.name || window.currentBar.businessName)) ||
+    (fullName ? `Bar di ${fullName}` : "Bar");
 
   try {
     const res = await fetch("/api/create-ticket", {
@@ -9188,15 +9193,24 @@ async function handleSupportFormSubmit(event, formId) {
         email,
         subject,
         message,
-        barId: activeBarId
+        barId: activeBarId,
+        barName: activeBarName
       })
     });
 
     const data = await res.json();
 
     if (res.ok && data.success) {
+      try {
+        const stored = JSON.parse(localStorage.getItem("barpilot_support_tickets") || "[]");
+        if (data.ticket) {
+          stored.unshift(data.ticket);
+          localStorage.setItem("barpilot_support_tickets", JSON.stringify(stored));
+        }
+      } catch (e) {}
+
       if (typeof showToast === "function") {
-        showToast(`✅ Ticket inviato con successo a admin@barpilot.eu! Risponderemo su ${email}`);
+        showToast(`✅ Ticket ${data.ticketId || ''} inviato con successo ad admin@barpilot.eu! Risponderemo su ${email}`);
       }
       form.reset();
       if (typeof renderClientSupportTickets === "function") renderClientSupportTickets();

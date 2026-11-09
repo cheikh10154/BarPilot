@@ -205,9 +205,9 @@ const DEFAULT_ADMIN_DATA = {
     { id: "pay_03", transactionId: "pi_stripe_7739102", barId: "bar_moderno_04", barName: "Bar Moderno", amount: 59.00, method: "card", status: "failed", date: "04 nov 2026, 09:30" }
   ],
   tickets: [
-    { id: "tkt_01", barId: "bar_centrale_01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", priority: "medium", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2026" },
-    { id: "tkt_02", barId: "bar_moderno_04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", priority: "high", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il metodo per l'addebito automatico?", response: null, date: "27 ott 2026" },
-    { id: "tkt_03", barId: "bar_dolce_03", barName: "La Dolce Vita", contactEmail: "alessandro@ladolcevita.it", subject: "Integrazione stampante termica comande Bluetooth", category: "Hardware", priority: "low", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2026" }
+    { id: "tkt001", barId: "bar_centrale_01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2026" },
+    { id: "tkt002", barId: "bar_moderno_04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il metodo per l'addebito automatico?", response: null, date: "27 ott 2026" },
+    { id: "tkt003", barId: "bar_dolce_03", barName: "La Dolce Vita", contactEmail: "alessandro@ladolcevita.it", subject: "Integrazione stampante termica comande Bluetooth", category: "Hardware", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2026" }
   ],
   auditLogs: [
     { id: "log_01", adminId: "cheikh_superadmin", action: "settings_updated", entityType: "platform", entityId: "config", newValues: { trial_days: 14, default_plan: "BarPilot Pro" }, createdAt: "Oggi, 10:00" },
@@ -579,29 +579,77 @@ class AdminConsole {
         console.warn("[Supabase] Payments sync fallback:", e);
       }
 
-      // 5. Fetch Support Tickets
+      // 5. Fetch Support Tickets (da API, Supabase e LocalStorage con ID progressivi tkt001, tkt002...)
       try {
-        const tktRes = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?select=*&order=created_at.desc`, { headers });
-        if (tktRes.ok) {
-          const remoteTkts = await tktRes.json();
-          if (Array.isArray(remoteTkts) && remoteTkts.length > 0) {
-            this.data.tickets = remoteTkts.map(rt => {
-              const matchedBar = (this.data.bars || []).find(b => b.id === rt.bar_id);
-              return {
-                id: rt.id,
-                barId: rt.bar_id,
-                barName: rt.bar_name || (matchedBar ? matchedBar.name : "Bar"),
-                contactEmail: rt.contact_email || (matchedBar ? matchedBar.email : "gestore@bar.it"),
-                subject: rt.subject,
-                category: rt.category || "KDS Banco",
-                priority: rt.priority || "medium",
-                status: rt.status || "open",
-                message: rt.description || rt.message || "",
-                response: rt.response || null,
-                date: rt.created_at ? new Date(rt.created_at).toLocaleDateString('it-IT') : "Recente"
-              };
+        let loadedTkts = [];
+
+        // 1. Fetch da API serverless /api/create-ticket
+        try {
+          const apiRes = await fetch("/api/create-ticket");
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData.success && Array.isArray(apiData.tickets) && apiData.tickets.length > 0) {
+              loadedTkts = apiData.tickets;
+            }
+          }
+        } catch (apiErr) {
+          console.warn("[Admin] Note /api/create-ticket GET:", apiErr);
+        }
+
+        // 2. Fetch da Supabase REST (se disponibile)
+        try {
+          const tktRes = await fetch(`${this.supabaseConfig.url}/rest/v1/support_tickets?select=*&order=created_at.desc`, { headers });
+          if (tktRes.ok) {
+            const remoteTkts = await tktRes.json();
+            if (Array.isArray(remoteTkts) && remoteTkts.length > 0) {
+              const existingIds = new Set(loadedTkts.map(t => t.id));
+              remoteTkts.forEach(rt => {
+                if (!existingIds.has(rt.id)) loadedTkts.push(rt);
+              });
+            }
+          }
+        } catch (_) {}
+
+        // 3. Fallback sincronizzazione diretta browser / localStorage
+        try {
+          const localStored = JSON.parse(localStorage.getItem("barpilot_support_tickets") || "[]");
+          if (Array.isArray(localStored) && localStored.length > 0) {
+            const existingIds = new Set(loadedTkts.map(t => t.id));
+            localStored.forEach(lt => {
+              if (!existingIds.has(lt.id)) loadedTkts.push(lt);
             });
           }
+        } catch (_) {}
+
+        if (loadedTkts.length > 0) {
+          this.data.tickets = loadedTkts.map((rt, idx) => {
+            const matchedBar = (this.data.bars || []).find(b => b.id === (rt.bar_id || rt.barId));
+            
+            // Format ID come tkt001, tkt002, tkt003...
+            let ticketId = rt.id;
+            const match = String(ticketId || '').match(/tkt[_\s-]?(\d+)/i);
+            if (match) {
+              ticketId = `tkt${match[1].padStart(3, '0')}`;
+            } else {
+              ticketId = `tkt${String(idx + 1).padStart(3, '0')}`;
+            }
+
+            const barName = rt.bar_name || rt.barName || (matchedBar ? matchedBar.name : (rt.user_name || "Bar"));
+            const contactEmail = rt.contact_email || rt.contactEmail || rt.email || (matchedBar ? matchedBar.email : "gestore@bar.it");
+
+            return {
+              id: ticketId,
+              barId: rt.bar_id || rt.barId || (matchedBar ? matchedBar.id : null),
+              barName: barName,
+              contactEmail: contactEmail,
+              subject: rt.subject || "Richiesta assistenza",
+              category: rt.category || "Generale",
+              status: rt.status || "open",
+              message: rt.description || rt.message || "",
+              response: rt.response || null,
+              date: rt.date || (rt.created_at ? new Date(rt.created_at).toLocaleDateString('it-IT') : "Oggi")
+            };
+          });
         }
       } catch (e) {
         console.warn("[Supabase] Support tickets sync fallback:", e);
@@ -810,6 +858,15 @@ class AdminConsole {
     this.renderSupportTable();
     this.renderSettingsView();
     this.renderAuditLogsTable();
+    this.handleHashRouting();
+    window.addEventListener("hashchange", () => this.handleHashRouting());
+  }
+
+  handleHashRouting() {
+    const rawHash = (window.location.hash || "").replace(/^#/, "").toLowerCase();
+    if (rawHash === "supporto" || rawHash === "support" || rawHash === "view-support") {
+      this.switchView("support");
+    }
   }
 
   // ==========================================================================
@@ -821,6 +878,7 @@ class AdminConsole {
     if (isAuth) {
       document.documentElement.classList.add("admin-authorized");
       if (overlay) overlay.style.display = "none";
+      this.handleHashRouting();
     } else {
       document.documentElement.classList.remove("admin-authorized");
       if (overlay) overlay.style.display = "flex";
@@ -845,6 +903,8 @@ class AdminConsole {
       if (overlay) overlay.style.display = "none";
       if (err) err.style.display = "none";
       this.showToast("🔓 Accesso autorizzato come Super Admin!");
+      this.handleHashRouting();
+    } else {
     } else {
       if (err) err.style.display = "block";
       input.value = "";
@@ -1017,7 +1077,12 @@ class AdminConsole {
 
     if (viewId === "payments") this.renderPaymentsTable();
     if (viewId === "stats") this.renderStatsView();
-    if (viewId === "support") this.renderSupportTable();
+    if (viewId === "support") {
+      if (window.location.hash !== "#supporto") {
+        try { window.history.replaceState(null, "", "#supporto"); } catch (_) {}
+      }
+      this.renderSupportTable();
+    }
     if (viewId === "settings") this.renderSettingsView();
 
     window.scrollTo({ top: 0, behavior: "smooth" });
