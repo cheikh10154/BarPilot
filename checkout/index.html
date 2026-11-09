@@ -668,7 +668,11 @@
       window.location.href = "https://www.barpilot.eu/app";
     }
 
-    function handleDirectStripeClick() {
+    async function handleDirectStripeClick() {
+      if (window.stripePaymentService && typeof window.stripePaymentService.startSubscriptionCheckout === "function") {
+        await window.stripePaymentService.startSubscriptionCheckout({ productId: "prod_VbC9Brnzkk4Rzb" });
+        return;
+      }
       const customStripeUrl = getStripePaymentUrl();
       window.open(customStripeUrl, "_blank");
 

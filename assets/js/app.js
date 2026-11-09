@@ -6591,6 +6591,10 @@ function getStripePaymentUrl() {
 
 function handleStripeCheckoutSubmit() {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  if (window.stripePaymentService && typeof window.stripePaymentService.startSubscriptionCheckout === "function") {
+    window.stripePaymentService.startSubscriptionCheckout({ productId: "prod_VbC9Brnzkk4Rzb" });
+    return;
+  }
   const customStripeUrl = getStripePaymentUrl();
   if (customStripeUrl && customStripeUrl.startsWith("http")) {
     window.open(customStripeUrl, "_blank");
