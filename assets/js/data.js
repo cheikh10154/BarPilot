@@ -627,6 +627,22 @@ class BarPilotStorage {
     return this.data[key];
   }
 
+  reloadFromStorage() {
+    if (typeof localStorage !== "undefined") {
+      try {
+        const raw = localStorage.getItem("barpilot_store");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            this.data = parsed;
+          }
+        }
+      } catch (e) {
+        console.warn("[BarPilotStorage] reloadFromStorage error:", e);
+      }
+    }
+  }
+
   set(key, val) {
     if (!this.data) this.initDefaults();
 
@@ -640,6 +656,23 @@ class BarPilotStorage {
       }
       this.data.orders = val;
       this.persist();
+
+      // Sincronizzazione in tempo reale KDS Barman (BroadcastChannel, storage event, CustomEvent)
+      if (typeof window !== "undefined") {
+        try {
+          const syncMeta = {
+            timestamp: Date.now(),
+            barId: this.getActiveBarId(),
+            ordersCount: Array.isArray(val) ? val.length : 0,
+            latestId: Array.isArray(val) && val.length > 0 ? val[0].id : null
+          };
+          localStorage.setItem("barpilot_kds_sync_trigger", JSON.stringify(syncMeta));
+          if (window.kdsBroadcastChannel) {
+            window.kdsBroadcastChannel.postMessage({ type: "KDS_ORDERS_UPDATE", meta: syncMeta, orders: val });
+          }
+          window.dispatchEvent(new CustomEvent("barpilot_orders_updated", { detail: { meta: syncMeta, orders: val } }));
+        } catch (_) {}
+      }
       return;
     }
 
@@ -688,6 +721,52 @@ class BarPilotStorage {
 
 window.BarPilotStorage = BarPilotStorage;
 window.db = new BarPilotStorage();
+
+// Inizializza BroadcastChannel per KDS in tempo reale
+if (typeof window !== "undefined") {
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      window.kdsBroadcastChannel = new BroadcastChannel("barpilot_kds_sync");
+    }
+  } catch (_) {}
+}
+
+// Sincronizzazione in tempo reale ordini KDS tra tab e finestre
+if (typeof window !== "undefined") {
+  const syncOrdersListener = (e) => {
+    if (e && e.key && e.key !== "barpilot_store" && e.key !== "barpilot_kds_sync_trigger") return;
+    if (window.db && typeof window.db.reloadFromStorage === "function") {
+      window.db.reloadFromStorage();
+    }
+    if (typeof window.handleIncomingKdsOrders === "function") {
+      window.handleIncomingKdsOrders(window.db ? window.db.get("orders") : []);
+    } else if (typeof renderKDS === "function") {
+      renderKDS();
+      if (typeof renderDashboard === "function") renderDashboard();
+      if (typeof renderFloorPlan === "function") renderFloorPlan();
+    }
+  };
+  window.addEventListener("storage", syncOrdersListener);
+
+  if (window.kdsBroadcastChannel) {
+    window.kdsBroadcastChannel.onmessage = (msgEvent) => {
+      if (msgEvent && msgEvent.data && msgEvent.data.type === "KDS_ORDERS_UPDATE") {
+        if (window.db && typeof window.db.reloadFromStorage === "function") {
+          window.db.reloadFromStorage();
+        }
+        const updatedOrders = (msgEvent.data.orders) || (window.db ? window.db.get("orders") : []);
+        const meta = msgEvent.data.meta || {};
+        if (typeof window.handleIncomingKdsOrders === "function") {
+          window.handleIncomingKdsOrders(updatedOrders, meta.latestId);
+        } else if (typeof renderKDS === "function") {
+          renderKDS(meta.latestId);
+          if (typeof renderDashboard === "function") renderDashboard();
+          if (typeof renderFloorPlan === "function") renderFloorPlan();
+        }
+      }
+    };
+  }
+}
 
 // Sincronizzazione in tempo reale dei prodotti salvati in Demo tra schede e utenti
 if (typeof window !== "undefined") {

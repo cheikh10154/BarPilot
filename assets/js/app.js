@@ -69,6 +69,9 @@ function initBarPilotApp() {
     if (typeof setupSimulator === "function") setupSimulator();
     if (typeof setupModals === "function") setupModals();
 
+    // Sincronizzazione in tempo reale KDS Barman (comande dal cameriere senza refresh)
+    if (typeof startKdsRealtimeSync === "function") startKdsRealtimeSync();
+
   } catch (err) {
     console.error("[BarPilot] Errore avvio:", err);
   } finally {
@@ -2074,17 +2077,21 @@ function setupCartEvents() {
 
       const orders = window.db.get("orders") || [];
       const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
-      const newId = 1001 + orders.length;
+      const maxId = orders.reduce((m, o) => Math.max(m, Number(o.id) || 0), 1000);
+      const newId = maxId + 1;
       const total = appState.cart.reduce((sum, it) => sum + (it.qty * it.price), 0);
       const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+      const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
+
+      const serverName = (currentStaff && currentStaff.name) ? currentStaff.name : (activeBar.managerName || "Cameriere");
 
       const newOrder = {
         id: newId,
-        barId: activeBar.id || (isDemo ? "bar_demo" : "bar_01"),
+        barId: barId,
         isDemo: isDemo,
         table: appState.selectedTable || "Tavolo 04",
         area: "interno",
-        server: activeBar.managerName || "Operatore",
+        server: serverName,
         status: "prep",
         time: "1 min",
         createdAt: new Date().toISOString(),
@@ -2100,6 +2107,15 @@ function setupCartEvents() {
 
       orders.unshift(newOrder);
       window.db.set("orders", orders);
+
+      // Invia sincronizzazione comanda al serverless /api/sync-orders per KDS barman in tempo reale
+      if (typeof fetch === "function") {
+        fetch("/api/sync-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ barId, order: newOrder })
+        }).catch(() => {});
+      }
 
       // Update table occupancy on floor plan
       const tables = (window.db ? window.db.get("tables") : []) || [];
@@ -2387,12 +2403,93 @@ function syncOrderTableSelect() {
 }
 
 // --------------------------------------------------------------------------
-// Kitchen Display System (KDS)
+// Kitchen Display System (KDS) & Real-Time Sync
 // --------------------------------------------------------------------------
-function renderKDS() {
+let lastKnownKdsMaxId = 0;
+let lastKnownKdsCount = 0;
+let kdsRemoteSyncTimer = null;
+let lastRemoteSyncTimestamp = 0;
+
+// Web Audio API: avviso acustico piacevole (campana bitonale) per nuova comanda in arrivo
+function playKdsNewOrderSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    
+    // Tono 1: Mi5 (659.25 Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.2, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
+
+    // Tono 2: Si5 (987.77 Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(987.77, now + 0.12);
+    gain2.gain.setValueAtTime(0.25, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.65);
+  } catch (_) {}
+}
+
+function handleIncomingKdsOrders(updatedOrders, highlightId = null) {
+  if (!Array.isArray(updatedOrders)) return;
+  const currentMaxId = updatedOrders.reduce((max, o) => Math.max(max, Number(o.id) || 0), 0);
+  const isNewArrival = lastKnownKdsMaxId > 0 && currentMaxId > lastKnownKdsMaxId;
+  const targetHighlight = highlightId || (isNewArrival ? currentMaxId : null);
+
+  lastKnownKdsMaxId = Math.max(lastKnownKdsMaxId, currentMaxId);
+  lastKnownKdsCount = updatedOrders.length;
+
+  const kdsViewEl = document.getElementById("view-kds");
+  const isKdsActive = (appState && appState.activeView === "kds") || (kdsViewEl && kdsViewEl.classList.contains("active"));
+
+  if (isKdsActive) {
+    renderKDS(targetHighlight);
+    if (isNewArrival || highlightId) {
+      playKdsNewOrderSound();
+      const newOrd = updatedOrders.find(o => String(o.id) === String(targetHighlight));
+      const tblName = newOrd ? (newOrd.table || "Banco") : "";
+      showToast(`🔔 Nuova comanda #${targetHighlight}${tblName ? ' (' + tblName + ')' : ''} ricevuta!`);
+    }
+  } else {
+    if (currentStaff && currentStaff.role === "Barman" && (isNewArrival || highlightId)) {
+      playKdsNewOrderSound();
+      const newOrd = updatedOrders.find(o => String(o.id) === String(targetHighlight));
+      const tblName = newOrd ? (newOrd.table || "Banco") : "";
+      showToast(`🔔 Nuova comanda #${targetHighlight}${tblName ? ' (' + tblName + ')' : ''} da preparare!`);
+    }
+    renderKDS(targetHighlight);
+  }
+
+  if (typeof renderDashboard === "function") renderDashboard();
+  if (typeof renderFloorPlan === "function") renderFloorPlan();
+}
+window.handleIncomingKdsOrders = handleIncomingKdsOrders;
+
+function renderKDS(highlightId = null) {
   const orders = (window.db ? window.db.get("orders") : []) || [];
   const kdsContainer = document.getElementById("kdsTicketsGrid");
   if (!kdsContainer) return;
+
+  if (lastKnownKdsMaxId === 0 && orders.length > 0) {
+    lastKnownKdsMaxId = orders.reduce((max, o) => Math.max(max, Number(o.id) || 0), 0);
+  }
 
   const currentFilter = appState.kdsFilter || "all";
   let filtered = orders;
@@ -2443,6 +2540,7 @@ function renderKDS() {
       const s = String(o.status || "").toLowerCase().trim();
       const isPaid = s === "paid" || s === "closed" || o.isPaid === true;
       const isServed = s === "served" || s === "servita" || isPaid;
+      const isNew = highlightId && String(o.id) === String(highlightId);
 
       let statusPill = "";
       if (isPaid) {
@@ -2492,7 +2590,7 @@ function renderKDS() {
       }
 
       return `
-        <div class="kds-ticket" style="${isPaid ? 'border-color:rgba(59,130,246,0.4); background:linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 100%);' : ''}">
+        <div class="kds-ticket ${isNew ? 'kds-ticket-new-arrival' : ''}" style="${isPaid ? 'border-color:rgba(59,130,246,0.4); background:linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 100%);' : ''}">
           <div class="kds-ticket-header">
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="kds-ticket-num">#${o.id}</span>
@@ -2529,6 +2627,71 @@ function renderKDS() {
   });
 }
 
+function startKdsRealtimeSync() {
+  if (kdsRemoteSyncTimer) return;
+
+  const localOrders = (window.db ? window.db.get("orders") : []) || [];
+  lastKnownKdsMaxId = localOrders.reduce((max, o) => Math.max(max, Number(o.id) || 0), 0);
+  lastKnownKdsCount = localOrders.length;
+
+  window.addEventListener("barpilot_orders_updated", (e) => {
+    if (e && e.detail && Array.isArray(e.detail.orders)) {
+      const meta = e.detail.meta || {};
+      handleIncomingKdsOrders(e.detail.orders, meta.latestId);
+    }
+  });
+
+  const pollRemoteOrders = async () => {
+    try {
+      const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+      const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+      const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
+
+      const res = await fetch(`/api/sync-orders?barId=${encodeURIComponent(barId)}&since=${lastRemoteSyncTimestamp}`, {
+        headers: { "Cache-Control": "no-cache" }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.success) return;
+
+      if (data.lastUpdated) {
+        if (data.hasNew && Array.isArray(data.orders)) {
+          const currentOrders = (window.db ? window.db.get("orders") : []) || [];
+          const currentIds = new Set(currentOrders.map(o => String(o.id)));
+          let hasNewComanda = false;
+          let newestComandaId = null;
+
+          data.orders.forEach(ro => {
+            if (!currentIds.has(String(ro.id))) {
+              currentOrders.unshift(ro);
+              hasNewComanda = true;
+              if (!newestComandaId || Number(ro.id) > Number(newestComandaId)) {
+                newestComandaId = ro.id;
+              }
+            } else {
+              const co = currentOrders.find(o => String(o.id) === String(ro.id));
+              if (co && co.status !== ro.status) {
+                co.status = ro.status;
+                if (ro.isPaid !== undefined) co.isPaid = ro.isPaid;
+                hasNewComanda = true;
+              }
+            }
+          });
+
+          if (hasNewComanda) {
+            window.db.set("orders", currentOrders);
+            handleIncomingKdsOrders(currentOrders, newestComandaId);
+          }
+        }
+        lastRemoteSyncTimestamp = Math.max(lastRemoteSyncTimestamp, data.lastUpdated);
+      }
+    } catch (_) {}
+  };
+
+  pollRemoteOrders();
+  kdsRemoteSyncTimer = setInterval(pollRemoteOrders, 2500);
+}
+
 function changeOrderStatus(orderId, newStatus) {
   const orders = (window.db ? window.db.get("orders") : []) || [];
   const ord = orders.find(o => o.id === orderId);
@@ -2546,6 +2709,18 @@ function changeOrderStatus(orderId, newStatus) {
       ord.cancelledAt = new Date().toISOString();
     }
     window.db.set("orders", orders);
+
+    // Sincronizza stato sul serverless /api/sync-orders per KDS multi-dispositivo
+    if (typeof fetch === "function") {
+      const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+      const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+      const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
+      fetch("/api/sync-orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barId, orderId, status: newStatus })
+      }).catch(() => {});
+    }
 
     // Free the table if order is closed, paid or cancelled
     if (newStatus === "closed" || newStatus === "paid" || newStatus === "cancelled") {
