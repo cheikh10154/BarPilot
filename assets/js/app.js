@@ -2218,7 +2218,13 @@ function renderFloorPlan() {
       </button>
     ` : "";
 
-    const displayTime = t.reservation ? t.reservation : (t.time ? (String(t.time).includes(":") ? t.time : `${t.time} min`) : "--:--");
+    let displayTime = "";
+    if (t.reservation && String(t.reservation).trim() && String(t.reservation).trim() !== "--:--") {
+      displayTime = String(t.reservation).trim();
+    } else if (t.time && t.time !== 0 && String(t.time).trim() !== "0" && String(t.time).trim() !== "--:--") {
+      const timeStr = String(t.time).trim();
+      displayTime = timeStr.includes(":") ? timeStr : `${timeStr} min`;
+    }
 
     return `
       <div class="table-node ${statusClass}" onclick="handleTableClick('${t.id}')">
@@ -2226,7 +2232,7 @@ function renderFloorPlan() {
         ${t.alert ? `<span class="table-node-alert">${t.alert}</span>` : ""}
         <span class="table-node-number">${t.id}</span>
         <span class="table-node-info">${t.capacity} persone · ${availabilityBadge}</span>
-        <span class="table-node-time">🕒 Ora: <strong>${displayTime}</strong></span>
+        ${displayTime ? `<span class="table-node-time">🕒 Ora: <strong>${displayTime}</strong></span>` : ""}
         ${t.amount > 0 ? `<span class="table-node-amount">${t.amount.toFixed(2)} €</span>` : ""}
       </div>
     `;
@@ -2274,10 +2280,7 @@ function openAddTableModal() {
   }
   const timeInput = document.getElementById("newTableTime");
   if (timeInput) {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    timeInput.value = `${hh}:${mm}`;
+    timeInput.value = "";
   }
   modal.classList.add("active");
 }
