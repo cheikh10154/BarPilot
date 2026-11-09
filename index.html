@@ -887,11 +887,6 @@
                   </div>
                 </div>
 
-                <!-- Pulsante Prenota Tavolo Plan de Salle -->
-                <button type="button" class="btn-primary" id="btnOpenBookTableModal" onclick="openBookTableModal()" style="font-size:12px; padding:7px 14px; align-items:center; gap:6px; background:linear-gradient(135deg, #FF7A00 0%, #FF9500 100%); color:#fff; border:none; border-radius:var(--radius-md); font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(255,122,0,0.3); display:inline-flex;">
-                  <span>📅</span> <span>Prenota</span>
-                </button>
-
                 <!-- Owner Only Add Table Button -->
                 <button type="button" class="btn-primary" id="btnAddFloorTable" onclick="openAddTableModal()" style="display:none; font-size:12px; padding:7px 14px; align-items:center; gap:6px;">
                   <span>+</span> <span data-i18n="addTable">Aggiungi Tavolo</span>
@@ -3054,71 +3049,6 @@
         <button type="button" class="btn-secondary" onclick="closeChangeAvatarModal()" style="flex:1; padding:11px;">Annulla</button>
         <button type="button" class="btn-primary" onclick="saveSelectedAvatar()" style="flex:1; padding:11px;">💾 Salva Foto Profilo</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Modal: Prenota Tavolo (Plan de Salle) -->
-  <div class="modal-overlay" id="bookTableModal">
-    <div class="modal-box" style="max-width:440px; width:92%;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <div>
-          <h3 style="font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;">
-            <span>📅</span> <span>Prenota Tavolo</span>
-          </h3>
-          <p style="font-size:12px; color:var(--text-muted);">Gestione e prenotazione tavoli su Plan de salle</p>
-        </div>
-        <button class="modal-close-icon-btn" onclick="closeBookTableModal()" aria-label="Chiudi finestra">✕</button>
-      </div>
-
-      <form id="bookTableForm" onsubmit="handleBookTableSubmit(event)">
-        <!-- 1. Numero di tavolo sopra -->
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label" style="font-weight:700;">Numero di Tavolo</label>
-          <select id="bookTableSelect" class="form-input" style="background:var(--bg-card); cursor:pointer; font-weight:700; font-size:14px;" onchange="handleBookTableSelectChange(this.value)">
-            <!-- Popolato dinamicamente da app.js -->
-          </select>
-        </div>
-
-        <!-- 2. Il numero di persone + libero o non libero -->
-        <div style="background:var(--bg-card-secondary); border-radius:var(--radius-md); padding:12px; margin-bottom:14px; border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <label class="form-label" style="margin-bottom:4px; font-weight:700;">Numero di Persone</label>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <input type="number" id="bookTableCapacity" class="form-input" min="1" max="50" value="4" required style="width:85px; padding:6px 10px; font-weight:700;">
-              <span style="font-size:12px; color:var(--text-muted);">persone</span>
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Disponibilità</span>
-            <span id="bookTableStatusBadge" style="font-size:12px; font-weight:800; padding:4px 10px; border-radius:6px; display:inline-block;"></span>
-          </div>
-        </div>
-
-        <!-- 3. Poi l'ora sotto -->
-        <div class="form-group" style="margin-bottom:14px;">
-          <label class="form-label" style="font-weight:700;">Ora di Prenotazione</label>
-          <input type="time" id="bookTableTime" class="form-input" required value="20:00" style="font-size:15px; font-weight:700;">
-          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('12:30')">12:30</button>
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('13:00')">13:00</button>
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('19:30')">19:30</button>
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('20:00')">20:00</button>
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('20:30')">20:30</button>
-            <button type="button" class="cat-pill" style="padding:4px 10px; font-size:11px;" onclick="setBookTableQuickTime('21:00')">21:00</button>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:18px;">
-          <label class="form-label">Nome Cliente / Note (Opzionale)</label>
-          <input type="text" id="bookTableCustomer" class="form-input" placeholder="es. Mario Rossi (4 persone)">
-        </div>
-
-        <div style="display:flex; gap:10px;">
-          <button type="button" class="btn-secondary" onclick="closeBookTableModal()" style="flex:1; padding:11px;">Annulla</button>
-          <button type="button" id="btnReleaseTable" class="btn-danger" onclick="handleReleaseTable()" style="display:none; flex:1; padding:11px;">Libera Tavolo</button>
-          <button type="submit" class="btn-primary" style="flex:1.5; padding:11px;">📅 Conferma Prenotazione</button>
-        </div>
-      </form>
     </div>
   </div>
 
