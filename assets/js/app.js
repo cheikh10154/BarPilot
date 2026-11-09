@@ -2108,12 +2108,16 @@ function setupCartEvents() {
       orders.unshift(newOrder);
       window.db.set("orders", orders);
 
-      // Invia sincronizzazione comanda al serverless /api/sync-orders per KDS barman in tempo reale
-      if (typeof fetch === "function") {
-        fetch("/api/sync-orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ barId, order: newOrder })
+      // Sincronizza comanda remota se Supabase è attivo
+      if (window.supabase && typeof window.supabase.createOrder === "function") {
+        window.supabase.createOrder({
+          id: newOrder.id,
+          bar_id: barId,
+          table_name: newOrder.table,
+          status: newOrder.status || "prep",
+          total: newOrder.total || 0,
+          items: newOrder.items || [],
+          created_at: newOrder.createdAt
         }).catch(() => {});
       }
 
@@ -2641,55 +2645,41 @@ function startKdsRealtimeSync() {
     }
   });
 
+  // Polling periodico leggero se Supabase è configurato con tabella remota
   const pollRemoteOrders = async () => {
     try {
-      const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
-      const isDemo = (typeof isDemoMode === "function" && isDemoMode());
-      const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
+      if (window.supabase && typeof window.supabase.getOrders === "function") {
+        const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
+        const isDemo = (typeof isDemoMode === "function" && isDemoMode());
+        if (!isDemo && activeBar && activeBar.id) {
+          const remoteList = await window.supabase.getOrders(activeBar.id);
+          if (Array.isArray(remoteList) && remoteList.length > 0) {
+            const currentOrders = (window.db ? window.db.get("orders") : []) || [];
+            const currentIds = new Set(currentOrders.map(o => String(o.id)));
+            let hasNewComanda = false;
+            let newestComandaId = null;
 
-      const res = await fetch(`/api/sync-orders?barId=${encodeURIComponent(barId)}&since=${lastRemoteSyncTimestamp}`, {
-        headers: { "Cache-Control": "no-cache" }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data || !data.success) return;
-
-      if (data.lastUpdated) {
-        if (data.hasNew && Array.isArray(data.orders)) {
-          const currentOrders = (window.db ? window.db.get("orders") : []) || [];
-          const currentIds = new Set(currentOrders.map(o => String(o.id)));
-          let hasNewComanda = false;
-          let newestComandaId = null;
-
-          data.orders.forEach(ro => {
-            if (!currentIds.has(String(ro.id))) {
-              currentOrders.unshift(ro);
-              hasNewComanda = true;
-              if (!newestComandaId || Number(ro.id) > Number(newestComandaId)) {
-                newestComandaId = ro.id;
-              }
-            } else {
-              const co = currentOrders.find(o => String(o.id) === String(ro.id));
-              if (co && co.status !== ro.status) {
-                co.status = ro.status;
-                if (ro.isPaid !== undefined) co.isPaid = ro.isPaid;
+            remoteList.forEach(ro => {
+              if (!currentIds.has(String(ro.id))) {
+                currentOrders.unshift(ro);
                 hasNewComanda = true;
+                if (!newestComandaId || Number(ro.id) > Number(newestComandaId)) {
+                  newestComandaId = ro.id;
+                }
               }
-            }
-          });
+            });
 
-          if (hasNewComanda) {
-            window.db.set("orders", currentOrders);
-            handleIncomingKdsOrders(currentOrders, newestComandaId);
+            if (hasNewComanda) {
+              window.db.set("orders", currentOrders);
+              handleIncomingKdsOrders(currentOrders, newestComandaId);
+            }
           }
         }
-        lastRemoteSyncTimestamp = Math.max(lastRemoteSyncTimestamp, data.lastUpdated);
       }
     } catch (_) {}
   };
 
-  pollRemoteOrders();
-  kdsRemoteSyncTimer = setInterval(pollRemoteOrders, 2500);
+  kdsRemoteSyncTimer = setInterval(pollRemoteOrders, 3000);
 }
 
 function changeOrderStatus(orderId, newStatus) {
@@ -2710,16 +2700,9 @@ function changeOrderStatus(orderId, newStatus) {
     }
     window.db.set("orders", orders);
 
-    // Sincronizza stato sul serverless /api/sync-orders per KDS multi-dispositivo
-    if (typeof fetch === "function") {
-      const activeBar = (window.db ? window.db.get("activeBar") : {}) || {};
-      const isDemo = (typeof isDemoMode === "function" && isDemoMode());
-      const barId = activeBar.id || (isDemo ? "bar_demo" : "bar_01");
-      fetch("/api/sync-orders", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barId, orderId, status: newStatus })
-      }).catch(() => {});
+    // Sincronizza stato su Supabase se attivo
+    if (window.supabase && typeof window.supabase.updateOrderStatus === "function") {
+      window.supabase.updateOrderStatus(orderId, newStatus).catch(() => {});
     }
 
     // Free the table if order is closed, paid or cancelled

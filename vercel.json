@@ -117,10 +117,6 @@
       "dest": "/api/create-ticket.js"
     },
     {
-      "src": "^/api/sync-orders/?$",
-      "dest": "/api/sync-orders.js"
-    },
-    {
       "src": "^/api/cancel-subscription/?$",
       "dest": "/api/cancel-subscription.js"
     },
