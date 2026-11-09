@@ -1482,12 +1482,14 @@ class AdminConsole {
           </td>
           <td>${statusBadges[sKey] || t.status}</td>
           <td>${t.date || 'Recente'}</td>
-          <td>
-            <div class="actions-cell">
-              <button class="btn-table-action" onclick="window.adminConsole.toggleTicketStatus('${t.id}')" title="Cambia stato / Segna come Risolto">
+          <td style="min-width: 200px; white-space: nowrap;">
+            <div class="actions-cell" style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn-table-action" onclick="window.adminConsole.toggleTicketStatus('${t.id}')" title="Cambia stato / Segna come Risolto" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
                 ${t.status === 'resolved' ? '↺ Riapri' : '✓ Risolvi'}
               </button>
-              <button class="btn-table-action" onclick="window.adminConsole.openSupportReplyModal('${t.id}')" title="Rispondi al gestore">✉️ Rispondi</button>
+              <button class="btn-table-action" onclick="window.adminConsole.openSupportReplyModal('${t.id}')" title="Rispondi al gestore" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                ✉️ Rispondi
+              </button>
             </div>
           </td>
         </tr>
