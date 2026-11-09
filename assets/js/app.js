@@ -3401,7 +3401,7 @@ function handleSendSupplierOrder(e) {
 // ==========================================================================
 const ROLE_PERMISSIONS = {
   Proprietario: {
-    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports", "subscriptions", "settings"],
+    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports", "subscriptions", "settings", "support"],
     canAddProducts: true,
     canEditStaff: true,
     canManageTables: true,
@@ -3411,7 +3411,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-owner"
   },
   Manager: {
-    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports"],
+    views: ["dashboard", "orders", "floor", "kds", "products", "inventory", "suppliers", "staff", "reports", "support"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -3419,7 +3419,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-manager"
   },
   Cameriere: {
-    views: ["orders", "floor", "kds"],
+    views: ["orders", "floor", "kds", "support"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -3427,7 +3427,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-waiter"
   },
   Barman: {
-    views: ["kds", "products", "orders"],
+    views: ["kds", "products", "orders", "support"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -3435,7 +3435,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-barman"
   },
   Cassa: {
-    views: ["orders", "floor", "dashboard"],
+    views: ["orders", "floor", "dashboard", "support"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
