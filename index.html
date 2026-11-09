@@ -3082,9 +3082,23 @@
           </select>
         </div>
 
-        <div class="form-group" style="margin-bottom:20px;">
+        <div class="form-group" style="margin-bottom:14px;">
           <label class="form-label" data-i18n="tableCapacityLabel">Posti a sedere (Capienza)</label>
           <input type="number" id="newTableCapacity" class="form-input" min="1" max="50" value="4" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label" style="font-weight:700;">Ora</label>
+          <input type="time" id="newTableTime" class="form-input" style="font-size:15px; font-weight:700; background:var(--bg-card); cursor:pointer;">
+          <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='12:30'">12:30</button>
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='13:00'">13:00</button>
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='19:30'">19:30</button>
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='20:00'">20:00</button>
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='20:30'">20:30</button>
+            <button type="button" class="cat-pill" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('newTableTime').value='21:00'">21:00</button>
+          </div>
+          <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Imposta l'orario del tavolo (es. orario di arrivo o servizio).</span>
         </div>
 
         <div style="display:flex; gap:10px;">

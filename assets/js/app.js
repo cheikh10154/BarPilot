@@ -2218,7 +2218,7 @@ function renderFloorPlan() {
       </button>
     ` : "";
 
-    const displayTime = t.reservation ? t.reservation : (t.time ? `${t.time} min` : "--:--");
+    const displayTime = t.reservation ? t.reservation : (t.time ? (String(t.time).includes(":") ? t.time : `${t.time} min`) : "--:--");
 
     return `
       <div class="table-node ${statusClass}" onclick="handleTableClick('${t.id}')">
@@ -2272,6 +2272,13 @@ function openAddTableModal() {
     const nextNum = tNums.length > 0 ? Math.max(...tNums) + 1 : 1;
     inputId.value = `T${nextNum < 10 ? "0" + nextNum : nextNum}`;
   }
+  const timeInput = document.getElementById("newTableTime");
+  if (timeInput) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    timeInput.value = `${hh}:${mm}`;
+  }
   modal.classList.add("active");
 }
 
@@ -2292,6 +2299,7 @@ function handleAddTableSubmit(e) {
   const idInput = document.getElementById("newTableId");
   const areaInput = document.getElementById("newTableArea");
   const capacityInput = document.getElementById("newTableCapacity");
+  const timeInput = document.getElementById("newTableTime");
 
   const rawId = (idInput ? idInput.value : "").trim();
   if (!rawId) {
@@ -2302,6 +2310,7 @@ function handleAddTableSubmit(e) {
   const tableId = rawId.toUpperCase();
   const area = areaInput ? areaInput.value : "interno";
   const capacity = capacityInput ? parseInt(capacityInput.value, 10) || 4 : 4;
+  const timeVal = (timeInput ? timeInput.value : "").trim();
 
   const tables = (window.db ? window.db.get("tables") : []) || [];
   if (tables.some(t => String(t.id).toUpperCase() === tableId)) {
@@ -2315,7 +2324,8 @@ function handleAddTableSubmit(e) {
     capacity: capacity,
     status: "free",
     amount: 0,
-    time: 0,
+    time: timeVal || 0,
+    reservation: timeVal || null,
     orderId: null
   };
 
@@ -2325,7 +2335,7 @@ function handleAddTableSubmit(e) {
   syncOrderTableSelect();
   renderFloorPlan();
   closeAddTableModal();
-  showToast(`✅ Tavolo ${tableId} aggiunto con successo!`);
+  showToast(`✅ Tavolo ${tableId} aggiunto con successo${timeVal ? ` (Ora: ${timeVal})` : ''}!`);
 }
 
 function openDeleteTableModal(tableId) {
