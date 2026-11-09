@@ -18,8 +18,31 @@ async function supabaseFetch(endpoint, options = {}) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-pin');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // GET: Restituisce l'elenco dei ticket di supporto
+  if (req.method === 'GET') {
+    try {
+      const ticketsRes = await supabaseFetch('support_tickets?select=*&order=created_at.desc');
+      if (ticketsRes.ok) {
+        const tickets = await ticketsRes.json();
+        return res.status(200).json({ success: true, source: 'supabase', tickets });
+      }
+      const errText = await ticketsRes.text();
+      return res.status(200).json({ success: false, error: errText, tickets: [] });
+    } catch (e) {
+      return res.status(200).json({ success: false, error: e.message, tickets: [] });
+    }
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'GET, POST, OPTIONS');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
