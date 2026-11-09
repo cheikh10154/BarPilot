@@ -1454,16 +1454,9 @@ class AdminConsole {
 
     const list = this.data.tickets || [];
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Nessun ticket di supporto aperto</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Nessun ticket di supporto aperto</td></tr>`;
       return;
     }
-
-    const priorityBadges = {
-      high: `<span class="status-pill status-late">Alta</span>`,
-      medium: `<span class="status-pill status-trial">Media</span>`,
-      low: `<span class="status-pill status-active">Bassa</span>`,
-      urgent: `<span class="status-pill status-late" style="background:#EF4444; color:#fff;">Urgente</span>`
-    };
 
     const statusBadges = {
       open: `<span class="status-pill status-trial">Aperto</span>`,
@@ -1474,7 +1467,6 @@ class AdminConsole {
     };
 
     tbody.innerHTML = list.map(t => {
-      const pKey = (t.priority || 'medium').toLowerCase();
       const sKey = (t.status || 'open').toLowerCase();
       return `
         <tr>
@@ -1488,7 +1480,6 @@ class AdminConsole {
             <div style="font-size:11px; color:var(--text-muted);"><span class="badge" style="background:var(--bg-card); font-size:10px;">${t.category}</span> - ${t.message}</div>
             ${t.response ? `<div style="font-size:11px; color:#10B981; margin-top:2px;">↳ Risposta Super Admin: ${t.response}</div>` : ''}
           </td>
-          <td>${priorityBadges[pKey] || t.priority}</td>
           <td>${statusBadges[sKey] || t.status}</td>
           <td>${t.date || 'Recente'}</td>
           <td>
