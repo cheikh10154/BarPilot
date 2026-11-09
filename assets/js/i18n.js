@@ -146,6 +146,7 @@ const i18nData = {
     navClients: "Clienti",
     navSubscriptions: "Abbonamenti",
     navSettings: "Impostazioni",
+    navSupport: "Supporto",
 
     // Dashboard Metrics
     metricRevenue: "Vendite registrate",
@@ -488,6 +489,7 @@ const i18nData = {
     navClients: "Clients",
     navSubscriptions: "Abonnements",
     navSettings: "Paramètres",
+    navSupport: "Support",
 
     // Dashboard Metrics
     metricRevenue: "Ventes enregistrées",
