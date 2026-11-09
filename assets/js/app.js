@@ -3422,7 +3422,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-manager"
   },
   Cameriere: {
-    views: ["orders", "floor", "kds", "support"],
+    views: ["orders", "floor", "kds"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -3430,7 +3430,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-waiter"
   },
   Barman: {
-    views: ["kds", "products", "orders", "support"],
+    views: ["kds", "products", "orders"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -3438,7 +3438,7 @@ const ROLE_PERMISSIONS = {
     badgeClass: "badge-role-barman"
   },
   Cassa: {
-    views: ["orders", "floor", "dashboard", "support"],
+    views: ["orders", "floor", "dashboard"],
     canAddProducts: false,
     canEditStaff: false,
     canManageTables: false,
@@ -9563,8 +9563,12 @@ function updateTicketButtonVisibility() {
   const dashboardPanel = document.getElementById("view-dashboard");
   const isDashboardView = activeView === "dashboard" && (!dashboardPanel || dashboardPanel.classList.contains("active"));
 
-  // Deve apparire solo se autorizzato (demo o login), senza overlay pre-accesso e solo su Dashboard
-  const shouldShow = isAuthorized && !onPreAuthScreen && isDashboardView;
+  // 4. Verifica Ruolo: solo Proprietario e Manager hanno accesso a Support
+  const staffRole = (currentStaff && currentStaff.role) || "Proprietario";
+  const isOwnerOrManager = staffRole === "Proprietario" || staffRole === "Manager";
+
+  // Deve apparire solo se autorizzato (demo o login), senza overlay pre-accesso, solo su Dashboard e solo per Manager / Proprietario
+  const shouldShow = isAuthorized && !onPreAuthScreen && isDashboardView && isOwnerOrManager;
 
   if (fab) {
     if (shouldShow) {
