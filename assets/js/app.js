@@ -9420,19 +9420,24 @@ async function renderClientSupportTickets(doFetch = true) {
         <div style="display:flex; flex-direction:column; gap:16px;">
           ${displayedTkts.map(t => {
             const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (t.date || 'Oggi');
-            const respDateStr = t.response_at ? new Date(t.response_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            
+            const responsesList = Array.isArray(t.responses) && t.responses.length > 0
+              ? t.responses
+              : (t.response ? [{ author: "Super Admin BarPilot", message: t.response, created_at: t.response_at }] : []);
+
             return `
               <div style="background:var(--bg-card-secondary); border-radius:14px; padding:18px; border:1px solid var(--border-color); box-shadow:0 4px 16px rgba(0,0,0,0.15);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                <!-- Header Ticket -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                   <div>
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                      <span style="background:linear-gradient(135deg, #FF6B00 0%, #FF8A00 100%); color:#fff; font-weight:900; font-size:11.5px; padding:2px 8px; border-radius:6px; letter-spacing:0.5px;">${t.id}</span>
+                      <span style="background:linear-gradient(135deg, #FF6B00 0%, #FF8A00 100%); color:#fff; font-weight:900; font-size:11.5px; padding:3px 8px; border-radius:6px; letter-spacing:0.5px;">${t.id}</span>
                       <strong style="color:#fff; font-size:15px; font-weight:800;">${escapeHtml(t.subject)}</strong>
                     </div>
                     <div style="font-size:11.5px; color:var(--text-muted);">
                       <span>🏷️ ${escapeHtml(t.category || 'Assistenza Generale')}</span>
                       <span style="margin:0 6px;">·</span>
-                      <span>📅 Inviato: ${dateStr}</span>
+                      <span>📅 Inviato il ${dateStr}</span>
                     </div>
                   </div>
                   <div>
@@ -9440,32 +9445,47 @@ async function renderClientSupportTickets(doFetch = true) {
                   </div>
                 </div>
 
-                <!-- Testo richiesta del bar -->
-                <div style="background:rgba(0,0,0,0.25); border-radius:10px; padding:12px 14px; margin-top:8px; border-left:3px solid #64748B;">
-                  <div style="font-size:11px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">La tua richiesta:</div>
-                  <p style="font-size:13px; color:#E2E8F0; line-height:1.5; margin:0; white-space:pre-wrap;">${escapeHtml(t.description || t.message || '')}</p>
-                </div>
-
-                <!-- Risposta del Super Admin -->
-                ${t.response ? `
-                  <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; padding:14px; border-radius:10px; margin-top:12px;">
-                    <div style="font-size:12px; font-weight:800; color:#10B981; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-                      <div style="display:flex; align-items:center; gap:6px;">
-                        <span>🛡️</span>
-                        <span>Risposta Ufficiale Super Admin BarPilot</span>
+                <!-- Conversazione Raggruppata: Richiesta Bar + Risposte Super Admin -->
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <!-- Sezione: Richiesta iniziale inviata dal Bar -->
+                  <div style="background:rgba(0,0,0,0.28); border-left:3px solid #64748B; border-radius:10px; padding:12px 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                      <div style="font-size:11px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:0.5px;">
+                        📩 La tua richiesta iniziale:
                       </div>
-                      ${respDateStr ? `<span style="font-size:11px; color:#6EE7B7; font-weight:normal;">${respDateStr}</span>` : ''}
+                      <span style="font-size:11px; color:#64748B;">${dateStr}</span>
                     </div>
-                    <div style="font-size:13.5px; color:#FFFFFF; line-height:1.55; white-space:pre-wrap;">${escapeHtml(t.response)}</div>
+                    <p style="font-size:13px; color:#E2E8F0; line-height:1.5; margin:0; white-space:pre-wrap;">${escapeHtml(t.description || t.message || '')}</p>
                   </div>
-                ` : `
-                  <div style="background:rgba(255,138,36,0.06); border-left:3px solid #FF8A24; padding:10px 14px; border-radius:8px; margin-top:12px; display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:14px;">⏳</span>
-                    <span style="font-size:12px; color:#CBD5E1;">
-                      Il ticket è stato inviato al Super Admin su <strong>/app/administration/supporto</strong>. La risposta apparirà direttamente qui appena inviata.
-                    </span>
-                  </div>
-                `}
+
+                  <!-- Sezione: Risposte del Super Admin -->
+                  ${responsesList.length > 0 ? `
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      ${responsesList.map((r, i) => {
+                        const rDateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                        return `
+                          <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; padding:14px; border-radius:10px;">
+                            <div style="font-size:12px; font-weight:800; color:#10B981; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                              <div style="display:flex; align-items:center; gap:6px;">
+                                <span>🛡️</span>
+                                <span>${escapeHtml(r.author || 'Super Admin BarPilot')}${responsesList.length > 1 ? ` (Risposta #${i+1})` : ''}</span>
+                              </div>
+                              ${rDateStr ? `<span style="font-size:11px; color:#6EE7B7; font-weight:normal;">${rDateStr}</span>` : ''}
+                            </div>
+                            <div style="font-size:13.5px; color:#FFFFFF; line-height:1.55; white-space:pre-wrap;">${escapeHtml(r.message)}</div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  ` : `
+                    <div style="background:rgba(255,138,36,0.06); border-left:3px solid #FF8A24; padding:10px 14px; border-radius:8px; display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:14px;">⏳</span>
+                      <span style="font-size:12px; color:#CBD5E1;">
+                        La tua richiesta è stata recapitata al Super Admin. La risposta apparirà direttamente qui appena inviata.
+                      </span>
+                    </div>
+                  `}
+                </div>
               </div>
             `;
           }).join('')}

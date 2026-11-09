@@ -90,6 +90,21 @@ export default async function handler(req, res) {
       }
     } catch (_) {}
 
+    // Assicura che ogni ticket abbia la lista risposte strutturata per raggruppamento thread
+    tickets.forEach(t => {
+      if (!Array.isArray(t.responses)) {
+        t.responses = [];
+      }
+      if (t.response && t.responses.length === 0) {
+        t.responses.push({
+          id: 'resp_1',
+          author: 'Super Admin BarPilot',
+          message: t.response,
+          created_at: t.response_at || t.updated_at || t.created_at
+        });
+      }
+    });
+
     return res.status(200).json({ success: true, tickets });
   }
 
@@ -107,9 +122,28 @@ export default async function handler(req, res) {
       const nowIso = new Date().toISOString();
 
       if (tkt) {
-        if (response !== undefined) {
-          tkt.response = response;
+        if (!Array.isArray(tkt.responses)) {
+          tkt.responses = [];
+          if (tkt.response) {
+            tkt.responses.push({
+              id: 'resp_init',
+              author: 'Super Admin BarPilot',
+              message: tkt.response,
+              created_at: tkt.response_at || tkt.updated_at || tkt.created_at
+            });
+          }
+        }
+
+        if (response !== undefined && String(response).trim()) {
+          const cleanResp = String(response).trim();
+          tkt.response = cleanResp;
           tkt.response_at = nowIso;
+          tkt.responses.push({
+            id: 'resp_' + Date.now().toString(36),
+            author: 'Super Admin BarPilot',
+            message: cleanResp,
+            created_at: nowIso
+          });
         }
         if (status) tkt.status = status;
         tkt.updated_at = nowIso;
@@ -197,6 +231,7 @@ export default async function handler(req, res) {
       message: cleanMessage,
       description: cleanMessage,
       response: null,
+      responses: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

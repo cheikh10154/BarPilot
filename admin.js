@@ -1533,26 +1533,60 @@ class AdminConsole {
 
     tbody.innerHTML = list.map(t => {
       const sKey = (t.status || 'open').toLowerCase();
+      const responses = Array.isArray(t.responses) && t.responses.length > 0
+        ? t.responses
+        : (t.response ? [{ author: "Super Admin BarPilot", message: t.response, created_at: t.response_at }] : []);
+
+      const responsesHtml = responses.length > 0 ? `
+        <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+          ${responses.map((r, i) => `
+            <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; border-radius:6px; padding:8px 10px;">
+              <div style="font-size:11px; font-weight:800; color:#10B981; display:flex; justify-content:space-between; align-items:center;">
+                <span>🛡️ ${r.author || 'Super Admin BarPilot'}${responses.length > 1 ? ` #${i+1}` : ''}</span>
+                <span style="font-size:10px; color:#6EE7B7; font-weight:normal;">${r.created_at ? new Date(r.created_at).toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : ''}</span>
+              </div>
+              <div style="font-size:12px; color:#f8fafc; line-height:1.45; margin-top:3px; white-space:pre-wrap;">${r.message}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div style="margin-top:8px; background:rgba(255,138,36,0.06); border-left:3px solid #FF8A24; border-radius:6px; padding:6px 10px; font-size:11.5px; color:#FF8A24; display:flex; align-items:center; gap:6px;">
+          <span>⏳</span> <span>In attesa di risposta dal Super Admin. Clicca <strong>✉️ Rispondi</strong> per inviare una risposta al gestore.</span>
+        </div>
+      `;
+
       return `
-        <tr>
-          <td><strong style="color:var(--primary);">${t.id}</strong></td>
+        <tr style="vertical-align: top;">
+          <td><strong style="color:var(--primary); font-size:13.5px;">${t.id}</strong></td>
           <td>
-            <div style="font-weight:700;">${t.barName}</div>
-            <div style="font-size:11px; color:var(--text-muted);">${t.contactEmail}</div>
+            <div style="font-weight:700; color:#fff; font-size:13px;">${t.barName}</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:1px;">${t.contactEmail}</div>
+            <div style="margin-top:6px;">
+              <span class="badge" style="background:var(--bg-card); font-size:10px; border:1px solid var(--border-color);">${t.category}</span>
+            </div>
           </td>
-          <td>
-            <div style="font-weight:600;">${t.subject}</div>
-            <div style="font-size:11px; color:var(--text-muted);"><span class="badge" style="background:var(--bg-card); font-size:10px;">${t.category}</span> - ${t.message}</div>
-            ${t.response ? `<div style="font-size:11px; color:#10B981; margin-top:2px;">↳ Risposta Super Admin: ${t.response}</div>` : ''}
+          <td style="min-width: 320px; max-width: 480px;">
+            <div style="font-weight:700; color:#fff; font-size:13.5px; margin-bottom:6px;">${t.subject}</div>
+            
+            <!-- Box Richiesta del Bar -->
+            <div style="background:rgba(0,0,0,0.3); border-left:3px solid #64748B; border-radius:6px; padding:8px 10px;">
+              <div style="font-size:10.5px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">
+                📩 Richiesta iniziale del Bar:
+              </div>
+              <div style="font-size:12px; color:#e2e8f0; line-height:1.45; white-space:pre-wrap;">${t.message || t.description || 'Nessun messaggio'}</div>
+            </div>
+
+            <!-- Box Risposte Super Admin Raggruppate -->
+            ${responsesHtml}
           </td>
           <td>${statusBadges[sKey] || t.status}</td>
-          <td>${t.date || 'Recente'}</td>
+          <td style="white-space: nowrap; font-size: 11.5px; color: var(--text-muted);">${t.date || 'Recente'}</td>
           <td style="min-width: 200px; white-space: nowrap;">
             <div class="actions-cell" style="display: flex; gap: 8px; align-items: center;">
               <button class="btn-table-action" onclick="window.adminConsole.toggleTicketStatus('${t.id}')" title="Cambia stato / Segna come Risolto" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
                 ${t.status === 'resolved' ? '↺ Riapri' : '✓ Risolvi'}
               </button>
-              <button class="btn-table-action" onclick="window.adminConsole.openSupportReplyModal('${t.id}')" title="Rispondi al gestore" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+              <button class="btn-table-action" onclick="window.adminConsole.openSupportReplyModal('${t.id}')" title="Rispondi al gestore" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; background: #FF6B00; color: #fff;">
                 ✉️ Rispondi
               </button>
             </div>
@@ -1587,6 +1621,29 @@ class AdminConsole {
 
     const respText = document.getElementById("replyTicketResponseText");
     if (respText) respText.value = tkt.response || "";
+
+    const responses = Array.isArray(tkt.responses) && tkt.responses.length > 0
+      ? tkt.responses
+      : (tkt.response ? [{ author: "Super Admin BarPilot", message: tkt.response, created_at: tkt.response_at }] : []);
+
+    const histContainer = document.getElementById("replyTicketHistory");
+    if (histContainer) {
+      if (responses.length > 0) {
+        histContainer.innerHTML = `
+          <div style="margin-top:12px; border-top:1px solid var(--border-color); padding-top:10px;">
+            <div style="font-size:11px; font-weight:800; color:#10B981; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Risposte già fornite:</div>
+            ${responses.map((r, i) => `
+              <div style="background:rgba(16,185,129,0.08); border-left:3px solid #10B981; border-radius:6px; padding:8px 10px; margin-bottom:6px;">
+                <div style="font-size:10.5px; font-weight:700; color:#6EE7B7; margin-bottom:2px;">🛡️ ${r.author || 'Super Admin'} #${i+1}</div>
+                <div style="font-size:12px; color:#fff; white-space:pre-wrap;">${r.message}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        histContainer.innerHTML = '';
+      }
+    }
 
     const modal = document.getElementById("supportReplyModal");
     if (modal) modal.classList.add("active");
@@ -1691,6 +1748,14 @@ class AdminConsole {
       const tkt = (this.data.tickets || []).find(t => t.id === tktId);
       if (tkt) {
         tkt.response = responseText;
+        tkt.response_at = nowIso;
+        if (!Array.isArray(tkt.responses)) tkt.responses = [];
+        tkt.responses.push({
+          id: 'resp_' + Date.now().toString(36),
+          author: 'Super Admin BarPilot',
+          message: responseText,
+          created_at: nowIso
+        });
         tkt.status = newStatus;
       }
       this.renderSupportTable();
