@@ -177,6 +177,405 @@
       font-weight: 600;
     }
 
+    .profile-menu-container {
+      position: relative;
+    }
+
+    .user-pill-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px 6px 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .user-pill-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+    }
+
+    .user-pill-chevron {
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+      margin-left: 2px;
+    }
+
+    .user-pill-btn[aria-expanded="true"] .user-pill-chevron {
+      transform: rotate(180deg);
+      color: var(--primary);
+    }
+
+    /* PROFILE DROPDOWN MENU */
+    .profile-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 320px;
+      max-width: 92vw;
+      background: #0f182c;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      z-index: 1000;
+      padding: 12px;
+      display: none;
+      animation: dropdownFadeIn 0.18s ease-out;
+    }
+
+    .profile-dropdown-menu.show {
+      display: block;
+    }
+
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-dropdown-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 8px 12px;
+    }
+
+    .profile-dropdown-user-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .profile-dropdown-user-info strong {
+      font-size: 13.5px;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-dropdown-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 8px 0;
+    }
+
+    .payment-method-status-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+
+    .pm-status-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .pm-status-val {
+      font-size: 12px;
+      color: var(--text-main);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      word-break: break-all;
+    }
+
+    .dropdown-item-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      color: var(--text-main);
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .dropdown-item-btn:hover {
+      background: rgba(255, 138, 36, 0.12);
+      color: var(--primary);
+    }
+
+    .dropdown-item-icon {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      flex-shrink: 0;
+    }
+
+    .dropdown-item-btn:hover .dropdown-item-icon {
+      background: rgba(255, 138, 36, 0.2);
+    }
+
+    .dropdown-item-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dropdown-item-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dropdown-item-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .dropdown-item-arrow {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* MODAL OVERLAY & CARD */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-card {
+      background: #0f182c;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 138, 36, 0.2);
+      overflow: hidden;
+      animation: modalSlideUp 0.22s ease-out;
+    }
+
+    @keyframes modalSlideUp {
+      from { transform: translateY(16px) scale(0.97); }
+      to { transform: translateY(0) scale(1); }
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .modal-head-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-modal-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .modal-desc {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .payout-type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .payout-type-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .payout-type-pill:hover {
+      border-color: rgba(255, 138, 36, 0.4);
+      color: var(--text-main);
+    }
+
+    .payout-type-pill.active {
+      background: rgba(255, 138, 36, 0.12);
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 16px rgba(255, 138, 36, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #080d17;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      color: #FFFFFF;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 138, 36, 0.2);
+    }
+
+    .form-hint {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .modal-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.4;
+      margin-top: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 22px;
+      border-top: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .btn-modal-cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-modal-cancel:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-modal-save {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(255, 138, 36, 0.35);
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-modal-save:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(255, 138, 36, 0.45);
+    }
+
+    .btn-modal-save:active {
+      transform: scale(0.98);
+    }
+
     .user-avatar-circle {
       width: 28px;
       height: 28px;
@@ -775,9 +1174,53 @@
       </a>
 
       <div class="topbar-actions">
-        <div class="user-pill" id="userPillWrap" style="display:none;">
-          <div class="user-avatar-circle" id="userAvatarText">B</div>
-          <span id="userPillName">Caricamento...</span>
+        <div class="profile-menu-container" id="userPillWrap" style="display:none;">
+          <button type="button" class="user-pill-btn" id="userProfileBtn" onclick="toggleProfileMenu(event)" aria-haspopup="true" aria-expanded="false" title="Menu profilo e impostazioni pagamento">
+            <div class="user-avatar-circle" id="userAvatarText">B</div>
+            <span id="userPillName">Caricamento...</span>
+            <span class="user-pill-chevron">▾</span>
+          </button>
+
+          <!-- Dropdown Menu Profilo -->
+          <div class="profile-dropdown-menu" id="profileDropdownMenu">
+            <div class="profile-dropdown-header">
+              <div class="user-avatar-circle" id="menuAvatarText" style="width:34px; height:34px; font-size:14px;">B</div>
+              <div class="profile-dropdown-user-info">
+                <strong id="menuUserName">Affiliato BarPilot</strong>
+                <span id="menuUserEmail" style="font-size:11.5px; color:var(--text-muted);">utente@barpilot.eu</span>
+              </div>
+            </div>
+
+            <div class="profile-dropdown-divider"></div>
+
+            <!-- Metodo di pagamento attuale -->
+            <div class="payment-method-status-card" id="paymentMethodStatusCard">
+              <div class="pm-status-label">Metodo di liquidazione:</div>
+              <div class="pm-status-val" id="pmStatusValText">
+                <span>⚠️</span>
+                <span>Nessun metodo impostato</span>
+              </div>
+            </div>
+
+            <!-- Voci del Menu -->
+            <button type="button" class="dropdown-item-btn" onclick="openPaymentMethodModal()">
+              <span class="dropdown-item-icon">💳</span>
+              <div class="dropdown-item-text">
+                <span class="dropdown-item-title" id="pmActionTitle">Imposta metodo di pagamento</span>
+                <span class="dropdown-item-sub">IBAN bancario o conto PayPal</span>
+              </div>
+              <span class="dropdown-item-arrow">›</span>
+            </button>
+
+            <button type="button" class="dropdown-item-btn" onclick="openPaymentMethodModal()">
+              <span class="dropdown-item-icon">✏️</span>
+              <div class="dropdown-item-text">
+                <span class="dropdown-item-title">Modifica dati di pagamento</span>
+                <span class="dropdown-item-sub">Aggiorna intestatario o coordinate</span>
+              </div>
+              <span class="dropdown-item-arrow">›</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -976,6 +1419,83 @@
     </main>
   </div>
 
+  <!-- Modal: Metodo di Pagamento per Liquidazione -->
+  <div class="modal-overlay" id="paymentMethodModal" style="display:none;" onclick="if(event.target===this) closePaymentMethodModal()">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-head-title">
+          <span>💳</span>
+          <span>Metodo di pagamento</span>
+        </div>
+        <button type="button" class="btn-modal-close" onclick="closePaymentMethodModal()" title="Chiudi">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">
+          Configura dove desideri ricevere le tue provvigioni BarPilot. Potrai richiedere la liquidazione non appena raggiungi la soglia minima di 50,00 €.
+        </p>
+
+        <!-- Selector: Bonifico IBAN vs PayPal -->
+        <div class="payout-type-selector">
+          <label class="payout-type-pill active" id="pillTypeIban" onclick="selectPayoutType('iban')">
+            <input type="radio" name="payoutType" value="iban" checked style="display:none;">
+            <span>🏦 Bonifico Bancario (IBAN)</span>
+          </label>
+          <label class="payout-type-pill" id="pillTypePaypal" onclick="selectPayoutType('paypal')">
+            <input type="radio" name="payoutType" value="paypal" style="display:none;">
+            <span>🅿️ PayPal</span>
+          </label>
+        </div>
+
+        <!-- Form Bonifico IBAN -->
+        <div id="formPayoutIban">
+          <div class="form-group">
+            <label class="form-label" for="payoutIbanHolder">Intestatario del conto / Ragione Sociale *</label>
+            <input type="text" id="payoutIbanHolder" class="form-input" placeholder="Es. Mario Rossi oppure Bar Roma Srl">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="payoutIbanNumber">Codice IBAN *</label>
+            <input type="text" id="payoutIbanNumber" class="form-input" placeholder="IT00X0000000000000000000000" maxlength="34" style="text-transform:uppercase; font-family:monospace; letter-spacing:1px;">
+            <span class="form-hint">Supporta qualsiasi conto corrente europeo (SEPA).</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="payoutIbanBank">Nome Banca (opzionale)</label>
+            <input type="text" id="payoutIbanBank" class="form-input" placeholder="Es. Intesa Sanpaolo, Unicredit, Revolut...">
+          </div>
+        </div>
+
+        <!-- Form PayPal -->
+        <div id="formPayoutPaypal" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="payoutPaypalEmail">Email associata al conto PayPal *</label>
+            <input type="email" id="payoutPaypalEmail" class="form-input" placeholder="nome@esempio.it">
+            <span class="form-hint">Riceverai l'accredito direttamente su questo indirizzo email PayPal.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="payoutPaypalHolder">Nome Intestatario PayPal (opzionale)</label>
+            <input type="text" id="payoutPaypalHolder" class="form-input" placeholder="Es. Mario Rossi">
+          </div>
+        </div>
+
+        <div class="modal-notice">
+          <span>🔒</span>
+          <span>I tuoi dati sono protetti e utilizzati esclusivamente per l'invio delle liquidazioni provvigionali maturate.</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closePaymentMethodModal()">Annulla</button>
+        <button type="button" class="btn-modal-save" onclick="savePayoutMethod()">
+          <span>💾</span>
+          <span>Salva dati di pagamento</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container">
     <div class="toast-msg" id="toastMsg">
@@ -1027,6 +1547,20 @@
         userPillName.textContent = user.name || user.email;
         if (userAvatarText) userAvatarText.textContent = (user.name || user.email).charAt(0).toUpperCase();
       }
+
+      // Aggiorna dati utente nel dropdown profilo
+      const menuAvatarText = document.getElementById("menuAvatarText");
+      const menuUserName = document.getElementById("menuUserName");
+      const menuUserEmail = document.getElementById("menuUserEmail");
+      if (menuAvatarText) menuAvatarText.textContent = (user.name || user.email).charAt(0).toUpperCase();
+      if (menuUserName) menuUserName.textContent = user.name || user.email.split('@')[0];
+      if (menuUserEmail) menuUserEmail.textContent = user.email;
+
+      // Inizializza visualizzazione metodo di pagamento se presente in localStorage
+      try {
+        const localPm = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+        if (localPm) renderPayoutMethodDisplay(localPm);
+      } catch (_) {}
 
       try {
         const queryParams = new URLSearchParams({
@@ -1105,6 +1639,20 @@
       // 5. Storico commissioni
       allCommissionsList = data.commissions || [];
       renderCommissionsTable(allCommissionsList);
+
+      // 6. Metodo di pagamento
+      let payout = null;
+      try {
+        payout = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+      } catch (_) {}
+      if (!payout && affiliate && affiliate.payout_method) {
+        try {
+          payout = typeof affiliate.payout_method === 'string'
+            ? JSON.parse(affiliate.payout_method)
+            : affiliate.payout_method;
+        } catch (_) {}
+      }
+      renderPayoutMethodDisplay(payout);
     }
 
     function renderCommissionsTable(list) {
@@ -1175,12 +1723,186 @@
       renderCommissionsTable(filtered);
     }
 
+    // Gestione Menu a tendina Profilo (in alto a destra)
+    function toggleProfileMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById("profileDropdownMenu");
+      const btn = document.getElementById("userProfileBtn");
+      if (!menu) return;
+      const isOpen = menu.classList.toggle("show");
+      if (btn) btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+
+    function closeProfileMenu() {
+      const menu = document.getElementById("profileDropdownMenu");
+      const btn = document.getElementById("userProfileBtn");
+      if (menu) menu.classList.remove("show");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    }
+
+    // Gestione Modal Metodo di Pagamento
+    function openPaymentMethodModal() {
+      closeProfileMenu();
+      const modal = document.getElementById("paymentMethodModal");
+      if (!modal) return;
+
+      let saved = null;
+      try {
+        saved = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+      } catch (_) {}
+      if (!saved && currentAffiliateData?.affiliate?.payout_method) {
+        try {
+          saved = typeof currentAffiliateData.affiliate.payout_method === 'string'
+            ? JSON.parse(currentAffiliateData.affiliate.payout_method)
+            : currentAffiliateData.affiliate.payout_method;
+        } catch (_) {}
+      }
+
+      if (saved) {
+        if (saved.type === "paypal") {
+          selectPayoutType("paypal");
+          const emailInput = document.getElementById("payoutPaypalEmail");
+          const holderInput = document.getElementById("payoutPaypalHolder");
+          if (emailInput) emailInput.value = saved.email || "";
+          if (holderInput) holderInput.value = saved.holder || "";
+        } else {
+          selectPayoutType("iban");
+          const holderInput = document.getElementById("payoutIbanHolder");
+          const ibanInput = document.getElementById("payoutIbanNumber");
+          const bankInput = document.getElementById("payoutIbanBank");
+          if (holderInput) holderInput.value = saved.holder || "";
+          if (ibanInput) ibanInput.value = saved.iban || "";
+          if (bankInput) bankInput.value = saved.bank || "";
+        }
+      }
+      modal.style.display = "flex";
+    }
+
+    function closePaymentMethodModal() {
+      const modal = document.getElementById("paymentMethodModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function selectPayoutType(type) {
+      const pillIban = document.getElementById("pillTypeIban");
+      const pillPaypal = document.getElementById("pillTypePaypal");
+      const formIban = document.getElementById("formPayoutIban");
+      const formPaypal = document.getElementById("formPayoutPaypal");
+
+      if (type === "iban") {
+        if (pillIban) pillIban.classList.add("active");
+        if (pillPaypal) pillPaypal.classList.remove("active");
+        if (formIban) formIban.style.display = "block";
+        if (formPaypal) formPaypal.style.display = "none";
+      } else {
+        if (pillPaypal) pillPaypal.classList.add("active");
+        if (pillIban) pillIban.classList.remove("active");
+        if (formPaypal) formPaypal.style.display = "block";
+        if (formIban) formIban.style.display = "none";
+      }
+    }
+
+    async function savePayoutMethod() {
+      const isIban = document.getElementById("pillTypeIban")?.classList.contains("active");
+      let payoutData = null;
+
+      if (isIban) {
+        const holder = (document.getElementById("payoutIbanHolder")?.value || "").trim();
+        const iban = (document.getElementById("payoutIbanNumber")?.value || "").trim().toUpperCase().replace(/\s+/g, "");
+        const bank = (document.getElementById("payoutIbanBank")?.value || "").trim();
+
+        if (!holder) {
+          alert("Inserisci l'intestatario del conto o ragione sociale.");
+          return;
+        }
+        if (!iban || iban.length < 15) {
+          alert("Inserisci un codice IBAN valido.");
+          return;
+        }
+        payoutData = { type: "iban", holder, iban, bank };
+      } else {
+        const email = (document.getElementById("payoutPaypalEmail")?.value || "").trim();
+        const holder = (document.getElementById("payoutPaypalHolder")?.value || "").trim();
+
+        if (!email || !email.includes("@")) {
+          alert("Inserisci un indirizzo email PayPal valido.");
+          return;
+        }
+        payoutData = { type: "paypal", email, holder };
+      }
+
+      localStorage.setItem("barpilot_affiliate_payout_method", JSON.stringify(payoutData));
+      renderPayoutMethodDisplay(payoutData);
+      closePaymentMethodModal();
+      showToast("✅", "Metodo di pagamento salvato con successo!");
+
+      // Sincronizzazione con backend API
+      try {
+        const user = getAuthenticatedUser();
+        await fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save_payout_method",
+            email: user.email,
+            affiliateId: currentAffiliateData?.affiliate?.id,
+            payoutMethod: payoutData
+          })
+        });
+      } catch (err) {
+        console.warn("[Payout Method Sync]", err);
+      }
+    }
+
+    function renderPayoutMethodDisplay(payout) {
+      const statusVal = document.getElementById("pmStatusValText");
+      const actionTitle = document.getElementById("pmActionTitle");
+      if (!statusVal) return;
+
+      if (!payout) {
+        statusVal.innerHTML = `<span>⚠️</span> <span>Nessun metodo impostato</span>`;
+        if (actionTitle) actionTitle.textContent = "Imposta metodo di pagamento";
+        return;
+      }
+
+      if (payout.type === "paypal") {
+        statusVal.innerHTML = `<span>🅿️</span> <strong>PayPal: ${escapeHtml(payout.email)}</strong>`;
+        if (actionTitle) actionTitle.textContent = "Modifica metodo di pagamento";
+      } else {
+        const shortIban = payout.iban && payout.iban.length > 10
+          ? payout.iban.substring(0, 4) + "..." + payout.iban.slice(-4)
+          : payout.iban;
+        statusVal.innerHTML = `<span>🏦</span> <strong>IBAN: ${escapeHtml(shortIban)} (${escapeHtml(payout.holder)})</strong>`;
+        if (actionTitle) actionTitle.textContent = "Modifica metodo di pagamento";
+      }
+    }
+
     // Azione: Prelievo Saldo Affiliazioni (soglia minima 50€)
     function handleWithdraw() {
       const btn = document.getElementById("btnWithdraw");
       if (btn && btn.disabled) return;
+
+      let payout = null;
+      try {
+        payout = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+      } catch (_) {}
+      if (!payout && currentAffiliateData?.affiliate?.payout_method) {
+        try {
+          payout = typeof currentAffiliateData.affiliate.payout_method === 'string'
+            ? JSON.parse(currentAffiliateData.affiliate.payout_method)
+            : currentAffiliateData.affiliate.payout_method;
+        } catch (_) {}
+      }
+
+      if (!payout) {
+        showToast("⚠️", "Configura prima il tuo metodo di pagamento!");
+        openPaymentMethodModal();
+        return;
+      }
+
       const currentAvailable = document.getElementById("metricAvailableBalance")?.textContent || "0,00";
-      showToast("💸", `Richiesta di liquidazione inviata con successo per ${currentAvailable} €!`);
+      const targetDest = payout.type === 'paypal' ? `PayPal (${payout.email})` : `IBAN (...${payout.iban.slice(-4)})`;
+      showToast("💸", `Richiesta di liquidazione inviata (${currentAvailable} € su ${targetDest})!`);
     }
 
     // Azione: Copia Codice
@@ -1251,6 +1973,22 @@
     // Inizializzazione automatica
     document.addEventListener("DOMContentLoaded", () => {
       fetchAffiliationsData();
+
+      // Chiudi dropdown al click esterno
+      document.addEventListener("click", (e) => {
+        const wrap = document.getElementById("userPillWrap");
+        if (wrap && !wrap.contains(e.target)) {
+          closeProfileMenu();
+        }
+      });
+
+      // Tasto Escape per chiudere modale o menu
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeProfileMenu();
+          closePaymentMethodModal();
+        }
+      });
 
       // Auto-aggiornamento senza ricaricare la pagina (ogni 15 secondi)
       setInterval(fetchAffiliationsData, 15000);

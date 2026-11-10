@@ -543,7 +543,8 @@ async function handleUserAffiliateRequest(req, res) {
           email: affiliate.email,
           code: affiliate.code,
           share_url: `https://www.barpilot.eu/app?ref=${affiliate.code}`,
-          status: affiliate.status
+          status: affiliate.status,
+          payout_method: affiliate.payout_method || null
         },
         cards: {
           balance: {
@@ -619,6 +620,43 @@ async function handleUserAffiliateRequest(req, res) {
           valid: false,
           code,
           message: "Codice affiliazione inesistente o non attivo."
+        });
+      }
+
+      if (action === 'save_payout_method') {
+        const { email, affiliateId, payoutMethod } = body;
+        if (!payoutMethod) {
+          return res.status(400).json({ error: "Dati metodo di pagamento mancanti." });
+        }
+
+        const aff = store.affiliates.find(a => 
+          (affiliateId && a.id === affiliateId) ||
+          (email && a.email && a.email.toLowerCase() === String(email).toLowerCase())
+        );
+
+        if (aff) {
+          aff.payout_method = payoutMethod;
+          aff.updated_at = new Date().toISOString();
+          writeAffiliatesStore(store);
+        }
+
+        try {
+          const targetId = affiliateId || (aff ? aff.id : null);
+          if (targetId) {
+            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(targetId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                payout_method: typeof payoutMethod === 'object' ? JSON.stringify(payoutMethod) : payoutMethod,
+                updated_at: new Date().toISOString()
+              })
+            });
+          }
+        } catch (_) {}
+
+        return res.status(200).json({
+          success: true,
+          message: "Metodo di pagamento per liquidazione salvato con successo.",
+          payoutMethod
         });
       }
 
