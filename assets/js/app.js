@@ -96,6 +96,13 @@ function initBarPilotApp() {
       // Check if returning from completed checkout / payment via URL parameters
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        const refParam = urlParams.get("ref") || urlParams.get("invite") || urlParams.get("affiliate") || urlParams.get("promo");
+        if (refParam) {
+          const cleanRef = refParam.trim().toUpperCase();
+          localStorage.setItem("barpilot_referral_code", cleanRef);
+          const promoInput = document.getElementById("regPromoCode");
+          if (promoInput) promoInput.value = cleanRef;
+        }
         if (urlParams.get("account_deleted") === "true") {
           setUserLoggedIn(false);
           openAuthScreen('login');
@@ -7677,6 +7684,15 @@ function openAuthScreen(tab) {
   } else if (typeof switchAuthTab === "function") {
     switchAuthTab(currentAuthTab || 'login');
   }
+
+  // Pre-compila automaticamente il codice referral se salvato da URL
+  try {
+    const savedRef = localStorage.getItem("barpilot_referral_code");
+    const promoInput = document.getElementById("regPromoCode");
+    if (savedRef && promoInput && !promoInput.value) {
+      promoInput.value = savedRef.toUpperCase();
+    }
+  } catch (_) {}
 }
 
 function closeAuthScreen() {

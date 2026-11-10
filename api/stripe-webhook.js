@@ -3,6 +3,8 @@
 // e sincronizzazione automatica bidirezionale su Supabase Database
 
 const Stripe = require('stripe');
+const fs = require('fs');
+const path = require('path');
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -123,7 +125,8 @@ export default async function handler(req, res) {
       // ----------------------------------------------------------------------
       // 5. INVOICE PAID (Fattura saldata con successo)
       // ----------------------------------------------------------------------
-      case 'invoice.paid': {
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
         console.log(`[Stripe Webhook] 🧾 Fattura pagata: ${invoice.number || invoice.id}`);
         await syncInvoicePaid(invoice);
@@ -157,6 +160,16 @@ export default async function handler(req, res) {
         const pi = event.data.object;
         console.warn(`[Stripe Webhook] ⚠️ Incasso fallito: ${pi.id}`);
         await syncPaymentIntent(pi, 'failed');
+        break;
+      }
+
+      // ----------------------------------------------------------------------
+      // 9. CHARGE REFUNDED (Rimborso -> cancellazione commissione)
+      // ----------------------------------------------------------------------
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        console.log(`[Stripe Webhook] ↩️ Rimborso charge: ${charge.id}`);
+        await cancelAffiliateCommissionOnRefund(charge);
         break;
       }
 
@@ -424,6 +437,9 @@ async function handleSubscriptionCancelled(sub) {
             })
           });
         } catch (_) {}
+
+        // Aggiorna stato referral affiliato in 'cancelled'
+        await updateAffiliateReferralOnCancellation(barId);
       }
     }
   } catch (e) {
@@ -492,6 +508,15 @@ async function syncInvoicePaid(invoice) {
         })
       });
     } catch (_) {}
+
+    // Calcola e accredita commissione di affiliazione per questo pagamento valido
+    await processAffiliateCommissionOnPayment({
+      barId: barId,
+      email: invoice.customer_email || invoice.customer_name,
+      amountPaid: amountTotal,
+      invoiceId: invoice.id,
+      eventId: 'inv_' + invoice.id
+    });
   } catch (e) {
     console.error('[Stripe Webhook] syncInvoicePaid error:', e);
   }
@@ -603,5 +628,166 @@ async function recordAuditLog({ action, entityType, entityId, oldValues = null, 
         created_at: new Date().toISOString()
       })
     });
+  } catch (e) {}
+}
+
+// ----------------------------------------------------------------------------
+// Integrazione Programma Affiliazioni BarPilot
+// ----------------------------------------------------------------------------
+async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, invoiceId, eventId }) {
+  if (!amountPaid || amountPaid <= 0) return;
+
+  try {
+    let referral = null;
+    let targetBarId = barId;
+
+    if (targetBarId) {
+      const refRes = await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(targetBarId)}&limit=1`);
+      if (refRes.ok) {
+        const rows = await refRes.json();
+        if (rows && rows.length > 0) referral = rows[0];
+      }
+    }
+
+    if (!referral && email) {
+      const refRes = await supabaseFetch(`affiliate_referrals?referred_email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
+      if (refRes.ok) {
+        const rows = await refRes.json();
+        if (rows && rows.length > 0) referral = rows[0];
+      }
+    }
+
+    const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
+    let affStore = { affiliates: [], referrals: [], commissions: [], settings: { default_rate: 20.0 } };
+    try {
+      if (fs.existsSync(AFF_FILE)) {
+        affStore = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
+      }
+    } catch (_) {}
+
+    if (!referral && affStore.referrals) {
+      referral = affStore.referrals.find(r => 
+        (targetBarId && r.referred_bar_id === targetBarId) ||
+        (email && r.referred_email && r.referred_email.toLowerCase() === email.toLowerCase())
+      );
+    }
+
+    if (!referral) return;
+
+    // Idempotenza: verifica che non sia già stata registrata una commissione per questa fattura
+    if (invoiceId) {
+      const checkRes = await supabaseFetch(`affiliate_commissions?stripe_invoice_id=eq.${encodeURIComponent(invoiceId)}&limit=1`);
+      if (checkRes.ok) {
+        const rows = await checkRes.json();
+        if (rows && rows.length > 0) {
+          console.log(`[Stripe Webhook Affiliates] Commissione già esistente per invoice ${invoiceId}. Skip.`);
+          return;
+        }
+      }
+      if (affStore.commissions?.some(c => c.stripe_invoice_id === invoiceId)) {
+        return;
+      }
+    }
+
+    // Percentuale commissione (affiliato o globale da admin_settings)
+    let rate = 20.0;
+    try {
+      const affRes = await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(referral.affiliate_id)}&limit=1`);
+      if (affRes.ok) {
+        const rows = await affRes.json();
+        if (rows && rows[0]?.commission_rate) {
+          rate = parseFloat(rows[0].commission_rate) || rate;
+        }
+      }
+    } catch (_) {}
+
+    const commissionAmount = parseFloat(((amountPaid * rate) / 100).toFixed(2));
+    const nowIso = new Date().toISOString();
+    const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+
+    const commissionPayload = {
+      id: commId,
+      affiliate_id: referral.affiliate_id,
+      referral_id: referral.id,
+      bar_id: referral.referred_bar_id,
+      bar_name: referral.referred_bar_name || 'Bar Affiliato',
+      stripe_invoice_id: invoiceId || null,
+      stripe_event_id: eventId || null,
+      amount: commissionAmount,
+      currency: 'EUR',
+      status: 'pending',
+      available_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+      created_at: nowIso,
+      updated_at: nowIso
+    };
+
+    await supabaseFetch('affiliate_commissions', {
+      method: 'POST',
+      body: JSON.stringify(commissionPayload)
+    });
+
+    await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(referral.id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'active', updated_at: nowIso })
+    });
+
+    affStore.commissions = affStore.commissions || [];
+    affStore.commissions.push(commissionPayload);
+    if (affStore.referrals) {
+      const rIdx = affStore.referrals.findIndex(r => r.id === referral.id);
+      if (rIdx >= 0) affStore.referrals[rIdx].status = 'active';
+    }
+    try {
+      fs.writeFileSync(AFF_FILE, JSON.stringify(affStore, null, 2), 'utf8');
+    } catch (_) {}
+
+    console.log(`[Stripe Webhook Affiliates] ✅ Accreditata commissione ${commissionAmount} € all'affiliato ${referral.affiliate_id}`);
+  } catch (err) {
+    console.warn('[Stripe Webhook Affiliates] Errore:', err.message);
+  }
+}
+
+async function updateAffiliateReferralOnCancellation(barId) {
+  if (!barId) return;
+  try {
+    await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(barId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() })
+    });
+    const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
+    if (fs.existsSync(AFF_FILE)) {
+      const store = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
+      if (store.referrals) {
+        const r = store.referrals.find(ref => ref.referred_bar_id === barId);
+        if (r) {
+          r.status = 'cancelled';
+          fs.writeFileSync(AFF_FILE, JSON.stringify(store, null, 2), 'utf8');
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+async function cancelAffiliateCommissionOnRefund(charge) {
+  try {
+    const invoiceId = charge.invoice;
+    if (invoiceId) {
+      await supabaseFetch(`affiliate_commissions?stripe_invoice_id=eq.${encodeURIComponent(invoiceId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'cancelled', notes: 'Rimborsato su Stripe', updated_at: new Date().toISOString() })
+      });
+      const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
+      if (fs.existsSync(AFF_FILE)) {
+        const store = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
+        if (store.commissions) {
+          const c = store.commissions.find(comm => comm.stripe_invoice_id === invoiceId);
+          if (c) {
+            c.status = 'cancelled';
+            c.notes = 'Rimborsato su Stripe';
+            fs.writeFileSync(AFF_FILE, JSON.stringify(store, null, 2), 'utf8');
+          }
+        }
+      }
+    }
   } catch (e) {}
 }

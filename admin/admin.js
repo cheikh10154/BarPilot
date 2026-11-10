@@ -1053,6 +1053,7 @@ class AdminConsole {
       invoices: { title: "Fatturazione & Ricevute", sub: "Storico fatture emesse, pagate e da riscuotere." },
       payments: { title: "Gateway & Pagamenti", sub: "Registro transazioni via Stripe, Google Pay e Carte." },
       stats: { title: "Statistiche & Crescita", sub: "Analisi di redditività MRR, ARR e andamento abbonati." },
+      affiliates: { title: "Programma Affiliazioni", sub: "Gestione affiliati, codici univoci, regole economiche e stati commissioni." },
       support: { title: "Centro Supporto & Ticket", sub: "Gestione richieste d'assistenza, KDS e configurazioni dai bar." },
       settings: { title: "Impostazioni Piattaforma", sub: "Configurazione prezzi, dati aziendali e sincronizzazione Supabase." }
     };
@@ -1083,6 +1084,7 @@ class AdminConsole {
       }
       this.renderSupportTable();
     }
+    if (viewId === "affiliates") this.renderAffiliatesView();
     if (viewId === "settings") this.renderSettingsView();
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1844,6 +1846,244 @@ class AdminConsole {
 
       this.showToast(`Risposta inviata e salvata su Supabase per il ticket ${tkt.id}`);
     }
+  }
+
+  // ==========================================================================
+  // Super Admin Affiliates Program Management
+  // ==========================================================================
+  async renderAffiliatesView() {
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        headers: { "x-admin-pin": "101540" }
+      });
+      if (!res.ok) throw new Error("Errore recupero affiliazioni admin");
+      const data = await res.json();
+      this.affiliatesAdminData = data;
+
+      // Aggiorna KPI cards
+      const kpis = data.kpis || {};
+      const elAffs = document.getElementById("kpiAdminTotalAffiliates");
+      if (elAffs) elAffs.textContent = kpis.total_affiliates || 0;
+
+      const elRefs = document.getElementById("kpiAdminTotalReferrals");
+      if (elRefs) elRefs.textContent = kpis.total_referrals || 0;
+
+      const elActiveBadge = document.getElementById("kpiAdminActiveReferralsBadge");
+      if (elActiveBadge) elActiveBadge.textContent = `${kpis.active_referrals || 0} attivi`;
+
+      const elPending = document.getElementById("kpiAdminPendingCommissions");
+      if (elPending) elPending.textContent = `${this.formatCurrency(kpis.pending_commissions)} €`;
+
+      const elPaid = document.getElementById("kpiAdminPaidCommissions");
+      if (elPaid) elPaid.textContent = `${this.formatCurrency(kpis.paid_commissions)} €`;
+
+      // Aggiorna input percentuale commissione
+      const rateInput = document.getElementById("adminAffiliateCommissionRateInput");
+      if (rateInput && data.settings?.default_commission_rate !== undefined) {
+        rateInput.value = data.settings.default_commission_rate;
+      }
+
+      // Render Tabelle
+      this.renderAdminAffiliatesTable(data.affiliates || []);
+      this.renderAdminCommissionsTable(data.commissions || [], data.affiliates || []);
+    } catch (err) {
+      console.warn("[Admin Affiliates] Errore render:", err);
+    }
+  }
+
+  renderAdminAffiliatesTable(affiliates) {
+    const tbody = document.getElementById("adminAffiliatesTableBody");
+    if (!tbody) return;
+
+    if (!affiliates || affiliates.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun affiliato registrato al momento.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = affiliates.map(a => {
+      const dateFormatted = a.created_at ? new Date(a.created_at).toLocaleDateString("it-IT") : "--";
+      const isSuspended = a.status === "suspended";
+      return `
+        <tr>
+          <td>
+            <strong>${this.escapeHtml(a.name || 'Affiliato')}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(a.email)}</div>
+          </td>
+          <td>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:800; background:rgba(255,138,36,0.12); color:#FF8A24; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,138,36,0.25);">
+              ${this.escapeHtml(a.code)}
+            </span>
+          </td>
+          <td style="color:var(--text-muted); font-size:12.5px;">${dateFormatted}</td>
+          <td><strong>${a.total_referrals || 0}</strong> bar</td>
+          <td><span style="color:#10B981; font-weight:700;">${a.active_referrals || 0}</span> attivi</td>
+          <td><strong style="color:#10B981;">${this.formatCurrency(a.available_balance)} €</strong></td>
+          <td><strong>${this.formatCurrency(a.total_earned)} €</strong></td>
+          <td>
+            <button type="button" class="status-pill ${isSuspended ? 'status-late' : 'status-active'}" style="cursor:pointer; border:none;" onclick="window.adminConsole.toggleAffiliateStatus('${a.id}', '${isSuspended ? 'active' : 'suspended'}')">
+              ${isSuspended ? '⏸️ Sospeso' : '✓ Attivo'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  renderAdminCommissionsTable(commissions, affiliates) {
+    const tbody = document.getElementById("adminCommissionsTableBody");
+    if (!tbody) return;
+
+    if (!commissions || commissions.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Nessuna commissione generata finora.</td></tr>`;
+      return;
+    }
+
+    const affMap = {};
+    (affiliates || []).forEach(a => { affMap[a.id] = a; });
+
+    tbody.innerHTML = commissions.map(c => {
+      const dateFormatted = c.created_at ? new Date(c.created_at).toLocaleDateString("it-IT", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "--";
+      const aff = affMap[c.affiliate_id] || {};
+      const affLabel = aff.code ? `${aff.code} (${aff.email})` : (c.affiliate_id || 'Affiliato');
+      const curStatus = c.status || 'pending';
+
+      return `
+        <tr>
+          <td style="color:var(--text-muted); font-size:12.5px;">${dateFormatted}</td>
+          <td><strong>${this.escapeHtml(affLabel)}</strong></td>
+          <td>🍸 ${this.escapeHtml(c.bar_name || 'Bar Referral')}</td>
+          <td><strong style="font-family:'JetBrains Mono', monospace; font-size:13.5px; color:#10B981;">+${this.formatCurrency(c.amount)} €</strong></td>
+          <td style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-dim);">${this.escapeHtml(c.stripe_invoice_id || 'Manuale')}</td>
+          <td>
+            <select class="form-input-admin" style="padding:4px 8px; font-size:12px; height:auto; width:auto; font-weight:700; border-radius:8px;" onchange="window.adminConsole.updateCommissionStatus('${c.id}', this.value)">
+              <option value="pending" ${curStatus === 'pending' ? 'selected' : ''}>⏳ In attesa</option>
+              <option value="available" ${curStatus === 'available' ? 'selected' : ''}>🟢 Disponibile</option>
+              <option value="paid" ${curStatus === 'paid' ? 'selected' : ''}>🔵 Pagata</option>
+              <option value="cancelled" ${curStatus === 'cancelled' ? 'selected' : ''}>🔴 Annullata</option>
+            </select>
+          </td>
+          <td>
+            <button type="button" class="btn-primary-orange" style="padding:4px 10px; font-size:11.5px; height:auto;" onclick="window.adminConsole.updateCommissionStatus('${c.id}', 'paid')">
+              Segna Pagata
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async saveAffiliateCommissionRate() {
+    const input = document.getElementById("adminAffiliateCommissionRateInput");
+    if (!input) return;
+    const rate = parseFloat(input.value);
+    if (isNaN(rate) || rate < 0 || rate > 100) {
+      alert("Inserisci una percentuale valida tra 0 e 100.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "update_commission_rate",
+          rate: rate
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        this.showToast(`✓ Percentuale commissione aggiornata a ${rate.toFixed(2)}%!`);
+      } else {
+        throw new Error(data.error || "Errore salvataggio percentuale");
+      }
+    } catch (err) {
+      alert("Errore salvataggio regola economica: " + err.message);
+    }
+  }
+
+  async updateCommissionStatus(commId, newStatus) {
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "update_commission_status",
+          commissionId: commId,
+          status: newStatus
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        this.showToast(`✓ Stato commissione aggiornato a "${newStatus}"!`);
+        this.renderAffiliatesView();
+      } else {
+        throw new Error(data.error || "Errore aggiornamento stato");
+      }
+    } catch (err) {
+      alert("Errore aggiornamento stato commissione: " + err.message);
+    }
+  }
+
+  async toggleAffiliateStatus(affId, newStatus) {
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "update_affiliate_status",
+          affiliateId: affId,
+          status: newStatus
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        this.showToast(`✓ Stato affiliato aggiornato a "${newStatus}"!`);
+        this.renderAffiliatesView();
+      }
+    } catch (err) {
+      alert("Errore aggiornamento affiliato: " + err.message);
+    }
+  }
+
+  filterAdminAffiliates() {
+    const q = (document.getElementById("searchAdminAffiliatesInput")?.value || "").trim().toLowerCase();
+    const all = this.affiliatesAdminData?.affiliates || [];
+    if (!q) {
+      this.renderAdminAffiliatesTable(all);
+      return;
+    }
+    const filtered = all.filter(a => 
+      (a.name && a.name.toLowerCase().includes(q)) ||
+      (a.email && a.email.toLowerCase().includes(q)) ||
+      (a.code && a.code.toLowerCase().includes(q))
+    );
+    this.renderAdminAffiliatesTable(filtered);
+  }
+
+  filterAdminCommissions() {
+    const q = (document.getElementById("searchAdminCommissionsInput")?.value || "").trim().toLowerCase();
+    const all = this.affiliatesAdminData?.commissions || [];
+    const affs = this.affiliatesAdminData?.affiliates || [];
+    if (!q) {
+      this.renderAdminCommissionsTable(all, affs);
+      return;
+    }
+    const filtered = all.filter(c => 
+      (c.bar_name && c.bar_name.toLowerCase().includes(q)) ||
+      (c.affiliate_id && c.affiliate_id.toLowerCase().includes(q)) ||
+      (c.stripe_invoice_id && c.stripe_invoice_id.toLowerCase().includes(q)) ||
+      (c.status && c.status.toLowerCase().includes(q))
+    );
+    this.renderAdminCommissionsTable(filtered, affs);
   }
 
   // ==========================================================================

@@ -6,6 +6,9 @@
 // 4. Scrittura audit log amministrativo su public.admin_audit_logs
 // 5. Invio email di benvenuto via send-welcome-email
 
+import fs from 'fs';
+import path from 'path';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cprxxxlgaofopmogeuer.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
 
@@ -254,6 +257,74 @@ export default async function handler(req, res) {
       method: 'POST',
       body: JSON.stringify(subPayload)
     });
+
+    // 4b. Collegamento Programma Affiliazione se presente codice invito
+    if (cleanInviteCode) {
+      try {
+        const codeUpper = cleanInviteCode.toUpperCase();
+        let affiliate = null;
+
+        // Cerca su Supabase
+        const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(codeUpper)}&limit=1`);
+        if (affRes.ok) {
+          const affRows = await affRes.json();
+          if (affRows && affRows.length > 0) affiliate = affRows[0];
+        }
+
+        // Cerca nello store locale di fallback
+        const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
+        let affStore = { affiliates: [], referrals: [], commissions: [] };
+        try {
+          if (fs.existsSync(AFF_FILE)) {
+            affStore = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
+          }
+        } catch (_) {}
+
+        if (!affiliate && affStore.affiliates) {
+          affiliate = affStore.affiliates.find(a => a.code === codeUpper);
+        }
+
+        if (affiliate) {
+          const referralPayload = {
+            id: 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+            affiliate_id: affiliate.id,
+            affiliate_code: affiliate.code,
+            referred_bar_id: barId,
+            referred_bar_name: cleanBarName,
+            referred_user_id: userId || null,
+            referred_email: normalizedEmail,
+            status: 'registered',
+            registered_at: now.toISOString(),
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          };
+
+          // Salva su Supabase affiliate_referrals
+          await supabaseFetch('affiliate_referrals', {
+            method: 'POST',
+            body: JSON.stringify(referralPayload)
+          });
+
+          // Aggiorna lo store locale
+          affStore.referrals = affStore.referrals || [];
+          const existingRefIdx = affStore.referrals.findIndex(r => r.referred_bar_id === barId);
+          if (existingRefIdx >= 0) {
+            affStore.referrals[existingRefIdx] = referralPayload;
+          } else {
+            affStore.referrals.push(referralPayload);
+          }
+          try {
+            fs.writeFileSync(AFF_FILE, JSON.stringify(affStore, null, 2), 'utf8');
+          } catch (_) {}
+
+          console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${affiliate.code} (${affiliate.email})`);
+        } else {
+          console.log(`[Register Bar] Codice invito ${cleanInviteCode} non associato ad alcun affiliato.`);
+        }
+      } catch (affErr) {
+        console.warn('[Register Bar] Errore collegamento affiliato:', affErr.message);
+      }
+    }
 
     // 5. Registra l'azione in public.admin_audit_logs
     try {

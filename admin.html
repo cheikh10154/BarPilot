@@ -176,6 +176,21 @@
           <span class="nav-link-chevron">›</span>
         </button>
 
+        <button type="button" class="nav-link" data-view="affiliates" onclick="if(window.adminConsole) window.adminConsole.switchView('affiliates')">
+          <div class="nav-link-left">
+            <span class="nav-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
+            <span>Affiliazioni</span>
+          </div>
+          <span class="nav-link-chevron">›</span>
+        </button>
+
         <button type="button" class="nav-link" data-view="support" onclick="if(window.adminConsole) window.adminConsole.switchView('support')">
           <div class="nav-link-left">
             <span class="nav-link-icon">
@@ -788,6 +803,133 @@
                 </thead>
                 <tbody id="supportTableBody">
                   <!-- Populated via admin.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW: AFFILIAZIONI (Super Admin Affiliates Program)
+             ================================================================== -->
+        <section class="page-view" id="view-affiliates">
+          <!-- Top KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap" style="background:rgba(255,138,36,0.15); color:#FF8A24;">🤝</div>
+              </div>
+              <div class="kpi-card-label">Affiliati Totali</div>
+              <div class="kpi-card-value" id="kpiAdminTotalAffiliates">0</div>
+              <div class="kpi-card-trend trend-up"><span>●</span> <span>Partner BarPilot</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap" style="background:rgba(16,185,129,0.15); color:#10B981;">👥</div>
+              </div>
+              <div class="kpi-card-label">Bar Referral Acquisiti</div>
+              <div class="kpi-card-value" id="kpiAdminTotalReferrals">0</div>
+              <div class="kpi-card-trend trend-up" style="color:#10B981;"><span id="kpiAdminActiveReferralsBadge">0 attivi</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap" style="background:rgba(245,158,11,0.15); color:#F59E0B;">⏳</div>
+              </div>
+              <div class="kpi-card-label">Commissioni in Attesa</div>
+              <div class="kpi-card-value" id="kpiAdminPendingCommissions">0,00 €</div>
+              <div class="kpi-card-trend" style="color:#F59E0B;"><span>●</span> <span>Da liquidare</span></div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap" style="background:rgba(59,130,246,0.15); color:#3B82F6;">💰</div>
+              </div>
+              <div class="kpi-card-label">Totale Liquidato</div>
+              <div class="kpi-card-value" id="kpiAdminPaidCommissions">0,00 €</div>
+              <div class="kpi-card-trend" style="color:#3B82F6;"><span>●</span> <span>Pagato</span></div>
+            </div>
+          </div>
+
+          <!-- Regole Economiche Super Admin -->
+          <div class="section-box" style="margin-bottom:24px; border-color:rgba(255,138,36,0.35); background:linear-gradient(145deg, rgba(23, 35, 61, 0.95) 0%, rgba(17, 26, 46, 0.95) 100%);">
+            <div class="section-box-header" style="border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px; margin-bottom:16px;">
+              <h3 class="section-box-title" style="color:#FF8A24; display:flex; align-items:center; gap:8px;">
+                <span>⚙️</span> <span>Regole Economiche Programma Affiliazioni (Riservato Super Admin)</span>
+              </h3>
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px;">
+                <label style="display:block; font-size:12.5px; font-weight:700; color:#E2E8F0; margin-bottom:6px;">
+                  Percentuale Commissione Predefinita (%)
+                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input type="number" step="0.5" min="0" max="100" id="adminAffiliateCommissionRateInput" value="20.00" class="form-input-admin" style="font-size:16px; font-weight:800; max-width:140px;">
+                  <span style="font-size:16px; font-weight:800; color:#FF8A24;">%</span>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:4px;">
+                  Es. 20% su canone BarPilot Pro di 59 € = 11,80 € al mese per ogni bar abbonato.
+                </span>
+              </div>
+              <button type="button" class="btn-primary-orange" onclick="window.adminConsole.saveAffiliateCommissionRate()" style="height:44px; padding:0 24px;">
+                💾 Salva Regola Economica
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabella Tutti gli Affiliati -->
+          <div class="section-box" style="margin-bottom:24px;">
+            <div class="section-box-header">
+              <h3 class="section-box-title">👥 Elenco Affiliati & Codici Personali</h3>
+              <div class="table-search-wrap">
+                <input type="text" class="table-search-input" id="searchAdminAffiliatesInput" placeholder="Cerca affiliato o codice..." oninput="window.adminConsole.filterAdminAffiliates()">
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-data-table">
+                <thead>
+                  <tr>
+                    <th>Affiliato</th>
+                    <th>Codice Univoco</th>
+                    <th>Data Iscrizione</th>
+                    <th>Bar Registrati</th>
+                    <th>Abbonati Attivi</th>
+                    <th>Saldo Disponibile</th>
+                    <th>Totale Guadagnato</th>
+                    <th>Stato</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAffiliatesTableBody">
+                  <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Caricamento affiliati...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tabella Gestione Commissioni -->
+          <div class="section-box">
+            <div class="section-box-header">
+              <h3 class="section-box-title">💳 Gestione Commissioni & Payout</h3>
+              <div class="table-search-wrap">
+                <input type="text" class="table-search-input" id="searchAdminCommissionsInput" placeholder="Cerca bar, affiliato o ID..." oninput="window.adminConsole.filterAdminCommissions()">
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-data-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Affiliato</th>
+                    <th>Bar Referral</th>
+                    <th>Importo</th>
+                    <th>Stripe Invoice ID</th>
+                    <th>Stato Commissione</th>
+                    <th>Azione</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCommissionsTableBody">
+                  <tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Caricamento storico commissioni...</td></tr>
                 </tbody>
               </table>
             </div>
