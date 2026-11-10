@@ -214,6 +214,28 @@
       color: var(--primary);
     }
 
+    .btn-topbar-auth {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      background: linear-gradient(135deg, #FF8A24 0%, #FF6B00 100%);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 4px 14px rgba(255, 138, 36, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-topbar-auth:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(255, 138, 36, 0.5);
+    }
+
     /* PROFILE DROPDOWN MENU */
     .profile-dropdown-menu {
       position: absolute;
@@ -1174,6 +1196,11 @@
       </a>
 
       <div class="topbar-actions">
+        <button type="button" class="btn-topbar-auth" id="btnTopbarAuth" onclick="showAffiliateAuthModal('login')" style="display:none;">
+          <span>🔑</span>
+          <span>Accedi / Iscriviti</span>
+        </button>
+
         <div class="profile-menu-container" id="userPillWrap" style="display:none;">
           <button type="button" class="user-pill-btn" id="userProfileBtn" onclick="toggleProfileMenu(event)" aria-haspopup="true" aria-expanded="false" title="Menu profilo e impostazioni pagamento">
             <div class="user-avatar-circle" id="userAvatarText">B</div>
@@ -1219,6 +1246,17 @@
                 <span class="dropdown-item-sub">Aggiorna intestatario o coordinate</span>
               </div>
               <span class="dropdown-item-arrow">›</span>
+            </button>
+
+            <div class="profile-dropdown-divider"></div>
+
+            <button type="button" class="dropdown-item-btn" onclick="logoutAffiliateUser()" style="color:#ef4444;">
+              <span class="dropdown-item-icon" style="background:rgba(239, 68, 68, 0.12); color:#ef4444;">🚪</span>
+              <div class="dropdown-item-text">
+                <span class="dropdown-item-title" style="color:#ef4444;">Esci dall'account</span>
+                <span class="dropdown-item-sub">Disconnetti o cambia affiliato</span>
+              </div>
+              <span class="dropdown-item-arrow" style="color:#ef4444;">›</span>
             </button>
           </div>
         </div>
@@ -1419,6 +1457,105 @@
     </main>
   </div>
 
+  <!-- Modal: Iscrizione & Login Affiliazioni (Nome, Cognome, Telefono, Email, Password) -->
+  <div class="modal-overlay" id="affiliateAuthModal" style="display:none;" onclick="if(event.target===this && isAffiliateAuthenticated()) closeAffiliateAuthModal()">
+    <div class="modal-card" style="max-width:440px;">
+      <div class="modal-head" style="align-items:flex-start; border-bottom:none; padding-bottom:0;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:24px;">🤝</span>
+            <span style="font-size:18px; font-weight:800; color:var(--text-main);" id="authModalHeading">Accedi ad Affiliazioni</span>
+          </div>
+          <span style="font-size:12.5px; color:var(--text-muted);" id="authModalSubheading">Gestisci le tue provvigioni e il tuo codice invito</span>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnAuthClose" onclick="closeAffiliateAuthModal()" title="Chiudi" style="display:none;">✕</button>
+      </div>
+
+      <!-- Tab Switch: Accedi vs Iscriviti -->
+      <div class="auth-tab-switch" style="display:flex; gap:8px; margin: 18px 0 16px; background:rgba(255,255,255,0.04); padding:4px; border-radius:10px;">
+        <button type="button" class="auth-tab-btn active" id="tabAffLogin" onclick="switchAffAuthTab('login')" style="flex:1; padding:9px; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:var(--primary); color:#fff; font-family:inherit; transition:all 0.2s;">
+          Accedi
+        </button>
+        <button type="button" class="auth-tab-btn" id="tabAffRegister" onclick="switchAffAuthTab('register')" style="flex:1; padding:9px; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; background:transparent; color:var(--text-muted); font-family:inherit; transition:all 0.2s;">
+          Iscriviti
+        </button>
+      </div>
+
+      <!-- Alert Error -->
+      <div id="affAuthAlertError" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:12.5px; color:#fca5a5; line-height:1.4;">
+        <span id="affAuthAlertErrorText">Errore</span>
+      </div>
+
+      <!-- Form Iscrizione (Nome, Cognome, Telefono, Email, Password) -->
+      <form id="affRegisterForm" style="display:none;" onsubmit="handleAffRegisterSubmit(event)">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="affRegFirstName">Nome *</label>
+            <input type="text" class="form-input" id="affRegFirstName" placeholder="Es: Mario" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="affRegLastName">Cognome *</label>
+            <input type="text" class="form-input" id="affRegLastName" placeholder="Es: Rossi" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" for="affRegPhone">Numero di telefono *</label>
+          <input type="tel" class="form-input" id="affRegPhone" placeholder="Es: +39 333 1234567" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" for="affRegEmail">Indirizzo Email *</label>
+          <input type="email" class="form-input" id="affRegEmail" placeholder="mario.rossi@email.it" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label" for="affRegPassword">Password *</label>
+          <div class="password-input-wrap" style="position:relative;">
+            <input type="password" class="form-input" id="affRegPassword" placeholder="Crea una password (min. 6 caratteri)" required style="padding-right:40px;">
+            <button type="button" class="btn-toggle-eye" onclick="toggleAffPasswordVisibility('affRegPassword', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted);" title="Mostra/Nascondi password">👁️</button>
+          </div>
+          <span style="font-size:11px; color:var(--text-dim); display:block; margin-top:4px;">Minimo 6 caratteri.</span>
+        </div>
+
+        <button type="submit" class="btn-modal-save" id="btnAffRegisterSubmit" style="width:100%; justify-content:center; padding:12px; font-size:14px; margin-bottom:12px;">
+          <span>🚀</span>
+          <span>Iscriviti e crea codice</span>
+        </button>
+
+        <div style="text-align:center; font-size:12.5px; color:var(--text-muted);">
+          Hai già un account? <button type="button" onclick="switchAffAuthTab('login')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; font-family:inherit; text-decoration:underline;">Accedi</button>
+        </div>
+      </form>
+
+      <!-- Form Login (Email, Password) -->
+      <form id="affLoginForm" onsubmit="handleAffLoginSubmit(event)">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" for="affLoginEmail">Indirizzo Email *</label>
+          <input type="email" class="form-input" id="affLoginEmail" placeholder="mario.rossi@email.it" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label" for="affLoginPassword">Password *</label>
+          <div class="password-input-wrap" style="position:relative;">
+            <input type="password" class="form-input" id="affLoginPassword" placeholder="••••••••" required style="padding-right:40px;">
+            <button type="button" class="btn-toggle-eye" onclick="toggleAffPasswordVisibility('affLoginPassword', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted);" title="Mostra/Nascondi password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-modal-save" id="btnAffLoginSubmit" style="width:100%; justify-content:center; padding:12px; font-size:14px; margin-bottom:12px;">
+          <span>🔐</span>
+          <span>Accedi alle mie affiliazioni</span>
+        </button>
+
+        <div style="text-align:center; font-size:12.5px; color:var(--text-muted);">
+          Non hai ancora un account affiliato? <button type="button" onclick="switchAffAuthTab('register')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; font-family:inherit; text-decoration:underline;">Iscriviti subito</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
   <!-- Modal: Metodo di Pagamento per Liquidazione -->
   <div class="modal-overlay" id="paymentMethodModal" style="display:none;" onclick="if(event.target===this) closePaymentMethodModal()">
     <div class="modal-card">
@@ -1511,6 +1648,11 @@
 
     // Recupera l'utente o bar attivo da sessione / localStorage
     function getAuthenticatedUser() {
+      let affUser = null;
+      try {
+        affUser = JSON.parse(localStorage.getItem("barpilot_affiliate_user") || "null");
+      } catch (_) {}
+
       let loggedUser = null;
       try {
         loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
@@ -1526,22 +1668,271 @@
         bar = JSON.parse(localStorage.getItem("barpilot_active_bar") || "null");
       } catch (_) {}
 
-      const email = session?.user?.email || loggedUser?.email || bar?.email || bar?.managerEmail || "utente@barpilot.eu";
-      const userId = session?.user?.id || loggedUser?.id || loggedUser?.userId || null;
-      const barId = bar?.id || loggedUser?.barId || "bar_01";
-      const name = loggedUser?.name || loggedUser?.ownerName || bar?.name || email.split('@')[0];
+      const email = affUser?.email || session?.user?.email || loggedUser?.email || bar?.email || bar?.managerEmail || null;
+      if (!email) return null;
 
-      return { email, userId, barId, name };
+      const userId = affUser?.id || session?.user?.id || loggedUser?.id || loggedUser?.userId || null;
+      const barId = bar?.id || loggedUser?.barId || "bar_01";
+      const name = affUser?.name || loggedUser?.name || loggedUser?.ownerName || bar?.name || email.split('@')[0];
+
+      return { email, userId, barId, name, phone: affUser?.phone || loggedUser?.phone || null };
+    }
+
+    function isAffiliateAuthenticated() {
+      const user = getAuthenticatedUser();
+      return !!(user && user.email);
+    }
+
+    function checkAuthAndInit() {
+      const isAuth = isAffiliateAuthenticated();
+      const userPillWrap = document.getElementById("userPillWrap");
+      const btnTopbarAuth = document.getElementById("btnTopbarAuth");
+      const btnAuthClose = document.getElementById("btnAuthClose");
+
+      if (isAuth) {
+        if (userPillWrap) userPillWrap.style.display = "flex";
+        if (btnTopbarAuth) btnTopbarAuth.style.display = "none";
+        if (btnAuthClose) btnAuthClose.style.display = "inline-block";
+        closeAffiliateAuthModal();
+        fetchAffiliationsData();
+      } else {
+        if (userPillWrap) userPillWrap.style.display = "none";
+        if (btnTopbarAuth) btnTopbarAuth.style.display = "inline-flex";
+        if (btnAuthClose) btnAuthClose.style.display = "none";
+        showAffiliateAuthModal('login');
+      }
+    }
+
+    function showAffiliateAuthModal(tab = 'login') {
+      const modal = document.getElementById("affiliateAuthModal");
+      if (!modal) return;
+      switchAffAuthTab(tab);
+      hideAffAuthError();
+      modal.style.display = "flex";
+    }
+
+    function closeAffiliateAuthModal() {
+      const modal = document.getElementById("affiliateAuthModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function switchAffAuthTab(tab) {
+      const tabLogin = document.getElementById("tabAffLogin");
+      const tabRegister = document.getElementById("tabAffRegister");
+      const formLogin = document.getElementById("affLoginForm");
+      const formRegister = document.getElementById("affRegisterForm");
+      const heading = document.getElementById("authModalHeading");
+      const subheading = document.getElementById("authModalSubheading");
+
+      hideAffAuthError();
+
+      if (tab === 'register') {
+        if (tabRegister) {
+          tabRegister.style.background = "var(--primary)";
+          tabRegister.style.color = "#fff";
+        }
+        if (tabLogin) {
+          tabLogin.style.background = "transparent";
+          tabLogin.style.color = "var(--text-muted)";
+        }
+        if (formRegister) formRegister.style.display = "block";
+        if (formLogin) formLogin.style.display = "none";
+        if (heading) heading.textContent = "Iscriviti alle Affiliazioni";
+        if (subheading) subheading.textContent = "Crea il tuo profilo e genera il tuo codice referral personale";
+      } else {
+        if (tabLogin) {
+          tabLogin.style.background = "var(--primary)";
+          tabLogin.style.color = "#fff";
+        }
+        if (tabRegister) {
+          tabRegister.style.background = "transparent";
+          tabRegister.style.color = "var(--text-muted)";
+        }
+        if (formLogin) formLogin.style.display = "block";
+        if (formRegister) formRegister.style.display = "none";
+        if (heading) heading.textContent = "Accedi ad Affiliazioni";
+        if (subheading) subheading.textContent = "Gestisci i tuoi referral, provvigioni e codici invito";
+      }
+    }
+
+    function showAffAuthError(msg) {
+      const alertBox = document.getElementById("affAuthAlertError");
+      const alertText = document.getElementById("affAuthAlertErrorText");
+      if (alertBox && alertText) {
+        alertText.innerHTML = msg;
+        alertBox.style.display = "block";
+      }
+    }
+
+    function hideAffAuthError() {
+      const alertBox = document.getElementById("affAuthAlertError");
+      if (alertBox) alertBox.style.display = "none";
+    }
+
+    function toggleAffPasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === "password") {
+        input.type = "text";
+        if (btn) btn.textContent = "🙈";
+      } else {
+        input.type = "password";
+        if (btn) btn.textContent = "👁️";
+      }
+    }
+
+    async function handleAffRegisterSubmit(e) {
+      if (e) e.preventDefault();
+      hideAffAuthError();
+
+      const firstName = (document.getElementById("affRegFirstName")?.value || "").trim();
+      const lastName = (document.getElementById("affRegLastName")?.value || "").trim();
+      const phone = (document.getElementById("affRegPhone")?.value || "").trim();
+      const email = (document.getElementById("affRegEmail")?.value || "").trim().toLowerCase();
+      const password = (document.getElementById("affRegPassword")?.value || "").trim();
+
+      if (!firstName || !lastName || !phone || !email || !password) {
+        showAffAuthError("Compila tutti i campi: nome, cognome, telefono, email e password.");
+        return;
+      }
+
+      if (password.length < 6) {
+        showAffAuthError("La password deve contenere almeno 6 caratteri.");
+        return;
+      }
+
+      const submitBtn = document.getElementById("btnAffRegisterSubmit");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>⏳</span> <span>Creazione account in corso...</span>`;
+      }
+
+      try {
+        const res = await fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "auth_register",
+            firstName,
+            lastName,
+            phone,
+            email,
+            password
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Errore durante l'iscrizione.");
+        }
+
+        const affUser = {
+          id: data.user.id,
+          firstName: data.user.firstName || firstName,
+          lastName: data.user.lastName || lastName,
+          name: data.user.name || `${firstName} ${lastName}`,
+          phone: data.user.phone || phone,
+          email: data.user.email || email,
+          code: data.user.code
+        };
+
+        localStorage.setItem("barpilot_affiliate_user", JSON.stringify(affUser));
+        localStorage.setItem("barpilot_logged_user", JSON.stringify(affUser));
+
+        closeAffiliateAuthModal();
+        showToast("🎉", `Benvenuto ${affUser.firstName}! Codice affiliazione generato.`);
+        checkAuthAndInit();
+      } catch (err) {
+        showAffAuthError(err.message || "Errore durante la registrazione.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>🚀</span> <span>Iscriviti e crea codice</span>`;
+        }
+      }
+    }
+
+    async function handleAffLoginSubmit(e) {
+      if (e) e.preventDefault();
+      hideAffAuthError();
+
+      const email = (document.getElementById("affLoginEmail")?.value || "").trim().toLowerCase();
+      const password = (document.getElementById("affLoginPassword")?.value || "").trim();
+
+      if (!email || !password) {
+        showAffAuthError("Inserisci email e password.");
+        return;
+      }
+
+      const submitBtn = document.getElementById("btnAffLoginSubmit");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>⏳</span> <span>Accesso in corso...</span>`;
+      }
+
+      try {
+        const res = await fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "auth_login",
+            email,
+            password
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Credenziali non valide.");
+        }
+
+        const affUser = {
+          id: data.user.id,
+          name: data.user.name || email.split('@')[0],
+          email: data.user.email || email,
+          phone: data.user.phone || '',
+          code: data.user.code
+        };
+
+        localStorage.setItem("barpilot_affiliate_user", JSON.stringify(affUser));
+        localStorage.setItem("barpilot_logged_user", JSON.stringify(affUser));
+
+        closeAffiliateAuthModal();
+        showToast("👋", `Bentornato, ${affUser.name}!`);
+        checkAuthAndInit();
+      } catch (err) {
+        showAffAuthError(err.message || "Errore durante il login.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>🔐</span> <span>Accedi alle mie affiliazioni</span>`;
+        }
+      }
+    }
+
+    function logoutAffiliateUser() {
+      localStorage.removeItem("barpilot_affiliate_user");
+      localStorage.removeItem("barpilot_logged_user");
+      localStorage.removeItem("barpilot_supabase_session");
+      closeProfileMenu();
+      showToast("🚪", "Disconnesso dall'account.");
+      checkAuthAndInit();
     }
 
     // Carica dati dal backend Supabase / API serverless
     async function fetchAffiliationsData() {
       const user = getAuthenticatedUser();
+      if (!user || !user.email) {
+        checkAuthAndInit();
+        return;
+      }
       
       // Aggiorna user pill nella topbar
       const userPillWrap = document.getElementById("userPillWrap");
+      const btnTopbarAuth = document.getElementById("btnTopbarAuth");
       const userPillName = document.getElementById("userPillName");
       const userAvatarText = document.getElementById("userAvatarText");
+      if (btnTopbarAuth) btnTopbarAuth.style.display = "none";
       if (userPillWrap && userPillName) {
         userPillWrap.style.display = "flex";
         userPillName.textContent = user.name || user.email;
@@ -1972,7 +2363,7 @@
 
     // Inizializzazione automatica
     document.addEventListener("DOMContentLoaded", () => {
-      fetchAffiliationsData();
+      checkAuthAndInit();
 
       // Chiudi dropdown al click esterno
       document.addEventListener("click", (e) => {
@@ -1987,15 +2378,22 @@
         if (e.key === "Escape") {
           closeProfileMenu();
           closePaymentMethodModal();
+          if (isAffiliateAuthenticated()) {
+            closeAffiliateAuthModal();
+          }
         }
       });
 
-      // Auto-aggiornamento senza ricaricare la pagina (ogni 15 secondi)
-      setInterval(fetchAffiliationsData, 15000);
+      // Auto-aggiornamento senza ricaricare la pagina (ogni 15 secondi) se autenticato
+      setInterval(() => {
+        if (isAffiliateAuthenticated()) {
+          fetchAffiliationsData();
+        }
+      }, 15000);
 
       // Aggiorna anche al ripristino del focus della finestra
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
+        if (document.visibilityState === "visible" && isAffiliateAuthenticated()) {
           fetchAffiliationsData();
         }
       });

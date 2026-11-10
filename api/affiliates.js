@@ -660,6 +660,192 @@ async function handleUserAffiliateRequest(req, res) {
         });
       }
 
+      if (action === 'auth_register') {
+        const { firstName, lastName, phone, email, password } = body;
+        const cleanFirst = (firstName || '').trim();
+        const cleanLast = (lastName || '').trim();
+        const cleanPhone = (phone || '').trim();
+        const cleanEmail = (email || '').trim().toLowerCase();
+        const cleanPassword = (password || '').trim();
+
+        if (!cleanFirst || !cleanLast || !cleanPhone || !cleanEmail || !cleanPassword) {
+          return res.status(400).json({ error: "Compila tutti i campi: nome, cognome, telefono, email e password." });
+        }
+
+        if (cleanPassword.length < 6) {
+          return res.status(400).json({ error: "La password deve contenere almeno 6 caratteri." });
+        }
+
+        const fullName = `${cleanFirst} ${cleanLast}`;
+        const nowIso = new Date().toISOString();
+
+        // Cerca se l'affiliato esiste già
+        let aff = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail);
+
+        if (!aff) {
+          try {
+            const checkRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&select=*`);
+            if (checkRes.ok) {
+              const rows = await checkRes.json();
+              if (rows && rows.length > 0) {
+                aff = rows[0];
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (!aff) {
+          const existingCodes = new Set([...store.affiliates.map(a => a.code)]);
+          const newCode = generateUniqueCode(existingCodes);
+
+          aff = {
+            id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+            first_name: cleanFirst,
+            last_name: cleanLast,
+            name: fullName,
+            phone: cleanPhone,
+            email: cleanEmail,
+            password: cleanPassword,
+            code: newCode,
+            status: 'active',
+            commission_rate: 20.0,
+            total_earned: 0.00,
+            created_at: nowIso,
+            updated_at: nowIso
+          };
+
+          store.affiliates.push(aff);
+          writeAffiliatesStore(store);
+
+          try {
+            await supabaseFetch('affiliates', {
+              method: 'POST',
+              body: JSON.stringify({
+                id: aff.id,
+                name: fullName,
+                email: cleanEmail,
+                phone: cleanPhone,
+                code: aff.code,
+                status: 'active',
+                commission_rate: 20.0,
+                total_earned: 0.00,
+                created_at: nowIso,
+                updated_at: nowIso
+              })
+            });
+          } catch (_) {}
+        } else {
+          aff.first_name = cleanFirst;
+          aff.last_name = cleanLast;
+          aff.name = fullName;
+          aff.phone = cleanPhone;
+          aff.password = cleanPassword;
+          aff.updated_at = nowIso;
+          writeAffiliatesStore(store);
+
+          try {
+            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(aff.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                name: fullName,
+                phone: cleanPhone,
+                updated_at: nowIso
+              })
+            });
+          } catch (_) {}
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Registrazione affiliato completata con successo.",
+          user: {
+            id: aff.id,
+            firstName: cleanFirst,
+            lastName: cleanLast,
+            name: fullName,
+            phone: cleanPhone,
+            email: cleanEmail,
+            code: aff.code
+          }
+        });
+      }
+
+      if (action === 'auth_login') {
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const cleanPassword = (body.password || '').trim();
+
+        if (!cleanEmail || !cleanPassword) {
+          return res.status(400).json({ error: "Inserisci sia l'email che la password." });
+        }
+
+        let aff = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail);
+
+        if (!aff) {
+          try {
+            const checkRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&select=*`);
+            if (checkRes.ok) {
+              const rows = await checkRes.json();
+              if (rows && rows.length > 0) {
+                aff = rows[0];
+                store.affiliates.push(aff);
+              }
+            }
+          } catch (_) {}
+        }
+
+        let isValid = false;
+        if (aff) {
+          if (!aff.password || aff.password === cleanPassword) {
+            isValid = true;
+          }
+        } else {
+          // Creazione automatica affiliato se prima volta con password valida
+          if (cleanPassword.length >= 4) {
+            isValid = true;
+            const existingCodes = new Set([...store.affiliates.map(a => a.code)]);
+            const newCode = generateUniqueCode(existingCodes);
+            const nowIso = new Date().toISOString();
+            aff = {
+              id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+              name: cleanEmail.split('@')[0],
+              email: cleanEmail,
+              password: cleanPassword,
+              code: newCode,
+              status: 'active',
+              commission_rate: 20.0,
+              total_earned: 0.00,
+              created_at: nowIso,
+              updated_at: nowIso
+            };
+            store.affiliates.push(aff);
+            writeAffiliatesStore(store);
+
+            try {
+              await supabaseFetch('affiliates', {
+                method: 'POST',
+                body: JSON.stringify(aff)
+              });
+            } catch (_) {}
+          }
+        }
+
+        if (!isValid || !aff) {
+          return res.status(401).json({ error: "Credenziali non valide. Verifica email e password." });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Accesso completato con successo.",
+          user: {
+            id: aff.id,
+            name: aff.name || cleanEmail.split('@')[0],
+            email: aff.email,
+            phone: aff.phone || '',
+            code: aff.code
+          }
+        });
+      }
+
       return res.status(400).json({ error: "Azione non riconosciuta." });
     }
 
