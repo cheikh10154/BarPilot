@@ -3,8 +3,6 @@
 // e sincronizzazione automatica bidirezionale su Supabase Database
 
 const Stripe = require('stripe');
-const fs = require('fs');
-const path = require('path');
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -657,21 +655,6 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
       }
     }
 
-    const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
-    let affStore = { affiliates: [], referrals: [], commissions: [], settings: { default_rate: 20.0 } };
-    try {
-      if (fs.existsSync(AFF_FILE)) {
-        affStore = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
-      }
-    } catch (_) {}
-
-    if (!referral && affStore.referrals) {
-      referral = affStore.referrals.find(r => 
-        (targetBarId && r.referred_bar_id === targetBarId) ||
-        (email && r.referred_email && r.referred_email.toLowerCase() === email.toLowerCase())
-      );
-    }
-
     if (!referral) return;
 
     // Idempotenza: verifica che non sia già stata registrata una commissione per questa fattura
@@ -683,9 +666,6 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
           console.log(`[Stripe Webhook Affiliates] Commissione già esistente per invoice ${invoiceId}. Skip.`);
           return;
         }
-      }
-      if (affStore.commissions?.some(c => c.stripe_invoice_id === invoiceId)) {
-        return;
       }
     }
 
@@ -731,16 +711,6 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
       body: JSON.stringify({ status: 'active', updated_at: nowIso })
     });
 
-    affStore.commissions = affStore.commissions || [];
-    affStore.commissions.push(commissionPayload);
-    if (affStore.referrals) {
-      const rIdx = affStore.referrals.findIndex(r => r.id === referral.id);
-      if (rIdx >= 0) affStore.referrals[rIdx].status = 'active';
-    }
-    try {
-      fs.writeFileSync(AFF_FILE, JSON.stringify(affStore, null, 2), 'utf8');
-    } catch (_) {}
-
     console.log(`[Stripe Webhook Affiliates] ✅ Accreditata commissione ${commissionAmount} € all'affiliato ${referral.affiliate_id}`);
   } catch (err) {
     console.warn('[Stripe Webhook Affiliates] Errore:', err.message);
@@ -754,17 +724,6 @@ async function updateAffiliateReferralOnCancellation(barId) {
       method: 'PATCH',
       body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() })
     });
-    const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
-    if (fs.existsSync(AFF_FILE)) {
-      const store = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
-      if (store.referrals) {
-        const r = store.referrals.find(ref => ref.referred_bar_id === barId);
-        if (r) {
-          r.status = 'cancelled';
-          fs.writeFileSync(AFF_FILE, JSON.stringify(store, null, 2), 'utf8');
-        }
-      }
-    }
   } catch (e) {}
 }
 
@@ -776,18 +735,6 @@ async function cancelAffiliateCommissionOnRefund(charge) {
         method: 'PATCH',
         body: JSON.stringify({ status: 'cancelled', notes: 'Rimborsato su Stripe', updated_at: new Date().toISOString() })
       });
-      const AFF_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
-      if (fs.existsSync(AFF_FILE)) {
-        const store = JSON.parse(fs.readFileSync(AFF_FILE, 'utf8'));
-        if (store.commissions) {
-          const c = store.commissions.find(comm => comm.stripe_invoice_id === invoiceId);
-          if (c) {
-            c.status = 'cancelled';
-            c.notes = 'Rimborsato su Stripe';
-            fs.writeFileSync(AFF_FILE, JSON.stringify(store, null, 2), 'utf8');
-          }
-        }
-      }
     }
   } catch (e) {}
 }
