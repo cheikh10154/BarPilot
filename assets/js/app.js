@@ -6303,11 +6303,14 @@ function renderPlans() {
       <div style="text-align:center; padding-top:14px; display:flex; flex-direction:column; align-items:center; gap:12px;">
         ${isSubscribed ? `
           <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35); cursor:pointer;" onclick="window.location.href='gestisci-abbonamento.html'">
-            ⚙️ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer / Résilier" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
+            ⚙️ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
+          </button>
+          <button type="button" class="btn-primary btn-subscribe-hero btn-cancel-sub" style="background:#EF4444; border-color:#EF4444; box-shadow:0 6px 20px rgba(239, 68, 68, 0.35); cursor:pointer;" onclick="handleCancelSubscriptionDirectly()">
+            🛑 ${isFr ? "Résilier l'abonnement" : "Disdici abbonamento"}
           </button>
           <div style="margin-top:4px;">
-            <a href="gestisci-abbonamento.html" style="color:var(--text-muted); font-size:12.5px; text-decoration:underline;">
-              ${isFr ? "Accéder à la gestion de l'abonnement et résiliation →" : "Gestisci l'abbonamento o effettua la disdetta →"}
+            <a href="javascript:void(0)" onclick="handleCancelSubscriptionDirectly()" style="color:#EF4444; font-size:12.5px; text-decoration:underline; font-weight:700;">
+              ${isFr ? "Résilier immédiatement au niveau de Stripe ou Google Pay →" : "Disdici subito a livello di Stripe o Google Pay →"}
             </a>
           </div>
         ` : `
@@ -6338,7 +6341,7 @@ function renderPlans() {
             💳 ${isFr ? "Ou s'abonner par Carte Bancaire (59 €/mois)" : "Oppure abbonati con Carta Bancaria (59 €/mese)"}
           </button>
           <div style="margin-top:4px;">
-            <a href="gestisci-abbonamento.html" style="color:var(--text-muted); font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+            <a href="javascript:void(0)" onclick="handleCancelSubscriptionDirectly()" style="color:var(--text-muted); font-size:12.5px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
               ⚙️ ${isFr ? "Gérer un abonnement existant ou résilier" : "Gestisci abbonamento esistente o disdici"}
             </a>
           </div>
@@ -6349,6 +6352,92 @@ function renderPlans() {
       </div>
     </div>
   `;
+}
+
+async function handleCancelSubscriptionDirectly() {
+  const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
+  const msg = isFr
+    ? "Confirmer la résiliation de votre abonnement ? Cette action annulera immédiatement le renouvellement au niveau de Stripe ou Google Pay."
+    : "Sei sicuro di voler disdire il tuo abbonamento? Questa operazione cancellerà l'abbonamento a livello di Stripe o Google Pay.";
+
+  if (!confirm(msg)) return;
+
+  if (typeof showToast === "function") {
+    showToast(isFr ? "⏳ Résiliation Stripe / Google Pay en cours..." : "⏳ Disdetta su Stripe / Google Pay in corso...");
+  }
+
+  let loggedUser = null;
+  try {
+    loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+  } catch (_) {}
+  let session = null;
+  try {
+    session = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "null");
+  } catch (_) {}
+  const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+
+  const barId = bar.id || loggedUser?.barId || "bar_01";
+  const email = loggedUser?.email || session?.user?.email || bar.managerEmail;
+  const subMethod = bar.subscriptionMethod || (localStorage.getItem("barpilot_gpay_merchant_id") ? "google_pay" : "stripe_card");
+  const stripeSubId = bar.stripeSubscriptionId || localStorage.getItem("barpilot_stripe_sub_id");
+  const stripeCustId = bar.stripeCustomerId || localStorage.getItem("barpilot_stripe_cust_id");
+
+  try {
+    const res = await fetch("/api/cancel-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        barId: barId,
+        barName: bar.name || loggedUser?.barName || "Bar",
+        email: email,
+        subscriptionMethod: subMethod,
+        subscriptionId: stripeSubId,
+        stripeCustomerId: stripeCustId,
+        reason: "Disdetta richiesta dall'utente tramite pulsante Disdici nel menu Abbonamenti"
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      localStorage.setItem("barpilot_subscription_cancelled", "true");
+      localStorage.setItem("barpilot_cancel_at_period_end", "true");
+      localStorage.setItem("barpilot_is_subscribed", "false");
+      localStorage.setItem("barpilot_subscription_confirmed", "false");
+
+      if (bar) {
+        bar.subscriptionStatus = "canceled";
+        bar.isSubscribed = false;
+        bar.plan = "Free / Disdetto";
+        if (window.db) window.db.set("activeBar", bar);
+      }
+
+      if (typeof showToast === "function") {
+        showToast(isFr ? "✅ Abonnement résilié avec succès au niveau de Stripe / Google Pay." : "✅ Abbonamento disdetto con successo a livello di Stripe e Google Pay.");
+      }
+
+      if (typeof renderPlans === "function") renderPlans();
+      const lockBanner = document.getElementById("subViewLockBanner");
+      if (lockBanner) lockBanner.style.display = "block";
+
+      if (data.google_play_manage_url && subMethod === "google_pay") {
+        setTimeout(() => {
+          if (confirm(isFr ? "Voulez-vous ouvrir la gestion des abonnements Google Play ?" : "Vuoi aprire la gestione degli abbonamenti Google Play per ulteriore conferma?")) {
+            window.open(data.google_play_manage_url, "_blank");
+          }
+        }, 1200);
+      }
+    } else {
+      throw new Error(data.error || "Errore durante la disdetta");
+    }
+  } catch (err) {
+    console.error("[CancelSubscription] Errore:", err);
+    if (typeof showToast === "function") {
+      showToast("⚠️ " + (err.message || (isFr ? "Erreur de résiliation" : "Errore durante la disdetta")));
+    }
+  }
+}
+window.handleCancelSubscriptionDirectly = handleCancelSubscriptionDirectly;
 }
 
 function selectPlan(planName) {

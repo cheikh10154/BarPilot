@@ -1182,15 +1182,44 @@
       const notes = document.getElementById("cancelNotesInput").value.trim();
       const fullReason = notes ? `${reason} - ${notes}` : reason;
 
+      let loggedUser = null;
       try {
-        await fetch("/api/cancel-subscription", {
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      } catch (_) {}
+      let session = null;
+      try {
+        session = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "null");
+      } catch (_) {}
+      const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+
+      const barId = bar.id || loggedUser?.barId || "bar_01";
+      const email = loggedUser?.email || session?.user?.email || bar.managerEmail;
+      const subMethod = bar.subscriptionMethod || (localStorage.getItem("barpilot_gpay_merchant_id") ? "google_pay" : "stripe_card");
+      const stripeSubId = bar.stripeSubscriptionId || localStorage.getItem("barpilot_stripe_sub_id");
+      const stripeCustId = bar.stripeCustomerId || localStorage.getItem("barpilot_stripe_cust_id");
+
+      try {
+        const res = await fetch("/api/cancel-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            barId: "bar_01",
+            barId: barId,
+            barName: bar.name || loggedUser?.barName || "Bar",
+            email: email,
+            subscriptionMethod: subMethod,
+            subscriptionId: stripeSubId,
+            stripeCustomerId: stripeCustId,
             reason: fullReason
           })
         });
+        const data = await res.json();
+        if (data.google_play_manage_url && subMethod === "google_pay") {
+          setTimeout(() => {
+            if (confirm("Vuoi aprire la gestione degli abbonamenti Google Play Store per confermare la cancellazione?")) {
+              window.open(data.google_play_manage_url, "_blank");
+            }
+          }, 1200);
+        }
       } catch (err) {
         console.warn("Errore disdetta API:", err);
       }
