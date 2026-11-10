@@ -5,35 +5,25 @@
 // 3. Calcolo anzianità abbonamento (anni, mesi, giorni - mai azzerato al rinnovo)
 // 4. Conteggio affiliati acquisiti (totali e con abbonamento attivo)
 // 5. Storico commissioni con stati (In attesa, Disponibile, Pagata, Annullata)
-// Sincronizzato con Supabase Database e cache resiliente in /tmp
-
-import fs from 'fs';
-import path from 'path';
+// Sincronizzato con Supabase Database
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cprxxxlgaofopmogeuer.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
 
-const AFFILIATES_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
+// Cache in-memory di fallback per resilienza e continuità operativa
+const affiliatesCache = {
+  affiliates: [],
+  referrals: [],
+  commissions: [],
+  settings: { default_rate: 20.0 }
+};
 
-// Store locale di fallback per resilienza e continuità operativa
 function readAffiliatesStore() {
-  try {
-    if (fs.existsSync(AFFILIATES_FILE)) {
-      const data = fs.readFileSync(AFFILIATES_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.warn('[Affiliates Store] Read error:', e.message);
-  }
-  return { affiliates: [], referrals: [], commissions: [], settings: { default_rate: 20.0 } };
+  return affiliatesCache;
 }
 
 function writeAffiliatesStore(data) {
-  try {
-    fs.writeFileSync(AFFILIATES_FILE, JSON.stringify(data, null, 2), 'utf8');
-  } catch (e) {
-    console.warn('[Affiliates Store] Write error:', e.message);
-  }
+  Object.assign(affiliatesCache, data);
 }
 
 // Client helper per Supabase REST

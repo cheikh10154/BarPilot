@@ -7,33 +7,13 @@
 // 4. Gestire gli stati delle commissioni (In attesa, Disponibile, Pagata, Annullata)
 // 5. Consultare lo storico completo dei pagamenti e registrazioni
 
-import fs from 'fs';
-import path from 'path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cprxxxlgaofopmogeuer.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
 
-const AFFILIATES_FILE = path.join('/tmp', 'barpilot_affiliates_store.json');
-
-function readAffiliatesStore() {
-  try {
-    if (fs.existsSync(AFFILIATES_FILE)) {
-      const data = fs.readFileSync(AFFILIATES_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.warn('[Admin Affiliates Store] Read error:', e.message);
-  }
-  return { affiliates: [], referrals: [], commissions: [], settings: { default_rate: 20.0 } };
-}
-
-function writeAffiliatesStore(data) {
-  try {
-    fs.writeFileSync(AFFILIATES_FILE, JSON.stringify(data, null, 2), 'utf8');
-  } catch (e) {
-    console.warn('[Admin Affiliates Store] Write error:', e.message);
-  }
-}
+const adminAffiliatesCache = { affiliates: [], referrals: [], commissions: [], settings: { default_rate: 20.0 } };
+function readAffiliatesStore() { return adminAffiliatesCache; }
+function writeAffiliatesStore(data) { Object.assign(adminAffiliatesCache, data); }
 
 async function supabaseFetch(endpoint, options = {}) {
   const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${endpoint}`;
