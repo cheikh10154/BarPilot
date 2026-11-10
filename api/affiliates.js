@@ -134,9 +134,10 @@ export default async function handler(req, res) {
   }
 
   // Verifica se la richiesta è destinata alla gestione Super Admin
-  const isExplicitAdminUrl = req.url && (req.url.includes('admin') || req.url.includes('pin=101540'));
+  const pathname = (req.url || '').split('?')[0];
+  const isExplicitAdminUrl = pathname.includes('admin');
   const hasAdminPin = req.headers['x-admin-pin'] === '101540' || (req.query && req.query.pin === '101540');
-  const isAdminQuery = req.query && req.query.admin === 'true';
+  const isAdminQuery = req.query && (req.query.admin === 'true' || req.query.view === 'admin');
 
   if (isExplicitAdminUrl || hasAdminPin || isAdminQuery) {
     return handleAdminRequest(req, res);
