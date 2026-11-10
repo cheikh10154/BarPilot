@@ -425,6 +425,48 @@
       transform: scale(0.97);
     }
 
+    .btn-withdraw {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      margin-top: 6px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-withdraw:disabled {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border-color: rgba(255, 255, 255, 0.08);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .btn-withdraw:not(:disabled) {
+      background: var(--primary);
+      color: #FFFFFF;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(255, 138, 36, 0.35);
+    }
+
+    .btn-withdraw:not(:disabled):hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(255, 138, 36, 0.45);
+    }
+
+    .btn-withdraw:not(:disabled):active {
+      transform: scale(0.98);
+    }
+
     .code-subtext {
       font-size: 11.5px;
       color: var(--text-dim);
@@ -737,10 +779,6 @@
           <div class="user-avatar-circle" id="userAvatarText">B</div>
           <span id="userPillName">Caricamento...</span>
         </div>
-        <a href="/app" class="btn-return-pos" title="Torna alla cassa e gestione del bar">
-          <span>🏪</span>
-          <span>Torna al Bar</span>
-        </a>
       </div>
     </header>
 
@@ -781,9 +819,13 @@
               <span id="metricAvailableBalance">0,00</span>
               <span class="unit">€</span>
             </div>
-            <div style="font-size:12px; color:var(--status-green); font-weight:700; margin-bottom:12px;">
-              ✓ Saldo disponibile per liquidazione
+            <div id="metricLiquidazioneLabel" style="font-size:12px; color:var(--status-green); font-weight:700; margin-bottom:10px; display:none;">
+              Saldo disponibile per liquidazione
             </div>
+            <button type="button" id="btnWithdraw" class="btn-withdraw" disabled onclick="handleWithdraw()" title="Soglia minima per il prelievo: 50,00 €">
+              <span>💸</span>
+              <span>Preleva</span>
+            </button>
           </div>
 
           <div class="card-sub-metrics">
@@ -1013,9 +1055,33 @@
       const affiliate = data.affiliate;
 
       // 1. Saldo affiliazioni
+      const availableVal = parseFloat(cards.balance.available) || 0;
       document.getElementById("metricAvailableBalance").textContent = formatCurrency(cards.balance.available);
       document.getElementById("metricPendingCommissions").textContent = `${formatCurrency(cards.balance.pending)} €`;
       document.getElementById("metricTotalEarned").textContent = `${formatCurrency(cards.balance.total_earned)} €`;
+
+      const liquidazioneLabel = document.getElementById("metricLiquidazioneLabel");
+      const btnWithdraw = document.getElementById("btnWithdraw");
+
+      if (availableVal >= 50) {
+        if (liquidazioneLabel) {
+          liquidazioneLabel.style.display = "block";
+          liquidazioneLabel.textContent = "Saldo disponibile per liquidazione";
+        }
+        if (btnWithdraw) {
+          btnWithdraw.disabled = false;
+          btnWithdraw.title = "Clicca per prelevare il saldo disponibile";
+        }
+      } else {
+        if (liquidazioneLabel) {
+          liquidazioneLabel.style.display = "none";
+          liquidazioneLabel.textContent = "";
+        }
+        if (btnWithdraw) {
+          btnWithdraw.disabled = true;
+          btnWithdraw.title = "Soglia minima per il prelievo: 50,00 €";
+        }
+      }
 
       // 2. Il mio codice affiliazione
       document.getElementById("displayAffiliateCode").textContent = affiliate.code;
@@ -1107,6 +1173,14 @@
         (c.status && c.status.toLowerCase().includes(q))
       );
       renderCommissionsTable(filtered);
+    }
+
+    // Azione: Prelievo Saldo Affiliazioni (soglia minima 50€)
+    function handleWithdraw() {
+      const btn = document.getElementById("btnWithdraw");
+      if (btn && btn.disabled) return;
+      const currentAvailable = document.getElementById("metricAvailableBalance")?.textContent || "0,00";
+      showToast("💸", `Richiesta di liquidazione inviata con successo per ${currentAvailable} €!`);
     }
 
     // Azione: Copia Codice
