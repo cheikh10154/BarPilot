@@ -1092,16 +1092,23 @@
           alertBanner.innerHTML = `
             <span>⚠️</span>
             <div>
-              <strong>Disdetta effettuata:</strong> Il rinnovo automatico è stato interrotto. Il tuo account non è più attivo e l'accesso al gestionale è stato bloccato: puoi accedere solo al menu Abbonamenti per riattivare il servizio. Nessun costo futuro ti sarà addebitato.
+              <strong style="color:#EF4444; font-size:15px; display:block; margin-bottom:4px;">Abbonamento non attivo</strong>
+              Il rinnovo automatico è stato interrotto a livello di Stripe / Google Pay. Il tuo account non è più attivo.
             </div>
           `;
         }
         if (cancelTitle) {
-          cancelTitle.textContent = "Riattiva abbonamento";
-          cancelTitle.style.color = "#10B981";
+          cancelTitle.textContent = "Abbonamento non attivo";
+          cancelTitle.style.color = "#EF4444";
         }
         if (cancelDesc) {
-          cancelDesc.textContent = "Clicca per annullare la disdetta e riattivare l'accesso completo.";
+          cancelDesc.textContent = "L'abbonamento è stato disdetto.";
+          cancelDesc.style.color = "#EF4444";
+        }
+        const actionCard = document.getElementById("btnActionCancelSub");
+        if (actionCard) {
+          actionCard.onclick = null;
+          actionCard.style.cursor = "default";
         }
 
         // Blocca le altre voci della sidebar lasciando accessibile solo Abbonamenti
@@ -1109,10 +1116,10 @@
           const v = item.getAttribute("data-view");
           if (v !== "subscriptions") {
             item.style.opacity = "0.5";
-            item.title = "Account non attivo: riattiva l'abbonamento per accedere";
+            item.title = "Abbonamento non attivo";
             item.onclick = function(e) {
               e.preventDefault();
-              alert("Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, riattiva il tuo abbonamento.");
+              alert("Abbonamento non attivo");
               return false;
             };
           }

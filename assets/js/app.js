@@ -206,7 +206,7 @@ function setupNavigation() {
       const view = item.getAttribute("data-view");
       const isSubscribed = isUserSubscribed();
       if (!isSubscribed && view !== "subscriptions" && view !== "support") {
-        showToast("⚠️ Il tuo account BarPilot non è più attivo. Per continuare a utilizzare la piattaforma, aggiungi un metodo di pagamento e riattiva il tuo abbonamento.");
+        showToast("⚠️ Abbonamento non attivo.");
         switchView("subscriptions");
         if (window.innerWidth <= 1024) closeSidebar();
         return;
@@ -500,7 +500,7 @@ function updateDashboardLockState() {
         item.appendChild(lockPill);
       }
       item.style.opacity = "0.55";
-      item.title = "Account non attivo: riattiva l'abbonamento per accedere";
+      item.title = "Abbonamento non attivo";
     } else {
       if (lockPill) lockPill.remove();
       item.style.opacity = "";
@@ -6166,7 +6166,8 @@ function renderPlans() {
 
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
-  const isSubscribed = Boolean(bar.isSubscribed || (bar.plan && (bar.plan.includes("Pro") || bar.plan.includes("59"))));
+  const isCancelled = localStorage.getItem("barpilot_subscription_cancelled") === "true" || bar.subscriptionStatus === "canceled";
+  const isSubscribed = !isCancelled && Boolean(bar.isSubscribed || (bar.plan && (bar.plan.includes("Pro") || bar.plan.includes("59"))));
 
   const plan = {
     name: "BarPilot Pro — Tout-en-un",
@@ -6301,7 +6302,11 @@ function renderPlans() {
 
             <!-- Action Buttons: Google Play Pay (Recommended) + Standard S'abonner -->
       <div style="text-align:center; padding-top:14px; display:flex; flex-direction:column; align-items:center; gap:12px;">
-        ${isSubscribed ? `
+        ${isCancelled ? `
+          <div style="color:#EF4444; font-size:20px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; padding:14px 28px; background:rgba(239,68,68,0.08); border:2px solid #EF4444; border-radius:12px; display:inline-block;">
+            ${isFr ? "Abonnement non actif" : "Abbonamento non attivo"}
+          </div>
+        ` : isSubscribed ? `
           <button class="btn-primary btn-subscribe-hero" style="background:var(--status-free); box-shadow:0 8px 24px rgba(16, 185, 129, 0.35); cursor:pointer;" onclick="window.location.href='gestisci-abbonamento.html'">
             ⚙️ ${isFr ? "Abonnement Actif (59 €/mois) — Gérer" : "Abbonamento Attivo (59 €/mese) — Gestisci"}
           </button>
@@ -6418,7 +6423,33 @@ async function handleCancelSubscriptionDirectly() {
 
       if (typeof renderPlans === "function") renderPlans();
       const lockBanner = document.getElementById("subViewLockBanner");
-      if (lockBanner) lockBanner.style.display = "block";
+      if (lockBanner) {
+        lockBanner.style.display = "block";
+        lockBanner.innerHTML = `
+          <div style="font-size:36px; margin-bottom:8px;">🔒</div>
+          <h3 style="font-size:20px; font-weight:800; color:#EF4444; margin-bottom:10px;">${isFr ? "Abonnement non actif" : "Abbonamento non attivo"}</h3>
+          <p style="font-size:14.5px; color:#E2E8F0; line-height:1.6; margin-bottom:14px;">
+            ${isFr ? "Votre compte BarPilot n'est plus actif." : "Il tuo account BarPilot non è più attivo."}
+          </p>
+          <div style="color:#EF4444; font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">
+            ${isFr ? "Abonnement non actif" : "Abbonamento non attivo"}
+          </div>
+        `;
+      }
+      const dashLockBanner = document.getElementById("dashboardSubLockBanner");
+      if (dashLockBanner) {
+        dashLockBanner.style.display = "block";
+        dashLockBanner.innerHTML = `
+          <div style="font-size:52px; margin-bottom:12px;">🔒</div>
+          <h3 style="font-size:24px; font-weight:800; color:#EF4444; margin-bottom:10px;">${isFr ? "Abonnement non actif" : "Abbonamento non attivo"}</h3>
+          <p style="font-size:15px; color:#E2E8F0; max-width:540px; line-height:1.6; margin-bottom:14px;">
+            ${isFr ? "Votre compte BarPilot n'est plus actif." : "Il tuo account BarPilot non è più attivo."}
+          </p>
+          <div style="color:#EF4444; font-size:20px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">
+            ${isFr ? "Abonnement non actif" : "Abbonamento non attivo"}
+          </div>
+        `;
+      }
 
       if (data.google_play_manage_url && subMethod === "google_pay") {
         setTimeout(() => {
@@ -6438,7 +6469,6 @@ async function handleCancelSubscriptionDirectly() {
   }
 }
 window.handleCancelSubscriptionDirectly = handleCancelSubscriptionDirectly;
-}
 
 function selectPlan(planName) {
   openCheckoutModal();
