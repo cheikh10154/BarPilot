@@ -669,49 +669,74 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
       }
     }
 
-    // Percentuale commissione (affiliato o globale da admin_settings)
-    let rate = 20.0;
+    // Guadagno fisso di 5€ per abbonamento confermato/continuato
+    let commissionAmount = 5.00;
     try {
       const affRes = await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(referral.affiliate_id)}&limit=1`);
       if (affRes.ok) {
         const rows = await affRes.json();
         if (rows && rows[0]?.commission_rate) {
-          rate = parseFloat(rows[0].commission_rate) || rate;
+          const customRate = parseFloat(rows[0].commission_rate);
+          if (!isNaN(customRate) && customRate > 0) commissionAmount = customRate;
         }
       }
     } catch (_) {}
 
-    const commissionAmount = parseFloat(((amountPaid * rate) / 100).toFixed(2));
     const nowIso = new Date().toISOString();
-    const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+    
+    // Aggiorna o sblocca la commissione in stato 'available' (disponibile)
+    const commCheck = await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(referral.id)}&limit=1`);
+    let existingComm = null;
+    if (commCheck.ok) {
+      const commRows = await commCheck.json();
+      if (commRows && commRows.length > 0) existingComm = commRows[0];
+    }
 
-    const commissionPayload = {
-      id: commId,
-      affiliate_id: referral.affiliate_id,
-      referral_id: referral.id,
-      bar_id: referral.referred_bar_id,
-      bar_name: referral.referred_bar_name || 'Bar Affiliato',
-      stripe_invoice_id: invoiceId || null,
-      stripe_event_id: eventId || null,
-      amount: commissionAmount,
-      currency: 'EUR',
-      status: 'pending',
-      available_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
-      created_at: nowIso,
-      updated_at: nowIso
-    };
+    if (existingComm) {
+      await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(existingComm.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: 'available',
+          amount: commissionAmount,
+          stripe_invoice_id: invoiceId || existingComm.stripe_invoice_id,
+          stripe_event_id: eventId || existingComm.stripe_event_id,
+          notes: 'Commissione 5€ maturata (abbonamento attivo)',
+          available_at: nowIso,
+          updated_at: nowIso
+        })
+      });
+    } else {
+      const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+      const commissionPayload = {
+        id: commId,
+        affiliate_id: referral.affiliate_id,
+        referral_id: referral.id,
+        bar_id: referral.referred_bar_id,
+        bar_name: referral.referred_bar_name || 'Bar Affiliato',
+        stripe_invoice_id: invoiceId || null,
+        stripe_event_id: eventId || null,
+        amount: commissionAmount,
+        currency: 'EUR',
+        status: 'available',
+        available_at: nowIso,
+        notes: 'Commissione 5€ maturata (abbonamento attivo)',
+        created_at: nowIso,
+        updated_at: nowIso
+      };
 
-    await supabaseFetch('affiliate_commissions', {
-      method: 'POST',
-      body: JSON.stringify(commissionPayload)
-    });
+      await supabaseFetch('affiliate_commissions', {
+        method: 'POST',
+        body: JSON.stringify(commissionPayload)
+      });
+    }
 
+    // Passa il referral su abbonamento attivo (+1 su abbonamento attivo)
     await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(referral.id)}`, {
       method: 'PATCH',
       body: JSON.stringify({ status: 'active', updated_at: nowIso })
     });
 
-    console.log(`[Stripe Webhook Affiliates] ✅ Accreditata commissione ${commissionAmount} € all'affiliato ${referral.affiliate_id}`);
+    console.log(`[Stripe Webhook Affiliates] ✅ Accreditata commissione ${commissionAmount} € (attivo) all'affiliato ${referral.affiliate_id}`);
   } catch (err) {
     console.warn('[Stripe Webhook Affiliates] Errore:', err.message);
   }
@@ -720,9 +745,14 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
 async function updateAffiliateReferralOnCancellation(barId) {
   if (!barId) return;
   try {
+    const nowIso = new Date().toISOString();
     await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(barId)}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() })
+      body: JSON.stringify({ status: 'cancelled', updated_at: nowIso })
+    });
+    await supabaseFetch(`affiliate_commissions?bar_id=eq.${encodeURIComponent(barId)}&status=eq.pending`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled', notes: 'Abbonamento disdetto prima o durante i 14 giorni di prova', updated_at: nowIso })
     });
   } catch (e) {}
 }

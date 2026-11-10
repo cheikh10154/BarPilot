@@ -179,6 +179,29 @@ export default async function handler(req, res) {
       });
     }
 
+    // 5b. Se il bar è collegato ad un referral di affiliazione, aggiorna stato in 'cancelled' e annulla commissione in attesa
+    try {
+      const affBarId = targetBarId || barId;
+      if (affBarId) {
+        await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(affBarId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'cancelled', updated_at: now.toISOString() })
+        });
+        await supabaseFetch(`affiliate_commissions?bar_id=eq.${encodeURIComponent(affBarId)}&status=eq.pending`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'cancelled', notes: 'Abbonamento disdetto prima o durante i 14 giorni di prova', updated_at: now.toISOString() })
+        });
+      }
+      if (email) {
+        await supabaseFetch(`affiliate_referrals?referred_email=eq.${encodeURIComponent(email.toLowerCase().trim())}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'cancelled', updated_at: now.toISOString() })
+        });
+      }
+    } catch (affCancelErr) {
+      console.warn('[Affiliate Referral Cancel Warning]', affCancelErr.message);
+    }
+
     // 6. Registra log di audit
     try {
       await supabaseFetch('admin_audit_logs', {

@@ -21,6 +21,16 @@ async function supabaseFetch(endpoint, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+// Helper: Genera codice unico di 6 caratteri alfanumerici maiuscoli
+function generateUniqueCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -255,13 +265,14 @@ export default async function handler(req, res) {
       body: JSON.stringify(subPayload)
     });
 
-    // 4b. Collegamento Programma Affiliazione se presente codice invito
+    // 4b. Collegamento Programma Affiliazione se presente codice invito:
+    // +1 in periodo di prova e 5€ di commissione in stato 'pending' (in attesa durante la prova di 14 giorni)
     if (cleanInviteCode) {
       try {
         const codeUpper = cleanInviteCode.toUpperCase();
         let affiliate = null;
 
-        // Cerca su Supabase
+        // Cerca l'affiliato su Supabase
         const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(codeUpper)}&limit=1`);
         if (affRes.ok) {
           const affRows = await affRes.json();
@@ -269,15 +280,18 @@ export default async function handler(req, res) {
         }
 
         if (affiliate) {
+          const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
           const referralPayload = {
-            id: 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+            id: referralId,
             affiliate_id: affiliate.id,
             affiliate_code: affiliate.code,
             referred_bar_id: barId,
             referred_bar_name: cleanBarName,
             referred_user_id: userId || null,
             referred_email: normalizedEmail,
-            status: 'registered',
+            status: 'trial', // Entra subito in periodo di prova (+1 su in periodo di prova)
+            trial_start_date: now.toISOString(),
+            trial_end_date: trialEnd.toISOString(),
             registered_at: now.toISOString(),
             created_at: now.toISOString(),
             updated_at: now.toISOString()
@@ -289,13 +303,94 @@ export default async function handler(req, res) {
             body: JSON.stringify(referralPayload)
           });
 
-          console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${affiliate.code} (${affiliate.email})`);
+          // Registra la commissione di 5€ in stato 'pending' (in attesa durante i 14 giorni di prova)
+          const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+          const commissionPayload = {
+            id: commId,
+            affiliate_id: affiliate.id,
+            affiliate_code: affiliate.code,
+            referral_id: referralId,
+            bar_id: barId,
+            bar_name: cleanBarName,
+            amount: 5.00, // 5€ di guadagno fisso per iscrizione
+            currency: 'EUR',
+            status: 'pending', // In attesa durante i 14 giorni
+            notes: 'Commissione 5€ per iscrizione (in prova 14 giorni)',
+            trial_end_date: trialEnd.toISOString(),
+            available_at: trialEnd.toISOString(),
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          };
+
+          await supabaseFetch('affiliate_commissions', {
+            method: 'POST',
+            body: JSON.stringify(commissionPayload)
+          });
+
+          console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${affiliate.code} (+1 in prova, 5€ in attesa)`);
         } else {
           console.log(`[Register Bar] Codice invito ${cleanInviteCode} non associato ad alcun affiliato.`);
         }
       } catch (affErr) {
         console.warn('[Register Bar] Errore collegamento affiliato:', affErr.message);
       }
+    }
+
+    // 4c. Attribuzione codice unico e univoco modificabile su Database (Supabase) per l'account registrato
+    let accountAffiliateCode = null;
+    try {
+      const existingAffRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(normalizedEmail)}&limit=1`);
+      if (existingAffRes.ok) {
+        const rows = await existingAffRes.json();
+        if (rows && rows.length > 0) {
+          accountAffiliateCode = rows[0].code;
+        }
+      }
+
+      if (!accountAffiliateCode) {
+        let newCode = generateUniqueCode();
+        // Verifica unicità codice
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const codeCheck = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(newCode)}&select=id&limit=1`);
+          if (codeCheck.ok) {
+            const checkRows = await codeCheck.json();
+            if (!checkRows || checkRows.length === 0) break;
+          }
+          newCode = generateUniqueCode();
+        }
+
+        const affPayload = {
+          id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+          user_id: userId || null,
+          bar_id: barId,
+          name: cleanOwner || cleanBarName,
+          email: normalizedEmail,
+          phone: cleanPhone || '',
+          code: newCode, // Salvato in colonna code su public.affiliates (modificabile a Database)
+          status: 'active',
+          commission_rate: 5.00,
+          total_earned: 0.00,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
+        };
+
+        await supabaseFetch('affiliates', {
+          method: 'POST',
+          body: JSON.stringify(affPayload)
+        });
+        accountAffiliateCode = newCode;
+        console.log(`[Register Bar] 🎁 Assegnato codice affiliazione univoco ${newCode} all'account ${normalizedEmail}`);
+      }
+
+      // Salva il codice anche nel record del bar
+      if (accountAffiliateCode) {
+        await supabaseFetch(`bars?id=eq.${encodeURIComponent(barId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ affiliate_code: accountAffiliateCode, updated_at: now.toISOString() })
+        });
+      }
+    } catch (codeErr) {
+      console.warn('[Register Bar] Assegnazione codice affiliato:', codeErr.message);
     }
 
     // 5. Registra l'azione in public.admin_audit_logs
@@ -359,6 +454,7 @@ export default async function handler(req, res) {
       success: true,
       barId,
       subscriptionId: subId,
+      affiliateCode: accountAffiliateCode,
       trialEnd: trialEnd.toISOString(),
       trialDaysRemaining: 14,
       status: 'trial'
