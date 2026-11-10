@@ -55,10 +55,6 @@
       "use": "@vercel/static"
     },
     {
-      "src": "affiliazioni.html",
-      "use": "@vercel/static"
-    },
-    {
       "src": "administration/**",
       "use": "@vercel/static"
     },
@@ -127,14 +123,6 @@
     {
       "src": "^/api/contact/?$",
       "dest": "/api/contact.js"
-    },
-    {
-      "src": "^/api/affiliates/?$",
-      "dest": "/api/affiliates.js"
-    },
-    {
-      "src": "^/api/admin-affiliates/?$",
-      "dest": "/api/admin-affiliates.js"
     },
     {
       "src": "^/sitemap.xml$",
@@ -207,14 +195,6 @@
     {
       "src": "^/app/gestisci-abbonamento.html$",
       "dest": "/gestisci-abbonamento.html"
-    },
-    {
-      "src": "^/app/affiliazioni/?$",
-      "dest": "/affiliazioni.html"
-    },
-    {
-      "src": "^/app/affiliazioni.html$",
-      "dest": "/affiliazioni.html"
     },
     {
       "src": "^/app/assets/(.*)$",
@@ -319,14 +299,6 @@
     {
       "src": "^/gestisci-abbonamento.html$",
       "dest": "/gestisci-abbonamento.html"
-    },
-    {
-      "src": "^/affiliazioni/?$",
-      "dest": "/affiliazioni.html"
-    },
-    {
-      "src": "^/affiliazioni.html$",
-      "dest": "/affiliazioni.html"
     },
     {
       "src": "^/administration/?$",
