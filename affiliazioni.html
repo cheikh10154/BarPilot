@@ -611,12 +611,58 @@
       font-weight: 800;
     }
 
-    /* Main Container */
+    /* CRITERI SICUREZZA PASSWORD */
+    .password-rules-box {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 11.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .pwd-rule-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #EF4444;
+      transition: color 0.15s ease;
+    }
+
+    .pwd-rule-item .rule-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      font-size: 9.5px;
+      font-weight: 900;
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+      transition: all 0.15s ease;
+    }
+
+    .pwd-rule-item.valid {
+      color: #10B981 !important;
+    }
+
+    .pwd-rule-item.valid .rule-icon {
+      background: rgba(16, 185, 129, 0.2) !important;
+      color: #10B981 !important;
+    }
+
+    /* Main Container - Design con padding 50px su ogni lato */
     .content-container {
       max-width: 1200px;
       width: 100%;
       margin: 0 auto;
-      padding: 36px 24px 64px;
+      padding: 50px;
       flex: 1;
     }
 
@@ -1512,10 +1558,32 @@
         <div class="form-group" style="margin-bottom:18px;">
           <label class="form-label" for="affRegPassword">Password *</label>
           <div class="password-input-wrap" style="position:relative;">
-            <input type="password" class="form-input" id="affRegPassword" placeholder="Crea una password (min. 6 caratteri)" required style="padding-right:40px;">
+            <input type="password" class="form-input" id="affRegPassword" placeholder="Crea una password sicura" oninput="checkAffPasswordRules(this.value)" required style="padding-right:40px;">
             <button type="button" class="btn-toggle-eye" onclick="toggleAffPasswordVisibility('affRegPassword', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted);" title="Mostra/Nascondi password">👁️</button>
           </div>
-          <span style="font-size:11px; color:var(--text-dim); display:block; margin-top:4px;">Minimo 6 caratteri.</span>
+
+          <!-- Real-Time Password Requirements Checklist -->
+          <div id="affPasswordRulesBox" class="password-rules-box">
+            <div style="font-weight:700; color:var(--text-muted); margin-bottom:2px; font-size:11px;">
+              Criteri di sicurezza password:
+            </div>
+            <div class="pwd-rule-item" id="affRuleMinLength">
+              <span class="rule-icon" id="affIconMinLength">✖</span>
+              <span>Minimo 8 caratteri</span>
+            </div>
+            <div class="pwd-rule-item" id="affRuleUppercase">
+              <span class="rule-icon" id="affIconUppercase">✖</span>
+              <span>Almeno una lettera maiuscola (A-Z)</span>
+            </div>
+            <div class="pwd-rule-item" id="affRuleNumber">
+              <span class="rule-icon" id="affIconNumber">✖</span>
+              <span>Almeno un numero (0-9)</span>
+            </div>
+            <div class="pwd-rule-item" id="affRuleSpecial">
+              <span class="rule-icon" id="affIconSpecial">✖</span>
+              <span>Almeno un carattere speciale (!@#$%^&*...)</span>
+            </div>
+          </div>
         </div>
 
         <button type="submit" class="btn-modal-save" id="btnAffRegisterSubmit" style="width:100%; justify-content:center; padding:12px; font-size:14px; margin-bottom:12px;">
@@ -1739,6 +1807,7 @@
         if (formLogin) formLogin.style.display = "none";
         if (heading) heading.textContent = "Iscriviti alle Affiliazioni";
         if (subheading) subheading.textContent = "Crea il tuo profilo e genera il tuo codice referral personale";
+        checkAffPasswordRules(document.getElementById("affRegPassword")?.value || "");
       } else {
         if (tabLogin) {
           tabLogin.style.background = "var(--primary)";
@@ -1753,6 +1822,33 @@
         if (heading) heading.textContent = "Accedi ad Affiliazioni";
         if (subheading) subheading.textContent = "Gestisci i tuoi referral, provvigioni e codici invito";
       }
+    }
+
+    function checkAffPasswordRules(pwd = "") {
+      const minLength = pwd.length >= 8;
+      const uppercase = /[A-Z]/.test(pwd);
+      const number = /[0-9]/.test(pwd);
+      const special = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pwd);
+
+      const updateRule = (id, iconId, isValid) => {
+        const el = document.getElementById(id);
+        const icon = document.getElementById(iconId);
+        if (!el || !icon) return;
+        if (isValid) {
+          el.classList.add("valid");
+          icon.textContent = "✓";
+        } else {
+          el.classList.remove("valid");
+          icon.textContent = "✖";
+        }
+      };
+
+      updateRule("affRuleMinLength", "affIconMinLength", minLength);
+      updateRule("affRuleUppercase", "affIconUppercase", uppercase);
+      updateRule("affRuleNumber", "affIconNumber", number);
+      updateRule("affRuleSpecial", "affIconSpecial", special);
+
+      return minLength && uppercase && number && special;
     }
 
     function showAffAuthError(msg) {
@@ -1796,8 +1892,8 @@
         return;
       }
 
-      if (password.length < 6) {
-        showAffAuthError("La password deve contenere almeno 6 caratteri.");
+      if (!checkAffPasswordRules(password)) {
+        showAffAuthError("La password non soddisfa tutti i criteri di sicurezza richiesti:<br>• Minimo 8 caratteri<br>• Almeno una lettera maiuscola (A-Z)<br>• Almeno un numero (0-9)<br>• Almeno un carattere speciale (!@#$%^&*...)");
         return;
       }
 

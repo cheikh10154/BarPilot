@@ -672,8 +672,15 @@ async function handleUserAffiliateRequest(req, res) {
           return res.status(400).json({ error: "Compila tutti i campi: nome, cognome, telefono, email e password." });
         }
 
-        if (cleanPassword.length < 6) {
-          return res.status(400).json({ error: "La password deve contenere almeno 6 caratteri." });
+        const minLength = cleanPassword.length >= 8;
+        const hasUpper = /[A-Z]/.test(cleanPassword);
+        const hasNumber = /[0-9]/.test(cleanPassword);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(cleanPassword);
+
+        if (!minLength || !hasUpper || !hasNumber || !hasSpecial) {
+          return res.status(400).json({
+            error: "La password deve rispettare tutti i criteri di sicurezza: minimo 8 caratteri, almeno una lettera maiuscola, almeno un numero e almeno un carattere speciale."
+          });
         }
 
         const fullName = `${cleanFirst} ${cleanLast}`;
