@@ -63,10 +63,6 @@
       "use": "@vercel/static"
     },
     {
-      "src": "app/affiliazioni/**",
-      "use": "@vercel/static"
-    },
-    {
       "src": "administration/**",
       "use": "@vercel/static"
     },
