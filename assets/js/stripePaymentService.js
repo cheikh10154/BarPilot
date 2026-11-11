@@ -2,7 +2,7 @@
 // BarPilot - Real Stripe Card Verification & Gateway Service
 // ==========================================================================
 
-const STRIPE_LIVE_PK = "pk_live_51RpuNaPFZ2dvD2cO2aMB8ykdkfN970rUiWQhtakMi4KaXvzfbcxkcE5UmT3lZJe84VT9hxhs3WkOQ5nmVkaeOhYh00dPBFjQ4d";
+const STRIPE_LIVE_PK = "pk_live_51UWMJlA8w7DYeyiPYPP9d4ouZgER3mMkpG5IXPzaBIosEtDrEncKU06yz8c2c9LqHDrn38JVk4xmtVCxFu6igoJN00R2znNI7n";
 
 function mapStripeErrorMessage(errCode, defaultMsg) {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
@@ -181,7 +181,7 @@ async function startStripeSubscriptionCheckout(options = {}) {
     userId: options.userId || session.user?.id,
     email: options.email || bar.managerEmail || session.user?.email,
     barName: options.barName || bar.name,
-    productId: options.productId || "prod_VWtyfRYXitjFmv",
+    productId: options.productId || "prod_Vba5BUmqo1tdHT",
     trialDays: options.trialDays || 14,
     successUrl: options.successUrl || "https://www.barpilot.eu/app/index.html?checkout_status=success&session_id={CHECKOUT_SESSION_ID}#view-dashboard",
     cancelUrl: options.cancelUrl || `${window.location.origin}${appPrefix}/checkout.html?checkout_status=canceled`

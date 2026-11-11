@@ -6705,7 +6705,7 @@ function switchCheckoutPaymentMethod(method) {
   if (paneGoogle) paneGoogle.classList.toggle("active", method === "google");
 }
 
-const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/00w7sN8U18rXdgN2xQ3Ru00?locale=it";
+const DEFAULT_STRIPE_PAYMENT_URL = "https://buy.stripe.com/14A00i3F24qN82bc9v4Ja00?locale=it";
 
 function getStripePaymentUrl() {
   let customStripeUrl = localStorage.getItem("barpilot_stripe_payment_url") || DEFAULT_STRIPE_PAYMENT_URL;
@@ -6718,7 +6718,7 @@ function getStripePaymentUrl() {
 function handleStripeCheckoutSubmit() {
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
   if (window.stripePaymentService && typeof window.stripePaymentService.startSubscriptionCheckout === "function") {
-    window.stripePaymentService.startSubscriptionCheckout({ productId: "prod_VWtyfRYXitjFmv" });
+    window.stripePaymentService.startSubscriptionCheckout({ productId: "prod_Vba5BUmqo1tdHT" });
     return;
   }
   const customStripeUrl = getStripePaymentUrl();

@@ -2,7 +2,7 @@
 // BarPilot - Real Google Pay & Google Wallet Service (Stripe Gateway)
 // ==========================================================================
 
-const DEFAULT_STRIPE_LIVE_PK = "pk_live_51RpuNaPFZ2dvD2cO2aMB8ykdkfN970rUiWQhtakMi4KaXvzfbcxkcE5UmT3lZJe84VT9hxhs3WkOQ5nmVkaeOhYh00dPBFjQ4d";
+const DEFAULT_STRIPE_LIVE_PK = "pk_live_51UWMJlA8w7DYeyiPYPP9d4ouZgER3mMkpG5IXPzaBIosEtDrEncKU06yz8c2c9LqHDrn38JVk4xmtVCxFu6igoJN00R2znNI7n";
 const DEFAULT_GOOGLE_MERCHANT_ID = "0225-1603-6390";
 
 class GooglePayService {

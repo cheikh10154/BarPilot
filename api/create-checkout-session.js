@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       cancelUrl
     } = body;
 
-    const targetProductId = productId || process.env.STRIPE_PRODUCT_ID || 'prod_VWtyfRYXitjFmv';
+    const targetProductId = productId || process.env.STRIPE_PRODUCT_ID || 'prod_Vba5BUmqo1tdHT';
 
     const originHeader = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
     const refererHeader = req.headers.referer || '';
