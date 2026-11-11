@@ -214,7 +214,42 @@ export default async function handler(req, res) {
       }
     }
 
-    if (cleanVat) {
+    let cachedAuthUsers = null;
+    if (serviceRoleKey) {
+      try {
+        const authUsersRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=500`, {
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`
+          }
+        });
+        if (authUsersRes.ok) {
+          const auData = await authUsersRes.json();
+          cachedAuthUsers = auData.users || (Array.isArray(auData) ? auData : []);
+          if (!existingBar) {
+            const authBarUser = cachedAuthUsers.find(u => (u.email || '').toLowerCase() === normalizedEmail && u.user_metadata?.bar_registered_id);
+            if (authBarUser) {
+              existingBar = {
+                id: authBarUser.user_metadata.bar_registered_id,
+                status: 'trial',
+                subscription_id: authBarUser.user_metadata.bar_subscription_id || null,
+                invite_code: authBarUser.user_metadata.invite_code || null
+              };
+            }
+          }
+          if (cleanVat) {
+            const normVat = cleanVat.replace(/\s+/g, '').toUpperCase();
+            const vatAuthDup = cachedAuthUsers.find(u =>
+              (u.email || '').toLowerCase() !== normalizedEmail &&
+              (u.user_metadata?.vat_number || '').replace(/\s+/g, '').toUpperCase() === normVat
+            );
+            if (vatAuthDup) isDuplicateVat = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (cleanVat && !isDuplicateVat) {
       try {
         const vatRes = await supabaseFetch(`bars?vat_number=eq.${encodeURIComponent(cleanVat)}&select=id,email&limit=1`);
         if (vatRes.ok) {
@@ -226,7 +261,8 @@ export default async function handler(req, res) {
       } catch (_) {}
     }
 
-    // 1b. Verifica preliminare codice affiliazione/partner (anti auto-affiliazione)
+    // 1b. Verifica preliminare codice affiliazione/partner (Supabase SQL, auth.users e /api/affiliates + anti auto-affiliazione)
+    const appHost = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
     let matchedAffiliate = null;
     if (cleanInviteCode && !existingBar) {
       const codeUpper = cleanInviteCode.toUpperCase();
@@ -237,6 +273,52 @@ export default async function handler(req, res) {
           if (affRows && affRows.length > 0) matchedAffiliate = affRows[0];
         }
       } catch (_) {}
+
+      // Fallback 1: cerca tra gli utenti Supabase Authentication > Users
+      if (!matchedAffiliate && Array.isArray(cachedAuthUsers)) {
+        const foundUser = cachedAuthUsers.find(u => {
+          const metaCode = (u.user_metadata?.affiliate_code || '').toUpperCase();
+          return metaCode === codeUpper || (u.email && getConsistentCodeForAccount(u.email) === codeUpper);
+        });
+        if (foundUser) {
+          const meta = foundUser.user_metadata || {};
+          matchedAffiliate = {
+            id: meta.affiliate_id || ('aff_' + foundUser.id.replace(/-/g, '').slice(0, 12)),
+            user_id: foundUser.id,
+            email: (foundUser.email || '').toLowerCase(),
+            phone: meta.affiliate_phone || foundUser.phone || meta.phone || '',
+            code: (meta.affiliate_code || codeUpper).toUpperCase(),
+            status: meta.affiliate_status || 'active',
+            _authUser: foundUser
+          };
+        }
+      }
+
+      // Fallback 2: verifica via /api/affiliates (verify_code)
+      if (!matchedAffiliate) {
+        try {
+          const verifyRes = await fetch(`${appHost}/api/affiliates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify_code', code: codeUpper })
+          });
+          if (verifyRes.ok) {
+            const vData = await verifyRes.json();
+            if (vData && vData.valid) {
+              matchedAffiliate = {
+                id: vData.affiliate_id,
+                user_id: vData.user_id || null,
+                email: (vData.email || '').toLowerCase(),
+                phone: vData.phone || '',
+                code: vData.code,
+                status: vData.status || 'active'
+              };
+            } else if (vData && vData.status === 'suspended') {
+              matchedAffiliate = { status: 'suspended', code: codeUpper };
+            }
+          }
+        } catch (_) {}
+      }
 
       if (matchedAffiliate) {
         const affEmail = (matchedAffiliate.email || '').trim().toLowerCase();
@@ -271,7 +353,7 @@ export default async function handler(req, res) {
         } catch (_) {}
         if (!isMarketingPromo) {
           return res.status(400).json({
-            error: 'Codice partner non valido o non trovato su Supabase. Controlla il codice di 6 caratteri o lascia il campo vuoto.',
+            error: 'Codice partner non valido o non trovato. Controlla il codice di 6 caratteri o lascia il campo vuoto.',
             code: 'invalid_affiliate_code'
           });
         }
@@ -401,7 +483,7 @@ export default async function handler(req, res) {
             }
           } catch (_) {}
 
-          // 2) Fallback REST transazionale idempotente se RPC non ancora installato su DB
+          // 2) Fallback REST + Sync su auth.users & /api/affiliates se RPC non ancora installato su DB
           if (!rpcHandled) {
             const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
             const referralPayload = {
@@ -423,6 +505,25 @@ export default async function handler(req, res) {
               updated_at: now.toISOString()
             };
 
+            const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+            const commissionPayload = {
+              id: commId,
+              affiliate_id: matchedAffiliate.id,
+              affiliate_code: matchedAffiliate.code,
+              referral_id: referralId,
+              bar_id: barId,
+              bar_name: cleanBarName,
+              bonus_type: 'registration',
+              amount: 5.00,
+              currency: 'EUR',
+              status: 'available', // Bonus immediato +5,00 € nel saldo disponibile alla registrazione con prova gratuita
+              notes: 'Bonus registrazione +5,00 € (Prova gratuita 14 giorni avviata)',
+              trial_end_date: trialEnd.toISOString(),
+              available_at: now.toISOString(),
+              created_at: now.toISOString(),
+              updated_at: now.toISOString()
+            };
+
             const refPost = await supabaseFetch('affiliate_referrals', {
               method: 'POST',
               headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
@@ -432,25 +533,7 @@ export default async function handler(req, res) {
             if (refPost.ok) {
               const insertedRefs = await refPost.json();
               if (Array.isArray(insertedRefs) && insertedRefs.length > 0) {
-                const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-                const commissionPayload = {
-                  id: commId,
-                  affiliate_id: matchedAffiliate.id,
-                  affiliate_code: matchedAffiliate.code,
-                  referral_id: insertedRefs[0].id || referralId,
-                  bar_id: barId,
-                  bar_name: cleanBarName,
-                  bonus_type: 'registration',
-                  amount: 5.00,
-                  currency: 'EUR',
-                  status: 'available', // Bonus immediato +5,00 € nel saldo disponibile alla registrazione con prova gratuita
-                  notes: 'Bonus registrazione +5,00 € (Prova gratuita 14 giorni avviata)',
-                  trial_end_date: trialEnd.toISOString(),
-                  available_at: now.toISOString(),
-                  created_at: now.toISOString(),
-                  updated_at: now.toISOString()
-                };
-
+                commissionPayload.referral_id = insertedRefs[0].id || referralId;
                 const commPost = await supabaseFetch('affiliate_commissions', {
                   method: 'POST',
                   headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
@@ -486,6 +569,33 @@ export default async function handler(req, res) {
                   } catch (_) {}
                 }
               }
+            } else {
+              // Tabelle SQL non ancora create: sincronizza via /api/affiliates & auth.users in modo idempotente
+              try {
+                const syncRes = await fetch(`${appHost}/api/affiliates`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-pin': '101540'
+                  },
+                  body: JSON.stringify({
+                    action: 'record_referral_bonus',
+                    affiliateEmail: matchedAffiliate.email || '',
+                    affiliateCode: matchedAffiliate.code,
+                    referral: referralPayload,
+                    commission: commissionPayload
+                  })
+                });
+                if (syncRes.ok) {
+                  const sData = await syncRes.json();
+                  if (sData.already_credited) {
+                    duplicateBlocked = true;
+                  } else if (Number(sData.bonus_credited) > 0) {
+                    referralCredited = true;
+                    bonusAmount = Number(sData.bonus_credited);
+                  }
+                }
+              } catch (_) {}
             }
           }
 
@@ -535,12 +645,56 @@ export default async function handler(req, res) {
         console.log(`[Register Bar] 🎁 Assegnato codice affiliazione univoco ${newCode} all'account ${normalizedEmail}`);
       }
 
-      // Salva il codice anche nel record del bar
+      // Salva il codice anche nel record del bar e in auth.users metadata
       if (accountAffiliateCode) {
         await supabaseFetch(`bars?id=eq.${encodeURIComponent(barId)}`, {
           method: 'PATCH',
           body: JSON.stringify({ affiliate_code: accountAffiliateCode, updated_at: now.toISOString() })
         });
+        if (serviceRoleKey) {
+          try {
+            const matchedBarUser = Array.isArray(cachedAuthUsers)
+              ? cachedAuthUsers.find(u => (userId && u.id === userId) || (u.email || '').toLowerCase() === normalizedEmail)
+              : null;
+            const targetAuthId = userId || (matchedBarUser && matchedBarUser.id);
+            const metaUpdate = {
+              ...(matchedBarUser?.user_metadata || {}),
+              bar_registered_id: barId,
+              bar_subscription_id: subId,
+              vat_number: cleanVat || null,
+              affiliate_code: accountAffiliateCode,
+              affiliate_name: cleanOwner || cleanBarName,
+              affiliate_phone: cleanPhone || '',
+              affiliate_status: 'active'
+            };
+            if (targetAuthId) {
+              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(targetAuthId)}`, {
+                method: 'PUT',
+                headers: {
+                  'apikey': serviceRoleKey,
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_metadata: metaUpdate })
+              });
+            } else {
+              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+                method: 'POST',
+                headers: {
+                  'apikey': serviceRoleKey,
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: normalizedEmail,
+                  password: 'BpBar_' + Math.random().toString(36).slice(2, 12) + '!1A',
+                  email_confirm: true,
+                  user_metadata: metaUpdate
+                })
+              });
+            }
+          } catch (_) {}
+        }
       }
     } catch (codeErr) {
       console.warn('[Register Bar] Assegnazione codice affiliato:', codeErr.message);
@@ -585,7 +739,6 @@ export default async function handler(req, res) {
     // 6. Tenta l'invio dell'email di benvenuto solo alla prima registrazione
     if (!existingBar) {
       try {
-        const appHost = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
         await fetch(`${appHost}/api/send-welcome-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

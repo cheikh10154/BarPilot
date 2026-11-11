@@ -36,6 +36,105 @@ async function supabaseFetch(endpoint, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+function getServiceRoleKey() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes('service_role') ? SUPABASE_KEY : null);
+}
+
+async function fetchAllAuthUsers() {
+  const srKey = getServiceRoleKey();
+  if (!srKey) return [];
+  try {
+    const res = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=500`, {
+      headers: {
+        'apikey': srKey,
+        'Authorization': `Bearer ${srKey}`
+      }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.users || (Array.isArray(data) ? data : []);
+  } catch (_) {
+    return [];
+  }
+}
+
+async function syncAffiliateInAuthUsers(affObj, password = null) {
+  const srKey = getServiceRoleKey();
+  if (!srKey || !affObj || !affObj.email) return null;
+  const normalizedEmail = affObj.email.trim().toLowerCase();
+  try {
+    const users = await fetchAllAuthUsers();
+    const existing = users.find(u => (u.email || '').toLowerCase() === normalizedEmail);
+    const baseMeta = (existing && existing.user_metadata) ? { ...existing.user_metadata } : {};
+    const mergedMeta = {
+      ...baseMeta,
+      affiliate_id: affObj.id || baseMeta.affiliate_id,
+      affiliate_code: affObj.code || baseMeta.affiliate_code || getConsistentCodeForAccount(normalizedEmail),
+      affiliate_name: affObj.name || baseMeta.affiliate_name || normalizedEmail.split('@')[0],
+      affiliate_phone: affObj.phone || baseMeta.affiliate_phone || '',
+      affiliate_status: affObj.status || baseMeta.affiliate_status || 'active',
+      affiliate_created_at: affObj.created_at || baseMeta.affiliate_created_at || new Date().toISOString()
+    };
+
+    if (existing) {
+      await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(existing.id)}`, {
+        method: 'PUT',
+        headers: {
+          'apikey': srKey,
+          'Authorization': `Bearer ${srKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_metadata: mergedMeta })
+      });
+      return existing;
+    } else {
+      const createRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'apikey': srKey,
+          'Authorization': `Bearer ${srKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: password || ('BpAff_' + Math.random().toString(36).slice(2, 12) + '!1A'),
+          email_confirm: true,
+          user_metadata: mergedMeta
+        })
+      });
+      if (createRes.ok) {
+        const created = await createRes.json();
+        return created.user || created;
+      }
+    }
+  } catch (e) {
+    console.warn('[Affiliates AuthSync] Nota:', e.message);
+  }
+  return null;
+}
+
+function hydrateAffiliateFromAuthUser(u) {
+  if (!u || !u.email) return null;
+  const meta = u.user_metadata || {};
+  const email = u.email.trim().toLowerCase();
+  const code = (meta.affiliate_code || getConsistentCodeForAccount(email)).toUpperCase();
+  return {
+    id: meta.affiliate_id || ('aff_' + u.id.replace(/-/g, '').slice(0, 12)),
+    user_id: u.id,
+    bar_id: meta.bar_id || null,
+    name: meta.affiliate_name || meta.full_name || meta.display_name || email.split('@')[0],
+    email,
+    phone: meta.affiliate_phone || u.phone || meta.phone || '',
+    code,
+    status: meta.affiliate_status || 'active',
+    commission_rate: 5.0,
+    total_earned: 0.00,
+    payout_method: meta.affiliate_payout_method || null,
+    created_at: meta.affiliate_created_at || u.created_at,
+    _authUser: u
+  };
+}
+
 // Generatore deterministico e univoco di codice a 6 caratteri alfanumerici per account (non cambia MAI)
 function getConsistentCodeForAccount(identifier) {
   if (!identifier) return 'BP' + Math.floor(1000 + Math.random() * 9000);
@@ -303,27 +402,67 @@ async function handleAdminRequest(req, res) {
       } catch (_) {}
 
       let affiliates = [];
+      let sqlAffiliatesAvailable = false;
       try {
         const affRes = await supabaseFetch("affiliates?order=created_at.desc");
-        if (affRes.ok) affiliates = await affRes.json();
+        if (affRes.ok) {
+          affiliates = await affRes.json();
+          sqlAffiliatesAvailable = true;
+        }
       } catch (_) {}
-      if (!affiliates || affiliates.length === 0) affiliates = store.affiliates || [];
 
       let referrals = [];
+      let sqlReferralsAvailable = false;
       try {
         const refRes = await supabaseFetch("affiliate_referrals?order=registered_at.desc");
-        if (refRes.ok) referrals = await refRes.json();
+        if (refRes.ok) {
+          referrals = await refRes.json();
+          sqlReferralsAvailable = true;
+        }
       } catch (_) {}
-      if (!referrals || referrals.length === 0) referrals = store.referrals || [];
-
-      await evaluateReferralsLifecycle(referrals);
 
       let commissions = [];
+      let sqlCommissionsAvailable = false;
       try {
         const commRes = await supabaseFetch("affiliate_commissions?order=created_at.desc");
-        if (commRes.ok) commissions = await commRes.json();
+        if (commRes.ok) {
+          commissions = await commRes.json();
+          sqlCommissionsAvailable = true;
+        }
       } catch (_) {}
-      if (!commissions || commissions.length === 0) commissions = store.commissions || [];
+
+      // Fallback persistente tramite Supabase auth.users se tabelle SQL non ancora create
+      if (!sqlAffiliatesAvailable || affiliates.length === 0) {
+        const authUsers = await fetchAllAuthUsers();
+        const affMap = new Map();
+        (store.affiliates || []).forEach(a => affMap.set(a.email.toLowerCase(), a));
+        authUsers.forEach(u => {
+          const hydrated = hydrateAffiliateFromAuthUser(u);
+          if (hydrated) {
+            if (!affMap.has(hydrated.email)) affMap.set(hydrated.email, hydrated);
+            const meta = u.user_metadata || {};
+            if (!sqlReferralsAvailable && Array.isArray(meta.affiliate_referrals)) {
+              meta.affiliate_referrals.forEach(r => {
+                if (!referrals.some(ex => ex.id === r.id || (ex.referred_email && ex.referred_email === r.referred_email))) {
+                  referrals.push(r);
+                }
+              });
+            }
+            if (!sqlCommissionsAvailable && Array.isArray(meta.affiliate_commissions)) {
+              meta.affiliate_commissions.forEach(c => {
+                if (!commissions.some(ex => ex.id === c.id)) {
+                  commissions.push(c);
+                }
+              });
+            }
+          }
+        });
+        affiliates = Array.from(affMap.values());
+      }
+      if (!sqlReferralsAvailable && referrals.length === 0) referrals = store.referrals || [];
+      if (!sqlCommissionsAvailable && commissions.length === 0) commissions = store.commissions || [];
+
+      await evaluateReferralsLifecycle(referrals);
 
       let totalEarnedOverall = 0;
       let totalAvailableOverall = 0;
@@ -616,6 +755,79 @@ async function handleAdminRequest(req, res) {
         });
       }
 
+      if (action === 'record_referral_bonus') {
+        const { affiliateEmail, affiliateCode, referral, commission } = body;
+        if (!referral || !commission) {
+          return res.status(400).json({ error: "Dati referral/commissione mancanti." });
+        }
+
+        const dupInStore = (store.referrals || []).some(r =>
+          (referral.referred_bar_id && r.referred_bar_id === referral.referred_bar_id) ||
+          (referral.referred_email && r.referred_email && r.referred_email.toLowerCase() === referral.referred_email.toLowerCase())
+        );
+
+        if (!dupInStore) {
+          store.referrals.unshift(referral);
+          store.commissions.unshift(commission);
+          writeAffiliatesStore(store);
+        }
+
+        // Persistenza su Supabase auth.users user_metadata per l'affiliato
+        const srKey = getServiceRoleKey();
+        if (srKey) {
+          try {
+            const users = await fetchAllAuthUsers();
+            const codeUpper = (affiliateCode || referral.affiliate_code || '').toUpperCase();
+            const affEmailLower = (affiliateEmail || '').toLowerCase();
+            let targetUser = users.find(u =>
+              (affEmailLower && (u.email || '').toLowerCase() === affEmailLower) ||
+              (codeUpper && ((u.user_metadata?.affiliate_code || '').toUpperCase() === codeUpper || getConsistentCodeForAccount(u.email) === codeUpper))
+            );
+            if (!targetUser && affEmailLower) {
+              targetUser = await syncAffiliateInAuthUsers({
+                id: referral.affiliate_id,
+                email: affEmailLower,
+                code: codeUpper,
+                status: 'active'
+              });
+            }
+            if (targetUser) {
+              const meta = { ...(targetUser.user_metadata || {}) };
+              const refs = Array.isArray(meta.affiliate_referrals) ? [...meta.affiliate_referrals] : [];
+              const comms = Array.isArray(meta.affiliate_commissions) ? [...meta.affiliate_commissions] : [];
+              const alreadyInAuth = refs.some(r =>
+                (referral.referred_bar_id && r.referred_bar_id === referral.referred_bar_id) ||
+                (referral.referred_email && r.referred_email && r.referred_email.toLowerCase() === referral.referred_email.toLowerCase())
+              );
+              if (alreadyInAuth) {
+                return res.status(200).json({ success: true, already_credited: true, bonus_credited: 0 });
+              }
+              refs.unshift(referral);
+              comms.unshift(commission);
+              meta.affiliate_referrals = refs;
+              meta.affiliate_commissions = comms;
+              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(targetUser.id)}`, {
+                method: 'PUT',
+                headers: {
+                  'apikey': srKey,
+                  'Authorization': `Bearer ${srKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_metadata: meta })
+              });
+            }
+          } catch (syncErr) {
+            console.warn('[record_referral_bonus AuthSync]', syncErr.message);
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          already_credited: dupInStore,
+          bonus_credited: dupInStore ? 0 : (parseFloat(commission.amount) || 5.00)
+        });
+      }
+
       return res.status(400).json({ error: "Azione Super Admin non riconosciuta." });
     }
 
@@ -644,6 +856,7 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       let affiliate = null;
+      let authUserMatched = null;
 
       if (email) {
         try {
@@ -662,6 +875,22 @@ async function handleUserAffiliateRequest(req, res) {
           (barId && a.bar_id === barId) ||
           (clientCode && a.code === clientCode)
         );
+      }
+
+      // Cerca sempre anche in Supabase auth.users per garantire persistenza cross-container
+      const authUsers = await fetchAllAuthUsers();
+      authUserMatched = authUsers.find(u =>
+        (email && (u.email || '').toLowerCase() === email) ||
+        (userId && u.id === userId) ||
+        (clientCode && (u.user_metadata?.affiliate_code || '').toUpperCase() === clientCode)
+      );
+
+      if (!affiliate && authUserMatched) {
+        affiliate = hydrateAffiliateFromAuthUser(authUserMatched);
+        if (affiliate) {
+          store.affiliates.push(affiliate);
+          writeAffiliatesStore(store);
+        }
       }
 
       // Codice univoco permanente per questo account (non cambia MAI)
@@ -691,10 +920,14 @@ async function handleUserAffiliateRequest(req, res) {
           });
         } catch (_) {}
 
+        await syncAffiliateInAuthUsers(affiliate);
         store.affiliates.push(affiliate);
         writeAffiliatesStore(store);
       } else {
         affiliate.code = permanentCode;
+        if (!authUserMatched || !authUserMatched.user_metadata?.affiliate_code) {
+          await syncAffiliateInAuthUsers(affiliate);
+        }
       }
 
       let firstSubscriptionDate = affiliate.created_at;
@@ -726,26 +959,44 @@ async function handleUserAffiliateRequest(req, res) {
       const subscriptionInfo = calculateSubscriptionDuration(firstSubscriptionDate);
 
       let referrals = [];
+      let sqlRefOk = false;
       try {
         const refRes = await supabaseFetch(`affiliate_referrals?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&order=registered_at.desc`);
-        if (refRes.ok) referrals = await refRes.json();
+        if (refRes.ok) {
+          referrals = await refRes.json();
+          sqlRefOk = true;
+        }
       } catch (_) {}
 
-      if (!referrals || referrals.length === 0) {
-        referrals = store.referrals.filter(r => r.affiliate_id === affiliate.id || r.affiliate_code === affiliate.code);
+      if (!sqlRefOk || referrals.length === 0) {
+        const authRefs = authUserMatched?.user_metadata?.affiliate_referrals;
+        if (Array.isArray(authRefs) && authRefs.length > 0) {
+          referrals = [...authRefs];
+        } else {
+          referrals = store.referrals.filter(r => r.affiliate_id === affiliate.id || r.affiliate_code === affiliate.code);
+        }
       }
 
       // Valuta lo stato reale dei referral rispetto ai 14 giorni di prova e pagamenti Stripe
       await evaluateReferralsLifecycle(referrals);
 
       let commissions = [];
+      let sqlCommOk = false;
       try {
         const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&order=created_at.desc`);
-        if (commRes.ok) commissions = await commRes.json();
+        if (commRes.ok) {
+          commissions = await commRes.json();
+          sqlCommOk = true;
+        }
       } catch (_) {}
 
-      if (!commissions || commissions.length === 0) {
-        commissions = store.commissions.filter(c => c.affiliate_id === affiliate.id);
+      if (!sqlCommOk || commissions.length === 0) {
+        const authComms = authUserMatched?.user_metadata?.affiliate_commissions;
+        if (Array.isArray(authComms) && authComms.length > 0) {
+          commissions = [...authComms];
+        } else {
+          commissions = store.commissions.filter(c => c.affiliate_id === affiliate.id);
+        }
       }
 
       const totalReferrals = referrals.length;
@@ -880,28 +1131,69 @@ async function handleUserAffiliateRequest(req, res) {
         }
 
         try {
-          const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(code)}&status=eq.active&limit=1`);
+          const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(code)}&limit=1`);
           if (affRes.ok) {
             const rows = await affRes.json();
             if (rows && rows.length > 0) {
+              const row = rows[0];
+              if (row.status === 'suspended') {
+                return res.status(200).json({ valid: false, code, status: 'suspended', message: "Codice partner temporaneamente sospeso." });
+              }
               return res.status(200).json({
                 valid: true,
-                code: rows[0].code,
-                affiliate_id: rows[0].id,
+                code: row.code,
+                affiliate_id: row.id,
+                email: row.email,
+                user_id: row.user_id || null,
+                phone: row.phone || '',
+                status: row.status || 'active',
                 message: "Codice affiliazione valido."
               });
             }
           }
         } catch (_) {}
 
-        const found = store.affiliates.find(a => a.code === code && a.status === 'active');
+        const found = store.affiliates.find(a => a.code === code);
         if (found) {
+          if (found.status === 'suspended') {
+            return res.status(200).json({ valid: false, code, status: 'suspended', message: "Codice partner temporaneamente sospeso." });
+          }
           return res.status(200).json({
             valid: true,
             code: found.code,
             affiliate_id: found.id,
+            email: found.email,
+            user_id: found.user_id || null,
+            phone: found.phone || '',
+            status: found.status || 'active',
             message: "Codice affiliazione valido."
           });
+        }
+
+        // Controllo su Supabase Authentication > Users (persistente anche prima della creazione tabelle SQL)
+        const authUsers = await fetchAllAuthUsers();
+        const authMatch = authUsers.find(u => {
+          const metaCode = (u.user_metadata?.affiliate_code || '').toUpperCase();
+          return metaCode === code || (u.email && getConsistentCodeForAccount(u.email) === code);
+        });
+        if (authMatch) {
+          const hydrated = hydrateAffiliateFromAuthUser(authMatch);
+          if (hydrated && hydrated.status !== 'suspended') {
+            if (!store.affiliates.some(a => a.email === hydrated.email)) {
+              store.affiliates.push(hydrated);
+              writeAffiliatesStore(store);
+            }
+            return res.status(200).json({
+              valid: true,
+              code: hydrated.code,
+              affiliate_id: hydrated.id,
+              email: hydrated.email,
+              user_id: hydrated.user_id,
+              phone: hydrated.phone || '',
+              status: hydrated.status || 'active',
+              message: "Codice affiliazione valido."
+            });
+          }
         }
 
         return res.status(200).json({
@@ -974,7 +1266,7 @@ async function handleUserAffiliateRequest(req, res) {
         const fullName = `${cleanFirst} ${cleanLast}`;
         const nowIso = new Date().toISOString();
 
-        // Cerca se l'affiliato esiste già
+        // Cerca se l'affiliato esiste già in store, SQL o auth.users
         let aff = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail);
 
         if (!aff) {
@@ -987,6 +1279,14 @@ async function handleUserAffiliateRequest(req, res) {
               }
             }
           } catch (_) {}
+        }
+
+        if (!aff) {
+          const authUsers = await fetchAllAuthUsers();
+          const existingAuth = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
+          if (existingAuth) {
+            aff = hydrateAffiliateFromAuthUser(existingAuth);
+          }
         }
 
         // Codice univoco permanente per questo account (non cambia MAI)
@@ -1052,6 +1352,8 @@ async function handleUserAffiliateRequest(req, res) {
           } catch (_) {}
         }
 
+        await syncAffiliateInAuthUsers(aff, cleanPassword);
+
         return res.status(200).json({
           success: true,
           message: "Registrazione affiliato completata con successo.",
@@ -1088,6 +1390,18 @@ async function handleUserAffiliateRequest(req, res) {
               }
             }
           } catch (_) {}
+        }
+
+        if (!aff) {
+          const authUsers = await fetchAllAuthUsers();
+          const existingAuth = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
+          if (existingAuth) {
+            aff = hydrateAffiliateFromAuthUser(existingAuth);
+            if (aff) {
+              store.affiliates.push(aff);
+              writeAffiliatesStore(store);
+            }
+          }
         }
 
         const permanentCode = (aff && aff.code) || (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
@@ -1130,6 +1444,8 @@ async function handleUserAffiliateRequest(req, res) {
         if (!isValid || !aff) {
           return res.status(401).json({ error: "Credenziali non valide. Verifica email e password." });
         }
+
+        await syncAffiliateInAuthUsers(aff, cleanPassword);
 
         return res.status(200).json({
           success: true,
