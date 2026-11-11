@@ -21,7 +21,29 @@ async function supabaseFetch(endpoint, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
-// Helper: Genera codice unico di 6 caratteri alfanumerici maiuscoli
+// Helper: Genera codice unico e permanente di 6 caratteri alfanumerici maiuscoli
+function getConsistentCodeForAccount(identifier) {
+  if (!identifier) return 'BP' + Math.floor(1000 + Math.random() * 9000);
+  const clean = String(identifier).trim().toLowerCase();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let hash1 = 5381;
+  let hash2 = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) + ch;
+    hash1 |= 0;
+    hash2 = ((hash2 << 7) - hash2) + ch;
+    hash2 |= 0;
+  }
+  let seed = Math.abs(hash1 ^ hash2);
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(seed % chars.length);
+    seed = Math.floor(seed / chars.length) + (clean.charCodeAt(i % clean.length) || 11) * 37;
+  }
+  return code;
+}
+
 function generateUniqueCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -348,16 +370,7 @@ export default async function handler(req, res) {
       }
 
       if (!accountAffiliateCode) {
-        let newCode = generateUniqueCode();
-        // Verifica unicità codice
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const codeCheck = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(newCode)}&select=id&limit=1`);
-          if (codeCheck.ok) {
-            const checkRows = await codeCheck.json();
-            if (!checkRows || checkRows.length === 0) break;
-          }
-          newCode = generateUniqueCode();
-        }
+        let newCode = getConsistentCodeForAccount(normalizedEmail);
 
         const affPayload = {
           id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),

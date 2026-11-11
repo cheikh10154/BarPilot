@@ -36,6 +36,29 @@ async function supabaseFetch(endpoint, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+// Generatore deterministico e univoco di codice a 6 caratteri alfanumerici per account (non cambia MAI)
+function getConsistentCodeForAccount(identifier) {
+  if (!identifier) return 'BP' + Math.floor(1000 + Math.random() * 9000);
+  const clean = String(identifier).trim().toLowerCase();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let hash1 = 5381;
+  let hash2 = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) + ch;
+    hash1 |= 0;
+    hash2 = ((hash2 << 7) - hash2) + ch;
+    hash2 |= 0;
+  }
+  let seed = Math.abs(hash1 ^ hash2);
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(seed % chars.length);
+    seed = Math.floor(seed / chars.length) + (clean.charCodeAt(i % clean.length) || 11) * 37;
+  }
+  return code;
+}
+
 // Generatore di codice univoco 6 caratteri alfanumerici maiuscoli (es. AB12CD)
 function generateUniqueCode(existingCodes = new Set()) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -402,6 +425,7 @@ async function handleUserAffiliateRequest(req, res) {
       const email = (req.query.email || '').trim().toLowerCase();
       const userId = (req.query.userId || '').trim();
       const barId = (req.query.barId || '').trim();
+      const clientCode = (req.query.code || '').trim().toUpperCase();
 
       if (!email && !userId && !barId) {
         return res.status(400).json({ error: "Email o UserId obbligatori per visualizzare le affiliazioni." });
@@ -423,13 +447,15 @@ async function handleUserAffiliateRequest(req, res) {
         affiliate = store.affiliates.find(a => 
           (email && a.email && a.email.toLowerCase() === email) ||
           (userId && a.user_id === userId) ||
-          (barId && a.bar_id === barId)
+          (barId && a.bar_id === barId) ||
+          (clientCode && a.code === clientCode)
         );
       }
 
+      // Codice univoco permanente per questo account (non cambia MAI)
+      const permanentCode = (affiliate && affiliate.code) || clientCode || getConsistentCodeForAccount(email || userId || barId);
+
       if (!affiliate) {
-        const existingCodes = new Set([...store.affiliates.map(a => a.code)]);
-        const newCode = generateUniqueCode(existingCodes);
         const nowIso = new Date().toISOString();
 
         affiliate = {
@@ -438,7 +464,7 @@ async function handleUserAffiliateRequest(req, res) {
           bar_id: barId || null,
           name: req.query.name || (email ? email.split('@')[0] : 'Affiliato'),
           email: email || `${userId || barId}@barpilot.user`,
-          code: newCode,
+          code: permanentCode,
           status: 'active',
           commission_rate: 5.0,
           total_earned: 0.00,
@@ -455,6 +481,8 @@ async function handleUserAffiliateRequest(req, res) {
 
         store.affiliates.push(affiliate);
         writeAffiliatesStore(store);
+      } else {
+        affiliate.code = permanentCode;
       }
 
       let firstSubscriptionDate = affiliate.created_at;
@@ -771,10 +799,10 @@ async function handleUserAffiliateRequest(req, res) {
           } catch (_) {}
         }
 
-        if (!aff) {
-          const existingCodes = new Set([...store.affiliates.map(a => a.code)]);
-          const newCode = generateUniqueCode(existingCodes);
+        // Codice univoco permanente per questo account (non cambia MAI)
+        const permanentCode = (aff && aff.code) || (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
 
+        if (!aff) {
           aff = {
             id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
             first_name: cleanFirst,
@@ -783,7 +811,7 @@ async function handleUserAffiliateRequest(req, res) {
             phone: cleanPhone,
             email: cleanEmail,
             password: cleanPassword,
-            code: newCode,
+            code: permanentCode,
             status: 'active',
             commission_rate: 5.0,
             total_earned: 0.00,
@@ -802,9 +830,9 @@ async function handleUserAffiliateRequest(req, res) {
                 name: fullName,
                 email: cleanEmail,
                 phone: cleanPhone,
-                code: aff.code,
+                code: permanentCode,
                 status: 'active',
-                commission_rate: 20.0,
+                commission_rate: 5.0,
                 total_earned: 0.00,
                 created_at: nowIso,
                 updated_at: nowIso
@@ -812,6 +840,7 @@ async function handleUserAffiliateRequest(req, res) {
             });
           } catch (_) {}
         } else {
+          aff.code = permanentCode;
           aff.first_name = cleanFirst;
           aff.last_name = cleanLast;
           aff.name = fullName;
@@ -826,6 +855,7 @@ async function handleUserAffiliateRequest(req, res) {
               body: JSON.stringify({
                 name: fullName,
                 phone: cleanPhone,
+                code: permanentCode,
                 updated_at: nowIso
               })
             });
@@ -870,26 +900,27 @@ async function handleUserAffiliateRequest(req, res) {
           } catch (_) {}
         }
 
+        const permanentCode = (aff && aff.code) || (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
+
         let isValid = false;
         if (aff) {
           if (!aff.password || aff.password === cleanPassword) {
             isValid = true;
+            aff.code = permanentCode;
           }
         } else {
           // Creazione automatica affiliato se prima volta con password valida
           if (cleanPassword.length >= 4) {
             isValid = true;
-            const existingCodes = new Set([...store.affiliates.map(a => a.code)]);
-            const newCode = generateUniqueCode(existingCodes);
             const nowIso = new Date().toISOString();
             aff = {
               id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
               name: cleanEmail.split('@')[0],
               email: cleanEmail,
               password: cleanPassword,
-              code: newCode,
+              code: permanentCode,
               status: 'active',
-              commission_rate: 20.0,
+              commission_rate: 5.0,
               total_earned: 0.00,
               created_at: nowIso,
               updated_at: nowIso

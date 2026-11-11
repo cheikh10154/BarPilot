@@ -1922,6 +1922,7 @@
           throw new Error(data.error || "Errore durante l'iscrizione.");
         }
 
+        const affCode = data.user.code;
         const affUser = {
           id: data.user.id,
           firstName: data.user.firstName || firstName,
@@ -1929,9 +1930,10 @@
           name: data.user.name || `${firstName} ${lastName}`,
           phone: data.user.phone || phone,
           email: data.user.email || email,
-          code: data.user.code
+          code: affCode
         };
 
+        localStorage.setItem(`barpilot_affiliate_code_${email}`, affCode);
         localStorage.setItem("barpilot_affiliate_user", JSON.stringify(affUser));
         localStorage.setItem("barpilot_logged_user", JSON.stringify(affUser));
 
@@ -1982,14 +1984,16 @@
           throw new Error(data.error || "Credenziali non valide.");
         }
 
+        const existingCode = localStorage.getItem(`barpilot_affiliate_code_${email}`) || data.user.code;
         const affUser = {
           id: data.user.id,
           name: data.user.name || email.split('@')[0],
           email: data.user.email || email,
           phone: data.user.phone || '',
-          code: data.user.code
+          code: existingCode
         };
 
+        localStorage.setItem(`barpilot_affiliate_code_${email}`, existingCode);
         localStorage.setItem("barpilot_affiliate_user", JSON.stringify(affUser));
         localStorage.setItem("barpilot_logged_user", JSON.stringify(affUser));
 
@@ -2049,12 +2053,15 @@
         if (localPm) renderPayoutMethodDisplay(localPm);
       } catch (_) {}
 
+      const savedCode = user.code || localStorage.getItem(`barpilot_affiliate_code_${user.email}`) || '';
+
       try {
         const queryParams = new URLSearchParams({
           email: user.email,
           userId: user.userId || '',
           barId: user.barId || '',
-          name: user.name || ''
+          name: user.name || '',
+          code: savedCode
         });
 
         const res = await fetch(`/api/affiliates?${queryParams.toString()}`);
@@ -2062,6 +2069,17 @@
 
         const data = await res.json();
         if (data.success) {
+          const finalCode = savedCode || data.affiliate?.code;
+          if (finalCode && data.affiliate) {
+            data.affiliate.code = finalCode;
+            if (data.cards && data.cards.code) {
+              data.cards.code.code = finalCode;
+              data.cards.code.share_url = `https://www.barpilot.eu/app?ref=${finalCode}`;
+            }
+            localStorage.setItem(`barpilot_affiliate_code_${user.email}`, finalCode);
+            user.code = finalCode;
+            localStorage.setItem("barpilot_affiliate_user", JSON.stringify(user));
+          }
           currentAffiliateData = data;
           renderDashboard(data);
         }
@@ -2074,6 +2092,7 @@
     function renderDashboard(data) {
       const cards = data.cards;
       const affiliate = data.affiliate;
+      const user = getAuthenticatedUser() || {};
 
       // 1. Saldo affiliazioni
       const availableVal = parseFloat(cards.balance.available) || 0;
@@ -2104,10 +2123,11 @@
         }
       }
 
-      // 2. Il mio codice affiliazione
-      document.getElementById("displayAffiliateCode").textContent = affiliate.code;
+      // 2. Il mio codice affiliazione (permanente e univoco, non cambia MAI)
+      const permanentCode = user?.code || localStorage.getItem(`barpilot_affiliate_code_${user?.email}`) || affiliate.code;
+      document.getElementById("displayAffiliateCode").textContent = permanentCode;
       const emptySpan = document.getElementById("emptyCodeSpan");
-      if (emptySpan) emptySpan.textContent = affiliate.code;
+      if (emptySpan) emptySpan.textContent = permanentCode;
 
       // 3. Anzianità abbonamento
       document.getElementById("displayDurationText").textContent = cards.subscription_duration.text;
