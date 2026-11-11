@@ -830,7 +830,19 @@
               </div>
               <div class="kpi-card-label">Bar Referral Acquisiti</div>
               <div class="kpi-card-value" id="kpiAdminTotalReferrals">0</div>
-              <div class="kpi-card-trend trend-up" style="color:#10B981;"><span id="kpiAdminActiveReferralsBadge">0 attivi</span></div>
+              <div class="kpi-card-trend trend-up" style="color:#10B981;">
+                <span id="kpiAdminActiveReferralsBadge">0 attivi</span>
+                <span style="color:#F59E0B; margin-left:6px;" id="kpiAdminTrialReferralsBadge">• 0 in prova</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-top">
+                <div class="kpi-icon-wrap" style="background:rgba(16,185,129,0.15); color:#10B981;">✅</div>
+              </div>
+              <div class="kpi-card-label">Commissioni Disponibili</div>
+              <div class="kpi-card-value" id="kpiAdminAvailableCommissions">0,00 €</div>
+              <div class="kpi-card-trend" style="color:#10B981;"><span>●</span> <span>Bonus maturati</span></div>
             </div>
 
             <div class="kpi-card">
@@ -839,16 +851,16 @@
               </div>
               <div class="kpi-card-label">Commissioni in Attesa</div>
               <div class="kpi-card-value" id="kpiAdminPendingCommissions">0,00 €</div>
-              <div class="kpi-card-trend" style="color:#F59E0B;"><span>●</span> <span>Da liquidare</span></div>
+              <div class="kpi-card-trend" style="color:#F59E0B;"><span>●</span> <span>In verifica</span></div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-card-top">
                 <div class="kpi-icon-wrap" style="background:rgba(59,130,246,0.15); color:#3B82F6;">💰</div>
               </div>
-              <div class="kpi-card-label">Totale Liquidato</div>
+              <div class="kpi-card-label">Liquidati / Annullati</div>
               <div class="kpi-card-value" id="kpiAdminPaidCommissions">0,00 €</div>
-              <div class="kpi-card-trend" style="color:#3B82F6;"><span>●</span> <span>Pagato</span></div>
+              <div class="kpi-card-trend" style="color:#EF4444;"><span id="kpiAdminCancelledCommissionsBadge">Annullati: 0,00 €</span></div>
             </div>
           </div>
 
@@ -902,6 +914,34 @@
                 </thead>
                 <tbody id="adminAffiliatesTableBody">
                   <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Caricamento affiliati...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tabella Referral & Nuovi Bar Registrati -->
+          <div class="section-box" style="margin-bottom:24px;">
+            <div class="section-box-header">
+              <h3 class="section-box-title">🍸 Nuovi Bar Registrati & Codici Utilizzati</h3>
+              <div class="table-search-wrap">
+                <input type="text" class="table-search-input" id="searchAdminReferralsInput" placeholder="Cerca bar o codice usato..." oninput="window.adminConsole.filterAdminReferrals()">
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-data-table">
+                <thead>
+                  <tr>
+                    <th>Data Registrazione</th>
+                    <th>Bar Registrato</th>
+                    <th>Codice Utilizzato</th>
+                    <th>Periodo di Prova</th>
+                    <th>Stato Bar</th>
+                    <th>Bonus</th>
+                    <th>Antifrode / Azione</th>
+                  </tr>
+                </thead>
+                <tbody id="adminReferralsTableBody">
+                  <tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Caricamento referral...</td></tr>
                 </tbody>
               </table>
             </div>

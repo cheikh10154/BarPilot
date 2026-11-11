@@ -291,8 +291,9 @@
         <!-- Bar, Owner, City & Phone fields (for Registration only) -->
         <div id="registerExtraFields" style="display:none;">
           <div class="form-group">
-            <label class="form-label" for="regPromoCode">Hai un codice sconto o invito?</label>
-            <input type="text" class="form-input" id="regPromoCode" placeholder="Inserisci il tuo codice (facoltativo)" style="border: 1.5px solid #FF8A24;" oninput="hideAuthError()">
+            <label class="form-label" for="regPromoCode">Hai un codice promo o partner?</label>
+            <input type="text" class="form-input" id="regPromoCode" placeholder="Inserisci il codice di 6 caratteri" maxlength="20" style="border: 1.5px solid #FF8A24; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); hideAuthError(); if(typeof verifyPartnerCodeInput==='function') verifyPartnerCodeInput(this.value);">
+            <div id="regPromoFeedback" style="display:none; font-size:11.5px; font-weight:700; margin-top:5px;"></div>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="barNameLabel">Nome del tuo Bar / Locale</label>

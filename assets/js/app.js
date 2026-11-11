@@ -7691,9 +7691,49 @@ function openAuthScreen(tab) {
     const promoInput = document.getElementById("regPromoCode");
     if (savedRef && promoInput && !promoInput.value) {
       promoInput.value = savedRef.toUpperCase();
+      if (typeof verifyPartnerCodeInput === "function") verifyPartnerCodeInput(promoInput.value);
     }
   } catch (_) {}
 }
+
+let partnerCodeVerifyTimer = null;
+function verifyPartnerCodeInput(val) {
+  const feedbackEl = document.getElementById("regPromoFeedback");
+  if (!feedbackEl) return;
+  const code = (val || "").trim().toUpperCase();
+  if (!code) {
+    feedbackEl.style.display = "none";
+    feedbackEl.textContent = "";
+    return;
+  }
+  if (code.length < 6) {
+    feedbackEl.style.display = "block";
+    feedbackEl.style.color = "#94A3B8";
+    feedbackEl.textContent = "Inserisci tutti i 6 caratteri del codice partner";
+    return;
+  }
+  if (partnerCodeVerifyTimer) clearTimeout(partnerCodeVerifyTimer);
+  partnerCodeVerifyTimer = setTimeout(async () => {
+    try {
+      const res = await fetch("/api/affiliates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify_code", code })
+      });
+      const data = await res.json();
+      if (data.valid) {
+        feedbackEl.style.display = "block";
+        feedbackEl.style.color = "#10B981";
+        feedbackEl.textContent = `✓ Codice partner ${data.code} valido — 14 giorni di prova gratuita inclusi`;
+      } else {
+        feedbackEl.style.display = "block";
+        feedbackEl.style.color = "#F59E0B";
+        feedbackEl.textContent = data.message || "Codice partner non trovato su Supabase";
+      }
+    } catch (_) {}
+  }, 250);
+}
+window.verifyPartnerCodeInput = verifyPartnerCodeInput;
 
 function closeAuthScreen() {
   const authOverlay = document.getElementById("authOverlay");
@@ -8089,36 +8129,56 @@ async function handleAuthSubmit(e) {
       } catch (errSupabase) {
         console.warn("[Supabase] Errore connessione Supabase:", errSupabase);
       }
+    }
 
-      // Registrazione centralizzata su Supabase e sincronizzazione backend
-      try {
-        const regRes = await fetch("/api/register-bar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: supabaseUser ? supabaseUser.id : null,
-            ownerName: ownerName,
-            barName: barName,
-            email: emailNormalized,
-            phone: phone,
-            vatNumber: vatNumber,
-            city: city,
-            address: `Via Principale, 1 - ${city}`,
-            inviteCode: promoCode || null,
-            promoCode: promoCode || null
-          })
-        });
-        if (regRes.ok) {
-          const regJson = await regRes.json();
-          console.log("[BarPilot] Registrazione bar completata su backend:", regJson);
+    // Registrazione centralizzata su Supabase e sincronizzazione backend (include verifica codice partner e bonus +5€)
+    let registeredBarId = "bar_" + Date.now();
+    try {
+      const regRes = await fetch("/api/register-bar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: supabaseUser ? supabaseUser.id : null,
+          ownerName: ownerName,
+          barName: barName,
+          email: emailNormalized,
+          phone: phone,
+          vatNumber: vatNumber,
+          city: city,
+          address: `Via Principale, 1 - ${city}`,
+          inviteCode: promoCode || null,
+          promoCode: promoCode || null
+        })
+      });
+      const regJson = await regRes.json().catch(() => ({}));
+      if (!regRes.ok && (regRes.status === 400 || regRes.status === 403)) {
+        if (submitBtnEmail) {
+          submitBtnEmail.disabled = false;
+          submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
         }
-      } catch (errApi) {
-        console.warn("[BarPilot] API register-bar fallback:", errApi);
+        showAuthError(regJson.error || "Errore durante la verifica del codice promo/partner.");
+        return;
       }
+      if (regRes.ok && regJson) {
+        if (regJson.barId) registeredBarId = regJson.barId;
+        console.log("[BarPilot] Registrazione bar completata su backend:", regJson);
+        if (typeof BroadcastChannel !== "undefined") {
+          try {
+            const bc = new BroadcastChannel("barpilot_affiliates_sync");
+            bc.postMessage({ type: "new_referral", barId: registeredBarId, code: promoCode || null, bonus: regJson.bonusAmount || 0 });
+            bc.close();
+          } catch (_) {}
+        }
+      }
+    } catch (errApi) {
+      console.warn("[BarPilot] API register-bar fallback:", errApi);
+    }
 
-      // Salvataggio diretto su tabelle Supabase bars e subscriptions per resilienza
+    // Salvataggio diretto su tabella Supabase bars solo se client autenticato
+    if (window.supabase && window.supabase.url) {
       try {
         const barPayload = {
+          id: registeredBarId,
           name: barName,
           business_name: barName,
           vat_number: vatNumber,
@@ -8138,22 +8198,15 @@ async function handleAuthSubmit(e) {
           barPayload.owner_id = supabaseUser.id;
         }
 
-        const sbHeaders = window.supabase ? {
+        const sbHeaders = {
           ...window.supabase.getHeaders(false),
           "Prefer": "resolution=merge-duplicates,return=representation"
-        } : {};
+        };
 
         await fetch(`${window.supabase.url}/rest/v1/bars`, {
           method: "POST",
           headers: sbHeaders,
           body: JSON.stringify(barPayload)
-        });
-
-        // Aggiorna anche se il bar esiste già tramite email per garantire il salvataggio del telefono su Supabase
-        await fetch(`${window.supabase.url}/rest/v1/bars?email=eq.${encodeURIComponent(emailNormalized)}`, {
-          method: "PATCH",
-          headers: window.supabase.getHeaders(false),
-          body: JSON.stringify({ phone: phone, updated_at: new Date().toISOString() })
         });
       } catch (e) {}
     }
@@ -8165,7 +8218,7 @@ async function handleAuthSubmit(e) {
     }
 
     const activeBar = {
-      id: "bar_" + Date.now(),
+      id: registeredBarId,
       supabaseId: supabaseUser ? supabaseUser.id : null,
       supabaseSaved: supabaseSuccess,
       name: barName,

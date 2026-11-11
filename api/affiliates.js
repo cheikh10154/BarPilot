@@ -147,6 +147,112 @@ function getStatusLabel(status) {
   }
 }
 
+function getReferralStatusLabel(status, cancelAtPeriodEnd = false) {
+  switch (status) {
+    case 'active': return 'Attivo';
+    case 'expired': return 'Scaduto';
+    case 'cancelled': return 'Cancellato';
+    case 'trial':
+    case 'registered':
+    default: return cancelAtPeriodEnd ? 'In prova (Disdetto)' : 'In prova';
+  }
+}
+
+/**
+ * Aggiorna lo stato reale dei referral rispetto ai 14 giorni di prova:
+ * - Se bar/abbonamento pagato attivo (e non disdetto) -> 'active'
+ * - Se entro i 14 giorni di prova (anche se disdetto durante la prova) -> resta 'trial'
+ * - A fine prova (>= 14 giorni) senza pagamento attivo -> 'cancelled' (se disdetto) o 'expired'
+ */
+async function evaluateReferralsLifecycle(referrals) {
+  const nowMs = Date.now();
+  for (const ref of (referrals || [])) {
+    if (ref.fraud_flag) {
+      ref.status = 'cancelled';
+      continue;
+    }
+    if (ref.status === 'trial' || ref.status === 'registered' || !ref.status) {
+      const regMs = new Date(ref.trial_start_date || ref.registered_at || ref.created_at || nowMs).getTime();
+      const trialEndMs = ref.trial_end_date ? new Date(ref.trial_end_date).getTime() : (regMs + 14 * 24 * 3600 * 1000);
+      let isPaidActive = false;
+      let barCancelled = Boolean(ref.cancel_at_period_end || ref.cancelled_at);
+
+      if (ref.referred_bar_id) {
+        try {
+          const bRes = await supabaseFetch(`bars?id=eq.${encodeURIComponent(ref.referred_bar_id)}&select=status,subscription_status,cancel_at_period_end`);
+          if (bRes.ok) {
+            const bData = await bRes.json();
+            if (bData && bData[0]) {
+              const bStatus = (bData[0].status || '').toLowerCase();
+              const subStatus = (bData[0].subscription_status || '').toLowerCase();
+              if (bStatus === 'canceled' || bStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'cancelled' || bData[0].cancel_at_period_end) {
+                barCancelled = true;
+              } else if ((bStatus === 'active' || subStatus === 'active') && !barCancelled) {
+                isPaidActive = true;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (isPaidActive) {
+        ref.status = 'active';
+        try {
+          await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'active', updated_at: new Date().toISOString() })
+          });
+        } catch (_) {}
+      } else if (nowMs < trialEndMs) {
+        ref.status = 'trial';
+        if (barCancelled && !ref.cancel_at_period_end) {
+          ref.cancel_at_period_end = true;
+          try {
+            await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'trial', cancel_at_period_end: true, updated_at: new Date().toISOString() })
+            });
+          } catch (_) {}
+        }
+      } else {
+        const nextStatus = barCancelled ? 'cancelled' : 'expired';
+        ref.status = nextStatus;
+        try {
+          await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: nextStatus, updated_at: new Date().toISOString() })
+          });
+        } catch (_) {}
+      }
+    }
+  }
+}
+
+async function recalculateAffiliateBalanceOnDb(affiliateId) {
+  if (!affiliateId) return;
+  try {
+    const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliateId)}&select=amount,status`);
+    if (!commRes.ok) return;
+    const rows = await commRes.json();
+    let available = 0, pending = 0, earned = 0;
+    (rows || []).forEach(c => {
+      const a = parseFloat(c.amount) || 0;
+      if (c.status === 'available') { available += a; earned += a; }
+      else if (c.status === 'pending') { pending += a; earned += a; }
+      else if (c.status === 'paid') { earned += a; }
+    });
+    await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(affiliateId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        available_balance: available.toFixed(2),
+        pending_balance: pending.toFixed(2),
+        total_earned: earned.toFixed(2),
+        updated_at: new Date().toISOString()
+      })
+    });
+  } catch (_) {}
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -185,7 +291,7 @@ async function handleAdminRequest(req, res) {
     const store = readAffiliatesStore();
 
     if (req.method === 'GET') {
-      let commissionRate = store.settings?.default_rate || 20.0;
+      let commissionRate = store.settings?.default_rate || 5.0;
       try {
         const setRes = await supabaseFetch("admin_settings?setting_key=eq.affiliate_commission_rate&limit=1");
         if (setRes.ok) {
@@ -210,6 +316,8 @@ async function handleAdminRequest(req, res) {
       } catch (_) {}
       if (!referrals || referrals.length === 0) referrals = store.referrals || [];
 
+      await evaluateReferralsLifecycle(referrals);
+
       let commissions = [];
       try {
         const commRes = await supabaseFetch("affiliate_commissions?order=created_at.desc");
@@ -221,6 +329,7 @@ async function handleAdminRequest(req, res) {
       let totalAvailableOverall = 0;
       let totalPendingOverall = 0;
       let totalPaidOverall = 0;
+      let totalCancelledOverall = 0;
 
       commissions.forEach(c => {
         const amt = parseFloat(c.amount) || 0;
@@ -233,6 +342,8 @@ async function handleAdminRequest(req, res) {
         } else if (c.status === 'paid') {
           totalPaidOverall += amt;
           totalEarnedOverall += amt;
+        } else if (c.status === 'cancelled') {
+          totalCancelledOverall += amt;
         }
       });
 
@@ -242,12 +353,18 @@ async function handleAdminRequest(req, res) {
         let affEarned = 0;
         let affPending = 0;
         let affAvailable = 0;
+        let affPaid = 0;
+        let affCancelled = 0;
         affCommissions.forEach(c => {
           const a = parseFloat(c.amount) || 0;
           if (c.status === 'available') { affAvailable += a; affEarned += a; }
           else if (c.status === 'pending') { affPending += a; affEarned += a; }
-          else if (c.status === 'paid') { affEarned += a; }
+          else if (c.status === 'paid') { affPaid += a; affEarned += a; }
+          else if (c.status === 'cancelled') { affCancelled += a; }
         });
+
+        const trialCount = affReferrals.filter(r => r.status === 'trial' || r.status === 'registered').length;
+        const activeCount = affReferrals.filter(r => r.status === 'active').length;
 
         return {
           id: aff.id,
@@ -257,47 +374,76 @@ async function handleAdminRequest(req, res) {
           status: aff.status || 'active',
           commission_rate: aff.commission_rate ? parseFloat(aff.commission_rate) : commissionRate,
           total_referrals: affReferrals.length,
-          active_referrals: affReferrals.filter(r => r.status === 'active').length,
+          trial_referrals: trialCount,
+          active_referrals: activeCount,
           total_earned: affEarned.toFixed(2),
           available_balance: affAvailable.toFixed(2),
           pending_balance: affPending.toFixed(2),
+          paid_balance: affPaid.toFixed(2),
+          cancelled_balance: affCancelled.toFixed(2),
           created_at: aff.created_at
         };
       });
 
+      const trialReferralsOverall = referrals.filter(r => r.status === 'trial' || r.status === 'registered').length;
+      const activeReferralsOverall = referrals.filter(r => r.status === 'active').length;
+
+      const summaryObj = {
+        total_affiliates: affiliates.length,
+        total_referrals: referrals.length,
+        trial_referrals: trialReferralsOverall,
+        active_referrals: activeReferralsOverall,
+        total_earned: totalEarnedOverall.toFixed(2),
+        total_available: totalAvailableOverall.toFixed(2),
+        available_commissions: totalAvailableOverall.toFixed(2),
+        total_pending: totalPendingOverall.toFixed(2),
+        pending_commissions: totalPendingOverall.toFixed(2),
+        total_paid: totalPaidOverall.toFixed(2),
+        paid_commissions: totalPaidOverall.toFixed(2),
+        total_cancelled: totalCancelledOverall.toFixed(2),
+        cancelled_commissions: totalCancelledOverall.toFixed(2),
+        default_commission_rate: commissionRate
+      };
+
       return res.status(200).json({
         success: true,
-        summary: {
-          total_affiliates: affiliates.length,
-          total_referrals: referrals.length,
-          active_referrals: referrals.filter(r => r.status === 'active').length,
-          total_earned: totalEarnedOverall.toFixed(2),
-          total_available: totalAvailableOverall.toFixed(2),
-          total_pending: totalPendingOverall.toFixed(2),
-          total_paid: totalPaidOverall.toFixed(2),
-          default_commission_rate: commissionRate
-        },
+        summary: summaryObj,
+        kpis: summaryObj,
         settings: {
-          affiliate_commission_rate: commissionRate
+          affiliate_commission_rate: commissionRate,
+          default_commission_rate: commissionRate
         },
         affiliates: affiliatesEnriched,
         referrals: referrals.map(r => ({
           id: r.id,
           affiliate_id: r.affiliate_id,
           affiliate_code: r.affiliate_code,
+          bar_id: r.referred_bar_id,
           bar_name: r.referred_bar_name || 'Bar Affiliato',
           email: r.referred_email || '',
-          status: r.status,
+          status: r.status || 'trial',
+          status_label: getReferralStatusLabel(r.status, r.cancel_at_period_end),
+          trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
+          trial_end_date: r.trial_end_date || null,
+          cancel_at_period_end: Boolean(r.cancel_at_period_end),
+          bonus_amount: parseFloat(r.bonus_amount || 5.00).toFixed(2),
+          fraud_flag: Boolean(r.fraud_flag),
+          fraud_reason: r.fraud_reason || '',
           registered_at: r.registered_at || r.created_at
         })),
         commissions: commissions.map(c => ({
           id: c.id,
           affiliate_id: c.affiliate_id,
+          affiliate_code: c.affiliate_code || null,
+          referral_id: c.referral_id || null,
+          bar_id: c.bar_id || null,
           bar_name: c.bar_name || 'Bar Affiliato',
+          bonus_type: c.bonus_type || 'registration',
           amount: parseFloat(c.amount || 0).toFixed(2),
           currency: c.currency || 'EUR',
-          status: c.status || 'pending',
+          status: c.status || 'available',
           status_label: getStatusLabel(c.status),
+          notes: c.notes || '',
           invoice_id: c.stripe_invoice_id,
           created_at: c.created_at,
           paid_at: c.paid_at
@@ -312,7 +458,7 @@ async function handleAdminRequest(req, res) {
       if (action === 'update_commission_rate') {
         const rate = parseFloat(body.rate);
         if (isNaN(rate) || rate < 0 || rate > 100) {
-          return res.status(400).json({ error: "Percentuale non valida. Inserire un valore compreso tra 0 e 100." });
+          return res.status(400).json({ error: "Valore non valido. Inserire un valore compreso tra 0 e 100." });
         }
 
         try {
@@ -333,13 +479,13 @@ async function handleAdminRequest(req, res) {
 
         return res.status(200).json({
           success: true,
-          message: `Percentuale provvigioni aggiornata a ${rate.toFixed(2)}%.`,
+          message: `Regola economica aggiornata a ${rate.toFixed(2)}.`,
           rate
         });
       }
 
       if (action === 'update_commission_status') {
-        const { commissionId, status, notes = '' } = body;
+        const { commissionId, status, notes = '', fraud = false } = body;
         const validStatuses = ['pending', 'available', 'paid', 'cancelled'];
         if (!validStatuses.includes(status)) {
           return res.status(400).json({ error: `Stato non valido. Valori ammessi: ${validStatuses.join(', ')}` });
@@ -350,12 +496,37 @@ async function handleAdminRequest(req, res) {
         if (status === 'paid') updatePayload.paid_at = nowIso;
         if (status === 'available') updatePayload.available_at = nowIso;
         if (notes) updatePayload.notes = notes;
+        else if (status === 'cancelled' && fraud) updatePayload.notes = 'Bonus annullato da Super Admin (registrazione fraudolenta)';
+
+        let affIdToRecalc = null;
+        let refIdToFlag = null;
 
         try {
-          await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(commissionId)}`, {
+          const patchRes = await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(commissionId)}`, {
             method: 'PATCH',
             body: JSON.stringify(updatePayload)
           });
+          if (patchRes.ok) {
+            const patched = await patchRes.json();
+            if (patched && patched[0]) {
+              affIdToRecalc = patched[0].affiliate_id;
+              refIdToFlag = patched[0].referral_id;
+            }
+          }
+          if (status === 'cancelled' && fraud && refIdToFlag) {
+            await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(refIdToFlag)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                status: 'cancelled',
+                fraud_flag: true,
+                fraud_reason: notes || 'Annullato da Super Admin per controllo antifrode',
+                updated_at: nowIso
+              })
+            });
+          }
+          if (affIdToRecalc) {
+            await recalculateAffiliateBalanceOnDb(affIdToRecalc);
+          }
         } catch (_) {}
 
         const comm = store.commissions.find(c => c.id === commissionId);
@@ -370,9 +541,50 @@ async function handleAdminRequest(req, res) {
 
         return res.status(200).json({
           success: true,
-          message: `Stato della commissione aggiornato a "${status}".`,
+          message: `Stato della commissione aggiornato a "${getStatusLabel(status)}".`,
           commissionId,
           status
+        });
+      }
+
+      if (action === 'cancel_fraud_bonus') {
+        const { referralId, commissionId, reason = 'Registrazione fraudolenta o anomalia rilevata' } = body;
+        const nowIso = new Date().toISOString();
+        let affId = null;
+
+        try {
+          if (commissionId) {
+            const cRes = await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(commissionId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'cancelled', notes: `Annullato (Frode): ${reason}`, updated_at: nowIso })
+            });
+            if (cRes.ok) {
+              const rows = await cRes.json();
+              if (rows && rows[0]) affId = rows[0].affiliate_id;
+            }
+          }
+          if (referralId) {
+            const rRes = await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(referralId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'cancelled', fraud_flag: true, fraud_reason: reason, updated_at: nowIso })
+            });
+            if (rRes.ok) {
+              const rows = await rRes.json();
+              if (rows && rows[0] && !affId) affId = rows[0].affiliate_id;
+            }
+            await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(referralId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'cancelled', notes: `Annullato (Frode): ${reason}`, updated_at: nowIso })
+            });
+          }
+          if (affId) await recalculateAffiliateBalanceOnDb(affId);
+        } catch (_) {}
+
+        return res.status(200).json({
+          success: true,
+          message: "Bonus e referral annullati per frode e saldo aggiornato.",
+          referralId,
+          commissionId
         });
       }
 
@@ -523,62 +735,8 @@ async function handleUserAffiliateRequest(req, res) {
         referrals = store.referrals.filter(r => r.affiliate_id === affiliate.id || r.affiliate_code === affiliate.code);
       }
 
-      // Verifica e transizione automatica dello stato dei referral dopo i 14 giorni di prova
-      const nowMs = Date.now();
-      for (const ref of referrals) {
-        if (ref.status === 'trial' || ref.status === 'registered' || !ref.status) {
-          const regDate = new Date(ref.trial_start_date || ref.registered_at || ref.created_at || nowMs);
-          const daysPassed = (nowMs - regDate.getTime()) / (1000 * 3600 * 24);
-
-          let isCancelled = false;
-          let isStillActiveOrPaid = false;
-
-          if (ref.referred_bar_id) {
-            try {
-              const bRes = await supabaseFetch(`bars?id=eq.${encodeURIComponent(ref.referred_bar_id)}&select=status,subscription_status`);
-              if (bRes.ok) {
-                const bData = await bRes.json();
-                if (bData && bData[0]) {
-                  const bStatus = (bData[0].status || '').toLowerCase();
-                  const subStatus = (bData[0].subscription_status || '').toLowerCase();
-                  if (bStatus === 'canceled' || bStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'cancelled') {
-                    isCancelled = true;
-                  } else if (bStatus === 'active' || subStatus === 'active') {
-                    isStillActiveOrPaid = true;
-                  }
-                }
-              }
-            } catch (_) {}
-          }
-
-          if (isCancelled) {
-            ref.status = 'cancelled';
-            try {
-              await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() })
-              });
-              await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(ref.id)}&status=eq.pending`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'cancelled', notes: 'Abbonamento disdetto prima o durante i 14 giorni di prova', updated_at: new Date().toISOString() })
-              });
-            } catch (_) {}
-          } else if (daysPassed >= 14 || isStillActiveOrPaid) {
-            // Dopo 14 giorni, se l'abbonamento continua senza disdetta, passa ad abbonamento attivo e sblocca 5€
-            ref.status = 'active';
-            try {
-              await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'active', updated_at: new Date().toISOString() })
-              });
-              await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(ref.id)}&status=eq.pending`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'available', notes: 'Commissione 5€ maturata (abbonamento attivo dopo i 14 giorni)', updated_at: new Date().toISOString() })
-              });
-            } catch (_) {}
-          }
-        }
-      }
+      // Valuta lo stato reale dei referral rispetto ai 14 giorni di prova e pagamenti Stripe
+      await evaluateReferralsLifecycle(referrals);
 
       let commissions = [];
       try {
@@ -590,21 +748,11 @@ async function handleUserAffiliateRequest(req, res) {
         commissions = store.commissions.filter(c => c.affiliate_id === affiliate.id);
       }
 
-      // Sincronizza lo stato delle commissioni con lo stato del referral
-      commissions.forEach(c => {
-        const matchingRef = referrals.find(r => r.id === c.referral_id || (r.referred_bar_id && r.referred_bar_id === c.bar_id));
-        if (matchingRef) {
-          if (matchingRef.status === 'cancelled' && c.status === 'pending') {
-            c.status = 'cancelled';
-          } else if (matchingRef.status === 'active' && c.status === 'pending') {
-            c.status = 'available';
-          }
-        }
-      });
-
       const totalReferrals = referrals.length;
       const activeReferrals = referrals.filter(r => r.status === 'active').length;
       const trialReferrals = referrals.filter(r => r.status === 'trial' || r.status === 'registered' || !r.status).length;
+      const expiredReferrals = referrals.filter(r => r.status === 'expired').length;
+      const cancelledReferrals = referrals.filter(r => r.status === 'cancelled').length;
 
       let availableBalance = 0;
       let pendingCommissions = 0;
@@ -623,15 +771,49 @@ async function handleUserAffiliateRequest(req, res) {
         }
       });
 
-      const formattedCommissions = commissions.map(c => ({
-        id: c.id,
-        date: c.created_at || new Date().toISOString(),
-        bar_name: c.bar_name || 'Bar Affiliato',
-        amount: parseFloat(c.amount || 0).toFixed(2),
-        currency: c.currency || 'EUR',
-        status: c.status || 'pending',
-        status_label: getStatusLabel(c.status)
-      }));
+      const formattedCommissions = commissions.map(c => {
+        const matchingRef = referrals.find(r => r.id === c.referral_id || (r.referred_bar_id && r.referred_bar_id === c.bar_id));
+        const refStatus = matchingRef ? matchingRef.status : 'trial';
+        return {
+          id: c.id,
+          referral_id: c.referral_id || (matchingRef ? matchingRef.id : null),
+          date: matchingRef?.registered_at || c.created_at || new Date().toISOString(),
+          bar_id: c.bar_id || matchingRef?.referred_bar_id || null,
+          bar_name: c.bar_name || matchingRef?.referred_bar_name || 'Bar Affiliato',
+          referral_status: refStatus,
+          referral_status_label: getReferralStatusLabel(refStatus, matchingRef?.cancel_at_period_end),
+          trial_start_date: matchingRef?.trial_start_date || null,
+          trial_end_date: matchingRef?.trial_end_date || c.trial_end_date || null,
+          amount: parseFloat(c.amount || 0).toFixed(2),
+          currency: c.currency || 'EUR',
+          status: c.status || 'available',
+          status_label: getStatusLabel(c.status)
+        };
+      });
+
+      // Storico completo combinato (anche eventuali referral senza commissione ancora visibile)
+      const historyRows = referrals.map(r => {
+        const comm = commissions.find(c => c.referral_id === r.id || (r.referred_bar_id && c.bar_id === r.referred_bar_id));
+        const commStatus = comm ? comm.status : (r.fraud_flag ? 'cancelled' : 'available');
+        const bonusAmt = comm ? parseFloat(comm.amount || 5.00) : parseFloat(r.bonus_amount || 5.00);
+        return {
+          id: r.id,
+          referral_id: r.id,
+          commission_id: comm ? comm.id : null,
+          date: r.registered_at || r.created_at || new Date().toISOString(),
+          bar_id: r.referred_bar_id || r.id,
+          bar_name: r.referred_bar_name || 'Bar Affiliato',
+          referral_status: r.status || 'trial',
+          referral_status_label: getReferralStatusLabel(r.status, r.cancel_at_period_end),
+          trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
+          trial_end_date: r.trial_end_date || null,
+          cancel_at_period_end: Boolean(r.cancel_at_period_end),
+          amount: bonusAmt.toFixed(2),
+          currency: 'EUR',
+          status: commStatus,
+          status_label: getStatusLabel(commStatus)
+        };
+      });
 
       return res.status(200).json({
         success: true,
@@ -666,14 +848,22 @@ async function handleUserAffiliateRequest(req, res) {
           referrals_count: {
             total: totalReferrals,
             active: activeReferrals,
-            inactive: trialReferrals
+            inactive: trialReferrals,
+            trial: trialReferrals,
+            expired: expiredReferrals,
+            cancelled: cancelledReferrals
           }
         },
+        history: historyRows.length > 0 ? historyRows : formattedCommissions,
         commissions: formattedCommissions,
         referrals: referrals.map(r => ({
           id: r.id,
+          bar_id: r.referred_bar_id || r.id,
           bar_name: r.referred_bar_name || 'Bar Affiliato',
-          status: r.status,
+          status: r.status || 'trial',
+          status_label: getReferralStatusLabel(r.status, r.cancel_at_period_end),
+          trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
+          trial_end_date: r.trial_end_date || null,
           date: r.registered_at || r.created_at
         }))
       });

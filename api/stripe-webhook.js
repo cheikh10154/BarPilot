@@ -683,8 +683,8 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
     } catch (_) {}
 
     const nowIso = new Date().toISOString();
-    
-    // Aggiorna o sblocca la commissione in stato 'available' (disponibile)
+
+    // Verifica se esiste già il bonus registrazione di 5,00 € (assegnato una sola volta per bar)
     const commCheck = await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(referral.id)}&limit=1`);
     let existingComm = null;
     if (commCheck.ok) {
@@ -693,33 +693,37 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
     }
 
     if (existingComm) {
-      await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(existingComm.id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'available',
-          amount: commissionAmount,
-          stripe_invoice_id: invoiceId || existingComm.stripe_invoice_id,
-          stripe_event_id: eventId || existingComm.stripe_event_id,
-          notes: 'Commissione 5€ maturata (abbonamento attivo)',
-          available_at: nowIso,
-          updated_at: nowIso
-        })
-      });
-    } else {
+      // Non riattivare mai un bonus annullato per frode e non duplicare bonus già disponibili/pagati
+      if (existingComm.status === 'pending') {
+        await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(existingComm.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'available',
+            stripe_invoice_id: invoiceId || existingComm.stripe_invoice_id,
+            stripe_event_id: eventId || existingComm.stripe_event_id,
+            notes: 'Commissione 5€ confermata (abbonamento Stripe attivo)',
+            available_at: nowIso,
+            updated_at: nowIso
+          })
+        });
+      }
+    } else if (!referral.fraud_flag) {
       const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
       const commissionPayload = {
         id: commId,
         affiliate_id: referral.affiliate_id,
+        affiliate_code: referral.affiliate_code || null,
         referral_id: referral.id,
         bar_id: referral.referred_bar_id,
         bar_name: referral.referred_bar_name || 'Bar Affiliato',
+        bonus_type: 'registration',
         stripe_invoice_id: invoiceId || null,
         stripe_event_id: eventId || null,
         amount: commissionAmount,
         currency: 'EUR',
         status: 'available',
         available_at: nowIso,
-        notes: 'Commissione 5€ maturata (abbonamento attivo)',
+        notes: 'Bonus affiliazione +5,00 € (abbonamento attivo)',
         created_at: nowIso,
         updated_at: nowIso
       };
@@ -730,13 +734,15 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
       });
     }
 
-    // Passa il referral su abbonamento attivo (+1 su abbonamento attivo)
-    await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(referral.id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'active', updated_at: nowIso })
-    });
+    // Passa il referral su "Affiliati attivi" ('active') dopo il pagamento effettivo
+    if (!referral.fraud_flag) {
+      await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(referral.id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'active', cancel_at_period_end: false, updated_at: nowIso })
+      });
+    }
 
-    console.log(`[Stripe Webhook Affiliates] ✅ Accreditata commissione ${commissionAmount} € (attivo) all'affiliato ${referral.affiliate_id}`);
+    console.log(`[Stripe Webhook Affiliates] ✅ Stato referral aggiornato ad active per affiliato ${referral.affiliate_id}`);
   } catch (err) {
     console.warn('[Stripe Webhook Affiliates] Errore:', err.message);
   }
@@ -745,15 +751,25 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
 async function updateAffiliateReferralOnCancellation(barId) {
   if (!barId) return;
   try {
-    const nowIso = new Date().toISOString();
-    await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(barId)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'cancelled', updated_at: nowIso })
-    });
-    await supabaseFetch(`affiliate_commissions?bar_id=eq.${encodeURIComponent(barId)}&status=eq.pending`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'cancelled', notes: 'Abbonamento disdetto prima o durante i 14 giorni di prova', updated_at: nowIso })
-    });
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const refRes = await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(barId)}&select=id,status,trial_end_date`);
+    if (refRes.ok) {
+      const rows = await refRes.json();
+      for (const ref of (rows || [])) {
+        const trialEndMs = ref.trial_end_date ? new Date(ref.trial_end_date).getTime() : 0;
+        const isWithinTrial = trialEndMs > now.getTime();
+        await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: isWithinTrial ? 'trial' : 'cancelled',
+            cancel_at_period_end: true,
+            cancelled_at: nowIso,
+            updated_at: nowIso
+          })
+        });
+      }
+    }
   } catch (e) {}
 }
 

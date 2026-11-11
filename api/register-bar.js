@@ -202,14 +202,79 @@ export default async function handler(req, res) {
       }
     }
 
-    // 1. Controllo Idempotenza: Cerca se il bar esiste già per questa email
+    // 1. Controllo Idempotenza e Antifrode: Cerca se il bar esiste già per questa email o Partita IVA
     let existingBar = null;
+    let isDuplicateVat = false;
     const findRes = await supabaseFetch(`bars?email=eq.${encodeURIComponent(normalizedEmail)}&select=*`);
     if (findRes.ok) {
       const rows = await findRes.json();
       if (Array.isArray(rows) && rows.length > 0) {
         existingBar = rows[0];
-        console.log(`[Register Bar] Bar esistente trovato (ID: ${existingBar.id}). Operazione idempotente.`);
+        console.log(`[Register Bar] Bar esistente trovato (ID: ${existingBar.id}). Operazione idempotente (nessun doppio bonus).`);
+      }
+    }
+
+    if (cleanVat) {
+      try {
+        const vatRes = await supabaseFetch(`bars?vat_number=eq.${encodeURIComponent(cleanVat)}&select=id,email&limit=1`);
+        if (vatRes.ok) {
+          const vatRows = await vatRes.json();
+          if (Array.isArray(vatRows) && vatRows.length > 0 && vatRows[0].email?.toLowerCase() !== normalizedEmail) {
+            isDuplicateVat = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 1b. Verifica preliminare codice affiliazione/partner (anti auto-affiliazione)
+    let matchedAffiliate = null;
+    if (cleanInviteCode && !existingBar) {
+      const codeUpper = cleanInviteCode.toUpperCase();
+      try {
+        const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(codeUpper)}&limit=1`);
+        if (affRes.ok) {
+          const affRows = await affRes.json();
+          if (affRows && affRows.length > 0) matchedAffiliate = affRows[0];
+        }
+      } catch (_) {}
+
+      if (matchedAffiliate) {
+        const affEmail = (matchedAffiliate.email || '').trim().toLowerCase();
+        const affPhone = (matchedAffiliate.phone || '').replace(/\D/g, '');
+        const regPhoneDigits = cleanPhone.replace(/\D/g, '');
+        const isSelfReferral = (
+          (affEmail && affEmail === normalizedEmail) ||
+          (userId && matchedAffiliate.user_id && matchedAffiliate.user_id === userId) ||
+          (regPhoneDigits && affPhone && regPhoneDigits === affPhone)
+        );
+        if (isSelfReferral) {
+          return res.status(400).json({
+            error: 'Non puoi utilizzare il tuo stesso codice affiliazione per auto-affiliarti.',
+            code: 'self_affiliation'
+          });
+        }
+        if (matchedAffiliate.status === 'suspended') {
+          return res.status(400).json({
+            error: 'Il codice partner inserito è attualmente sospeso e non può essere utilizzato.',
+            code: 'suspended_affiliate'
+          });
+        }
+      } else if (/^[A-Z0-9]{6}$/.test(codeUpper)) {
+        // Verifica se è un codice promo di marketing (es. INVITO10 / BARPILOT2026); altrimenti segnala codice partner non valido
+        let isMarketingPromo = false;
+        try {
+          const prRes = await supabaseFetch(`promo_codes?code=eq.${encodeURIComponent(codeUpper)}&is_active=eq.true&limit=1`);
+          if (prRes.ok) {
+            const prRows = await prRes.json();
+            if (prRows && prRows.length > 0) isMarketingPromo = true;
+          }
+        } catch (_) {}
+        if (!isMarketingPromo) {
+          return res.status(400).json({
+            error: 'Codice partner non valido o non trovato su Supabase. Controlla il codice di 6 caratteri o lascia il campo vuoto.',
+            code: 'invalid_affiliate_code'
+          });
+        }
       }
     }
 
@@ -233,8 +298,9 @@ export default async function handler(req, res) {
       country: 'IT',
       status: existingBar ? existingBar.status : 'trial',
       subscription_id: subId,
-      notes: cleanInviteCode ? `Registrato da ${cleanOwner} - Codice invito: ${cleanInviteCode}` : `Registrato da ${cleanOwner} - Prova 14 giorni`,
-      invite_code: cleanInviteCode || null,
+      notes: cleanInviteCode ? `Registrato da ${cleanOwner} - Codice partner/promo: ${cleanInviteCode.toUpperCase()}` : `Registrato da ${cleanOwner} - Prova 14 giorni`,
+      invite_code: existingBar ? existingBar.invite_code : (cleanInviteCode ? cleanInviteCode.toUpperCase() : null),
+      referred_by_affiliate_id: existingBar ? existingBar.referred_by_affiliate_id : (matchedAffiliate ? matchedAffiliate.id : null),
       updated_at: now.toISOString()
     };
 
@@ -269,7 +335,7 @@ export default async function handler(req, res) {
       id: subId,
       bar_id: barId,
       plan_id: 'plan_barpilot_pro',
-      status: existingBar ? existingBar.status === 'active' ? 'active' : 'trialing' : 'trialing',
+      status: existingBar ? (existingBar.status === 'active' ? 'active' : 'trialing') : 'trialing',
       trial_start: now.toISOString(),
       trial_end: trialEnd.toISOString(),
       current_period_start: now.toISOString(),
@@ -287,71 +353,145 @@ export default async function handler(req, res) {
       body: JSON.stringify(subPayload)
     });
 
-    // 4b. Collegamento Programma Affiliazione se presente codice invito:
-    // +1 in periodo di prova e 5€ di commissione in stato 'pending' (in attesa durante la prova di 14 giorni)
-    if (cleanInviteCode) {
+    // 4b. Collegamento Programma Affiliazione & Accredito Automatico +5,00 € (solo prima registrazione valida)
+    let referralCredited = false;
+    let bonusAmount = 0.00;
+    let duplicateBlocked = Boolean(existingBar || isDuplicateVat);
+
+    if (matchedAffiliate && !existingBar && !isDuplicateVat) {
       try {
-        const codeUpper = cleanInviteCode.toUpperCase();
-        let affiliate = null;
+        // Verifica idempotenza su Supabase (nessun referral o bonus preesistente per questo bar o email)
+        let alreadyReferred = false;
+        try {
+          const checkRefRes = await supabaseFetch(`affiliate_referrals?or=(referred_bar_id.eq.${encodeURIComponent(barId)},referred_email.eq.${encodeURIComponent(normalizedEmail)})&limit=1`);
+          if (checkRefRes.ok) {
+            const refRows = await checkRefRes.json();
+            if (Array.isArray(refRows) && refRows.length > 0) alreadyReferred = true;
+          }
+        } catch (_) {}
 
-        // Cerca l'affiliato su Supabase
-        const affRes = await supabaseFetch(`affiliates?code=eq.${encodeURIComponent(codeUpper)}&limit=1`);
-        if (affRes.ok) {
-          const affRows = await affRes.json();
-          if (affRows && affRows.length > 0) affiliate = affRows[0];
-        }
-
-        if (affiliate) {
-          const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-          const referralPayload = {
-            id: referralId,
-            affiliate_id: affiliate.id,
-            affiliate_code: affiliate.code,
-            referred_bar_id: barId,
-            referred_bar_name: cleanBarName,
-            referred_user_id: userId || null,
-            referred_email: normalizedEmail,
-            status: 'trial', // Entra subito in periodo di prova (+1 su in periodo di prova)
-            trial_start_date: now.toISOString(),
-            trial_end_date: trialEnd.toISOString(),
-            registered_at: now.toISOString(),
-            created_at: now.toISOString(),
-            updated_at: now.toISOString()
-          };
-
-          // Salva su Supabase affiliate_referrals
-          await supabaseFetch('affiliate_referrals', {
-            method: 'POST',
-            body: JSON.stringify(referralPayload)
-          });
-
-          // Registra la commissione di 5€ in stato 'pending' (in attesa durante i 14 giorni di prova)
-          const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-          const commissionPayload = {
-            id: commId,
-            affiliate_id: affiliate.id,
-            affiliate_code: affiliate.code,
-            referral_id: referralId,
-            bar_id: barId,
-            bar_name: cleanBarName,
-            amount: 5.00, // 5€ di guadagno fisso per iscrizione
-            currency: 'EUR',
-            status: 'pending', // In attesa durante i 14 giorni
-            notes: 'Commissione 5€ per iscrizione (in prova 14 giorni)',
-            trial_end_date: trialEnd.toISOString(),
-            available_at: trialEnd.toISOString(),
-            created_at: now.toISOString(),
-            updated_at: now.toISOString()
-          };
-
-          await supabaseFetch('affiliate_commissions', {
-            method: 'POST',
-            body: JSON.stringify(commissionPayload)
-          });
-
-          console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${affiliate.code} (+1 in prova, 5€ in attesa)`);
+        if (alreadyReferred) {
+          duplicateBlocked = true;
+          console.log(`[Register Bar] Referral già esistente per ${normalizedEmail}. Nessun doppio bonus accreditato.`);
         } else {
-          console.log(`[Register Bar] Codice invito ${cleanInviteCode} non associato ad alcun affiliato.`);
+          // 1) Tenta transazione atomica RPC su Supabase
+          let rpcHandled = false;
+          try {
+            const rpcRes = await supabaseFetch('rpc/process_affiliate_registration_bonus', {
+              method: 'POST',
+              body: JSON.stringify({
+                p_affiliate_code: matchedAffiliate.code,
+                p_bar_id: barId,
+                p_bar_name: cleanBarName,
+                p_user_id: userId || '',
+                p_email: normalizedEmail,
+                p_phone: cleanPhone,
+                p_vat: cleanVat
+              })
+            });
+            if (rpcRes.ok) {
+              const rpcData = await rpcRes.json();
+              rpcHandled = true;
+              if (rpcData && !rpcData.already_credited && Number(rpcData.bonus_credited) > 0) {
+                referralCredited = true;
+                bonusAmount = Number(rpcData.bonus_credited);
+              } else if (rpcData && rpcData.already_credited) {
+                duplicateBlocked = true;
+              }
+            }
+          } catch (_) {}
+
+          // 2) Fallback REST transazionale idempotente se RPC non ancora installato su DB
+          if (!rpcHandled) {
+            const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+            const referralPayload = {
+              id: referralId,
+              affiliate_id: matchedAffiliate.id,
+              affiliate_code: matchedAffiliate.code,
+              referred_bar_id: barId,
+              referred_bar_name: cleanBarName,
+              referred_user_id: userId || null,
+              referred_email: normalizedEmail,
+              referred_vat: cleanVat || null,
+              status: 'trial', // +1 in periodo di prova (14 giorni)
+              trial_start_date: now.toISOString(),
+              trial_end_date: trialEnd.toISOString(),
+              cancel_at_period_end: false,
+              bonus_amount: 5.00,
+              registered_at: now.toISOString(),
+              created_at: now.toISOString(),
+              updated_at: now.toISOString()
+            };
+
+            const refPost = await supabaseFetch('affiliate_referrals', {
+              method: 'POST',
+              headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+              body: JSON.stringify(referralPayload)
+            });
+
+            if (refPost.ok) {
+              const insertedRefs = await refPost.json();
+              if (Array.isArray(insertedRefs) && insertedRefs.length > 0) {
+                const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+                const commissionPayload = {
+                  id: commId,
+                  affiliate_id: matchedAffiliate.id,
+                  affiliate_code: matchedAffiliate.code,
+                  referral_id: insertedRefs[0].id || referralId,
+                  bar_id: barId,
+                  bar_name: cleanBarName,
+                  bonus_type: 'registration',
+                  amount: 5.00,
+                  currency: 'EUR',
+                  status: 'available', // Bonus immediato +5,00 € nel saldo disponibile alla registrazione con prova gratuita
+                  notes: 'Bonus registrazione +5,00 € (Prova gratuita 14 giorni avviata)',
+                  trial_end_date: trialEnd.toISOString(),
+                  available_at: now.toISOString(),
+                  created_at: now.toISOString(),
+                  updated_at: now.toISOString()
+                };
+
+                const commPost = await supabaseFetch('affiliate_commissions', {
+                  method: 'POST',
+                  headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+                  body: JSON.stringify(commissionPayload)
+                });
+
+                if (commPost.ok) {
+                  referralCredited = true;
+                  bonusAmount = 5.00;
+
+                  // Aggiorna saldo reale su public.affiliates calcolato dalle commissioni
+                  try {
+                    const allCommRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(matchedAffiliate.id)}&select=amount,status`);
+                    if (allCommRes.ok) {
+                      const allComms = await allCommRes.json();
+                      let avail = 0, pend = 0, earned = 0;
+                      (allComms || []).forEach(c => {
+                        const a = parseFloat(c.amount) || 0;
+                        if (c.status === 'available') { avail += a; earned += a; }
+                        else if (c.status === 'pending') { pend += a; earned += a; }
+                        else if (c.status === 'paid') { earned += a; }
+                      });
+                      await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(matchedAffiliate.id)}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          available_balance: avail.toFixed(2),
+                          pending_balance: pend.toFixed(2),
+                          total_earned: earned.toFixed(2),
+                          updated_at: now.toISOString()
+                        })
+                      });
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
+          }
+
+          if (referralCredited) {
+            console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, +5,00 € accreditati)`);
+          }
         }
       } catch (affErr) {
         console.warn('[Register Bar] Errore collegamento affiliato:', affErr.message);
@@ -442,23 +582,25 @@ export default async function handler(req, res) {
       });
     } catch (e) {}
 
-    // 6. Tenta l'invio dell'email di benvenuto
-    try {
-      const appHost = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
-      await fetch(`${appHost}/api/send-welcome-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ownerName: cleanOwner,
-          barName: cleanBarName,
-          email: normalizedEmail,
-          phone: cleanPhone,
-          city: cleanCity,
-          appUrl: appHost
-        })
-      });
-    } catch (e) {
-      console.warn('[Register Bar] Invio welcome email saltato:', e.message);
+    // 6. Tenta l'invio dell'email di benvenuto solo alla prima registrazione
+    if (!existingBar) {
+      try {
+        const appHost = req.headers.origin || `https://${req.headers.host}` || 'https://www.barpilot.eu';
+        await fetch(`${appHost}/api/send-welcome-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerName: cleanOwner,
+            barName: cleanBarName,
+            email: normalizedEmail,
+            phone: cleanPhone,
+            city: cleanCity,
+            appUrl: appHost
+          })
+        });
+      } catch (e) {
+        console.warn('[Register Bar] Invio welcome email saltato:', e.message);
+      }
     }
 
     console.log(`[Register Bar] ✅ Bar registrato con successo: ${barId} (Trial fino al ${trialEnd.toLocaleDateString('it-IT')})`);
@@ -468,9 +610,14 @@ export default async function handler(req, res) {
       barId,
       subscriptionId: subId,
       affiliateCode: accountAffiliateCode,
+      alreadyRegistered: Boolean(existingBar),
+      referralCredited,
+      bonusAmount,
+      duplicateBlocked,
+      referrerCode: matchedAffiliate ? matchedAffiliate.code : null,
       trialEnd: trialEnd.toISOString(),
       trialDaysRemaining: 14,
-      status: 'trial'
+      status: existingBar ? existingBar.status : 'trial'
     });
   } catch (err) {
     console.error('[Register Bar] ❌ Errore interno:', err);

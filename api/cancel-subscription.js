@@ -179,24 +179,32 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5b. Se il bar è collegato ad un referral di affiliazione, aggiorna stato in 'cancelled' e annulla commissione in attesa
+    // 5b. Aggiorna referral affiliato rispettando i 14 giorni di prova:
+    // Se disdice durante la prova, rimane in "In periodo di prova" fino alla scadenza effettiva dei 14 giorni.
     try {
       const affBarId = targetBarId || barId;
-      if (affBarId) {
-        await supabaseFetch(`affiliate_referrals?referred_bar_id=eq.${encodeURIComponent(affBarId)}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'cancelled', updated_at: now.toISOString() })
-        });
-        await supabaseFetch(`affiliate_commissions?bar_id=eq.${encodeURIComponent(affBarId)}&status=eq.pending`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'cancelled', notes: 'Abbonamento disdetto prima o durante i 14 giorni di prova', updated_at: now.toISOString() })
-        });
-      }
-      if (email) {
-        await supabaseFetch(`affiliate_referrals?referred_email=eq.${encodeURIComponent(email.toLowerCase().trim())}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'cancelled', updated_at: now.toISOString() })
-        });
+      const filter = affBarId
+        ? `referred_bar_id=eq.${encodeURIComponent(affBarId)}`
+        : (email ? `referred_email=eq.${encodeURIComponent(email.toLowerCase().trim())}` : null);
+
+      if (filter) {
+        const refRes = await supabaseFetch(`affiliate_referrals?${filter}&select=id,status,trial_end_date`);
+        if (refRes.ok) {
+          const refRows = await refRes.json();
+          for (const ref of (refRows || [])) {
+            const trialEndMs = ref.trial_end_date ? new Date(ref.trial_end_date).getTime() : 0;
+            const isWithinTrial = trialEndMs > now.getTime();
+            await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                status: isWithinTrial ? 'trial' : 'cancelled',
+                cancel_at_period_end: true,
+                cancelled_at: now.toISOString(),
+                updated_at: now.toISOString()
+              })
+            });
+          }
+        }
       }
     } catch (affCancelErr) {
       console.warn('[Affiliate Referral Cancel Warning]', affCancelErr.message);

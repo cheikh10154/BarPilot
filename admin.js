@@ -335,6 +335,15 @@ class AdminConsole {
             }
             this.fetchNotifications();
           })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliates" }, () => {
+            this.renderAffiliatesView();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_referrals" }, () => {
+            this.renderAffiliatesView();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_commissions" }, () => {
+            this.renderAffiliatesView();
+          })
           .subscribe((status) => {
             const badge = document.getElementById("supabaseStatusBadge");
             if (status === "SUBSCRIBED" && badge) {
@@ -1861,7 +1870,7 @@ class AdminConsole {
       this.affiliatesAdminData = data;
 
       // Aggiorna KPI cards
-      const kpis = data.kpis || {};
+      const kpis = data.kpis || data.summary || {};
       const elAffs = document.getElementById("kpiAdminTotalAffiliates");
       if (elAffs) elAffs.textContent = kpis.total_affiliates || 0;
 
@@ -1871,13 +1880,22 @@ class AdminConsole {
       const elActiveBadge = document.getElementById("kpiAdminActiveReferralsBadge");
       if (elActiveBadge) elActiveBadge.textContent = `${kpis.active_referrals || 0} attivi`;
 
+      const elTrialBadge = document.getElementById("kpiAdminTrialReferralsBadge");
+      if (elTrialBadge) elTrialBadge.textContent = `• ${kpis.trial_referrals || 0} in prova`;
+
+      const elAvailable = document.getElementById("kpiAdminAvailableCommissions");
+      if (elAvailable) elAvailable.textContent = `${this.formatCurrency(kpis.available_commissions || kpis.total_available || 0)} €`;
+
       const elPending = document.getElementById("kpiAdminPendingCommissions");
-      if (elPending) elPending.textContent = `${this.formatCurrency(kpis.pending_commissions)} €`;
+      if (elPending) elPending.textContent = `${this.formatCurrency(kpis.pending_commissions || kpis.total_pending || 0)} €`;
 
       const elPaid = document.getElementById("kpiAdminPaidCommissions");
-      if (elPaid) elPaid.textContent = `${this.formatCurrency(kpis.paid_commissions)} €`;
+      if (elPaid) elPaid.textContent = `${this.formatCurrency(kpis.paid_commissions || kpis.total_paid || 0)} €`;
 
-      // Aggiorna input percentuale commissione
+      const elCancelledBadge = document.getElementById("kpiAdminCancelledCommissionsBadge");
+      if (elCancelledBadge) elCancelledBadge.textContent = `Annullati: ${this.formatCurrency(kpis.cancelled_commissions || kpis.total_cancelled || 0)} €`;
+
+      // Aggiorna input regola economica
       const rateInput = document.getElementById("adminAffiliateCommissionRateInput");
       if (rateInput && data.settings?.default_commission_rate !== undefined) {
         rateInput.value = data.settings.default_commission_rate;
@@ -1885,10 +1903,58 @@ class AdminConsole {
 
       // Render Tabelle
       this.renderAdminAffiliatesTable(data.affiliates || []);
+      this.renderAdminReferralsTable(data.referrals || []);
       this.renderAdminCommissionsTable(data.commissions || [], data.affiliates || []);
     } catch (err) {
       console.warn("[Admin Affiliates] Errore render:", err);
     }
+  }
+
+  renderAdminReferralsTable(referrals) {
+    const tbody = document.getElementById("adminReferralsTableBody");
+    if (!tbody) return;
+
+    if (!referrals || referrals.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun bar referral registrato al momento.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = referrals.map(r => {
+      const regFormatted = r.registered_at ? new Date(r.registered_at).toLocaleDateString("it-IT", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "--";
+      const trialEndFormatted = r.trial_end_date ? new Date(r.trial_end_date).toLocaleDateString("it-IT") : "--";
+      const s = (r.status || 'trial').toLowerCase();
+      let pillClass = 'status-trial';
+      if (s === 'active') pillClass = 'status-active';
+      else if (s === 'cancelled' || s === 'expired') pillClass = 'status-late';
+
+      return `
+        <tr>
+          <td style="color:var(--text-muted); font-size:12.5px;">${regFormatted}</td>
+          <td>
+            <strong>🍸 ${this.escapeHtml(r.bar_name || 'Bar Referral')}</strong>
+            <div style="font-size:11px; color:var(--text-muted);">${this.escapeHtml(r.bar_id || '')} ${r.email ? '· ' + this.escapeHtml(r.email) : ''}</div>
+          </td>
+          <td>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:12.5px; font-weight:800; background:rgba(255,138,36,0.12); color:#FF8A24; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,138,36,0.25);">
+              ${this.escapeHtml(r.affiliate_code || '--')}
+            </span>
+          </td>
+          <td style="font-size:12px; color:var(--text-muted);">Fine: ${trialEndFormatted}</td>
+          <td>
+            <span class="status-pill ${pillClass}">${this.escapeHtml(r.status_label || s)}</span>
+            ${r.fraud_flag ? '<div style="font-size:10.5px; color:#EF4444; font-weight:700; margin-top:2px;">⚠️ Anomalia / Frode</div>' : ''}
+          </td>
+          <td><strong style="font-family:'JetBrains Mono', monospace; color:${r.fraud_flag ? '#EF4444' : '#10B981'};">+${this.formatCurrency(r.bonus_amount || 5)} €</strong></td>
+          <td>
+            ${s !== 'cancelled' ? `
+              <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.cancelFraudBonus('${r.id}', '')">
+                🚫 Annulla (Frode)
+              </button>
+            ` : '<span style="font-size:11.5px; color:var(--text-dim);">Annullato</span>'}
+          </td>
+        </tr>
+      `;
+    }).join("");
   }
 
   renderAdminAffiliatesTable(affiliates) {
@@ -1962,14 +2028,48 @@ class AdminConsole {
               <option value="cancelled" ${curStatus === 'cancelled' ? 'selected' : ''}>🔴 Annullata</option>
             </select>
           </td>
-          <td>
+          <td style="display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn-primary-orange" style="padding:4px 10px; font-size:11.5px; height:auto;" onclick="window.adminConsole.updateCommissionStatus('${c.id}', 'paid')">
               Segna Pagata
             </button>
+            ${curStatus !== 'cancelled' ? `
+              <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11.5px; height:auto;" onclick="window.adminConsole.cancelFraudBonus('${c.referral_id || ''}', '${c.id}')">
+                🚫 Frode
+              </button>
+            ` : ''}
           </td>
         </tr>
       `;
     }).join("");
+  }
+
+  async cancelFraudBonus(referralId, commissionId) {
+    const reason = prompt("Inserisci il motivo dell'annullamento antifrode:", "Registrazione fraudolenta o anomalia rilevata");
+    if (reason === null) return;
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "cancel_fraud_bonus",
+          referralId: referralId || null,
+          commissionId: commissionId || null,
+          reason
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        this.showToast("🚫 Bonus annullato per frode e saldo aggiornato!");
+        this.renderAffiliatesView();
+      } else {
+        throw new Error(data.error || "Errore annullamento bonus");
+      }
+    } catch (err) {
+      alert("Errore annullamento bonus: " + err.message);
+    }
   }
 
   async saveAffiliateCommissionRate() {
@@ -2067,6 +2167,23 @@ class AdminConsole {
       (a.code && a.code.toLowerCase().includes(q))
     );
     this.renderAdminAffiliatesTable(filtered);
+  }
+
+  filterAdminReferrals() {
+    const q = (document.getElementById("searchAdminReferralsInput")?.value || "").trim().toLowerCase();
+    const all = this.affiliatesAdminData?.referrals || [];
+    if (!q) {
+      this.renderAdminReferralsTable(all);
+      return;
+    }
+    const filtered = all.filter(r =>
+      (r.bar_name && r.bar_name.toLowerCase().includes(q)) ||
+      (r.bar_id && r.bar_id.toLowerCase().includes(q)) ||
+      (r.affiliate_code && r.affiliate_code.toLowerCase().includes(q)) ||
+      (r.email && r.email.toLowerCase().includes(q)) ||
+      (r.status_label && r.status_label.toLowerCase().includes(q))
+    );
+    this.renderAdminReferralsTable(filtered);
   }
 
   filterAdminCommissions() {

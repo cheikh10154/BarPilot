@@ -1475,10 +1475,11 @@
           <table class="commissions-table" id="commissionsTable">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Bar affiliato</th>
-                <th>Importo commissione</th>
+                <th>Data registrazione</th>
+                <th>Identificativo del bar</th>
                 <th>Stato</th>
+                <th>Bonus</th>
+                <th>Stato commissione</th>
               </tr>
             </thead>
             <tbody id="commissionsTableBody">
@@ -2138,16 +2139,22 @@
       }
 
       // 4. Affiliati acquisiti
-      document.getElementById("metricTotalReferrals").textContent = cards.referrals_count.total;
-      document.getElementById("metricActiveReferrals").textContent = cards.referrals_count.active;
-      document.getElementById("metricTrialReferrals").textContent = cards.referrals_count.inactive;
-      document.getElementById("badgeConversionRate").textContent = `${cards.referrals_count.active} attivi`;
+      const trialCount = cards.referrals_count.trial !== undefined ? cards.referrals_count.trial : cards.referrals_count.inactive;
+      document.getElementById("metricTotalReferrals").textContent = cards.referrals_count.total || 0;
+      document.getElementById("metricActiveReferrals").textContent = cards.referrals_count.active || 0;
+      document.getElementById("metricTrialReferrals").textContent = trialCount || 0;
+      document.getElementById("badgeConversionRate").textContent = `${cards.referrals_count.active || 0} attivi`;
 
-      // 5. Storico commissioni
-      allCommissionsList = data.commissions || [];
+      // 5. Storico commissioni e bar affiliati
+      allCommissionsList = (data.history && data.history.length > 0) ? data.history : (data.commissions || []);
       renderCommissionsTable(allCommissionsList);
 
-      // 6. Metodo di pagamento
+      // 6. Avvia Supabase Realtime per questo affiliato (senza duplicare canali)
+      if (affiliate && affiliate.id && typeof initAffiliateRealtime === "function") {
+        initAffiliateRealtime(affiliate.id, affiliate.code);
+      }
+
+      // 7. Metodo di pagamento
       let payout = null;
       try {
         payout = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
@@ -2160,6 +2167,37 @@
         } catch (_) {}
       }
       renderPayoutMethodDisplay(payout);
+    }
+
+    function getReferralBadgeHtml(refStatus, refLabel, trialEndIso) {
+      const s = (refStatus || "trial").toLowerCase();
+      let color = "#F59E0B";
+      let bg = "rgba(245, 158, 11, 0.14)";
+      let dot = "⏳";
+      if (s === "active") {
+        color = "#10B981";
+        bg = "rgba(16, 185, 129, 0.14)";
+        dot = "✅";
+      } else if (s === "expired") {
+        color = "#94A3B8";
+        bg = "rgba(148, 163, 184, 0.14)";
+        dot = "⌛";
+      } else if (s === "cancelled") {
+        color = "#EF4444";
+        bg = "rgba(239, 68, 68, 0.14)";
+        dot = "🚫";
+      }
+      const trialSub = (s === "trial" && trialEndIso)
+        ? `<div style="font-size:10.5px; color:var(--text-dim); margin-top:3px;">Fine prova: ${new Date(trialEndIso).toLocaleDateString("it-IT")}</div>`
+        : "";
+      return `
+        <div>
+          <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; color:${color}; background:${bg}; border:1px solid ${color}33;">
+            ${dot} ${escapeHtml(refLabel || (s === "trial" ? "In prova" : s))}
+          </span>
+          ${trialSub}
+        </div>
+      `;
     }
 
     function renderCommissionsTable(list) {
@@ -2180,15 +2218,23 @@
       tbody.innerHTML = list.map(item => {
         const dateObj = new Date(item.date);
         const dateFormatted = dateObj.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-        const statusClass = (item.status || "pending").toLowerCase();
+        const statusClass = (item.status || "available").toLowerCase();
+        const barIdBadge = item.bar_id ? `<div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-dim); margin-top:2px;">ID: ${escapeHtml(item.bar_id)}</div>` : "";
+        const refBadge = getReferralBadgeHtml(item.referral_status, item.referral_status_label, item.trial_end_date);
 
         return `
           <tr>
             <td style="color:var(--text-muted); font-size:13px;">${dateFormatted}</td>
             <td>
-              <span class="bar-avatar-small">🍸</span>
-              <strong>${escapeHtml(item.bar_name)}</strong>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="bar-avatar-small">🍸</span>
+                <div>
+                  <strong>${escapeHtml(item.bar_name)}</strong>
+                  ${barIdBadge}
+                </div>
+              </div>
             </td>
+            <td>${refBadge}</td>
             <td>
               <span class="amount-badge">+${formatCurrency(item.amount)} €</span>
             </td>
@@ -2224,6 +2270,8 @@
       }
       const filtered = allCommissionsList.filter(c => 
         (c.bar_name && c.bar_name.toLowerCase().includes(q)) ||
+        (c.bar_id && c.bar_id.toLowerCase().includes(q)) ||
+        (c.referral_status_label && c.referral_status_label.toLowerCase().includes(q)) ||
         (c.status_label && c.status_label.toLowerCase().includes(q)) ||
         (c.status && c.status.toLowerCase().includes(q))
       );
@@ -2477,9 +2525,62 @@
         .replace(/'/g, "&#039;");
     }
 
+    const AFF_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
+    const AFF_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
+    let affRealtimeChannel = null;
+    let affRealtimeSubId = null;
+
+    function initAffiliateRealtime(affiliateId, affiliateCode) {
+      if (!affiliateId || affRealtimeSubId === affiliateId) return;
+      if (typeof window.supabase === "undefined" || typeof window.supabase.createClient !== "function") return;
+      try {
+        const sb = window.supabase.createClient(AFF_SUPABASE_URL, AFF_SUPABASE_ANON_KEY);
+        if (affRealtimeChannel) {
+          try { sb.removeChannel(affRealtimeChannel); } catch (_) {}
+        }
+        affRealtimeSubId = affiliateId;
+        affRealtimeChannel = sb
+          .channel(`affiliates-live-${affiliateId}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliates", filter: `id=eq.${affiliateId}` }, () => {
+            fetchAffiliationsData();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_referrals", filter: `affiliate_id=eq.${affiliateId}` }, (payload) => {
+            if (payload.eventType === "INSERT") {
+              showToast("🎉", "Nuovo bar registrato con il tuo codice! +5,00 € e +1 in prova.");
+            }
+            fetchAffiliationsData();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_commissions", filter: `affiliate_id=eq.${affiliateId}` }, () => {
+            fetchAffiliationsData();
+          })
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bars" }, () => {
+            fetchAffiliationsData();
+          })
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              console.log(`[Affiliazioni Realtime] ✅ Sincronizzato in tempo reale per ${affiliateCode || affiliateId}`);
+            }
+          });
+      } catch (rtErr) {
+        console.warn("[Affiliazioni Realtime] Nota:", rtErr.message);
+      }
+    }
+
     // Inizializzazione automatica
     document.addEventListener("DOMContentLoaded", () => {
       checkAuthAndInit();
+
+      // Sincronizzazione istantanea cross-tab via BroadcastChannel
+      if (typeof BroadcastChannel !== "undefined") {
+        try {
+          const bc = new BroadcastChannel("barpilot_affiliates_sync");
+          bc.onmessage = (ev) => {
+            if (ev.data && ev.data.type === "new_referral" && isAffiliateAuthenticated()) {
+              fetchAffiliationsData();
+            }
+          };
+        } catch (_) {}
+      }
 
       // Chiudi dropdown al click esterno
       document.addEventListener("click", (e) => {
@@ -2500,12 +2601,12 @@
         }
       });
 
-      // Auto-aggiornamento senza ricaricare la pagina (ogni 15 secondi) se autenticato
+      // Auto-aggiornamento senza ricaricare la pagina (ogni 10 secondi) se autenticato
       setInterval(() => {
         if (isAffiliateAuthenticated()) {
           fetchAffiliationsData();
         }
-      }, 15000);
+      }, 10000);
 
       // Aggiorna anche al ripristino del focus della finestra
       document.addEventListener("visibilitychange", () => {
@@ -2515,5 +2616,6 @@
       });
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
