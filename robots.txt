@@ -1,5 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /app
+Disallow: /app/admin
+Disallow: /app/administration
+Disallow: /app/pro
+Disallow: /app/checkout
 Disallow: /administration/
 Disallow: /admin/
 Disallow: /api/
