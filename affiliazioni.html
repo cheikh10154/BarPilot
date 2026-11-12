@@ -1813,36 +1813,101 @@
     let currentAffiliateData = null;
     let allCommissionsList = [];
 
-    // Recupera l'utente o bar attivo da sessione / localStorage
+    // Recupera l'utente autenticato in modo rigoroso e isolato
     function getAuthenticatedUser() {
-      let affUser = null;
-      try {
-        affUser = JSON.parse(localStorage.getItem("barpilot_affiliate_user") || "null");
-      } catch (_) {}
-
-      let loggedUser = null;
-      try {
-        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
-      } catch (_) {}
-
+      // 1. Sessione Supabase Auth (priorità assoluta: se presente un utente auth con id ed email)
       let session = null;
       try {
         session = JSON.parse(localStorage.getItem("barpilot_supabase_session") || "null");
       } catch (_) {}
 
-      let bar = null;
+      // 2. Utente autenticato applicazione BarPilot
+      let loggedUser = null;
       try {
-        bar = JSON.parse(localStorage.getItem("barpilot_active_bar") || "null");
+        loggedUser = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
       } catch (_) {}
 
-      const email = affUser?.email || session?.user?.email || loggedUser?.email || bar?.email || bar?.managerEmail || null;
+      // 3. Utente autenticato direttamente sulla consolle affiliazioni
+      let affUser = null;
+      try {
+        affUser = JSON.parse(localStorage.getItem("barpilot_affiliate_user") || "null");
+      } catch (_) {}
+
+      // Ricava l'identità: NON usare bar predefiniti come fallback ("bar_01")
+      const email = (affUser?.email || session?.user?.email || loggedUser?.email || "").trim().toLowerCase() || null;
       if (!email) return null;
 
-      const userId = affUser?.id || session?.user?.id || loggedUser?.id || loggedUser?.userId || null;
-      const barId = bar?.id || loggedUser?.barId || "bar_01";
-      const name = affUser?.name || loggedUser?.name || loggedUser?.ownerName || bar?.name || email.split('@')[0];
+      const userId = affUser?.id || session?.user?.id || loggedUser?.id || loggedUser?.supabaseId || null;
+      const barId = loggedUser?.barId || (loggedUser?.barName ? "bar_" + email.replace(/[^a-zA-Z0-9]/g, '_') : null);
+      const name = affUser?.name || loggedUser?.name || loggedUser?.ownerName || (session?.user?.user_metadata?.full_name) || email.split('@')[0];
 
       return { email, userId, barId, name, phone: affUser?.phone || loggedUser?.phone || null };
+    }
+
+    // Reset immediato e completo di tutte le card e tabelle della dashboard a zero
+    function resetDashboardState() {
+      currentAffiliateData = null;
+      allCommissionsList = [];
+
+      // Ferma eventuali sottoscrizioni Realtime attive
+      stopAffiliateRealtime();
+
+      // Card 1: Saldo
+      const elAvail = document.getElementById("metricAvailableBalance");
+      if (elAvail) elAvail.textContent = "0,00";
+      const elPending = document.getElementById("metricPendingCommissions");
+      if (elPending) elPending.textContent = "0,00 €";
+      const elEarned = document.getElementById("metricTotalEarned");
+      if (elEarned) elEarned.textContent = "0,00 €";
+      const elLiq = document.getElementById("metricLiquidazioneLabel");
+      if (elLiq) elLiq.style.display = "none";
+      const btnWd = document.getElementById("btnWithdraw");
+      if (btnWd) {
+        btnWd.disabled = true;
+        btnWd.title = "Soglia minima per il prelievo: 50,00 €";
+      }
+
+      // Card 2: Codice affiliazione
+      const elCode = document.getElementById("displayAffiliateCode");
+      if (elCode) elCode.textContent = "------";
+      const elEmptyCode = document.getElementById("emptyCodeSpan");
+      if (elEmptyCode) elEmptyCode.textContent = "------";
+
+      // Card 3: Anzianità account
+      const elDur = document.getElementById("displayDurationText");
+      if (elDur) elDur.textContent = "Nuovo account";
+      const elStart = document.getElementById("displayStartDateText");
+      if (elStart) elStart.textContent = "Iscritto oggi";
+
+      // Card 4: Contatori affiliati
+      const elTotRef = document.getElementById("metricTotalReferrals");
+      if (elTotRef) elTotRef.textContent = "0";
+      const elActRef = document.getElementById("metricActiveReferrals");
+      if (elActRef) elActRef.textContent = "0";
+      const elTrialRef = document.getElementById("metricTrialReferrals");
+      if (elTrialRef) elTrialRef.textContent = "0";
+      const elConv = document.getElementById("badgeConversionRate");
+      if (elConv) elConv.textContent = "0 attivi";
+
+      // Tabelle
+      renderCommissionsTable([]);
+      renderWithdrawalsTable([]);
+      renderPayoutMethodDisplay(null);
+    }
+
+    function setDashboardLoading(isLoading) {
+      const cardsGrid = document.querySelector(".cards-grid");
+      const commSec = document.querySelector(".aff-history-section");
+      if (cardsGrid) {
+        cardsGrid.style.transition = "opacity 0.2s ease";
+        cardsGrid.style.opacity = isLoading ? "0.45" : "1";
+        cardsGrid.style.pointerEvents = isLoading ? "none" : "auto";
+      }
+      if (commSec) {
+        commSec.style.transition = "opacity 0.2s ease";
+        commSec.style.opacity = isLoading ? "0.45" : "1";
+        commSec.style.pointerEvents = isLoading ? "none" : "auto";
+      }
     }
 
     function isAffiliateAuthenticated() {
@@ -2110,9 +2175,42 @@
     }
 
     function logoutAffiliateUser() {
+      // 1. Ferma e cancella immediatamente le sottoscrizioni Realtime
+      stopAffiliateRealtime();
+
+      // 2. Rimuove credenziali e cache utente/affiliazione
       localStorage.removeItem("barpilot_affiliate_user");
       localStorage.removeItem("barpilot_logged_user");
       localStorage.removeItem("barpilot_supabase_session");
+      localStorage.removeItem("barpilot_is_logged_in");
+      localStorage.removeItem("barpilot_active_staff");
+      localStorage.removeItem("barpilot_session_token");
+      localStorage.removeItem("barpilot_active_bar");
+      localStorage.removeItem("barpilot_affiliate_payout_method");
+
+      // Rimuove chiavi di codice dinamico
+      Object.keys(localStorage).forEach(key => {
+        if (
+          key.startsWith("barpilot_affiliate_code_") ||
+          key.startsWith("barpilot_affiliate_") ||
+          key.startsWith("sb-")
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // 3. Resetta lo stato visivo della dashboard (zero totale e nessun dato residuo)
+      resetDashboardState();
+
+      // 4. Notifica ad altre finestre o tab
+      if (typeof BroadcastChannel !== "undefined") {
+        try {
+          const bc = new BroadcastChannel("barpilot_affiliates_sync");
+          bc.postMessage({ type: "affiliate_logout" });
+          bc.close();
+        } catch (_) {}
+      }
+
       closeProfileMenu();
       showToast("🚪", "Disconnesso dall'account.");
       checkAuthAndInit();
@@ -2122,9 +2220,13 @@
     async function fetchAffiliationsData() {
       const user = getAuthenticatedUser();
       if (!user || !user.email) {
+        resetDashboardState();
         checkAuthAndInit();
         return;
       }
+
+      // Imposta stato di caricamento per non mostrare temporaneamente dati vecchi
+      setDashboardLoading(true);
       
       // Aggiorna user pill nella topbar
       const userPillWrap = document.getElementById("userPillWrap");
@@ -2148,7 +2250,7 @@
 
       // Inizializza visualizzazione metodo di pagamento se presente in localStorage
       try {
-        const localPm = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+        const localPm = JSON.parse(localStorage.getItem(`barpilot_affiliate_payout_method_${user.email}`) || localStorage.getItem("barpilot_affiliate_payout_method") || "null");
         if (localPm) renderPayoutMethodDisplay(localPm);
       } catch (_) {}
 
@@ -2168,6 +2270,12 @@
 
         const data = await res.json();
         if (data.success) {
+          // Verifica che l'utente attualmente loggato corrisponda ancora alla risposta ricevuta
+          const latestUser = getAuthenticatedUser();
+          if (!latestUser || latestUser.email.toLowerCase() !== user.email.toLowerCase()) {
+            return;
+          }
+
           const finalCode = savedCode || data.affiliate?.code;
           if (finalCode && data.affiliate) {
             data.affiliate.code = finalCode;
@@ -2184,11 +2292,17 @@
         }
       } catch (err) {
         console.warn("[Affiliazioni] Fallback client:", err);
+      } finally {
+        setDashboardLoading(false);
       }
     }
 
     // Rendering dell'interfaccia con i dati reali
     function renderDashboard(data) {
+      if (!data || !data.cards || !data.affiliate) {
+        resetDashboardState();
+        return;
+      }
       const cards = data.cards;
       const affiliate = data.affiliate;
       const user = getAuthenticatedUser() || {};
@@ -2234,6 +2348,8 @@
         const dateObj = new Date(cards.subscription_duration.start_date);
         const formattedDate = dateObj.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
         document.getElementById("displayStartDateText").textContent = `Iscritto dal ${formattedDate}`;
+      } else {
+        document.getElementById("displayStartDateText").textContent = `Iscritto oggi`;
       }
 
       // 4. Affiliati acquisiti
@@ -2258,7 +2374,7 @@
       // 7. Metodo di pagamento
       let payout = null;
       try {
-        payout = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+        payout = JSON.parse(localStorage.getItem(`barpilot_affiliate_payout_method_${user?.email}`) || localStorage.getItem("barpilot_affiliate_payout_method") || "null");
       } catch (_) {}
       if (!payout && affiliate && affiliate.payout_method) {
         try {
@@ -2403,8 +2519,14 @@
       if (!modal) return;
 
       let saved = null;
+      const currentUser = getAuthenticatedUser();
       try {
-        saved = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+        if (currentUser?.email) {
+          saved = JSON.parse(localStorage.getItem(`barpilot_affiliate_payout_method_${currentUser.email}`) || "null");
+        }
+        if (!saved) {
+          saved = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
+        }
       } catch (_) {}
       if (!saved && currentAffiliateData?.affiliate?.payout_method) {
         try {
@@ -2487,6 +2609,10 @@
         payoutData = { type: "paypal", email, holder };
       }
 
+      const curUser = getAuthenticatedUser();
+      if (curUser?.email) {
+        localStorage.setItem(`barpilot_affiliate_payout_method_${curUser.email}`, JSON.stringify(payoutData));
+      }
       localStorage.setItem("barpilot_affiliate_payout_method", JSON.stringify(payoutData));
       renderPayoutMethodDisplay(payoutData);
       closePaymentMethodModal();
@@ -2807,6 +2933,17 @@
     let affRealtimeChannel = null;
     let affRealtimeSubId = null;
 
+    function stopAffiliateRealtime() {
+      if (affRealtimeChannel && typeof window.supabase !== "undefined" && typeof window.supabase.createClient === "function") {
+        try {
+          const sb = window.supabase.createClient(AFF_SUPABASE_URL, AFF_SUPABASE_ANON_KEY);
+          sb.removeChannel(affRealtimeChannel);
+        } catch (_) {}
+      }
+      affRealtimeChannel = null;
+      affRealtimeSubId = null;
+    }
+
     function initAffiliateRealtime(affiliateId, affiliateCode) {
       if (!affiliateId || affRealtimeSubId === affiliateId) return;
       if (typeof window.supabase === "undefined" || typeof window.supabase.createClient !== "function") return;
@@ -2855,7 +2992,13 @@
         try {
           const bc = new BroadcastChannel("barpilot_affiliates_sync");
           bc.onmessage = (ev) => {
-            if (ev.data && (ev.data.type === "new_referral" || ev.data.type === "withdrawal_updated") && isAffiliateAuthenticated()) {
+            if (!ev.data) return;
+            if (ev.data.type === "affiliate_logout") {
+              resetDashboardState();
+              checkAuthAndInit();
+              return;
+            }
+            if ((ev.data.type === "new_referral" || ev.data.type === "withdrawal_updated") && isAffiliateAuthenticated()) {
               fetchAffiliationsData();
             }
           };

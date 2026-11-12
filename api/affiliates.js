@@ -1325,12 +1325,20 @@ async function handleUserAffiliateRequest(req, res) {
         } catch (_) {}
       }
 
+      if (!affiliate && userId) {
+        try {
+          const affRes = await supabaseFetch(`affiliates?user_id=eq.${encodeURIComponent(userId)}&limit=1`);
+          if (affRes.ok) {
+            const rows = await affRes.json();
+            if (rows && rows.length > 0) affiliate = rows[0];
+          }
+        } catch (_) {}
+      }
+
       if (!affiliate) {
         affiliate = store.affiliates.find(a => 
           (email && a.email && a.email.toLowerCase() === email) ||
-          (userId && a.user_id === userId) ||
-          (barId && a.bar_id === barId) ||
-          (clientCode && a.code === clientCode)
+          (userId && a.user_id && a.user_id === userId)
         );
       }
 
@@ -1338,8 +1346,7 @@ async function handleUserAffiliateRequest(req, res) {
       const authUsers = await fetchAllAuthUsers();
       authUserMatched = authUsers.find(u =>
         (email && (u.email || '').toLowerCase() === email) ||
-        (userId && u.id === userId) ||
-        (clientCode && (u.user_metadata?.affiliate_code || '').toUpperCase() === clientCode)
+        (userId && u.id === userId)
       );
 
       if (!affiliate && authUserMatched) {
@@ -1351,7 +1358,7 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       // Codice univoco permanente per questo account (non cambia MAI)
-      const permanentCode = (affiliate && affiliate.code) || clientCode || getConsistentCodeForAccount(email || userId || barId);
+      const permanentCode = (affiliate && affiliate.code) || (authUserMatched?.user_metadata?.affiliate_code) || getConsistentCodeForAccount(email || userId);
 
       if (!affiliate) {
         const nowIso = new Date().toISOString();
@@ -1427,10 +1434,10 @@ async function handleUserAffiliateRequest(req, res) {
 
       if (!sqlRefOk || referrals.length === 0) {
         const authRefs = authUserMatched?.user_metadata?.affiliate_referrals;
-        if (Array.isArray(authRefs) && authRefs.length > 0) {
+        if (Array.isArray(authRefs)) {
           referrals = [...authRefs];
         } else {
-          referrals = store.referrals.filter(r => r.affiliate_id === affiliate.id || r.affiliate_code === affiliate.code);
+          referrals = store.referrals.filter(r => r.affiliate_id === affiliate.id);
         }
       }
 
@@ -1449,7 +1456,7 @@ async function handleUserAffiliateRequest(req, res) {
 
       if (!sqlCommOk || commissions.length === 0) {
         const authComms = authUserMatched?.user_metadata?.affiliate_commissions;
-        if (Array.isArray(authComms) && authComms.length > 0) {
+        if (Array.isArray(authComms)) {
           commissions = [...authComms];
         } else {
           commissions = store.commissions.filter(c => c.affiliate_id === affiliate.id);
@@ -1468,12 +1475,13 @@ async function handleUserAffiliateRequest(req, res) {
 
       if (!sqlWdOk || withdrawals.length === 0) {
         const authWds = authUserMatched?.user_metadata?.affiliate_withdrawals;
-        if (Array.isArray(authWds) && authWds.length > 0) {
+        if (Array.isArray(authWds)) {
           withdrawals = [...authWds];
         } else {
           withdrawals = (store.withdrawals || []).filter(w =>
             w.affiliate_id === affiliate.id ||
-            (w.affiliate_email && w.affiliate_email.toLowerCase() === (affiliate.email || '').toLowerCase())
+            (w.user_id && userId && w.user_id === userId) ||
+            (w.affiliate_email && affiliate.email && w.affiliate_email.toLowerCase() === affiliate.email.toLowerCase())
           );
         }
       }

@@ -7214,19 +7214,43 @@ function setUserLoggedIn(status, userMeta = null) {
 }
 
 function clearConnectionCache() {
-  // 1. Cancellazione completa cache localStorage (auth, token, sessioni)
+  // 1. Cancellazione completa cache localStorage (auth, token, sessioni, affiliazioni)
   try {
     localStorage.removeItem("barpilot_is_logged_in");
     localStorage.removeItem("barpilot_logged_user");
     localStorage.removeItem("barpilot_active_staff");
     localStorage.removeItem("barpilot_session_token");
+    localStorage.removeItem("barpilot_active_bar");
+    localStorage.removeItem("barpilot_active_bar_id");
+    localStorage.removeItem("barpilot_active_bar_name");
+    localStorage.removeItem("barpilot_bar_name");
+    localStorage.removeItem("barpilot_registration_date");
 
-    // Rimuove token di autenticazione esterni (Supabase / OAuth)
+    // Rimuove dati e cache affiliazioni per impedire perdite tra account
+    localStorage.removeItem("barpilot_affiliate_user");
+    localStorage.removeItem("barpilot_affiliate_payout_method");
+
+    // Rimuove token di autenticazione esterni (Supabase / OAuth) e chiavi affiliate dinamiche
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith("sb-") || key.includes("supabase") || key.includes("token")) {
+      if (
+        key.startsWith("sb-") ||
+        key.includes("supabase") ||
+        key.includes("token") ||
+        key.startsWith("barpilot_affiliate_code_") ||
+        key.startsWith("barpilot_affiliate_")
+      ) {
         localStorage.removeItem(key);
       }
     });
+
+    // Notifica ad altre tab aperte (es. /app/affiliazioni) di resettare immediatamente la dashboard
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        const bc = new BroadcastChannel("barpilot_affiliates_sync");
+        bc.postMessage({ type: "affiliate_logout" });
+        bc.close();
+      } catch (_) {}
+    }
   } catch (e) {}
 
   // 2. Cancellazione completa sessionStorage
