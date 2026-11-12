@@ -6,7 +6,7 @@
 -- 1. TABELLA: affiliate_withdrawals
 CREATE TABLE IF NOT EXISTS public.affiliate_withdrawals (
   id TEXT PRIMARY KEY DEFAULT ('wd_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
-  affiliate_id TEXT NOT NULL REFERENCES public.affiliates(id) ON DELETE CASCADE,
+  affiliate_id TEXT NOT NULL,
   user_id TEXT,
   affiliate_first_name TEXT,
   affiliate_last_name TEXT,
@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS public.affiliate_withdrawals (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+DO $$
+BEGIN
+  IF to_regclass('public.affiliates') IS NOT NULL THEN
+    BEGIN
+      ALTER TABLE public.affiliate_withdrawals
+        ADD CONSTRAINT fk_affiliate_withdrawals_affiliate
+        FOREIGN KEY (affiliate_id) REFERENCES public.affiliates(id) ON DELETE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_affiliate_withdrawals_affiliate_id ON public.affiliate_withdrawals(affiliate_id);
 CREATE INDEX IF NOT EXISTS idx_affiliate_withdrawals_user_id ON public.affiliate_withdrawals(user_id);
@@ -228,9 +240,6 @@ CREATE POLICY "Affiliates can view own withdrawals" ON public.affiliate_withdraw
   USING (
     auth.uid()::text = user_id
     OR lower(auth.jwt()->>'email') = lower(affiliate_email)
-    OR affiliate_id IN (
-      SELECT id FROM public.affiliates WHERE user_id = auth.uid()::text OR lower(email) = lower(auth.jwt()->>'email')
-    )
   );
 
 DROP POLICY IF EXISTS "Service role full access on affiliate_withdrawals" ON public.affiliate_withdrawals;
