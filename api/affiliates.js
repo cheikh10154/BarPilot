@@ -12,6 +12,7 @@ const affiliatesCache = {
   affiliates: [],
   referrals: [],
   commissions: [],
+  withdrawals: [],
   settings: { default_rate: 5.0 }
 };
 
@@ -257,6 +258,175 @@ function getReferralStatusLabel(status, cancelAtPeriodEnd = false) {
   }
 }
 
+function getWithdrawalStatusLabel(status) {
+  switch (status) {
+    case 'approved': return 'Approvato';
+    case 'processing': return 'In elaborazione';
+    case 'paid': return 'Pagato';
+    case 'rejected': return 'Rifiutato';
+    case 'pending':
+    default: return 'In attesa';
+  }
+}
+
+function maskPaymentMethodReference(payout) {
+  if (!payout) return '';
+  let obj = payout;
+  if (typeof payout === 'string') {
+    try { obj = JSON.parse(payout); } catch (_) { return String(payout).slice(0, 64); }
+  }
+  if (!obj || typeof obj !== 'object') return '';
+  if (obj.type === 'paypal' && obj.email) {
+    return `PayPal (${String(obj.email).trim()})`;
+  }
+  if (obj.type === 'iban' && obj.iban) {
+    const cleanIban = String(obj.iban).replace(/\s+/g, '').toUpperCase();
+    const masked = cleanIban.length > 8
+      ? `${cleanIban.slice(0, 4)}****${cleanIban.slice(-4)}`
+      : cleanIban;
+    const holder = obj.holder ? ` · ${String(obj.holder).trim()}` : '';
+    return `IBAN ${masked}${holder}`;
+  }
+  if (obj.last4) {
+    return `Carta ****${String(obj.last4).slice(-4)}`;
+  }
+  return 'Metodo configurato';
+}
+
+async function sendAdminWithdrawalEmail({ firstName, lastName, email, amount, requestedAt, requestId, paymentMethodRef }) {
+  const adminEmail = 'cheikh10154@gmail.com';
+  const subject = '💰 BarPilot — Nuova richiesta di prelievo';
+  const formattedAmt = Number(amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const dateStr = new Date(requestedAt || Date.now()).toLocaleString('it-IT', { timeZone: 'Europe/Rome' });
+
+  const textBody = `È stata ricevuta una nuova richiesta di prelievo dal programma affiliazioni BarPilot.
+
+Nome: ${firstName || '-'}
+Cognome: ${lastName || '-'}
+Email: ${email || '-'}
+Importo richiesto: ${formattedAmt}
+Metodo pagamento: ${paymentMethodRef || '-'}
+Data richiesta: ${dateStr}
+ID richiesta: ${requestId}
+Stato: In attesa di approvazione
+
+Accedi al pannello Super Admin per verificare e gestire la richiesta:
+https://www.barpilot.eu/app/administration`;
+
+  const htmlBody = `
+  <div style="font-family:Inter,Arial,sans-serif;background:#0B1220;color:#F1F5F9;padding:28px;border-radius:14px;max-width:580px;margin:0 auto;border:1px solid rgba(255,138,36,0.35);">
+    <h2 style="margin:0 0 12px;color:#FF8A24;">💰 BarPilot — Nuova richiesta di prelievo</h2>
+    <p style="color:#CBD5E1;line-height:1.55;">È stata ricevuta una nuova richiesta di prelievo dal programma affiliazioni BarPilot.</p>
+    <div style="background:#131E36;padding:16px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);margin:18px 0;">
+      <p style="margin:6px 0;"><strong>Nome:</strong> ${firstName || '-'}</p>
+      <p style="margin:6px 0;"><strong>Cognome:</strong> ${lastName || '-'}</p>
+      <p style="margin:6px 0;"><strong>Email:</strong> ${email || '-'}</p>
+      <p style="margin:6px 0;"><strong>Importo richiesto:</strong> <span style="color:#10B981;font-weight:800;">${formattedAmt}</span></p>
+      <p style="margin:6px 0;"><strong>Metodo:</strong> ${paymentMethodRef || '-'}</p>
+      <p style="margin:6px 0;"><strong>Data richiesta:</strong> ${dateStr}</p>
+      <p style="margin:6px 0;"><strong>ID richiesta:</strong> <code>${requestId}</code></p>
+      <p style="margin:6px 0;"><strong>Stato:</strong> <span style="color:#F59E0B;font-weight:700;">In attesa di approvazione</span></p>
+    </div>
+    <p style="margin:18px 0 0;">
+      <a href="https://www.barpilot.eu/app/administration" style="display:inline-block;background:#FF8A24;color:#FFFFFF;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">
+        Accedi al pannello Super Admin
+      </a>
+    </p>
+  </div>`;
+
+  let sent = false;
+  let provider = 'admin_notification_only';
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const rRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM || 'BarPilot <benvenuto@barpilot.eu>',
+          to: [adminEmail],
+          subject,
+          text: textBody,
+          html: htmlBody
+        })
+      });
+      if (rRes.ok) {
+        sent = true;
+        provider = 'resend';
+      }
+    } catch (_) {}
+  }
+
+  if (!sent && process.env.BREVO_API_KEY) {
+    try {
+      const bRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'BarPilot', email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.eu' },
+          to: [{ email: adminEmail, name: 'Super Admin BarPilot' }],
+          subject,
+          textContent: textBody,
+          htmlContent: htmlBody
+        })
+      });
+      if (bRes.ok) {
+        sent = true;
+        provider = 'brevo';
+      }
+    } catch (_) {}
+  }
+
+  if (!sent && process.env.SENDGRID_API_KEY) {
+    try {
+      const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: adminEmail, name: 'Super Admin BarPilot' }] }],
+          from: { email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.eu', name: 'BarPilot' },
+          subject,
+          content: [
+            { type: 'text/plain', value: textBody },
+            { type: 'text/html', value: htmlBody }
+          ]
+        })
+      });
+      if (sgRes.ok || sgRes.status === 202) {
+        sent = true;
+        provider = 'sendgrid';
+      }
+    } catch (_) {}
+  }
+
+  // Registra anche notifica in-app per il Super Admin su Supabase
+  try {
+    await supabaseFetch('admin_notifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+        title: 'Nuova richiesta di prelievo',
+        message: `${firstName || ''} ${lastName || ''} (${email}) ha richiesto il prelievo di ${formattedAmt} [${requestId}].`,
+        type: 'warning',
+        link: '#view-affiliates',
+        created_at: new Date().toISOString()
+      })
+    });
+  } catch (_) {}
+
+  console.log(`[Affiliate Withdrawal Email] To: ${adminEmail} | Provider: ${provider} | Sent: ${sent} | ID: ${requestId}`);
+  return { sent, provider };
+}
+
 /**
  * Aggiorna lo stato reale dei referral rispetto ai 14 giorni di prova:
  * - Se bar/abbonamento pagato attivo (e non disdetto) -> 'active'
@@ -432,10 +602,23 @@ async function handleAdminRequest(req, res) {
       } catch (_) {}
 
       // Fallback persistente tramite Supabase auth.users se tabelle SQL non ancora create
-      if (!sqlAffiliatesAvailable || affiliates.length === 0) {
+      let withdrawals = [];
+      let sqlWithdrawalsAvailable = false;
+      try {
+        const wdRes = await supabaseFetch("affiliate_withdrawals?order=requested_at.desc");
+        if (wdRes.ok) {
+          withdrawals = await wdRes.json();
+          sqlWithdrawalsAvailable = true;
+        }
+      } catch (_) {}
+
+      if (!sqlAffiliatesAvailable || affiliates.length === 0 || !sqlWithdrawalsAvailable) {
         const authUsers = await fetchAllAuthUsers();
         const affMap = new Map();
-        (store.affiliates || []).forEach(a => affMap.set(a.email.toLowerCase(), a));
+        (affiliates || []).forEach(a => affMap.set((a.email || '').toLowerCase(), a));
+        (store.affiliates || []).forEach(a => {
+          if (!affMap.has((a.email || '').toLowerCase())) affMap.set((a.email || '').toLowerCase(), a);
+        });
         authUsers.forEach(u => {
           const hydrated = hydrateAffiliateFromAuthUser(u);
           if (hydrated) {
@@ -455,12 +638,24 @@ async function handleAdminRequest(req, res) {
                 }
               });
             }
+            if (!sqlWithdrawalsAvailable && Array.isArray(meta.affiliate_withdrawals)) {
+              meta.affiliate_withdrawals.forEach(w => {
+                if (!withdrawals.some(ex => ex.id === w.id)) {
+                  withdrawals.push(w);
+                }
+              });
+            }
           }
         });
         affiliates = Array.from(affMap.values());
       }
       if (!sqlReferralsAvailable && referrals.length === 0) referrals = store.referrals || [];
       if (!sqlCommissionsAvailable && commissions.length === 0) commissions = store.commissions || [];
+      if (!sqlWithdrawalsAvailable) {
+        (store.withdrawals || []).forEach(w => {
+          if (!withdrawals.some(ex => ex.id === w.id)) withdrawals.push(w);
+        });
+      }
 
       await evaluateReferralsLifecycle(referrals);
 
@@ -486,9 +681,19 @@ async function handleAdminRequest(req, res) {
         }
       });
 
+      const reservedWithdrawalsOverall = withdrawals
+        .filter(w => ['pending', 'approved', 'processing', 'paid'].includes(w.status))
+        .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+      totalAvailableOverall = Math.max(0, totalAvailableOverall - reservedWithdrawalsOverall);
+
+      const totalWithdrawalsPaid = withdrawals
+        .filter(w => w.status === 'paid')
+        .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+
       const affiliatesEnriched = affiliates.map(aff => {
         const affReferrals = referrals.filter(r => r.affiliate_id === aff.id || r.affiliate_code === aff.code);
         const affCommissions = commissions.filter(c => c.affiliate_id === aff.id);
+        const affWithdrawals = withdrawals.filter(w => w.affiliate_id === aff.id || (w.affiliate_email && w.affiliate_email.toLowerCase() === (aff.email || '').toLowerCase()));
         let affEarned = 0;
         let affPending = 0;
         let affAvailable = 0;
@@ -501,6 +706,10 @@ async function handleAdminRequest(req, res) {
           else if (c.status === 'paid') { affPaid += a; affEarned += a; }
           else if (c.status === 'cancelled') { affCancelled += a; }
         });
+        const affReservedWd = affWithdrawals
+          .filter(w => ['pending', 'approved', 'processing', 'paid'].includes(w.status))
+          .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+        affAvailable = Math.max(0, affAvailable - affReservedWd);
 
         const trialCount = affReferrals.filter(r => r.status === 'trial' || r.status === 'registered').length;
         const activeCount = affReferrals.filter(r => r.status === 'active').length;
@@ -526,6 +735,7 @@ async function handleAdminRequest(req, res) {
 
       const trialReferralsOverall = referrals.filter(r => r.status === 'trial' || r.status === 'registered').length;
       const activeReferralsOverall = referrals.filter(r => r.status === 'active').length;
+      const pendingWithdrawalsCount = withdrawals.filter(w => ['pending', 'approved', 'processing'].includes(w.status)).length;
 
       const summaryObj = {
         total_affiliates: affiliates.length,
@@ -537,10 +747,11 @@ async function handleAdminRequest(req, res) {
         available_commissions: totalAvailableOverall.toFixed(2),
         total_pending: totalPendingOverall.toFixed(2),
         pending_commissions: totalPendingOverall.toFixed(2),
-        total_paid: totalPaidOverall.toFixed(2),
-        paid_commissions: totalPaidOverall.toFixed(2),
+        total_paid: (totalPaidOverall + totalWithdrawalsPaid).toFixed(2),
+        paid_commissions: (totalPaidOverall + totalWithdrawalsPaid).toFixed(2),
         total_cancelled: totalCancelledOverall.toFixed(2),
         cancelled_commissions: totalCancelledOverall.toFixed(2),
+        pending_withdrawals_count: pendingWithdrawalsCount,
         default_commission_rate: commissionRate
       };
 
@@ -586,6 +797,24 @@ async function handleAdminRequest(req, res) {
           invoice_id: c.stripe_invoice_id,
           created_at: c.created_at,
           paid_at: c.paid_at
+        })),
+        withdrawals: withdrawals.map(w => ({
+          id: w.id,
+          affiliate_id: w.affiliate_id,
+          user_id: w.user_id || null,
+          first_name: w.affiliate_first_name || '',
+          last_name: w.affiliate_last_name || '',
+          email: w.affiliate_email || '',
+          amount: parseFloat(w.amount || 0).toFixed(2),
+          currency: w.currency || 'EUR',
+          status: w.status || 'pending',
+          status_label: getWithdrawalStatusLabel(w.status),
+          payment_method_reference: w.payment_method_reference || '',
+          notes: w.notes || '',
+          requested_at: w.requested_at || w.created_at,
+          approved_at: w.approved_at || null,
+          paid_at: w.paid_at || null,
+          rejected_at: w.rejected_at || null
         }))
       });
     }
@@ -751,6 +980,104 @@ async function handleAdminRequest(req, res) {
           success: true,
           message: `Stato dell'affiliato aggiornato a "${status}".`,
           affiliateId,
+          status
+        });
+      }
+
+      if (action === 'update_withdrawal_status') {
+        const { withdrawalId, status, notes = '' } = body;
+        const validStatuses = ['pending', 'approved', 'processing', 'paid', 'rejected'];
+        if (!withdrawalId || !validStatuses.includes(status)) {
+          return res.status(400).json({ error: `Stato prelievo non valido. Valori ammessi: ${validStatuses.join(', ')}` });
+        }
+
+        const nowIso = new Date().toISOString();
+        let rpcOk = false;
+
+        try {
+          const rpcRes = await supabaseFetch('rpc/update_affiliate_withdrawal_status', {
+            method: 'POST',
+            body: JSON.stringify({
+              p_withdrawal_id: withdrawalId,
+              p_new_status: status,
+              p_notes: notes || null
+            })
+          });
+          if (rpcRes.ok) {
+            const rpcData = await rpcRes.json();
+            if (rpcData && rpcData.success) rpcOk = true;
+          }
+        } catch (_) {}
+
+        if (!rpcOk) {
+          const patchPayload = { status, updated_at: nowIso };
+          if (notes) patchPayload.notes = notes;
+          if (status === 'approved') patchPayload.approved_at = nowIso;
+          if (status === 'paid') patchPayload.paid_at = nowIso;
+          if (status === 'rejected') patchPayload.rejected_at = nowIso;
+
+          try {
+            const pRes = await supabaseFetch(`affiliate_withdrawals?id=eq.${encodeURIComponent(withdrawalId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify(patchPayload)
+            });
+            if (pRes.ok) {
+              const pRows = await pRes.json();
+              if (pRows && pRows[0]?.affiliate_id) {
+                await recalculateAffiliateBalanceOnDb(pRows[0].affiliate_id);
+              }
+            }
+          } catch (_) {}
+        }
+
+        // Aggiorna anche store in-memory e auth.users metadata (fallback persistente)
+        const wdInStore = (store.withdrawals || []).find(w => w.id === withdrawalId);
+        if (wdInStore) {
+          wdInStore.status = status;
+          wdInStore.updated_at = nowIso;
+          if (notes) wdInStore.notes = notes;
+          if (status === 'approved') wdInStore.approved_at = nowIso;
+          if (status === 'paid') wdInStore.paid_at = nowIso;
+          if (status === 'rejected') wdInStore.rejected_at = nowIso;
+          writeAffiliatesStore(store);
+        }
+
+        const srKey = getServiceRoleKey();
+        if (srKey) {
+          try {
+            const users = await fetchAllAuthUsers();
+            for (const u of users) {
+              const wds = u.user_metadata?.affiliate_withdrawals;
+              if (Array.isArray(wds)) {
+                const idx = wds.findIndex(w => w.id === withdrawalId);
+                if (idx !== -1) {
+                  wds[idx].status = status;
+                  wds[idx].updated_at = nowIso;
+                  if (notes) wds[idx].notes = notes;
+                  if (status === 'approved') wds[idx].approved_at = nowIso;
+                  if (status === 'paid') wds[idx].paid_at = nowIso;
+                  if (status === 'rejected') wds[idx].rejected_at = nowIso;
+                  const meta = { ...u.user_metadata, affiliate_withdrawals: wds };
+                  await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(u.id)}`, {
+                    method: 'PUT',
+                    headers: {
+                      'apikey': srKey,
+                      'Authorization': `Bearer ${srKey}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_metadata: meta })
+                  });
+                  break;
+                }
+              }
+            }
+          } catch (_) {}
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: `Prelievo aggiornato a "${getWithdrawalStatusLabel(status)}".`,
+          withdrawalId,
           status
         });
       }
@@ -999,6 +1326,28 @@ async function handleUserAffiliateRequest(req, res) {
         }
       }
 
+      let withdrawals = [];
+      let sqlWdOk = false;
+      try {
+        const wdRes = await supabaseFetch(`affiliate_withdrawals?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&order=requested_at.desc`);
+        if (wdRes.ok) {
+          withdrawals = await wdRes.json();
+          sqlWdOk = true;
+        }
+      } catch (_) {}
+
+      if (!sqlWdOk || withdrawals.length === 0) {
+        const authWds = authUserMatched?.user_metadata?.affiliate_withdrawals;
+        if (Array.isArray(authWds) && authWds.length > 0) {
+          withdrawals = [...authWds];
+        } else {
+          withdrawals = (store.withdrawals || []).filter(w =>
+            w.affiliate_id === affiliate.id ||
+            (w.affiliate_email && w.affiliate_email.toLowerCase() === (affiliate.email || '').toLowerCase())
+          );
+        }
+      }
+
       const totalReferrals = referrals.length;
       const activeReferrals = referrals.filter(r => r.status === 'active').length;
       const trialReferrals = referrals.filter(r => r.status === 'trial' || r.status === 'registered' || !r.status).length;
@@ -1021,6 +1370,11 @@ async function handleUserAffiliateRequest(req, res) {
           totalEarned += amt;
         }
       });
+
+      const reservedOrPaidWithdrawals = withdrawals
+        .filter(w => ['pending', 'approved', 'processing', 'paid'].includes(w.status))
+        .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+      availableBalance = Math.max(0, availableBalance - reservedOrPaidWithdrawals);
 
       const formattedCommissions = commissions.map(c => {
         const matchingRef = referrals.find(r => r.id === c.referral_id || (r.referred_bar_id && r.referred_bar_id === c.bar_id));
@@ -1116,6 +1470,19 @@ async function handleUserAffiliateRequest(req, res) {
           trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
           trial_end_date: r.trial_end_date || null,
           date: r.registered_at || r.created_at
+        })),
+        withdrawals: withdrawals.map(w => ({
+          id: w.id,
+          affiliate_id: w.affiliate_id,
+          amount: parseFloat(w.amount || 0).toFixed(2),
+          currency: w.currency || 'EUR',
+          status: w.status || 'pending',
+          status_label: getWithdrawalStatusLabel(w.status),
+          payment_method_reference: w.payment_method_reference || '',
+          requested_at: w.requested_at || w.created_at,
+          approved_at: w.approved_at || null,
+          paid_at: w.paid_at || null,
+          rejected_at: w.rejected_at || null
         }))
       });
     }
@@ -1233,10 +1600,277 @@ async function handleUserAffiliateRequest(req, res) {
           }
         } catch (_) {}
 
+        const srKeyPm = getServiceRoleKey();
+        if (srKeyPm && email) {
+          try {
+            const users = await fetchAllAuthUsers();
+            const uMatch = users.find(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+            if (uMatch) {
+              const meta = { ...(uMatch.user_metadata || {}), affiliate_payout_method: payoutMethod };
+              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(uMatch.id)}`, {
+                method: 'PUT',
+                headers: { 'apikey': srKeyPm, 'Authorization': `Bearer ${srKeyPm}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_metadata: meta })
+              });
+            }
+          } catch (_) {}
+        }
+
         return res.status(200).json({
           success: true,
           message: "Metodo di pagamento per liquidazione salvato con successo.",
           payoutMethod
+        });
+      }
+
+      if (action === 'request_withdrawal') {
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const requestedAmount = parseFloat(body.amount);
+        const firstNameInput = (body.firstName || '').trim();
+        const lastNameInput = (body.lastName || '').trim();
+        const fullNameInput = (body.name || '').trim();
+        const payoutMethodInput = body.payoutMethod || null;
+
+        if (!cleanEmail) {
+          return res.status(400).json({ error: "Email affiliato obbligatoria per richiedere un prelievo." });
+        }
+        if (isNaN(requestedAmount) || requestedAmount < 50.00) {
+          return res.status(400).json({ error: "L'importo minimo per richiedere un prelievo è 50,00 €." });
+        }
+
+        // Recupera affiliato e verifica saldo reale dal database (mai fidarsi del browser)
+        let affiliate = null;
+        let authUserMatched = null;
+        try {
+          const affRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&limit=1`);
+          if (affRes.ok) {
+            const rows = await affRes.json();
+            if (rows && rows.length > 0) affiliate = rows[0];
+          }
+        } catch (_) {}
+
+        const authUsers = await fetchAllAuthUsers();
+        authUserMatched = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
+        if (!affiliate) {
+          affiliate = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail) ||
+            (authUserMatched ? hydrateAffiliateFromAuthUser(authUserMatched) : null);
+        }
+
+        if (!affiliate) {
+          return res.status(404).json({ error: "Account affiliato non trovato." });
+        }
+
+        const effectivePayout = payoutMethodInput || affiliate.payout_method || authUserMatched?.user_metadata?.affiliate_payout_method;
+        const maskedMethodRef = maskPaymentMethodReference(effectivePayout);
+        if (!maskedMethodRef) {
+          return res.status(400).json({ error: "Configura prima un metodo di pagamento valido per ricevere il prelievo." });
+        }
+
+        // Calcola saldo reale disponibile su commissioni - prelievi non rifiutati
+        let commissions = [];
+        let sqlCommOk = false;
+        try {
+          const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&select=amount,status`);
+          if (commRes.ok) {
+            commissions = await commRes.json();
+            sqlCommOk = true;
+          }
+        } catch (_) {}
+        if (!sqlCommOk || commissions.length === 0) {
+          commissions = authUserMatched?.user_metadata?.affiliate_commissions || store.commissions.filter(c => c.affiliate_id === affiliate.id);
+        }
+
+        let withdrawals = [];
+        let sqlWdOk = false;
+        try {
+          const wdRes = await supabaseFetch(`affiliate_withdrawals?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&order=requested_at.desc`);
+          if (wdRes.ok) {
+            withdrawals = await wdRes.json();
+            sqlWdOk = true;
+          }
+        } catch (_) {}
+        if (!sqlWdOk || withdrawals.length === 0) {
+          withdrawals = authUserMatched?.user_metadata?.affiliate_withdrawals ||
+            (store.withdrawals || []).filter(w => w.affiliate_id === affiliate.id || (w.affiliate_email || '').toLowerCase() === cleanEmail);
+        }
+
+        const rawAvailable = (commissions || [])
+          .filter(c => c.status === 'available')
+          .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+
+        const reservedOrPaid = (withdrawals || [])
+          .filter(w => ['pending', 'approved', 'processing', 'paid'].includes(w.status))
+          .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+
+        const realAvailable = Math.max(0, parseFloat((rawAvailable - reservedOrPaid).toFixed(2)));
+        if (requestedAmount > realAvailable) {
+          return res.status(400).json({
+            error: `Saldo disponibile insufficiente. Saldo reale disponibile: ${realAvailable.toFixed(2)} €.`
+          });
+        }
+
+        // Anti-duplicato ravvicinato (entro 30s)
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const hasRecentPending = (withdrawals || []).some(w =>
+          ['pending', 'processing'].includes(w.status) &&
+          (now.getTime() - new Date(w.requested_at || w.created_at || 0).getTime()) < 30000
+        );
+        if (hasRecentPending) {
+          return res.status(429).json({
+            error: "Hai già inviato una richiesta di prelievo pochi secondi fa. Attendi la conferma."
+          });
+        }
+
+        const resolvedFullName = fullNameInput || affiliate.name || cleanEmail.split('@')[0];
+        const nameParts = resolvedFullName.split(/\s+/);
+        const finalFirstName = firstNameInput || affiliate.first_name || nameParts[0] || resolvedFullName;
+        const finalLastName = lastNameInput || affiliate.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '-');
+
+        let withdrawalRecord = null;
+        let savedToSupabase = false;
+
+        // 1) Tenta transazione atomica RPC su Supabase
+        try {
+          const rpcRes = await supabaseFetch('rpc/request_affiliate_withdrawal', {
+            method: 'POST',
+            body: JSON.stringify({
+              p_affiliate_id: affiliate.id,
+              p_user_id: affiliate.user_id || authUserMatched?.id || '',
+              p_first_name: finalFirstName,
+              p_last_name: finalLastName,
+              p_email: cleanEmail,
+              p_amount: parseFloat(requestedAmount.toFixed(2)),
+              p_payment_method_ref: maskedMethodRef
+            })
+          });
+          if (rpcRes.ok) {
+            const rpcData = await rpcRes.json();
+            if (rpcData && !rpcData.success) {
+              return res.status(400).json({ error: rpcData.error || "Richiesta prelievo rifiutata dal database." });
+            }
+            if (rpcData && rpcData.success && rpcData.withdrawal_id) {
+              savedToSupabase = true;
+              withdrawalRecord = {
+                id: rpcData.withdrawal_id,
+                affiliate_id: affiliate.id,
+                user_id: affiliate.user_id || authUserMatched?.id || null,
+                affiliate_first_name: finalFirstName,
+                affiliate_last_name: finalLastName,
+                affiliate_email: cleanEmail,
+                amount: parseFloat(requestedAmount.toFixed(2)),
+                currency: 'EUR',
+                status: 'pending',
+                payment_method_reference: maskedMethodRef,
+                requested_at: rpcData.requested_at || nowIso
+              };
+            }
+          }
+        } catch (_) {}
+
+        // 2) Fallback REST diretto su affiliate_withdrawals
+        if (!savedToSupabase) {
+          const wdId = 'wd_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+          withdrawalRecord = {
+            id: wdId,
+            affiliate_id: affiliate.id,
+            user_id: affiliate.user_id || authUserMatched?.id || null,
+            affiliate_first_name: finalFirstName,
+            affiliate_last_name: finalLastName,
+            affiliate_email: cleanEmail,
+            amount: parseFloat(requestedAmount.toFixed(2)),
+            currency: 'EUR',
+            status: 'pending',
+            payment_method_reference: maskedMethodRef,
+            requested_at: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso
+          };
+
+          try {
+            const postWd = await supabaseFetch('affiliate_withdrawals', {
+              method: 'POST',
+              body: JSON.stringify(withdrawalRecord)
+            });
+            if (postWd.ok) {
+              savedToSupabase = true;
+              await recalculateAffiliateBalanceOnDb(affiliate.id);
+            }
+          } catch (_) {}
+        }
+
+        // 3) Persistenza su auth.users user_metadata + store (garantisce funzionamento anche prima delle migrazioni SQL)
+        store.withdrawals = store.withdrawals || [];
+        store.withdrawals.unshift(withdrawalRecord);
+        writeAffiliatesStore(store);
+
+        const srKeyWd = getServiceRoleKey();
+        if (srKeyWd && authUserMatched) {
+          try {
+            const meta = { ...(authUserMatched.user_metadata || {}) };
+            const existingAuthWds = Array.isArray(meta.affiliate_withdrawals) ? [...meta.affiliate_withdrawals] : [];
+            existingAuthWds.unshift(withdrawalRecord);
+            meta.affiliate_withdrawals = existingAuthWds;
+            await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(authUserMatched.id)}`, {
+              method: 'PUT',
+              headers: {
+                'apikey': srKeyWd,
+                'Authorization': `Bearer ${srKeyWd}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ user_metadata: meta })
+            });
+            savedToSupabase = true;
+          } catch (_) {}
+        }
+
+        if (!savedToSupabase) {
+          return res.status(500).json({ error: "Impossibile salvare la richiesta su Supabase. Riprova tra poco." });
+        }
+
+        // Registra audit log
+        try {
+          await supabaseFetch('admin_audit_logs', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              admin_id: cleanEmail,
+              action: 'affiliate_withdrawal_requested',
+              entity_type: 'withdrawal',
+              entity_id: withdrawalRecord.id,
+              new_values: { amount: withdrawalRecord.amount, method: maskedMethodRef, status: 'pending' },
+              created_at: nowIso
+            })
+          });
+        } catch (_) {}
+
+        // Invia email automatica al Super Admin (cheikh10154@gmail.com)
+        const emailResult = await sendAdminWithdrawalEmail({
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          email: cleanEmail,
+          amount: withdrawalRecord.amount,
+          requestedAt: withdrawalRecord.requested_at,
+          requestId: withdrawalRecord.id,
+          paymentMethodRef: maskedMethodRef
+        });
+
+        const newAvailableBalance = Math.max(0, parseFloat((realAvailable - requestedAmount).toFixed(2)));
+
+        return res.status(200).json({
+          success: true,
+          message: "Richiesta di prelievo inviata con successo!",
+          withdrawal: {
+            id: withdrawalRecord.id,
+            amount: withdrawalRecord.amount.toFixed(2),
+            currency: 'EUR',
+            status: 'pending',
+            status_label: getWithdrawalStatusLabel('pending'),
+            payment_method_reference: maskedMethodRef,
+            requested_at: withdrawalRecord.requested_at
+          },
+          available_balance: newAvailableBalance.toFixed(2),
+          email_notified: emailResult
         });
       }
 

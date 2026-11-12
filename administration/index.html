@@ -919,6 +919,33 @@
             </div>
           </div>
 
+          <!-- Tabella Prelievi Affiliazioni -->
+          <div class="section-box" style="margin-bottom:24px; border-color:rgba(16,185,129,0.35);">
+            <div class="section-box-header">
+              <h3 class="section-box-title" style="color:#10B981;">💸 Prelievi affiliazioni</h3>
+              <div class="table-search-wrap">
+                <input type="text" class="table-search-input" id="searchAdminWithdrawalsInput" placeholder="Cerca nome, email o ID prelievo..." oninput="window.adminConsole.filterAdminWithdrawals()">
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="admin-data-table">
+                <thead>
+                  <tr>
+                    <th>Data Richiesta</th>
+                    <th>Affiliato (Nome, Cognome, Email)</th>
+                    <th>Importo Richiesto</th>
+                    <th>Metodo Pagamento</th>
+                    <th>Stato</th>
+                    <th>Azioni Super Admin</th>
+                  </tr>
+                </thead>
+                <tbody id="adminWithdrawalsTableBody">
+                  <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Caricamento richieste di prelievo...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Tabella Referral & Nuovi Bar Registrati -->
           <div class="section-box" style="margin-bottom:24px;">
             <div class="section-box-header">

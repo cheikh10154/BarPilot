@@ -344,6 +344,12 @@ class AdminConsole {
           .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_commissions" }, () => {
             this.renderAffiliatesView();
           })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_withdrawals" }, (p) => {
+            if (p.eventType === "INSERT") {
+              this.showToast("💸 Nuova richiesta di prelievo ricevuta!");
+            }
+            this.renderAffiliatesView();
+          })
           .subscribe((status) => {
             const badge = document.getElementById("supabaseStatusBadge");
             if (status === "SUBSCRIBED" && badge) {
@@ -1903,10 +1909,151 @@ class AdminConsole {
 
       // Render Tabelle
       this.renderAdminAffiliatesTable(data.affiliates || []);
+      this.renderAdminWithdrawalsTable(data.withdrawals || []);
       this.renderAdminReferralsTable(data.referrals || []);
       this.renderAdminCommissionsTable(data.commissions || [], data.affiliates || []);
     } catch (err) {
       console.warn("[Admin Affiliates] Errore render:", err);
+    }
+  }
+
+  renderAdminWithdrawalsTable(withdrawals) {
+    const tbody = document.getElementById("adminWithdrawalsTableBody");
+    if (!tbody) return;
+
+    this.cachedAdminWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
+    const filterEl = document.getElementById("searchAdminWithdrawalsInput");
+    const q = filterEl ? filterEl.value.trim().toLowerCase() : "";
+
+    const list = q
+      ? this.cachedAdminWithdrawals.filter((w) => {
+          const hay = [
+            w.id,
+            w.first_name,
+            w.last_name,
+            w.affiliate_name,
+            w.email,
+            w.affiliate_code,
+            w.status,
+            w.status_label,
+            w.payment_method_reference
+          ].filter(Boolean).join(" ").toLowerCase();
+          return hay.includes(q);
+        })
+      : this.cachedAdminWithdrawals;
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">Nessuna richiesta di prelievo trovata.</td></tr>`;
+      return;
+    }
+
+    const statusBadge = (status, label) => {
+      const s = String(status || "pending").toLowerCase();
+      if (s === "paid") return `<span class="status-pill status-active">✓ ${this.escapeHtml(label || "Pagato")}</span>`;
+      if (s === "approved" || s === "processing") return `<span class="status-pill status-trial">${this.escapeHtml(label || (s === "approved" ? "Approvato" : "In elaborazione"))}</span>`;
+      if (s === "rejected") return `<span class="status-pill status-late">✕ ${this.escapeHtml(label || "Rifiutato")}</span>`;
+      return `<span class="status-pill" style="background:rgba(255,138,36,0.14); color:#FF8A24; border:1px solid rgba(255,138,36,0.35);">⏳ ${this.escapeHtml(label || "In attesa")}</span>`;
+    };
+
+    tbody.innerHTML = list.map((w) => {
+      const reqFormatted = w.requested_at
+        ? new Date(w.requested_at).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "--";
+      const fullName = [w.first_name, w.last_name].filter(Boolean).join(" ").trim() || w.affiliate_name || "Affiliato";
+      const amountFormatted = this.formatCurrency(w.amount || 0);
+      const s = String(w.status || "pending").toLowerCase();
+      const safeId = this.escapeHtml(w.id);
+
+      let actionsHtml = `<span style="font-size:11.5px; color:var(--text-dim);">Chiusa</span>`;
+      if (s === "pending") {
+        actionsHtml = `
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn-primary-orange" style="background:#3B82F6; border-color:#3B82F6; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'approved', '${amountFormatted}')">✓ Approva</button>
+            <button type="button" class="btn-primary-orange" style="background:#10B981; border-color:#10B981; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'paid', '${amountFormatted}')">💸 Segna Pagato</button>
+            <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'rejected', '${amountFormatted}')">✕ Rifiuta</button>
+          </div>
+        `;
+      } else if (s === "approved" || s === "processing") {
+        actionsHtml = `
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${s === "approved" ? `<button type="button" class="btn-primary-orange" style="background:#F59E0B; border-color:#F59E0B; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'processing', '${amountFormatted}')">⚙️ In elaborazione</button>` : ""}
+            <button type="button" class="btn-primary-orange" style="background:#10B981; border-color:#10B981; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'paid', '${amountFormatted}')">💸 Segna Pagato</button>
+            <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.updateWithdrawalStatus('${safeId}', 'rejected', '${amountFormatted}')">✕ Rifiuta</button>
+          </div>
+        `;
+      }
+
+      return `
+        <tr>
+          <td style="color:var(--text-muted); font-size:12px;">
+            ${reqFormatted}
+            <div style="font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-dim); margin-top:2px;">${safeId}</div>
+          </td>
+          <td>
+            <strong>${this.escapeHtml(fullName)}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(w.email || "--")}</div>
+          </td>
+          <td><strong style="font-family:'JetBrains Mono', monospace; color:#10B981; font-size:13.5px;">${amountFormatted} €</strong></td>
+          <td style="font-size:12px; color:var(--text-secondary);">${this.escapeHtml(w.payment_method_reference || "--")}</td>
+          <td>${statusBadge(s, w.status_label)}</td>
+          <td>${actionsHtml}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  filterAdminWithdrawals() {
+    this.renderAdminWithdrawalsTable(this.cachedAdminWithdrawals || []);
+  }
+
+  async updateWithdrawalStatus(withdrawalId, newStatus, amountFormatted) {
+    if (!withdrawalId || !newStatus) return;
+
+    if (newStatus === "paid") {
+      const ok = window.confirm(`Confermi di aver effettivamente eseguito il trasferimento di ${amountFormatted || ""} € verso il metodo di pagamento dell'affiliato?\n\nNon segnare come pagato finché il pagamento non è stato realmente inviato.`);
+      if (!ok) return;
+    } else if (newStatus === "rejected") {
+      const ok = window.confirm(`Rifiutare questa richiesta di prelievo di ${amountFormatted || ""} €?\n\nL'importo riservato verrà restituito automaticamente al saldo disponibile dell'affiliato.`);
+      if (!ok) return;
+    }
+
+    try {
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "update_withdrawal_status",
+          withdrawalId,
+          status: newStatus
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Errore aggiornamento stato prelievo");
+      }
+
+      const labels = {
+        approved: "Approvato",
+        processing: "In elaborazione",
+        paid: "Pagato",
+        rejected: "Rifiutato (saldo restituito)"
+      };
+      this.showToast(`✓ Prelievo aggiornato: ${labels[newStatus] || newStatus}`);
+
+      if (typeof BroadcastChannel !== "undefined") {
+        try {
+          const ch = new BroadcastChannel("barpilot_affiliates_sync");
+          ch.postMessage({ type: "withdrawal_updated", withdrawalId, status: newStatus });
+          ch.close();
+        } catch (e) {}
+      }
+
+      this.renderAffiliatesView();
+    } catch (err) {
+      alert("Errore aggiornamento prelievo: " + err.message);
     }
   }
 

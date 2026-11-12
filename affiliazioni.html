@@ -1501,8 +1501,106 @@
           </button>
         </div>
       </section>
+
+      <!-- 3. STORICO PRELIEVI -->
+      <section class="section-card" style="margin-top:24px;">
+        <div class="section-header">
+          <div class="section-title">
+            <span>💸</span>
+            <span>Storico prelievi</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Aggiornamento automatico in tempo reale</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="commissions-table" id="withdrawalsTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Data richiesta</th>
+                <th>ID richiesta</th>
+                <th>Metodo</th>
+                <th>Importo</th>
+                <th>Stato</th>
+              </tr>
+            </thead>
+            <tbody id="withdrawalsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" id="withdrawalsEmptyWrap" style="padding:26px 16px;">
+          <div style="font-size:28px; margin-bottom:6px;">💳</div>
+          <div class="empty-title" style="font-size:15px;">Nessuna richiesta di prelievo effettuata</div>
+          <p class="empty-desc" style="margin-bottom:0;">Quando raggiungi almeno 50,00 € di saldo disponibile puoi richiedere il prelievo cliccando su «Preleva».</p>
+        </div>
+      </section>
     </main>
   </div>
+
+  <!-- Modal: Richiesta Prelievo (con caricamento animato 2 secondi) -->
+  <div class="modal-overlay" id="withdrawRequestModal" style="display:none;" onclick="if(event.target===this && !isWithdrawSubmitting) closeWithdrawRequestModal()">
+    <div class="modal-card" style="max-width:440px;">
+      <div class="modal-head">
+        <div class="modal-title">
+          <span>💸</span>
+          <span>Richiedi prelievo</span>
+        </div>
+        <button type="button" class="modal-close" onclick="if(!isWithdrawSubmitting) closeWithdrawRequestModal()" aria-label="Chiudi">✕</button>
+      </div>
+
+      <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:var(--text-muted); font-weight:600;">Saldo disponibile:</span>
+        <strong id="wdModalAvailableText" style="font-size:17px; color:var(--status-green); font-family:'JetBrains Mono', monospace;">0,00 €</strong>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px; margin-bottom:16px;">
+        <div style="font-size:11.5px; color:var(--text-muted); font-weight:600; margin-bottom:4px;">Metodo di pagamento configurato:</div>
+        <div id="wdModalPayoutRef" style="font-size:13.5px; color:var(--text-main); font-weight:700;">--</div>
+      </div>
+
+      <div class="form-group-modal">
+        <label class="form-label-modal" for="wdAmountInput">Importo da prelevare (€)</label>
+        <input type="number" step="0.01" min="50" id="wdAmountInput" class="form-input-modal" placeholder="Es: 50.00" style="font-size:18px; font-weight:800; font-family:'JetBrains Mono', monospace;">
+        <div style="font-size:11.5px; color:var(--text-dim); margin-top:5px;">Importo minimo: 50,00 € · L'importo viene riservato subito sul saldo.</div>
+      </div>
+
+      <div id="wdErrorAlert" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:10px 12px; font-size:12.5px; font-weight:600; margin-bottom:14px;"></div>
+
+      <div id="wdLoadingBox" style="display:none; text-align:center; padding:18px 10px;">
+        <div style="width:36px; height:36px; border:3px solid rgba(255,138,36,0.25); border-top-color:#FF8A24; border-radius:50%; margin:0 auto 12px; animation:wdSpin 0.7s linear infinite;"></div>
+        <div style="font-size:13.5px; font-weight:700; color:var(--text-main);">Invio richiesta su Supabase in corso...</div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">Verifica saldo disponibile e notifica al Super Admin</div>
+      </div>
+
+      <div class="modal-actions" id="wdModalActions">
+        <button type="button" class="btn-modal-cancel" onclick="closeWithdrawRequestModal()">Annulla</button>
+        <button type="button" class="btn-modal-save" id="btnConfirmWithdraw" onclick="submitWithdrawRequest()">
+          <span>💸</span>
+          <span>Conferma prelievo</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Conferma Prelievo Verde -->
+  <div class="modal-overlay" id="withdrawSuccessModal" style="display:none;" onclick="if(event.target===this) closeWithdrawSuccessModal()">
+    <div class="modal-card" style="max-width:440px; text-align:center; padding:30px 26px;">
+      <div style="width:68px; height:68px; border-radius:50%; background:rgba(16,185,129,0.15); border:2px solid #10B981; display:flex; align-items:center; justify-content:center; font-size:34px; margin:0 auto 16px;">
+        ✅
+      </div>
+      <h3 style="margin:0 0 12px; font-size:19px; font-weight:800; color:#FFFFFF;">
+        Richiesta di prelievo inviata con successo!
+      </h3>
+      <p id="wdSuccessBodyText" style="margin:0 0 22px; font-size:13.5px; line-height:1.6; color:#CBD5E1;">
+        La tua richiesta di prelievo è stata ricevuta correttamente.
+      </p>
+      <button type="button" class="btn-modal-save" style="width:100%; justify-content:center; background:#10B981; border-color:#10B981;" onclick="closeWithdrawSuccessModal()">
+        Ho capito
+      </button>
+    </div>
+  </div>
+  <style>
+    @keyframes wdSpin { to { transform: rotate(360deg); } }
+  </style>
 
   <!-- Modal: Iscrizione & Login Affiliazioni (Nome, Cognome, Telefono, Email, Password) -->
   <div class="modal-overlay" id="affiliateAuthModal" style="display:none;" onclick="if(event.target===this && isAffiliateAuthenticated()) closeAffiliateAuthModal()">
@@ -2149,6 +2247,9 @@
       allCommissionsList = (data.history && data.history.length > 0) ? data.history : (data.commissions || []);
       renderCommissionsTable(allCommissionsList);
 
+      // 5b. Storico prelievi
+      renderWithdrawalsTable(data.withdrawals || []);
+
       // 6. Avvia Supabase Realtime per questo affiliato (senza duplicare canali)
       if (affiliate && affiliate.id && typeof initAffiliateRealtime === "function") {
         initAffiliateRealtime(affiliate.id, affiliate.code);
@@ -2432,11 +2533,51 @@
       }
     }
 
-    // Azione: Prelievo Saldo Affiliazioni (soglia minima 50€)
-    function handleWithdraw() {
-      const btn = document.getElementById("btnWithdraw");
-      if (btn && btn.disabled) return;
+    function renderWithdrawalsTable(list) {
+      const tbody = document.getElementById("withdrawalsTableBody");
+      const emptyWrap = document.getElementById("withdrawalsEmptyWrap");
+      const tableWrap = document.getElementById("withdrawalsTable");
+      if (!tbody || !emptyWrap || !tableWrap) return;
 
+      if (!list || list.length === 0) {
+        tbody.innerHTML = "";
+        emptyWrap.style.display = "flex";
+        tableWrap.style.display = "none";
+        return;
+      }
+
+      emptyWrap.style.display = "none";
+      tableWrap.style.display = "table";
+
+      tbody.innerHTML = list.map(w => {
+        const dateObj = new Date(w.requested_at || Date.now());
+        const dateFormatted = dateObj.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        const s = (w.status || "pending").toLowerCase();
+        let color = "#F59E0B", bg = "rgba(245, 158, 11, 0.14)", dot = "⏳";
+        if (s === "approved") { color = "#3B82F6"; bg = "rgba(59, 130, 246, 0.14)"; dot = "👍"; }
+        else if (s === "processing") { color = "#A855F7"; bg = "rgba(168, 85, 247, 0.14)"; dot = "⚙️"; }
+        else if (s === "paid") { color = "#10B981"; bg = "rgba(16, 185, 129, 0.14)"; dot = "✅"; }
+        else if (s === "rejected") { color = "#EF4444"; bg = "rgba(239, 68, 68, 0.14)"; dot = "🚫"; }
+
+        return `
+          <tr>
+            <td style="color:var(--text-muted); font-size:13px;">${dateFormatted}</td>
+            <td style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-dim);">${escapeHtml(w.id)}</td>
+            <td style="font-size:12.5px;">${escapeHtml(w.payment_method_reference || '--')}</td>
+            <td><span class="amount-badge">${formatCurrency(w.amount)} €</span></td>
+            <td>
+              <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; color:${color}; background:${bg}; border:1px solid ${color}33;">
+                ${dot} ${escapeHtml(w.status_label || s)}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    let isWithdrawSubmitting = false;
+
+    function getConfiguredPayoutMethod() {
       let payout = null;
       try {
         payout = JSON.parse(localStorage.getItem("barpilot_affiliate_payout_method") || "null");
@@ -2448,16 +2589,152 @@
             : currentAffiliateData.affiliate.payout_method;
         } catch (_) {}
       }
+      return payout;
+    }
 
+    function formatMaskedPayoutText(payout) {
+      if (!payout) return "--";
+      if (payout.type === "paypal") return `🅿️ PayPal (${payout.email})`;
+      if (payout.type === "iban" && payout.iban) {
+        const clean = payout.iban.replace(/\s+/g, "");
+        const masked = clean.length > 8 ? `${clean.slice(0, 4)}****${clean.slice(-4)}` : clean;
+        return `🏦 IBAN ${masked}${payout.holder ? " · " + payout.holder : ""}`;
+      }
+      return "Metodo configurato";
+    }
+
+    // Azione: Prelievo Saldo Affiliazioni (soglia minima 50€)
+    function handleWithdraw() {
+      const btn = document.getElementById("btnWithdraw");
+      if (btn && btn.disabled) return;
+
+      const availableVal = parseFloat(currentAffiliateData?.cards?.balance?.available || "0") || 0;
+      if (availableVal < 50) {
+        showToast("⚠️", "Saldo disponibile insufficiente (minimo 50,00 €).");
+        return;
+      }
+
+      const payout = getConfiguredPayoutMethod();
       if (!payout) {
         showToast("⚠️", "Configura prima il tuo metodo di pagamento!");
         openPaymentMethodModal();
         return;
       }
 
-      const currentAvailable = document.getElementById("metricAvailableBalance")?.textContent || "0,00";
-      const targetDest = payout.type === 'paypal' ? `PayPal (${payout.email})` : `IBAN (...${payout.iban.slice(-4)})`;
-      showToast("💸", `Richiesta di liquidazione inviata (${currentAvailable} € su ${targetDest})!`);
+      const modal = document.getElementById("withdrawRequestModal");
+      const availText = document.getElementById("wdModalAvailableText");
+      const payoutRefEl = document.getElementById("wdModalPayoutRef");
+      const amountInput = document.getElementById("wdAmountInput");
+      const errAlert = document.getElementById("wdErrorAlert");
+      const loadingBox = document.getElementById("wdLoadingBox");
+      const actionsEl = document.getElementById("wdModalActions");
+
+      if (availText) availText.textContent = `${formatCurrency(availableVal)} €`;
+      if (payoutRefEl) payoutRefEl.textContent = formatMaskedPayoutText(payout);
+      if (amountInput) {
+        amountInput.value = availableVal.toFixed(2);
+        amountInput.max = availableVal.toFixed(2);
+      }
+      if (errAlert) { errAlert.style.display = "none"; errAlert.textContent = ""; }
+      if (loadingBox) loadingBox.style.display = "none";
+      if (actionsEl) actionsEl.style.display = "flex";
+      if (modal) modal.style.display = "flex";
+    }
+
+    function closeWithdrawRequestModal() {
+      const modal = document.getElementById("withdrawRequestModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function closeWithdrawSuccessModal() {
+      const modal = document.getElementById("withdrawSuccessModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    async function submitWithdrawRequest() {
+      if (isWithdrawSubmitting) return;
+      const errAlert = document.getElementById("wdErrorAlert");
+      const loadingBox = document.getElementById("wdLoadingBox");
+      const actionsEl = document.getElementById("wdModalActions");
+      const amountInput = document.getElementById("wdAmountInput");
+
+      const availableVal = parseFloat(currentAffiliateData?.cards?.balance?.available || "0") || 0;
+      const requestedVal = parseFloat((amountInput?.value || "").replace(",", "."));
+      const payout = getConfiguredPayoutMethod();
+
+      if (errAlert) { errAlert.style.display = "none"; errAlert.textContent = ""; }
+
+      if (!payout) {
+        if (errAlert) { errAlert.textContent = "Configura prima un metodo di pagamento valido."; errAlert.style.display = "block"; }
+        return;
+      }
+      if (isNaN(requestedVal) || requestedVal < 50) {
+        if (errAlert) { errAlert.textContent = "Inserisci un importo valido (minimo 50,00 €)."; errAlert.style.display = "block"; }
+        return;
+      }
+      if (requestedVal > availableVal) {
+        if (errAlert) { errAlert.textContent = `L'importo non può superare il saldo disponibile (${formatCurrency(availableVal)} €).`; errAlert.style.display = "block"; }
+        return;
+      }
+
+      isWithdrawSubmitting = true;
+      if (loadingBox) loadingBox.style.display = "block";
+      if (actionsEl) actionsEl.style.display = "none";
+
+      const user = getAuthenticatedUser() || {};
+      const minLoadingDelay = new Promise(resolve => setTimeout(resolve, 2000));
+
+      try {
+        const apiPromise = fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "request_withdrawal",
+            email: user.email,
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            name: user.name || "",
+            amount: requestedVal.toFixed(2),
+            payoutMethod: payout
+          })
+        });
+
+        const [res] = await Promise.all([apiPromise, minLoadingDelay]);
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Errore durante il salvataggio della richiesta di prelievo.");
+        }
+
+        // Aggiorna saldo disponibile e storico prelievi immediatamente dopo conferma Supabase
+        await fetchAffiliationsData();
+        closeWithdrawRequestModal();
+
+        if (typeof BroadcastChannel !== "undefined") {
+          try {
+            const bc = new BroadcastChannel("barpilot_affiliates_sync");
+            bc.postMessage({ type: "withdrawal_updated", withdrawalId: data.withdrawal?.id });
+            bc.close();
+          } catch (_) {}
+        }
+
+        const formattedRequested = formatCurrency(requestedVal);
+        const bodyEl = document.getElementById("wdSuccessBodyText");
+        if (bodyEl) {
+          bodyEl.textContent = `La tua richiesta di prelievo di ${formattedRequested} € è stata ricevuta correttamente. Dopo l'approvazione e l'invio del pagamento, l'accredito sulla tua carta potrebbe richiedere circa 24 ore, a seconda della tua banca e del metodo di pagamento.`;
+        }
+        const successModal = document.getElementById("withdrawSuccessModal");
+        if (successModal) successModal.style.display = "flex";
+      } catch (err) {
+        if (errAlert) {
+          errAlert.textContent = err.message || "Impossibile inviare la richiesta. Riprova.";
+          errAlert.style.display = "block";
+        }
+      } finally {
+        isWithdrawSubmitting = false;
+        if (loadingBox) loadingBox.style.display = "none";
+        if (actionsEl) actionsEl.style.display = "flex";
+      }
     }
 
     // Azione: Copia Codice
@@ -2553,6 +2830,9 @@
           .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_commissions", filter: `affiliate_id=eq.${affiliateId}` }, () => {
             fetchAffiliationsData();
           })
+          .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_withdrawals", filter: `affiliate_id=eq.${affiliateId}` }, () => {
+            fetchAffiliationsData();
+          })
           .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bars" }, () => {
             fetchAffiliationsData();
           })
@@ -2575,7 +2855,7 @@
         try {
           const bc = new BroadcastChannel("barpilot_affiliates_sync");
           bc.onmessage = (ev) => {
-            if (ev.data && ev.data.type === "new_referral" && isAffiliateAuthenticated()) {
+            if (ev.data && (ev.data.type === "new_referral" || ev.data.type === "withdrawal_updated") && isAffiliateAuthenticated()) {
               fetchAffiliationsData();
             }
           };
