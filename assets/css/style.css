@@ -5127,7 +5127,7 @@ input:checked + .toggle-slider:before {
   position: fixed !important;
   bottom: 24px !important;
   right: 24px !important;
-  z-index: 999999 !important;
+  z-index: 1050 !important;
   display: none;
   align-items: center;
   gap: 8px;
@@ -5184,7 +5184,7 @@ input:checked + .toggle-slider:before {
     right: 18px !important;
     padding: 10px 16px !important;
     font-size: 13px !important;
-    z-index: 999999 !important;
+    z-index: 1050 !important;
     display: none;
     pointer-events: auto !important;
   }
