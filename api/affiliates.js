@@ -41,6 +41,128 @@ function getServiceRoleKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes('service_role') ? SUPABASE_KEY : null);
 }
 
+const MEDIA_BUCKET = 'barpilot-media';
+const mediaManifestCache = {};
+let mediaBucketReady = false;
+
+function sanitizeMediaToken(str) {
+  return String(str || 'default').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'default';
+}
+
+async function ensureMediaBucket(srKey) {
+  if (mediaBucketReady || !srKey) return mediaBucketReady;
+  try {
+    const base = SUPABASE_URL.replace(/\/$/, '');
+    const getRes = await fetch(`${base}/storage/v1/bucket/${MEDIA_BUCKET}`, {
+      headers: { 'apikey': srKey, 'Authorization': `Bearer ${srKey}` }
+    });
+    if (getRes.ok) {
+      mediaBucketReady = true;
+      return true;
+    }
+    const createRes = await fetch(`${base}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: {
+        'apikey': srKey,
+        'Authorization': `Bearer ${srKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id: MEDIA_BUCKET, name: MEDIA_BUCKET, public: true })
+    });
+    if (createRes.ok || createRes.status === 409) {
+      mediaBucketReady = true;
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+async function readMediaManifest(scope, srKey) {
+  const safeScope = sanitizeMediaToken(scope);
+  if (srKey) {
+    try {
+      const base = SUPABASE_URL.replace(/\/$/, '');
+      const res = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/manifests/${safeScope}.json?t=${Date.now()}`, {
+        headers: { 'apikey': srKey, 'Authorization': `Bearer ${srKey}` }
+      });
+      if (res.ok) {
+        const parsed = await res.json();
+        if (parsed && typeof parsed === 'object') {
+          mediaManifestCache[safeScope] = parsed;
+          return parsed;
+        }
+      }
+    } catch (_) {}
+  }
+  return mediaManifestCache[safeScope] || {};
+}
+
+async function writeMediaManifest(scope, manifest, srKey) {
+  const safeScope = sanitizeMediaToken(scope);
+  mediaManifestCache[safeScope] = manifest;
+  if (!srKey) return false;
+  try {
+    await ensureMediaBucket(srKey);
+    const base = SUPABASE_URL.replace(/\/$/, '');
+    const res = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/manifests/${safeScope}.json`, {
+      method: 'POST',
+      headers: {
+        'apikey': srKey,
+        'Authorization': `Bearer ${srKey}`,
+        'Content-Type': 'application/json',
+        'x-upsert': 'true'
+      },
+      body: JSON.stringify(manifest)
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function uploadImageToSupabaseStorage(scope, key, value, srKey) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('data:image/')) {
+    return trimmed;
+  }
+  if (!srKey) return trimmed;
+
+  const match = trimmed.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+  if (!match) return trimmed;
+
+  const mime = match[1];
+  const extRaw = mime.split('/')[1] || 'png';
+  const ext = extRaw.replace(/[^a-zA-Z0-9]/g, '').replace('jpeg', 'jpg') || 'png';
+  const buffer = Buffer.from(match[2], 'base64');
+
+  const safeScope = sanitizeMediaToken(scope);
+  const safeKey = sanitizeMediaToken(key);
+  const objectPath = `uploads/${safeScope}/${safeKey}_${Date.now()}.${ext}`;
+
+  try {
+    await ensureMediaBucket(srKey);
+    const base = SUPABASE_URL.replace(/\/$/, '');
+    const upRes = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}/${objectPath}`, {
+      method: 'POST',
+      headers: {
+        'apikey': srKey,
+        'Authorization': `Bearer ${srKey}`,
+        'Content-Type': mime,
+        'x-upsert': 'true',
+        'cache-control': '31536000'
+      },
+      body: buffer
+    });
+    if (upRes.ok) {
+      return `${base}/storage/v1/object/public/${MEDIA_BUCKET}/${objectPath}`;
+    }
+  } catch (err) {
+    console.warn('[Media Storage] Upload error:', err.message);
+  }
+  return trimmed;
+}
+
 async function fetchAllAuthUsers() {
   const srKey = getServiceRoleKey();
   if (!srKey) return [];
@@ -1173,6 +1295,14 @@ async function handleUserAffiliateRequest(req, res) {
     const store = readAffiliatesStore();
 
     if (req.method === 'GET') {
+      const mediaScope = (req.query.media_scope || '').trim();
+      if (mediaScope) {
+        const srKey = getServiceRoleKey();
+        const media = await readMediaManifest(mediaScope, srKey);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({ success: true, scope: mediaScope, media });
+      }
+
       const email = (req.query.email || '').trim().toLowerCase();
       const userId = (req.query.userId || '').trim();
       const barId = (req.query.barId || '').trim();
@@ -1490,6 +1620,44 @@ async function handleUserAffiliateRequest(req, res) {
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
       const action = body.action || 'verify_code';
+
+      if (action === 'save_media') {
+        const scope = (body.scope || 'default').trim();
+        const key = (body.key || '').trim();
+        const rawValue = body.value === null || body.value === undefined ? '' : String(body.value);
+
+        if (!key) {
+          return res.status(400).json({ error: 'Chiave immagine obbligatoria.' });
+        }
+        if (scope === 'superadmin') {
+          const pin = req.headers['x-admin-pin'] || body.adminPin || '';
+          if (pin !== '101540') {
+            return res.status(401).json({ error: 'PIN Super Admin non valido.' });
+          }
+        }
+
+        const srKey = getServiceRoleKey();
+        const manifest = { ...(await readMediaManifest(scope, srKey)) };
+        let finalUrl = '';
+
+        if (!rawValue.trim()) {
+          delete manifest[key];
+        } else {
+          finalUrl = await uploadImageToSupabaseStorage(scope, key, rawValue, srKey);
+          manifest[key] = finalUrl;
+        }
+
+        const persisted = await writeMediaManifest(scope, manifest, srKey);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          success: true,
+          persisted_cloud: persisted,
+          scope,
+          key,
+          url: finalUrl,
+          media: manifest
+        });
+      }
 
       if (action === 'verify_code') {
         const code = (body.code || '').trim().toUpperCase();

@@ -143,6 +143,9 @@ function initBarPilotApp() {
     handleHashRouting();
     window.addEventListener("hashchange", handleHashRouting);
   } catch (e) {}
+  if (typeof syncBarMediaFromCloud === "function") {
+    syncBarMediaFromCloud();
+  }
 }
 
 if (document.readyState === "loading") {
@@ -4092,6 +4095,89 @@ function compressProductImage(file, maxWidth, maxHeight, quality, callback) {
   reader.readAsDataURL(file);
 }
 
+function getActiveBarMediaScope() {
+  try {
+    const barId = window.db && typeof window.db.getActiveBarId === "function" ? window.db.getActiveBarId() : "default";
+    return "bar_" + String(barId || "default").replace(/[^a-zA-Z0-9._-]/g, "_");
+  } catch (_) {
+    return "bar_default";
+  }
+}
+
+async function persistBarMedia(key, value, onSynced) {
+  if (!key || !value) return;
+  try {
+    const scope = getActiveBarMediaScope();
+    const res = await fetch("/api/affiliates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save_media",
+        scope,
+        key: String(key),
+        value: String(value)
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.url && typeof onSynced === "function") {
+      onSynced(data.url);
+    }
+  } catch (err) {
+    console.warn("[Media Sync] Errore salvataggio persistente immagine:", err);
+  }
+}
+
+async function syncBarMediaFromCloud() {
+  try {
+    const scope = getActiveBarMediaScope();
+    const res = await fetch(`/api/affiliates?media_scope=${encodeURIComponent(scope)}&_=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const media = (data && data.media) || {};
+    const keys = Object.keys(media);
+    if (keys.length === 0 || !window.db) return;
+
+    let productsChanged = false;
+    const products = window.db.get("products") || [];
+    products.forEach((p) => {
+      const mKey = "product_" + p.id;
+      if (media[mKey] && p.image !== media[mKey]) {
+        p.image = media[mKey];
+        productsChanged = true;
+      }
+    });
+    if (productsChanged) {
+      window.db.set("products", products);
+      if (typeof renderProducts === "function") renderProducts();
+      if (typeof renderOrderCatalog === "function") renderOrderCatalog();
+    }
+
+    let staffChanged = false;
+    const staff = window.db.get("staff") || [];
+    staff.forEach((s) => {
+      const mKey = "staff_" + s.id;
+      if (media[mKey] && s.avatar !== media[mKey]) {
+        s.avatar = media[mKey];
+        staffChanged = true;
+      }
+    });
+    if (staffChanged) {
+      window.db.set("staff", staff);
+      if (typeof currentStaff !== "undefined" && currentStaff) {
+        const myKey = "staff_" + currentStaff.id;
+        if (media[myKey]) {
+          currentStaff.avatar = media[myKey];
+          const sidebarAvatar = document.getElementById("sidebarUserAvatar");
+          if (sidebarAvatar) sidebarAvatar.src = media[myKey];
+          const topbarAvatar = document.getElementById("topbarUserAvatar");
+          if (topbarAvatar) topbarAvatar.src = media[myKey];
+        }
+      }
+      if (typeof renderStaff === "function") renderStaff();
+    }
+  } catch (_) {}
+}
+
 function handleProductFileUpload(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
@@ -4327,6 +4413,16 @@ function handleAddProductSubmit(e) {
       try {
         localStorage.setItem("barpilot_saved_products", JSON.stringify(products));
       } catch (e) {}
+      persistBarMedia("product_" + products[idx].id, image, (cloudUrl) => {
+        const latest = window.db.get("products") || [];
+        const target = latest.find(p => p.id == products[idx].id);
+        if (target) {
+          target.image = cloudUrl;
+          window.db.set("products", latest);
+          renderProducts();
+          renderOrderCatalog();
+        }
+      });
       showToast(`✅ Prodotto "${name}" aggiornato con successo!`);
     }
   } else {
@@ -4351,6 +4447,16 @@ function handleAddProductSubmit(e) {
     try {
       localStorage.setItem("barpilot_saved_products", JSON.stringify(products));
     } catch (e) {}
+    persistBarMedia("product_" + newProduct.id, image, (cloudUrl) => {
+      const latest = window.db.get("products") || [];
+      const target = latest.find(p => p.id == newProduct.id);
+      if (target) {
+        target.image = cloudUrl;
+        window.db.set("products", latest);
+        renderProducts();
+        renderOrderCatalog();
+      }
+    });
     showToast(`✅ Prodotto "${name}" aggiunto al catalogo dal Proprietario!`);
   }
 
@@ -4796,6 +4902,28 @@ function saveSelectedAvatar() {
   }
 
   window.db.set("staff", staff);
+
+  const mediaStaffId = (currentAvatarTargetStaffId !== null && currentAvatarTargetStaffId !== undefined)
+    ? currentAvatarTargetStaffId
+    : (currentStaff ? currentStaff.id : null);
+  if (mediaStaffId !== null && mediaStaffId !== undefined) {
+    persistBarMedia("staff_" + mediaStaffId, pendingSelectedAvatarUrl, (cloudUrl) => {
+      const latestStaff = window.db.get("staff") || [];
+      const st = latestStaff.find(s => s.id === mediaStaffId);
+      if (st) {
+        st.avatar = cloudUrl;
+        window.db.set("staff", latestStaff);
+      }
+      if (currentStaff && currentStaff.id === mediaStaffId) {
+        currentStaff.avatar = cloudUrl;
+        const sb = document.getElementById("sidebarUserAvatar");
+        if (sb) sb.src = cloudUrl;
+        const tb = document.getElementById("topbarUserAvatar");
+        if (tb) tb.src = cloudUrl;
+      }
+      renderStaff();
+    });
+  }
 
   const sidebarAvatar = document.getElementById("sidebarUserAvatar");
   if (sidebarAvatar && currentStaff && currentStaff.avatar) {

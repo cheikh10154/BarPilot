@@ -943,14 +943,52 @@ class AdminConsole {
   }
 
   // ==========================================================================
-  // Super Admin Profile Avatar Management
+  // Super Admin Profile Avatar Management (Persistent via Supabase Storage + cache)
   // ==========================================================================
-  loadSuperAdminAvatar() {
+  async persistSuperAdminAvatar(value) {
+    try {
+      const res = await fetch("/api/affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          action: "save_media",
+          scope: "superadmin",
+          key: "avatar",
+          value: value || ""
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        localStorage.setItem("barpilot_superadmin_avatar", data.url);
+        document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = data.url; });
+        return data.url;
+      }
+    } catch (err) {
+      console.warn("[SuperAdmin Avatar] Errore salvataggio cloud:", err);
+    }
+    return value;
+  }
+
+  async loadSuperAdminAvatar() {
     const saved = localStorage.getItem("barpilot_superadmin_avatar");
     if (saved) {
-      const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => { img.src = saved; });
+      document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = saved; });
     }
+    try {
+      const res = await fetch(`/api/affiliates?media_scope=superadmin&_=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const cloudUrl = data && data.media && data.media.avatar;
+      if (cloudUrl) {
+        localStorage.setItem("barpilot_superadmin_avatar", cloudUrl);
+        document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = cloudUrl; });
+      } else if (saved) {
+        this.persistSuperAdminAvatar(saved);
+      }
+    } catch (_) {}
   }
 
   handleSuperAdminAvatarChange(event) {
@@ -963,33 +1001,34 @@ class AdminConsole {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const dataUrl = e.target.result;
       localStorage.setItem("barpilot_superadmin_avatar", dataUrl);
-      const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => { img.src = dataUrl; });
-      this.showToast("📷 Nuova foto profilo Super Admin salvata!");
+      document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = dataUrl; });
+      this.showToast("⏳ Salvataggio foto profilo su server in corso...");
+      await this.persistSuperAdminAvatar(dataUrl);
+      this.showToast("📷 Nuova foto profilo Super Admin salvata per sempre!");
     };
     reader.readAsDataURL(file);
   }
 
-  changeSuperAdminAvatarByUrl() {
+  async changeSuperAdminAvatarByUrl() {
     const current = localStorage.getItem("barpilot_superadmin_avatar") || "";
     const url = prompt("Inserisci l'indirizzo web (URL) della nuova foto profilo:", current.startsWith("data:") ? "" : current);
     if (url && url.trim()) {
       const cleanUrl = url.trim();
       localStorage.setItem("barpilot_superadmin_avatar", cleanUrl);
-      const avatars = document.querySelectorAll(".admin-avatar-img");
-      avatars.forEach(img => { img.src = cleanUrl; });
-      this.showToast("📷 Foto profilo Super Admin aggiornata con successo!");
+      document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = cleanUrl; });
+      await this.persistSuperAdminAvatar(cleanUrl);
+      this.showToast("📷 Foto profilo Super Admin salvata per sempre!");
     }
   }
 
-  resetSuperAdminAvatar() {
+  async resetSuperAdminAvatar() {
     const defaultUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop";
     localStorage.removeItem("barpilot_superadmin_avatar");
-    const avatars = document.querySelectorAll(".admin-avatar-img");
-    avatars.forEach(img => { img.src = defaultUrl; });
+    document.querySelectorAll(".admin-avatar-img").forEach(img => { img.src = defaultUrl; });
+    await this.persistSuperAdminAvatar("");
     this.showToast("↺ Foto profilo predefinita ripristinata.");
   }
 
