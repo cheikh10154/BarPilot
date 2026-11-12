@@ -294,7 +294,7 @@ function maskPaymentMethodReference(payout) {
 }
 
 async function sendAdminWithdrawalEmail({ firstName, lastName, email, amount, requestedAt, requestId, paymentMethodRef }) {
-  const adminEmail = 'cheikh10154@gmail.com';
+  const adminEmail = 'admin@barpilot.eu';
   const subject = '💰 BarPilot — Nuova richiesta di prelievo';
   const formattedAmt = Number(amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   const dateStr = new Date(requestedAt || Date.now()).toLocaleString('it-IT', { timeZone: 'Europe/Rome' });
@@ -1844,7 +1844,7 @@ async function handleUserAffiliateRequest(req, res) {
           });
         } catch (_) {}
 
-        // Invia email automatica al Super Admin (cheikh10154@gmail.com)
+        // Invia email automatica al Super Admin (admin@barpilot.eu)
         const emailResult = await sendAdminWithdrawalEmail({
           firstName: finalFirstName,
           lastName: finalLastName,
