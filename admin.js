@@ -9,216 +9,16 @@ const SUPABASE_ADMIN_CONFIG = {
 };
 
 // ============================================================================
-// Initial Seed Data Store (Bootstrap fallback)
+// Initial Seed Data Store (Bootstrap fallback azzerato a dati reali)
 // ============================================================================
 const DEFAULT_ADMIN_DATA = {
-  bars: [
-    {
-      id: "bar_centrale_01",
-      name: "Bar Centrale",
-      businessName: "Bar Centrale S.r.l.",
-      owner: "Marco Bianchi",
-      email: "marco@barcentrale.it",
-      phone: "+39 06 87654321",
-      address: "Via del Corso 142",
-      city: "Roma",
-      postalCode: "00186",
-      plan: "BarPilot Pro",
-      status: "active",
-      nextInvoice: "15 nov 2026",
-      monthlyRevenue: 59.00,
-      createdAt: "15 gen 2026",
-      lastAccess: "Oggi, 14:32",
-      avatar: "BC",
-      photo: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
-      piva: "09876543210",
-      taxCode: "BNCMRC78A15H501Z",
-      sdiCode: "M5UXCR1",
-      notes: "Cliente storico con fatturazione elettronica. 3 punti cassa e KDS cucina.",
-      trialDaysRemaining: 0
-    },
-    {
-      id: "bar_porto_02",
-      name: "Caffè del Porto",
-      businessName: "Porto Cafè D.I. di Giulia Rossi",
-      owner: "Giulia Rossi",
-      email: "giulia@caffedelporto.it",
-      phone: "+39 010 3344556",
-      address: "Calata Molo Vecchio 4",
-      city: "Genova",
-      postalCode: "16128",
-      plan: "BarPilot Pro",
-      status: "active",
-      nextInvoice: "28 nov 2026",
-      monthlyRevenue: 59.00,
-      createdAt: "28 giu 2026",
-      lastAccess: "Oggi, 11:15",
-      avatar: "CP",
-      photo: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&h=400&fit=crop",
-      piva: "01234567890",
-      taxCode: "RSSGLI82B45D969W",
-      sdiCode: "0000000",
-      notes: "Locale sul porto, attivo tutto l'anno con comande KDS e Google Pay.",
-      trialDaysRemaining: 0
-    },
-    {
-      id: "bar_dolce_03",
-      name: "La Dolce Vita",
-      businessName: "Dolce Vita Bar S.a.s.",
-      owner: "Alessandro Conti",
-      email: "alessandro@ladolcevita.it",
-      phone: "+39 081 7766554",
-      address: "Piazza Plebiscito 12",
-      city: "Napoli",
-      postalCode: "80132",
-      plan: "BarPilot Pro",
-      status: "trial",
-      nextInvoice: "19 nov 2026",
-      monthlyRevenue: 0.00,
-      createdAt: "05 nov 2026",
-      lastAccess: "Oggi, 09:40",
-      avatar: "DV",
-      photo: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop",
-      piva: "04567891234",
-      taxCode: "CNTLSN85C12F839K",
-      sdiCode: "SUBM70N",
-      notes: "In prova gratuita (14 giorni inclusi). Molto soddisfatto del KDS banco.",
-      trialDaysRemaining: 14
-    },
-    {
-      id: "bar_moderno_04",
-      name: "Bar Moderno",
-      businessName: "Moderno Bistrot S.n.c.",
-      owner: "Sara Romano",
-      email: "sara@barmoderno.it",
-      phone: "+39 051 9988776",
-      address: "Via Indipendenza 45",
-      city: "Bologna",
-      postalCode: "40121",
-      plan: "BarPilot Pro",
-      status: "past_due",
-      nextInvoice: "10 ott 2026",
-      monthlyRevenue: 59.00,
-      createdAt: "10 mar 2026",
-      lastAccess: "Ieri, 18:20",
-      avatar: "BM",
-      photo: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=600&h=400&fit=crop",
-      piva: "07891234567",
-      taxCode: "RMNSRA90D55A944P",
-      sdiCode: "0000000",
-      notes: "Carta scaduta nel Google Wallet. Sollecito automatico inviato.",
-      trialDaysRemaining: 0
-    }
-  ],
-  invoices: [
-    {
-      id: "inv_01",
-      number: "#2026-0001",
-      type: "recurring",
-      barId: "bar_centrale_01",
-      barName: "Bar Centrale",
-      businessName: "Bar Centrale S.r.l.",
-      ownerName: "Marco Bianchi",
-      date: "15 ott 2026",
-      dueDate: "15 ott 2026",
-      paidAt: "15 ott 2026, 10:14",
-      amount: 59.00,
-      subtotal: 48.36,
-      tax: 10.64,
-      plan: "BarPilot Pro",
-      status: "paid",
-      period: "15/10/2026 - 14/11/2026",
-      paymentMethod: "Stripe Billing (Carta di Credito)",
-      stripeInvoiceId: "in_1NxABC20260001"
-    },
-    {
-      id: "inv_02",
-      number: "#2026-0002",
-      type: "recurring",
-      barId: "bar_porto_02",
-      barName: "Caffè del Porto",
-      businessName: "Porto Cafè D.I. di Giulia Rossi",
-      ownerName: "Giulia Rossi",
-      date: "28 ott 2026",
-      dueDate: "28 ott 2026",
-      paidAt: "28 ott 2026, 11:20",
-      amount: 59.00,
-      subtotal: 48.36,
-      tax: 10.64,
-      plan: "BarPilot Pro",
-      status: "paid",
-      period: "28/10/2026 - 27/11/2026",
-      paymentMethod: "Stripe Billing (Google Pay)",
-      stripeInvoiceId: "in_1NxDEF20260002"
-    },
-    {
-      id: "inv_03",
-      number: "#2026-0003",
-      type: "recurring",
-      barId: "bar_moderno_04",
-      barName: "Bar Moderno",
-      businessName: "Moderno Bistrot S.n.c.",
-      ownerName: "Sara Romano",
-      date: "04 nov 2026",
-      dueDate: "10 nov 2026",
-      paidAt: null,
-      amount: 59.00,
-      subtotal: 48.36,
-      tax: 10.64,
-      plan: "BarPilot Pro",
-      status: "open",
-      period: "10/10/2026 - 09/11/2026",
-      paymentMethod: "Stripe Billing (Carta in sospeso)",
-      stripeInvoiceId: "in_1NxGHI20260003"
-    },
-    {
-      id: "inv_04",
-      number: "#2026-0004",
-      type: "post_trial",
-      barId: "bar_dolce_03",
-      barName: "La Dolce Vita",
-      businessName: "Dolce Vita Bar S.a.s.",
-      ownerName: "Alessandro Conti",
-      date: "19 nov 2026",
-      dueDate: "19 nov 2026",
-      paidAt: "19 nov 2026, 09:40",
-      amount: 59.00,
-      subtotal: 48.36,
-      tax: 10.64,
-      plan: "BarPilot Pro",
-      status: "paid",
-      period: "19/11/2026 - 18/12/2026",
-      trialPeriod: "05/11/2026 - 19/11/2026 (14 giorni)",
-      paymentMethod: "Stripe Billing (Carta di Credito)",
-      stripeInvoiceId: "in_1NxJKL20260004"
-    }
-  ],
-  subscriptions: [
-    { id: "sub_01", barId: "bar_centrale_01", barName: "Bar Centrale", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Carta (Stripe)", currentPeriodEnd: "15/11/2026", trialEnd: null },
-    { id: "sub_02", barId: "bar_porto_02", barName: "Caffè del Porto", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "active", paymentMethod: "Google Pay", currentPeriodEnd: "28/11/2026", trialEnd: null },
-    { id: "sub_03", barId: "bar_dolce_03", barName: "La Dolce Vita", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "trialing", paymentMethod: "Stripe Trial (14gg)", currentPeriodEnd: "19/11/2026", trialEnd: "19/11/2026" },
-    { id: "sub_04", barId: "bar_moderno_04", barName: "Bar Moderno", plan: "BarPilot Pro", price: 59.00, billingCycle: "Mensile", status: "past_due", paymentMethod: "Carta Scaduta (Stripe)", currentPeriodEnd: "10/10/2026", trialEnd: null }
-  ],
-  payments: [
-    { id: "pay_01", transactionId: "pi_stripe_9823412", barId: "bar_centrale_01", barName: "Bar Centrale", amount: 59.00, method: "card", status: "succeeded", date: "15 ott 2026, 10:14" },
-    { id: "pay_02", transactionId: "pi_stripe_8849201", barId: "bar_porto_02", barName: "Caffè del Porto", amount: 59.00, method: "google_pay", status: "succeeded", date: "28 ott 2026, 11:20" },
-    { id: "pay_03", transactionId: "pi_stripe_7739102", barId: "bar_moderno_04", barName: "Bar Moderno", amount: 59.00, method: "card", status: "failed", date: "04 nov 2026, 09:30" }
-  ],
-  tickets: [
-    { id: "tkt001", barId: "bar_centrale_01", barName: "Bar Centrale", contactEmail: "marco@barcentrale.it", subject: "Configurazione secondo tablet KDS cucina", category: "KDS Banco", status: "resolved", message: "Vorremmo affiancare un secondo tablet per le pizze oltre a quello delle bevande.", response: "Configurazione abilitata su multi-schermo KDS.", date: "24 ott 2026" },
-    { id: "tkt002", barId: "bar_moderno_04", barName: "Bar Moderno", contactEmail: "sara@barmoderno.it", subject: "Aggiornamento carta di credito aziendale", category: "Pagamenti", status: "open", message: "Abbiamo sostituito la carta di credito. Come possiamo aggiornare il metodo per l'addebito automatico?", response: null, date: "27 ott 2026" },
-    { id: "tkt003", barId: "bar_dolce_03", barName: "La Dolce Vita", contactEmail: "alessandro@ladolcevita.it", subject: "Integrazione stampante termica comande Bluetooth", category: "Hardware", status: "in_progress", message: "Avremmo bisogno del supporto per collegare la stampante termica Epson da 80mm.", response: "Guida inviata, in attesa di test del gestore.", date: "28 ott 2026" }
-  ],
-  auditLogs: [
-    { id: "log_01", adminId: "cheikh_superadmin", action: "settings_updated", entityType: "platform", entityId: "config", newValues: { trial_days: 14, default_plan: "BarPilot Pro" }, createdAt: "Oggi, 10:00" },
-    { id: "log_02", adminId: "system_stripe_webhook", action: "invoice_paid", entityType: "invoice", entityId: "inv_02", newValues: { amount: 59.00 }, createdAt: "28 ott 2026" }
-  ],
-  activities: [
-    { id: "act_01", type: "reg", title: "Nuovo bar registrato", desc: "La Dolce Vita (Napoli) - Prova 14 giorni", time: "Oggi, 09:40" },
-    { id: "act_02", type: "pay", title: "Pagamento confermato", desc: "Caffè del Porto - 59,00 €", time: "28 ott 2026" },
-    { id: "act_03", type: "inv", title: "Fattura emessa", desc: "Bar Centrale - n. #2026-0001", time: "15 ott 2026" },
-    { id: "act_04", type: "late", title: "Addebito fallito", desc: "Bar Moderno - Carta scaduta", time: "04 nov 2026" }
-  ],
+  bars: [],
+  invoices: [],
+  subscriptions: [],
+  payments: [],
+  tickets: [],
+  auditLogs: [],
+  activities: [],
   statsTimeRange: "all",
   settings: {
     superAdminName: "Cheikh Gueye",
@@ -266,7 +66,13 @@ class AdminConsole {
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Se contiene ancora i vecchi dati mock di test, azzera completamente ai dati reali
+        if (Array.isArray(parsed.bars) && parsed.bars.some(b => b.id === "bar_centrale_01" || b.id === "bar_porto_02")) {
+          localStorage.removeItem(this.storageKey);
+          return JSON.parse(JSON.stringify(DEFAULT_ADMIN_DATA));
+        }
+        return parsed;
       }
     } catch (e) {
       console.warn("Storage parse error:", e);
@@ -479,7 +285,7 @@ class AdminConsole {
             const viewRes = await fetch(`${this.supabaseConfig.url}/rest/v1/auth_users?select=*&order=created_at.desc`, { headers });
             if (viewRes.ok) {
               const viewUsers = await viewRes.json();
-              if (Array.isArray(viewUsers) && viewUsers.length > 0) {
+              if (Array.isArray(viewUsers)) {
                 this.data.bars = viewUsers.filter(u => this.isBarUser(u)).map(u => this.mapAuthUserToBar(u));
                 authUsersLoaded = true;
               }
@@ -495,13 +301,18 @@ class AdminConsole {
             const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
             if (barsRes.ok) {
               const remoteBars = await barsRes.json();
-              if (Array.isArray(remoteBars) && remoteBars.length > 0) {
+              if (Array.isArray(remoteBars)) {
                 this.data.bars = remoteBars.filter(rb => this.isBarUser(rb)).map(rb => this.mapAuthUserToBar(rb));
+                authUsersLoaded = true;
               }
             }
           } catch (barsErr) {
             console.warn("[Admin] Note /rest/v1/bars:", barsErr);
           }
+        }
+
+        if (!authUsersLoaded && (!this.data.bars || this.data.bars.length === 0)) {
+          this.data.bars = [];
         }
       } catch (e) {
         console.warn("[Supabase] Bars sync fallback:", e);
@@ -512,7 +323,7 @@ class AdminConsole {
         const subsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/subscriptions?select=*&order=created_at.desc`, { headers });
         if (subsRes.ok) {
           const remoteSubs = await subsRes.json();
-          if (Array.isArray(remoteSubs) && remoteSubs.length > 0) {
+          if (Array.isArray(remoteSubs)) {
             this.data.subscriptions = remoteSubs.map(rs => {
               const matchedBar = (this.data.bars || []).find(b => b.id === rs.bar_id);
               return {
@@ -529,7 +340,7 @@ class AdminConsole {
                 paymentMethod: rs.payment_method || "Stripe / Carta",
                 trialStart: rs.trial_start,
                 trialEnd: rs.trial_end ? new Date(rs.trial_end).toLocaleDateString('it-IT') : null,
-                currentPeriodEnd: rs.current_period_end ? new Date(rs.current_period_end).toLocaleDateString('it-IT') : '15/11/2026'
+                currentPeriodEnd: rs.current_period_end ? new Date(rs.current_period_end).toLocaleDateString('it-IT') : '-'
               };
             });
           }
@@ -543,7 +354,7 @@ class AdminConsole {
         const invRes = await fetch(`${this.supabaseConfig.url}/rest/v1/invoices?select=*&order=created_at.desc`, { headers });
         if (invRes.ok) {
           const remoteInvs = await invRes.json();
-          if (Array.isArray(remoteInvs) && remoteInvs.length > 0) {
+          if (Array.isArray(remoteInvs)) {
             this.data.invoices = remoteInvs.map(ri => {
               const matchedBar = (this.data.bars || []).find(b => b.id === ri.bar_id);
               const matchedSub = (this.data.subscriptions || []).find(s => s.barId === ri.bar_id || s.id === ri.subscription_id);
@@ -556,7 +367,7 @@ class AdminConsole {
                 barName: ri.bar_name || (matchedBar ? matchedBar.name : "Bar"),
                 businessName: matchedBar ? (matchedBar.businessName || matchedBar.name) : "Bar",
                 ownerName: matchedBar ? matchedBar.owner : "Titolare",
-                piva: matchedBar ? (matchedBar.piva || matchedBar.vat_number) : "09876543210",
+                piva: matchedBar ? (matchedBar.piva || matchedBar.vat_number) : "00000000000",
                 taxCode: matchedBar ? matchedBar.taxCode : "",
                 sdiCode: matchedBar ? (matchedBar.sdiCode || "0000000") : "0000000",
                 address: matchedBar ? matchedBar.address : "",
@@ -572,7 +383,7 @@ class AdminConsole {
                 amountPaid: Number(ri.amount_paid || (ri.status === 'paid' ? (ri.amount_total || 59.00) : 0)),
                 plan: "BarPilot Pro",
                 status: ri.status || "paid",
-                period: ri.period || (matchedSub ? `${matchedSub.trialEnd || 'Inizio'} - ${matchedSub.currentPeriodEnd || 'Fine'}` : "15/10/2026 - 14/11/2026"),
+                period: ri.period || (matchedSub ? `${matchedSub.trialEnd || 'Inizio'} - ${matchedSub.currentPeriodEnd || 'Fine'}` : "Periodo attivo"),
                 trialPeriod: matchedSub && matchedSub.trialStart ? `${new Date(matchedSub.trialStart).toLocaleDateString('it-IT')} - ${new Date(matchedSub.trialEnd).toLocaleDateString('it-IT')} (14 giorni)` : "14 giorni gratuiti inclusi",
                 paymentMethod: ri.payment_method || (matchedSub ? matchedSub.paymentMethod : "Stripe Billing (Carta)"),
                 stripeInvoiceId: ri.stripe_invoice_id || null,
@@ -590,7 +401,7 @@ class AdminConsole {
         const payRes = await fetch(`${this.supabaseConfig.url}/rest/v1/payments?select=*&order=created_at.desc`, { headers });
         if (payRes.ok) {
           const remotePays = await payRes.json();
-          if (Array.isArray(remotePays) && remotePays.length > 0) {
+          if (Array.isArray(remotePays)) {
             this.data.payments = remotePays.map(rp => {
               const matchedBar = (this.data.bars || []).find(b => b.id === rp.bar_id);
               return {
@@ -1230,14 +1041,82 @@ class AdminConsole {
   // Charts - Dynamic Visualizations from Real Supabase & Stripe Data
   // ==========================================================================
   renderCharts() {
+    const bars = (this.data.bars || []).filter(b => b.status !== "deleted");
+    const totalBars = bars.length;
+    const activeCount = bars.filter(b => b.status === "active").length;
+    const trialCount = bars.filter(b => b.status === "trial" || b.status === "trialing").length;
+    const lateCount = bars.filter(b => b.status === "past_due" || b.status === "late" || b.status === "unpaid").length;
+    const cancelledCount = bars.filter(b => b.status === "canceled" || b.status === "cancelled").length;
+
+    // 1. Donut Chart & Legend: Stato abbonamenti (Reale e azzerato in assenza di iscrizioni)
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    const calcPct = (cnt) => totalBars > 0 ? Math.round((cnt / totalBars) * 100) + "%" : "0%";
+
+    setTxt("donutTotalCount", totalBars);
+    setTxt("donutActiveCount", activeCount);
+    setTxt("donutActivePercent", calcPct(activeCount));
+    setTxt("donutTrialCount", trialCount);
+    setTxt("donutTrialPercent", calcPct(trialCount));
+    setTxt("donutLateCount", lateCount);
+    setTxt("donutLatePercent", calcPct(lateCount));
+    setTxt("donutCancelledCount", cancelledCount);
+    setTxt("donutCancelledPercent", calcPct(cancelledCount));
+
+    const donutWrap = document.getElementById("donutSvgWrap");
+    if (donutWrap) {
+      if (totalBars === 0) {
+        donutWrap.innerHTML = `
+          <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform:rotate(-90deg);">
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#232d3f" stroke-width="12" />
+          </svg>
+        `;
+      } else {
+        const circumference = 2 * Math.PI * 38; // ~238.76
+        const activeLen = (activeCount / totalBars) * circumference;
+        const trialLen = (trialCount / totalBars) * circumference;
+        const lateLen = (lateCount / totalBars) * circumference;
+        const cancelledLen = (cancelledCount / totalBars) * circumference;
+
+        let offset = 0;
+        const segments = [];
+
+        if (activeLen > 0) {
+          segments.push(`<circle cx="50" cy="50" r="38" fill="none" stroke="#10B981" stroke-width="12" stroke-dasharray="${activeLen} ${circumference}" stroke-dashoffset="${-offset}" />`);
+          offset += activeLen;
+        }
+        if (trialLen > 0) {
+          segments.push(`<circle cx="50" cy="50" r="38" fill="none" stroke="#3B82F6" stroke-width="12" stroke-dasharray="${trialLen} ${circumference}" stroke-dashoffset="${-offset}" />`);
+          offset += trialLen;
+        }
+        if (lateLen > 0) {
+          segments.push(`<circle cx="50" cy="50" r="38" fill="none" stroke="#EF4444" stroke-width="12" stroke-dasharray="${lateLen} ${circumference}" stroke-dashoffset="${-offset}" />`);
+          offset += lateLen;
+        }
+        if (cancelledLen > 0) {
+          segments.push(`<circle cx="50" cy="50" r="38" fill="none" stroke="#A855F7" stroke-width="12" stroke-dasharray="${cancelledLen} ${circumference}" stroke-dashoffset="${-offset}" />`);
+          offset += cancelledLen;
+        }
+
+        donutWrap.innerHTML = `
+          <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform:rotate(-90deg);">
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#1f2937" stroke-width="12" />
+            ${segments.join("")}
+          </svg>
+        `;
+      }
+    }
+
+    // 2. Crescita Iscritti (Area Chart)
     const areaWrap = document.getElementById("growthChartWrap");
     if (areaWrap) {
-      const bars = (this.data.bars || []).filter(b => b.status !== "deleted");
-      const totalCount = Math.max(bars.length, 1);
+      const totalCount = Math.max(bars.length, 0);
+      const yEnd = totalCount === 0 ? 110 : Math.max(20, 110 - Math.min(80, totalCount * 15));
+      const yMid = totalCount === 0 ? 110 : Math.max(30, 110 - Math.min(60, totalCount * 10));
 
-      // Calcola punti di crescita reali
-      const yEnd = 20;
-      const yMid = Math.max(30, 110 - Math.min(80, totalCount * 15));
       areaWrap.innerHTML = `
         <svg viewBox="0 0 360 140" style="width: 100%; height: 100%; overflow: visible;">
           <defs>
@@ -1248,45 +1127,41 @@ class AdminConsole {
           </defs>
           <line x1="20" y1="110" x2="350" y2="110" stroke="#232d3f" stroke-dasharray="3,3" />
           <line x1="20" y1="70" x2="350" y2="70" stroke="#232d3f" stroke-dasharray="3,3" />
-          <path d="M 20 110 Q 90 95, 170 ${yMid} T 280 ${yMid - 15} T 340 ${yEnd} L 340 120 L 20 120 Z" fill="url(#growthGrad)" />
-          <path d="M 20 110 Q 90 95, 170 ${yMid} T 280 ${yMid - 15} T 340 ${yEnd}" fill="none" stroke="#FF6B00" stroke-width="3" stroke-linecap="round" />
+          <path d="M 20 110 Q 90 110, 170 ${yMid} T 280 ${yMid} T 340 ${yEnd} L 340 120 L 20 120 Z" fill="url(#growthGrad)" />
+          <path d="M 20 110 Q 90 110, 170 ${yMid} T 280 ${yMid} T 340 ${yEnd}" fill="none" stroke="#FF6B00" stroke-width="3" stroke-linecap="round" />
           <circle cx="340" cy="${yEnd}" r="5" fill="#FF8A00" stroke="#fff" stroke-width="2" />
         </svg>
       `;
     }
 
+    // 3. Ricavi Mensili (Bar Chart)
     const barWrap = document.getElementById("revenueChartWrap");
     if (barWrap) {
       const months = ['Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov'];
       const payments = this.data.payments || [];
-      const now = new Date();
-
-      // Somma incassi reali per mese
-      const monthlyValues = [59, 118, 177, 118, 236, 177, 295]; // Default progression fallback
-      // Calcola dal payments ledger reale se disponibile
       const realSums = [0, 0, 0, 0, 0, 0, 0];
+
       payments.forEach(p => {
         if (p.status === 'succeeded') {
           const d = p.rawDate ? new Date(p.rawDate) : null;
           if (d) {
-            const m = d.getMonth(); // 0-11
-            // mappiamo a maggio-novembre (4 a 10)
+            const m = d.getMonth();
             if (m >= 4 && m <= 10) {
-              realSums[m - 4] += Number(p.amount) || 59;
+              realSums[m - 4] += Number(p.amount) || 0;
             }
           }
         }
       });
 
-      const maxVal = Math.max(...realSums.map((v, i) => v > 0 ? v : monthlyValues[i]), 100);
+      const maxVal = Math.max(...realSums, 50);
       barWrap.innerHTML = `
         <div style="display:flex; align-items:flex-end; justify-content:space-between; height:120px; gap:8px; padding-top:10px;">
           ${months.map((mName, idx) => {
-            const val = realSums[idx] > 0 ? realSums[idx] : monthlyValues[idx];
-            const h = Math.max(12, (val / maxVal) * 90);
+            const val = realSums[idx];
+            const h = val > 0 ? Math.max(12, (val / maxVal) * 90) : 6;
             return `
               <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
-                <div style="width:100%; background:linear-gradient(180deg, #FF8A00 0%, #FF6B00 100%); height:${h}px; border-radius:6px 6px 0 0; transition:height 0.4s ease;" title="${val.toFixed(2)} € incassati"></div>
+                <div style="width:100%; background:${val > 0 ? 'linear-gradient(180deg, #FF8A00 0%, #FF6B00 100%)' : '#232d3f'}; height:${h}px; border-radius:6px 6px 0 0; transition:height 0.4s ease;" title="${val.toFixed(2)} € incassati"></div>
                 <span style="font-size:10px; color:var(--text-muted); font-weight:700;">${mName}</span>
               </div>
             `;
@@ -1300,7 +1175,7 @@ class AdminConsole {
   // Render Overview Table
   // ==========================================================================
   renderOverviewTable() {
-    const tbody = document.getElementById("overviewBarsTableBody");
+    const tbody = document.getElementById("overviewBarsTableBody") || document.getElementById("overviewBarsTbody");
     if (!tbody) return;
 
     let filtered = this.data.bars.filter(bar => {
@@ -1432,7 +1307,7 @@ class AdminConsole {
 
     const list = this.data.subscriptions && this.data.subscriptions.length > 0 
       ? this.data.subscriptions 
-      : this.data.bars.map(b => ({
+      : (this.data.bars || []).map(b => ({
           id: 'sub_' + b.id,
           barId: b.id,
           barName: b.name,
@@ -1442,6 +1317,11 @@ class AdminConsole {
           currentPeriodEnd: b.nextInvoice,
           status: b.status === 'active' ? 'active' : 'trialing'
         }));
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;"><span>📋</span> Nessun abbonamento presente. I dati si aggiorneranno automaticamente alla registrazione di nuovi bar.</td></tr>`;
+      return;
+    }
 
     tbody.innerHTML = list.map(sub => {
       const isTrial = sub.status === "trialing" || sub.status === "trial";

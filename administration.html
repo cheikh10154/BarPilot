@@ -329,16 +329,16 @@
               <div class="kpi-card-top">
                 <div class="kpi-icon-wrap kpi-icon-purple">👥</div>
                 <div class="kpi-sparkline">
-                  <span class="spark-bar" style="height:40%;"></span>
-                  <span class="spark-bar" style="height:60%;"></span>
-                  <span class="spark-bar" style="height:85%;"></span>
+                  <span class="spark-bar" style="height:30%;"></span>
+                  <span class="spark-bar" style="height:50%;"></span>
+                  <span class="spark-bar" style="height:70%;"></span>
                   <span class="spark-bar" style="height:100%; background:#A855F7;"></span>
                 </div>
               </div>
               <div class="kpi-card-label">Bar totali</div>
-              <div class="kpi-card-value" id="kpiTotalBars">248</div>
+              <div class="kpi-card-value" id="kpiTotalBars">0</div>
               <div class="kpi-card-trend trend-up">
-                <span>↑</span> <span>+12%</span>
+                <span>0 registrati</span>
               </div>
             </div>
 
@@ -347,16 +347,16 @@
               <div class="kpi-card-top">
                 <div class="kpi-icon-wrap kpi-icon-green">🟢</div>
                 <div class="kpi-sparkline">
+                  <span class="spark-bar" style="height:30%;"></span>
                   <span class="spark-bar" style="height:50%;"></span>
                   <span class="spark-bar" style="height:70%;"></span>
-                  <span class="spark-bar" style="height:90%;"></span>
                   <span class="spark-bar" style="height:100%; background:#10B981;"></span>
                 </div>
               </div>
               <div class="kpi-card-label">Bar attivi</div>
-              <div class="kpi-card-value" id="kpiActiveBars">212</div>
+              <div class="kpi-card-value" id="kpiActiveBars">0</div>
               <div class="kpi-card-trend trend-up">
-                <span>↑</span> <span>+8%</span>
+                <span>0 abbonati</span>
               </div>
             </div>
 
@@ -365,16 +365,16 @@
               <div class="kpi-card-top">
                 <div class="kpi-icon-wrap kpi-icon-blue">⏱️</div>
                 <div class="kpi-sparkline">
-                  <span class="spark-bar" style="height:35%;"></span>
-                  <span class="spark-bar" style="height:55%;"></span>
-                  <span class="spark-bar" style="height:80%;"></span>
+                  <span class="spark-bar" style="height:30%;"></span>
+                  <span class="spark-bar" style="height:50%;"></span>
+                  <span class="spark-bar" style="height:70%;"></span>
                   <span class="spark-bar" style="height:100%; background:#3B82F6;"></span>
                 </div>
               </div>
               <div class="kpi-card-label">In prova gratuita</div>
-              <div class="kpi-card-value" id="kpiTrialBars">18</div>
+              <div class="kpi-card-value" id="kpiTrialBars">0</div>
               <div class="kpi-card-trend trend-up">
-                <span>↑</span> <span>+20%</span>
+                <span>0 in prova</span>
               </div>
             </div>
 
@@ -385,9 +385,9 @@
                 <span style="font-size:16px;">⚠️</span>
               </div>
               <div class="kpi-card-label">In ritardo pagamento</div>
-              <div class="kpi-card-value" id="kpiLateBars" style="color:#EF4444;">11</div>
+              <div class="kpi-card-value" id="kpiLateBars" style="color:#EF4444;">0</div>
               <div class="kpi-card-trend trend-alert">
-                <span>↑</span> <span>+37%</span>
+                <span>0 insoluti</span>
               </div>
             </div>
 
@@ -396,16 +396,16 @@
               <div class="kpi-card-top">
                 <div class="kpi-icon-wrap kpi-icon-gold">💰</div>
                 <div class="kpi-sparkline">
-                  <span class="spark-bar" style="height:45%;"></span>
-                  <span class="spark-bar" style="height:65%;"></span>
-                  <span class="spark-bar" style="height:85%;"></span>
+                  <span class="spark-bar" style="height:30%;"></span>
+                  <span class="spark-bar" style="height:50%;"></span>
+                  <span class="spark-bar" style="height:70%;"></span>
                   <span class="spark-bar" style="height:100%; background:#F59E0B;"></span>
                 </div>
               </div>
               <div class="kpi-card-label">Fatturato mensile</div>
-              <div class="kpi-card-value" id="kpiRevenue" style="color:#FFB800;">12.480 €</div>
+              <div class="kpi-card-value" id="kpiRevenue" style="color:#FFB800;">0,00 €</div>
               <div class="kpi-card-trend trend-up">
-                <span>↑</span> <span>+16%</span>
+                <span>MRR 0 € | ARR 0 €</span>
               </div>
             </div>
           </div>
@@ -437,7 +437,7 @@
                   <div class="donut-svg-wrap">
                     <div id="donutSvgWrap" style="width:100%; height:100%;"></div>
                     <div class="donut-center-text">
-                      <div class="donut-center-number">248</div>
+                      <div class="donut-center-number" id="donutTotalCount">0</div>
                       <div class="donut-center-label">Bar totali</div>
                     </div>
                   </div>
@@ -449,8 +449,8 @@
                         <span>Attivi</span>
                       </div>
                       <div class="donut-legend-right">
-                        <span class="donut-legend-count">212</span>
-                        <span class="donut-legend-percent">85%</span>
+                        <span class="donut-legend-count" id="donutActiveCount">0</span>
+                        <span class="donut-legend-percent" id="donutActivePercent">0%</span>
                       </div>
                     </div>
 
@@ -460,8 +460,8 @@
                         <span>Prova gratuita</span>
                       </div>
                       <div class="donut-legend-right">
-                        <span class="donut-legend-count">18</span>
-                        <span class="donut-legend-percent">7%</span>
+                        <span class="donut-legend-count" id="donutTrialCount">0</span>
+                        <span class="donut-legend-percent" id="donutTrialPercent">0%</span>
                       </div>
                     </div>
 
@@ -471,8 +471,8 @@
                         <span>In ritardo</span>
                       </div>
                       <div class="donut-legend-right">
-                        <span class="donut-legend-count">11</span>
-                        <span class="donut-legend-percent">4%</span>
+                        <span class="donut-legend-count" id="donutLateCount">0</span>
+                        <span class="donut-legend-percent" id="donutLatePercent">0%</span>
                       </div>
                     </div>
 
@@ -482,8 +482,8 @@
                         <span>Cancellati</span>
                       </div>
                       <div class="donut-legend-right">
-                        <span class="donut-legend-count">7</span>
-                        <span class="donut-legend-percent">3%</span>
+                        <span class="donut-legend-count" id="donutCancelledCount">0</span>
+                        <span class="donut-legend-percent" id="donutCancelledPercent">0%</span>
                       </div>
                     </div>
                   </div>
