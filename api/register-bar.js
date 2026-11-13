@@ -516,10 +516,10 @@ export default async function handler(req, res) {
               bonus_type: 'registration',
               amount: 5.00,
               currency: 'EUR',
-              status: 'available', // Bonus immediato +5,00 € nel saldo disponibile alla registrazione con prova gratuita
-              notes: 'Bonus registrazione +5,00 € (Prova gratuita 14 giorni avviata)',
+              status: 'pending', // REGOLA: finché in periodo di prova (< 14 giorni), i 5€ restano in attesa (NON accreditati al saldo disponibile)
+              notes: 'Bonus 5,00 € in attesa: verrà accreditato al superamento dei 14 giorni di prova con abbonamento attivo',
               trial_end_date: trialEnd.toISOString(),
-              available_at: now.toISOString(),
+              available_at: null,
               created_at: now.toISOString(),
               updated_at: now.toISOString()
             };
@@ -600,7 +600,7 @@ export default async function handler(req, res) {
           }
 
           if (referralCredited) {
-            console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, +5,00 € accreditati)`);
+            console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, 5,00 € in attesa al superamento dei 14 giorni con abbonamento attivo)`);
           }
         }
       } catch (affErr) {

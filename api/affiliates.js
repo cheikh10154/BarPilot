@@ -585,81 +585,152 @@ https://www.barpilot.eu/app/administration`;
 }
 
 /**
- * Aggiorna lo stato reale dei referral rispetto ai 14 giorni di prova:
- * - Se bar/abbonamento pagato attivo (e non disdetto) -> 'active'
- * - Se entro i 14 giorni di prova (anche se disdetto durante la prova) -> resta 'trial'
- * - A fine prova (>= 14 giorni) senza pagamento attivo -> 'cancelled' (se disdetto) o 'expired'
+ * Aggiorna lo stato reale dei referral rispetto ai 14 giorni di prova e pagamenti:
+ * REGOLA RIGIDA AFFILIAZIONI BARPILOT:
+ * Finché le app in periodo di prova non superano i 14 giorni di prova e salgono in abbonamento attivo,
+ * non verranno accreditati i 5€ (la commissione resta 'pending' e NON entra nel saldo disponibile).
+ * 
+ * - Se periodo di prova in corso (< 14 giorni):
+ *   lo stato referral è 'trial', e la relativa commissione resta 'pending' (NON accreditata / 0€ disponibile).
+ * - Se sono passati >= 14 giorni:
+ *   - Se l'app ha un abbonamento a pagamento attivo ('active') e non è disdetta:
+ *     lo stato referral diventa 'active' e la commissione viene accreditata passando a 'available' (+5,00€ disponibile).
+ *   - Se l'app non ha convertito l'abbonamento o è disdetta:
+ *     lo stato referral diventa 'cancelled' o 'expired' e la commissione diventa 'cancelled' (0€ accreditati).
  */
-async function evaluateReferralsLifecycle(referrals) {
+async function evaluateReferralsLifecycle(referrals, commissions = []) {
   const nowMs = Date.now();
+  const commMap = new Map();
+  (commissions || []).forEach(c => {
+    if (c.referral_id) commMap.set(c.referral_id, c);
+    if (c.bar_id) commMap.set(c.bar_id, c);
+  });
+
   for (const ref of (referrals || [])) {
+    const matchingComm = commMap.get(ref.id) || (ref.referred_bar_id && commMap.get(ref.referred_bar_id)) || null;
+
     if (ref.fraud_flag) {
       ref.status = 'cancelled';
+      if (matchingComm) {
+        matchingComm.status = 'cancelled';
+        matchingComm.notes = 'Annullato: segnalato come frode';
+      }
       continue;
     }
-    if (ref.status === 'trial' || ref.status === 'registered' || !ref.status) {
-      const regMs = new Date(ref.trial_start_date || ref.registered_at || ref.created_at || nowMs).getTime();
-      const trialEndMs = ref.trial_end_date ? new Date(ref.trial_end_date).getTime() : (regMs + 14 * 24 * 3600 * 1000);
-      let isPaidActive = false;
-      let barCancelled = Boolean(ref.cancel_at_period_end || ref.cancelled_at);
 
-      if (ref.referred_bar_id) {
-        try {
-          const bRes = await supabaseFetch(`bars?id=eq.${encodeURIComponent(ref.referred_bar_id)}&select=status,subscription_status,cancel_at_period_end`);
-          if (bRes.ok) {
-            const bData = await bRes.json();
-            if (bData && bData[0]) {
-              const bStatus = (bData[0].status || '').toLowerCase();
-              const subStatus = (bData[0].subscription_status || '').toLowerCase();
-              if (bStatus === 'canceled' || bStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'cancelled' || bData[0].cancel_at_period_end) {
-                barCancelled = true;
-              } else if ((bStatus === 'active' || subStatus === 'active') && !barCancelled) {
-                isPaidActive = true;
-              }
+    const regMs = new Date(ref.trial_start_date || ref.registered_at || ref.created_at || nowMs).getTime();
+    const trialEndMs = ref.trial_end_date ? new Date(ref.trial_end_date).getTime() : (regMs + 14 * 24 * 3600 * 1000);
+    const isTrialOngoing = nowMs < trialEndMs;
+
+    let isPaidActive = false;
+    let barCancelled = Boolean(ref.cancel_at_period_end || ref.cancelled_at);
+
+    if (ref.referred_bar_id) {
+      try {
+        const bRes = await supabaseFetch(`bars?id=eq.${encodeURIComponent(ref.referred_bar_id)}&select=status,subscription_status,cancel_at_period_end`);
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          if (bData && bData[0]) {
+            const bStatus = (bData[0].status || '').toLowerCase();
+            const subStatus = (bData[0].subscription_status || '').toLowerCase();
+            if (bStatus === 'canceled' || bStatus === 'cancelled' || subStatus === 'canceled' || subStatus === 'cancelled' || bData[0].cancel_at_period_end) {
+              barCancelled = true;
+            } else if ((bStatus === 'active' || subStatus === 'active') && !barCancelled) {
+              isPaidActive = true;
             }
           }
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
+    }
 
-      if (isPaidActive) {
+    if (isTrialOngoing) {
+      // REGOLA: finché l'app è in periodo di prova (< 14 giorni), resta in 'trial' e i 5€ NON sono accreditati ('pending')
+      ref.status = 'trial';
+      if (barCancelled && !ref.cancel_at_period_end) {
+        ref.cancel_at_period_end = true;
+      }
+      if (matchingComm && matchingComm.status !== 'paid') {
+        matchingComm.status = 'pending';
+        matchingComm.notes = 'Bonus 5,00 € in attesa: verrà accreditato al superamento dei 14 giorni di prova con abbonamento attivo';
+      }
+    } else {
+      // 14 giorni superati: salgono in abbonamento attivo?
+      if (isPaidActive && !barCancelled) {
         ref.status = 'active';
-        try {
-          await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: 'active', updated_at: new Date().toISOString() })
-          });
-        } catch (_) {}
-      } else if (nowMs < trialEndMs) {
-        ref.status = 'trial';
-        if (barCancelled && !ref.cancel_at_period_end) {
-          ref.cancel_at_period_end = true;
-          try {
-            await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ status: 'trial', cancel_at_period_end: true, updated_at: new Date().toISOString() })
-            });
-          } catch (_) {}
+        if (matchingComm && matchingComm.status !== 'paid') {
+          matchingComm.status = 'available';
+          matchingComm.notes = 'Bonus 5,00 € accreditato: 14 giorni di prova superati con abbonamento attivo';
         }
       } else {
         const nextStatus = barCancelled ? 'cancelled' : 'expired';
         ref.status = nextStatus;
-        try {
-          await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: nextStatus, updated_at: new Date().toISOString() })
-          });
-        } catch (_) {}
+        if (matchingComm && matchingComm.status !== 'paid') {
+          matchingComm.status = 'cancelled';
+          matchingComm.notes = 'Bonus non accreditato: prova scaduta senza abbonamento attivo o disdetto';
+        }
       }
     }
+
+    // Persistenza opzionale se record reali su Supabase
+    try {
+      if (ref.id && !ref.id.startsWith('ref_mimmo_test_')) {
+        await supabaseFetch(`affiliate_referrals?id=eq.${encodeURIComponent(ref.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: ref.status,
+            cancel_at_period_end: Boolean(ref.cancel_at_period_end),
+            updated_at: new Date().toISOString()
+          })
+        });
+      }
+      if (matchingComm && matchingComm.id && !matchingComm.id.startsWith('comm_mimmo_test_')) {
+        await supabaseFetch(`affiliate_commissions?id=eq.${encodeURIComponent(matchingComm.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: matchingComm.status,
+            notes: matchingComm.notes,
+            updated_at: new Date().toISOString()
+          })
+        });
+      }
+    } catch (_) {}
   }
+
+  // Sincronizza anche eventuali commissioni che non avevano un matching referral diretto
+  (commissions || []).forEach(c => {
+    if (c.status === 'paid') return;
+    const matchingRef = (referrals || []).find(r => r.id === c.referral_id || (r.referred_bar_id && r.referred_bar_id === c.bar_id));
+    if (matchingRef) {
+      if (matchingRef.status === 'trial') {
+        c.status = 'pending';
+      } else if (matchingRef.status === 'active') {
+        c.status = 'available';
+      } else if (['cancelled', 'expired'].includes(matchingRef.status)) {
+        c.status = 'cancelled';
+      }
+    } else if (c.trial_end_date && new Date(c.trial_end_date).getTime() > nowMs) {
+      c.status = 'pending';
+    }
+  });
 }
 
 async function recalculateAffiliateBalanceOnDb(affiliateId) {
   if (!affiliateId) return;
   try {
-    const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliateId)}&select=amount,status`);
+    let referrals = [];
+    try {
+      const refRes = await supabaseFetch(`affiliate_referrals?affiliate_id=eq.${encodeURIComponent(affiliateId)}`);
+      if (refRes.ok) referrals = await refRes.json();
+    } catch (_) {}
+
+    const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliateId)}`);
     if (!commRes.ok) return;
     const rows = await commRes.json();
+
+    if (referrals.length > 0) {
+      await evaluateReferralsLifecycle(referrals, rows);
+    }
+
     let available = 0, pending = 0, earned = 0;
     (rows || []).forEach(c => {
       const a = parseFloat(c.amount) || 0;
@@ -814,7 +885,7 @@ async function handleAdminRequest(req, res) {
         });
       }
 
-      await evaluateReferralsLifecycle(referrals);
+      await evaluateReferralsLifecycle(referrals, commissions);
 
       let totalEarnedOverall = 0;
       let totalAvailableOverall = 0;
@@ -1518,9 +1589,6 @@ async function handleUserAffiliateRequest(req, res) {
         }
       }
 
-      // Valuta lo stato reale dei referral rispetto ai 14 giorni di prova e pagamenti Stripe
-      await evaluateReferralsLifecycle(referrals);
-
       let commissions = [];
       let sqlCommOk = false;
       try {
@@ -1539,6 +1607,9 @@ async function handleUserAffiliateRequest(req, res) {
           commissions = store.commissions.filter(c => c.affiliate_id === affiliate.id);
         }
       }
+
+      // Valuta lo stato reale dei referral rispetto ai 14 giorni di prova e pagamenti Stripe
+      await evaluateReferralsLifecycle(referrals, commissions);
 
       let withdrawals = [];
       let sqlWdOk = false;
@@ -1606,15 +1677,16 @@ async function handleUserAffiliateRequest(req, res) {
           trial_end_date: matchingRef?.trial_end_date || c.trial_end_date || null,
           amount: parseFloat(c.amount || 0).toFixed(2),
           currency: c.currency || 'EUR',
-          status: c.status || 'available',
-          status_label: getStatusLabel(c.status)
+          status: c.status || (refStatus === 'active' ? 'available' : 'pending'),
+          status_label: getStatusLabel(c.status || (refStatus === 'active' ? 'available' : 'pending'))
         };
       });
 
       // Storico completo combinato (anche eventuali referral senza commissione ancora visibile)
       const historyRows = referrals.map(r => {
         const comm = commissions.find(c => c.referral_id === r.id || (r.referred_bar_id && c.bar_id === r.referred_bar_id));
-        const commStatus = comm ? comm.status : (r.fraud_flag ? 'cancelled' : 'available');
+        const defaultStatus = r.status === 'active' ? 'available' : 'pending';
+        const commStatus = comm ? comm.status : (r.fraud_flag ? 'cancelled' : defaultStatus);
         const bonusAmt = comm ? parseFloat(comm.amount || 5.00) : parseFloat(r.bonus_amount || 5.00);
         return {
           id: r.id,
@@ -1920,10 +1992,19 @@ async function handleUserAffiliateRequest(req, res) {
         }
 
         // Calcola saldo reale disponibile su commissioni - prelievi non rifiutati
+        let referrals = [];
+        try {
+          const refRes = await supabaseFetch(`affiliate_referrals?affiliate_id=eq.${encodeURIComponent(affiliate.id)}`);
+          if (refRes.ok) referrals = await refRes.json();
+        } catch (_) {}
+        if (referrals.length === 0) {
+          referrals = authUserMatched?.user_metadata?.affiliate_referrals || store.referrals.filter(r => r.affiliate_id === affiliate.id);
+        }
+
         let commissions = [];
         let sqlCommOk = false;
         try {
-          const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliate.id)}&select=amount,status`);
+          const commRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(affiliate.id)}`);
           if (commRes.ok) {
             commissions = await commRes.json();
             sqlCommOk = true;
@@ -1932,6 +2013,9 @@ async function handleUserAffiliateRequest(req, res) {
         if (!sqlCommOk || commissions.length === 0) {
           commissions = authUserMatched?.user_metadata?.affiliate_commissions || store.commissions.filter(c => c.affiliate_id === affiliate.id);
         }
+
+        // Valuta e sincronizza lo stato delle commissioni rispetto ai 14 giorni di prova
+        await evaluateReferralsLifecycle(referrals, commissions);
 
         let withdrawals = [];
         let sqlWdOk = false;
