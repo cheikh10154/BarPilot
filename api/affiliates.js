@@ -1001,6 +1001,9 @@ async function handleAdminRequest(req, res) {
         notifSeen.add(nId);
         notifSeen.add(w.id);
 
+        const storedNotif = (store.notifications || []).find(sn => sn.id === nId || sn.withdrawal_id === w.id);
+        const isRead = storedNotif ? Boolean(storedNotif.is_read) : !isPending;
+
         activeNotifications.push({
           id: nId,
           withdrawal_id: w.id,
@@ -1011,11 +1014,12 @@ async function handleAdminRequest(req, res) {
           name: wName,
           email: wEmail,
           amount: parseFloat(w.amount || 0),
+          payment_method_ref: w.payment_method_reference || '',
           status: w.status,
           type: isPending ? 'warning' : 'info',
           link: '#view-affiliates',
           created_at: w.requested_at || w.created_at || new Date().toISOString(),
-          is_read: !isPending
+          is_read: isRead
         });
       });
 
@@ -1095,6 +1099,46 @@ async function handleAdminRequest(req, res) {
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
       const action = body.action || '';
+
+      if (action === 'mark_notifications_read') {
+        const notifId = body.id;
+        store.notifications = store.notifications || [];
+        if (notifId) {
+          let found = false;
+          store.notifications.forEach(n => {
+            if (n.id === notifId || n.withdrawal_id === notifId) {
+              n.is_read = true;
+              found = true;
+            }
+          });
+          if (!found) {
+            store.notifications.push({
+              id: notifId,
+              is_read: true,
+              updated_at: new Date().toISOString()
+            });
+          }
+        } else {
+          store.notifications.forEach(n => { n.is_read = true; });
+        }
+        writeAffiliatesStore(store);
+
+        try {
+          if (notifId) {
+            await supabaseFetch(`admin_notifications?id=eq.${encodeURIComponent(notifId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ is_read: true })
+            });
+          } else {
+            await supabaseFetch('admin_notifications?is_read=eq.false', {
+              method: 'PATCH',
+              body: JSON.stringify({ is_read: true })
+            });
+          }
+        } catch (_) {}
+
+        return res.status(200).json({ success: true, message: "Notifiche contrassegnate come lette." });
+      }
 
       if (action === 'update_commission_rate') {
         const rate = parseFloat(body.rate);

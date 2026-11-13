@@ -2697,7 +2697,10 @@ class AdminConsole {
   // ==========================================================================
   // Platform Admin Notifications
   // ==========================================================================
-  toggleNotificationDropdown() {
+  toggleNotificationDropdown(e) {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
     const menu = document.getElementById("adminNotificationDropdown");
     if (menu) {
       const isOpen = menu.style.display === "flex";
@@ -2778,9 +2781,9 @@ class AdminConsole {
   async fetchNotifications() {
     let combinedNotifications = [];
 
-    // 1. Recupero prioritario da /api/admin-affiliates (sempre sincronizzato con prelievi reali)
+    // 1. Recupero da /api/admin-affiliates (sempre sincronizzato con prelievi ed eventi reali)
     try {
-      const res = await fetch("/api/admin-affiliates", {
+      const res = await fetch("/api/admin-affiliates?admin=true&pin=101540", {
         headers: { "x-admin-pin": "101540" }
       });
       if (res.ok) {
@@ -2828,6 +2831,72 @@ class AdminConsole {
       }
     } catch (_) {}
 
+    // 3. Fallback intelligente: se la lista è vuota o mancano eventi recenti, sintetizza dalle attività recenti e dati locali
+    if (combinedNotifications.length === 0) {
+      if (Array.isArray(this.cachedAdminWithdrawals) && this.cachedAdminWithdrawals.length > 0) {
+        this.cachedAdminWithdrawals.forEach(w => {
+          const isPending = ['pending', 'processing'].includes(w.status);
+          const fName = w.first_name || '';
+          const lName = w.last_name || '';
+          const name = [fName, lName].filter(Boolean).join(' ') || w.email || 'Affiliato';
+          combinedNotifications.push({
+            id: 'notif_wd_' + w.id,
+            withdrawal_id: w.id,
+            title: isPending ? 'Nuova richiesta di prelievo' : 'Richiesta di prelievo',
+            message: `${name} (${w.email}) ha richiesto il prelievo di ${w.amount} €. Metodo: ${w.payment_method_reference || 'Configurato'}`,
+            name,
+            email: w.email,
+            amount: w.amount,
+            payment_method_ref: w.payment_method_reference || '',
+            status: w.status,
+            type: isPending ? 'warning' : 'info',
+            link: '#view-affiliates',
+            created_at: w.requested_at || new Date().toISOString(),
+            is_read: !isPending
+          });
+        });
+      }
+
+      // Aggiungi notifiche per nuovi bar registrati
+      if (this.data && Array.isArray(this.data.bars)) {
+        this.data.bars.slice(0, 5).forEach(b => {
+          combinedNotifications.push({
+            id: 'notif_bar_' + b.id,
+            bar_id: b.id,
+            bar_name: b.name,
+            title: 'Registrazione Bar',
+            message: `Il bar "${b.name}" (${b.city || ''}) è attivo con il piano ${b.plan}. Email: ${b.email}`,
+            name: b.owner,
+            email: b.email,
+            plan: b.plan,
+            status: b.status,
+            type: 'success',
+            link: '#view-bars',
+            created_at: b.createdAt || new Date().toISOString(),
+            is_read: true
+          });
+        });
+      }
+
+      // Aggiungi notifiche per ticket di supporto aperti
+      if (this.data && Array.isArray(this.data.supportTickets)) {
+        this.data.supportTickets.filter(t => t.status === 'open').forEach(t => {
+          combinedNotifications.push({
+            id: 'notif_ticket_' + t.id,
+            ticket_id: t.id,
+            title: 'Ticket di assistenza aperto',
+            message: `Ticket da ${t.barName || t.author || 'Bar'}: "${t.subject || 'Richiesta assistenza'}"`,
+            email: t.email,
+            status: t.status,
+            type: 'info',
+            link: '#view-support',
+            created_at: t.date || new Date().toISOString(),
+            is_read: false
+          });
+        });
+      }
+    }
+
     this.notifications = combinedNotifications;
     this.renderNotifications();
   }
@@ -2851,8 +2920,8 @@ class AdminConsole {
 
     if (notifs.length === 0) {
       listWrap.innerHTML = `
-        <div style="padding:24px 16px; text-align:center; color:var(--text-muted); font-size:12.5px;">
-          <span>📭</span> Nessuna nuova notifica
+        <div style="padding:28px 16px; text-align:center; color:var(--text-muted); font-size:12.5px;">
+          <span style="font-size:22px; display:block; margin-bottom:6px;">📭</span> Nessuna nuova notifica
         </div>
       `;
       return;
@@ -2869,21 +2938,190 @@ class AdminConsole {
       const isUnread = !n.is_read;
       const icon = typeIcons[n.type] || "🔔";
       const timeStr = n.created_at ? new Date(n.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : "Recente";
-      const targetLink = n.link || (n.withdrawal_id ? '#view-affiliates' : '#view-bars');
+      const safeId = String(n.id || '').replace(/"/g, '&quot;');
       return `
-        <div class="notif-item ${isUnread ? 'unread' : ''}" onclick="window.adminConsole.handleNotificationClick('${n.id}', '${targetLink}')" style="cursor:pointer;">
-          <div class="notif-icon">${icon}</div>
-          <div class="notif-content">
-            <div class="notif-title">
-              <span>${this.escapeHtml(n.title)}</span>
-              ${isUnread ? '<span style="width:7px; height:7px; border-radius:50%; background:#FF8A24; display:inline-block;"></span>' : ''}
+        <div class="notif-item ${isUnread ? 'unread' : ''}" data-notif-id="${safeId}" style="cursor:pointer; display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.15s ease;">
+          <div class="notif-icon" style="font-size:18px; width:34px; height:34px; border-radius:10px; background:var(--bg-card-secondary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">${icon}</div>
+          <div class="notif-content" style="flex:1; min-width:0;">
+            <div class="notif-title" style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:#fff; gap:6px;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.escapeHtml(n.title || 'Notifica')}</span>
+              ${isUnread ? '<span style="width:7px; height:7px; border-radius:50%; background:#FF8A24; display:inline-block; flex-shrink:0;" title="Non letta"></span>' : ''}
             </div>
-            <div class="notif-msg">${this.escapeHtml(n.message)}</div>
-            <div class="notif-time">${timeStr}</div>
+            <div class="notif-msg" style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:3px; word-break:break-word;">${this.escapeHtml(n.message || '')}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; font-size:10.5px; color:#64748b;">
+              <span>${timeStr}</span>
+              <span style="color:var(--primary); font-weight:700; display:flex; align-items:center; gap:2px;">Apri per dettagli ↗</span>
+            </div>
           </div>
         </div>
       `;
     }).join("");
+
+    // Registra listener per click su ogni elemento per aprire il dettaglio
+    listWrap.querySelectorAll(".notif-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const nId = item.getAttribute("data-notif-id");
+        this.openNotificationDetailModal(nId);
+      });
+    });
+  }
+
+  openNotificationDetailModal(id) {
+    const notif = (this.notifications || []).find(n => String(n.id) === String(id));
+    if (!notif) return;
+
+    // Segna come letta
+    notif.is_read = true;
+    this.renderNotifications();
+
+    // Chiudi il menu a tendina
+    const menu = document.getElementById("adminNotificationDropdown");
+    if (menu) menu.style.display = "none";
+
+    // Chiama endpoint per salvare stato di lettura
+    try {
+      fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({ action: "mark_notifications_read", id: notif.id })
+      });
+    } catch (_) {}
+
+    this.activeNotification = notif;
+
+    const modal = document.getElementById("notificationDetailModal");
+    if (!modal) return;
+
+    const typeIcons = {
+      success: "🟢",
+      warning: "💸",
+      danger: "🚨",
+      info: "ℹ️"
+    };
+
+    const iconEl = document.getElementById("notifDetailModalIcon");
+    if (iconEl) iconEl.textContent = typeIcons[notif.type] || "🔔";
+
+    const titleEl = document.getElementById("notifDetailModalTitle");
+    if (titleEl) titleEl.textContent = notif.title || "Notifica di sistema";
+
+    const timeEl = document.getElementById("notifDetailModalTime");
+    if (timeEl) {
+      timeEl.textContent = notif.created_at 
+        ? `Ricevuta il ${new Date(notif.created_at).toLocaleString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+        : "Recente";
+    }
+
+    const badgeEl = document.getElementById("notifDetailModalBadge");
+    if (badgeEl) {
+      badgeEl.className = "status-pill status-active";
+      badgeEl.textContent = "Letta";
+    }
+
+    const catEl = document.getElementById("notifDetailModalCategory");
+    if (catEl) {
+      if (notif.withdrawal_id) catEl.textContent = "Richiesta Prelievo Affiliazione";
+      else if (notif.bar_id || (notif.link && notif.link.includes('bars'))) catEl.textContent = "Registrazione / Gestione Bar";
+      else if (notif.ticket_id || (notif.link && notif.link.includes('support'))) catEl.textContent = "Ticket di Assistenza";
+      else if (notif.link && notif.link.includes('payments')) catEl.textContent = "Abbonamento & Pagamenti";
+      else catEl.textContent = "Notifica Super Admin";
+    }
+
+    const msgEl = document.getElementById("notifDetailModalMessage");
+    if (msgEl) msgEl.textContent = notif.message || "";
+
+    // Metadata correlati
+    const metaWrap = document.getElementById("notifDetailModalMetadataWrap");
+    const metaList = document.getElementById("notifDetailModalMetadataList");
+    if (metaWrap && metaList) {
+      const items = [];
+      if (notif.withdrawal_id) {
+        items.push(`<div><span style="color:var(--text-muted);">ID Richiesta Prelievo:</span> <code style="color:#A855F7; margin-left:4px;">${this.escapeHtml(notif.withdrawal_id)}</code></div>`);
+      }
+      if (notif.name || notif.first_name || notif.last_name) {
+        const fullName = notif.name || [notif.first_name, notif.last_name].filter(Boolean).join(" ");
+        items.push(`<div><span style="color:var(--text-muted);">Affiliato / Utente:</span> <strong style="margin-left:4px;">${this.escapeHtml(fullName)}</strong></div>`);
+      }
+      if (notif.email) {
+        items.push(`<div><span style="color:var(--text-muted);">Email:</span> <span style="color:var(--primary); font-weight:600; margin-left:4px;">${this.escapeHtml(notif.email)}</span></div>`);
+      }
+      if (notif.amount) {
+        const amtFmt = typeof notif.amount === 'number' ? `${notif.amount.toFixed(2)} €` : `${notif.amount} €`;
+        items.push(`<div><span style="color:var(--text-muted);">Importo Richiesto:</span> <strong style="color:#10B981; margin-left:4px;">${amtFmt}</strong></div>`);
+      }
+      if (notif.payment_method_ref || notif.payment_method_reference) {
+        items.push(`<div><span style="color:var(--text-muted);">Metodo di Accredito:</span> <span style="margin-left:4px;">${this.escapeHtml(notif.payment_method_ref || notif.payment_method_reference)}</span></div>`);
+      }
+      if (notif.bar_name) {
+        items.push(`<div><span style="color:var(--text-muted);">Nome Bar:</span> <strong style="margin-left:4px;">${this.escapeHtml(notif.bar_name)}</strong></div>`);
+      }
+      if (notif.plan) {
+        items.push(`<div><span style="color:var(--text-muted);">Piano:</span> <span style="color:#FF8A24; font-weight:700; margin-left:4px;">${this.escapeHtml(notif.plan)}</span></div>`);
+      }
+      if (notif.status) {
+        items.push(`<div><span style="color:var(--text-muted);">Stato attuale:</span> <span style="text-transform:capitalize; font-weight:700; margin-left:4px;">${this.escapeHtml(notif.status)}</span></div>`);
+      }
+
+      if (items.length > 0) {
+        metaList.innerHTML = items.join("");
+        metaWrap.style.display = "block";
+      } else {
+        metaWrap.style.display = "none";
+      }
+    }
+
+    const actionBtn = document.getElementById("notifDetailModalActionBtn");
+    if (actionBtn) {
+      const targetLink = notif.link || (notif.withdrawal_id ? '#view-affiliates' : (notif.bar_id ? '#view-bars' : ''));
+      if (targetLink) {
+        actionBtn.style.display = "inline-flex";
+        if (notif.withdrawal_id) {
+          actionBtn.textContent = "Gestisci Prelievo nei dettagli ›";
+        } else if (targetLink.includes('affiliates')) {
+          actionBtn.textContent = "Vai alla sezione Affiliazioni ›";
+        } else if (targetLink.includes('bars')) {
+          actionBtn.textContent = "Vai alla sezione Bar ›";
+        } else if (targetLink.includes('payments')) {
+          actionBtn.textContent = "Vai alla sezione Pagamenti ›";
+        } else if (targetLink.includes('support')) {
+          actionBtn.textContent = "Vai al Supporto ›";
+        } else {
+          actionBtn.textContent = "Vai alla sezione correlata ›";
+        }
+      } else {
+        actionBtn.style.display = "none";
+      }
+    }
+
+    modal.classList.add("active");
+  }
+
+  closeNotificationDetailModal() {
+    const modal = document.getElementById("notificationDetailModal");
+    if (modal) modal.classList.remove("active");
+  }
+
+  executeNotificationAction() {
+    const notif = this.activeNotification;
+    this.closeNotificationDetailModal();
+    if (!notif) return;
+
+    const targetLink = notif.link || (notif.withdrawal_id ? '#view-affiliates' : '#view-bars');
+    const cleanView = targetLink.replace("#view-", "").replace("#", "");
+    this.switchView(cleanView);
+
+    if (cleanView === "affiliates" || notif.withdrawal_id) {
+      setTimeout(() => {
+        const wTable = document.getElementById("adminWithdrawalsTableBody");
+        if (wTable) {
+          wTable.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+    }
   }
 
   async markAllNotificationsRead() {
@@ -2910,40 +3148,11 @@ class AdminConsole {
         body: JSON.stringify({ is_read: true })
       });
     } catch (_) {}
-    this.showToast("Notifiche contrassegnate come lette");
+    this.showToast("Tutte le notifiche sono state contrassegnate come lette");
   }
 
-  async handleNotificationClick(id, link) {
-    const notif = (this.notifications || []).find(n => n.id === id);
-    if (notif) notif.is_read = true;
-    this.renderNotifications();
-
-    const menu = document.getElementById("adminNotificationDropdown");
-    if (menu) menu.style.display = "none";
-
-    try {
-      fetch("/api/admin-affiliates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-pin": "101540"
-        },
-        body: JSON.stringify({ action: "mark_notifications_read", id })
-      });
-    } catch (_) {}
-
-    if (link) {
-      const cleanView = link.replace("#view-", "").replace("#", "");
-      this.switchView(cleanView);
-      if (cleanView === "affiliates" || (notif && notif.withdrawal_id)) {
-        setTimeout(() => {
-          const wTable = document.getElementById("adminWithdrawalsTableBody");
-          if (wTable) {
-            wTable.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 120);
-      }
-    }
+  handleNotificationClick(id, link) {
+    this.openNotificationDetailModal(id);
   }
 
   // ==========================================================================
