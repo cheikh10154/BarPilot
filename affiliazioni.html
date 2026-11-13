@@ -2839,7 +2839,15 @@
         if (typeof BroadcastChannel !== "undefined") {
           try {
             const bc = new BroadcastChannel("barpilot_affiliates_sync");
-            bc.postMessage({ type: "withdrawal_updated", withdrawalId: data.withdrawal?.id });
+            bc.postMessage({
+              type: "new_withdrawal",
+              withdrawalId: data.withdrawal?.id,
+              amount: requestedVal.toFixed(2),
+              email: user.email,
+              firstName: user.firstName || "",
+              lastName: user.lastName || "",
+              name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+            });
             bc.close();
           } catch (_) {}
         }

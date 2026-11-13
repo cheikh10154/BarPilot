@@ -1091,6 +1091,25 @@ class AdminConsole {
         }
       });
     });
+
+    // Sincronizzazione in tempo reale cross-tab delle richieste di prelievo affiliazioni
+    if (typeof BroadcastChannel !== "undefined" && !this.affiliatesChannelBound) {
+      try {
+        this.affiliatesChannel = new BroadcastChannel("barpilot_affiliates_sync");
+        this.affiliatesChannel.onmessage = (ev) => {
+          if (ev.data && (ev.data.type === "new_withdrawal" || ev.data.type === "withdrawal_updated")) {
+            const affName = ev.data.name || [ev.data.firstName, ev.data.lastName].filter(Boolean).join(" ") || "Affiliato";
+            const amtStr = ev.data.amount ? ` di ${ev.data.amount} €` : "";
+            this.showToast(`💸 Nuova richiesta di prelievo: ${affName}${amtStr}!`);
+            this.renderAffiliatesView();
+            if (typeof this.fetchNotifications === "function") {
+              this.fetchNotifications();
+            }
+          }
+        };
+        this.affiliatesChannelBound = true;
+      } catch (_) {}
+    }
   }
 
   switchView(viewId) {
