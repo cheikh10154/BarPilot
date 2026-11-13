@@ -875,6 +875,13 @@ class AdminConsole {
     this.renderAuditLogsTable();
     this.handleHashRouting();
     window.addEventListener("hashchange", () => this.handleHashRouting());
+    this.fetchNotifications();
+    this.renderAffiliatesView();
+    if (!this.notifPollTimer) {
+      this.notifPollTimer = setInterval(() => {
+        this.fetchNotifications();
+      }, 20000);
+    }
   }
 
   handleHashRouting() {
@@ -1119,28 +1126,16 @@ class AdminConsole {
       link.classList.toggle("active", link.getAttribute("data-view") === viewId);
     });
 
-    const titles = {
-      overview: { title: "", sub: "" },
-      bars: { title: "Bar Iscritti", sub: "Elenco completo e gestione dei locali registrati sulla piattaforma." },
-      subscriptions: { title: "Abbonamenti & Scadenze", sub: "Monitoraggio dei rinnovi, canoni mensili di 59 € e date di scadenza." },
-      invoices: { title: "Fatturazione & Ricevute", sub: "Storico fatture emesse, pagate e da riscuotere." },
-      payments: { title: "Gateway & Pagamenti", sub: "Registro transazioni via Stripe, Google Pay e Carte." },
-      stats: { title: "Statistiche & Crescita", sub: "Analisi di redditività MRR, ARR e andamento abbonati." },
-      affiliates: { title: "Programma Affiliazioni", sub: "Gestione affiliati, codici univoci, regole economiche e stati commissioni." },
-      support: { title: "Centro Supporto & Ticket", sub: "Gestione richieste d'assistenza, KDS e configurazioni dai bar." },
-      settings: { title: "Impostazioni Piattaforma", sub: "Configurazione prezzi, dati aziendali e sincronizzazione Supabase." }
-    };
-
-    const info = titles[viewId] || { title: "Admin Console", sub: "Pannello di controllo BarPilot" };
+    // Rimosso titolo e sottotitolo da ogni pagina come da richiesta utente
     const tTitle = document.getElementById("topbarTitle");
     const tSub = document.getElementById("topbarSubtitle");
     if (tTitle) {
-      tTitle.textContent = info.title;
-      tTitle.style.display = info.title ? "" : "none";
+      tTitle.textContent = "";
+      tTitle.style.display = "none";
     }
     if (tSub) {
-      tSub.textContent = info.sub;
-      tSub.style.display = info.sub ? "" : "none";
+      tSub.textContent = "";
+      tSub.style.display = "none";
     }
 
     document.querySelectorAll(".page-view").forEach(page => {
@@ -2695,22 +2690,128 @@ class AdminConsole {
     }
   }
 
+  updateAffiliatesSidebarBadge(pendingCount) {
+    const navBtn = document.querySelector('.nav-link[data-view="affiliates"]');
+    if (!navBtn) return;
+    let badge = document.getElementById("affiliatesNavBadge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.id = "affiliatesNavBadge";
+      badge.className = "nav-badge";
+      badge.style.cssText = "background:#FF8A24; color:#fff; border-radius:10px; padding:2px 7px; font-size:11px; font-weight:800; margin-left:auto; margin-right:8px;";
+      const chevron = navBtn.querySelector(".nav-link-chevron");
+      if (chevron) {
+        navBtn.insertBefore(badge, chevron);
+      } else {
+        navBtn.appendChild(badge);
+      }
+    }
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  updatePendingWithdrawalBanner(pendingWithdrawals) {
+    let container = document.getElementById("adminPendingWithdrawalBannerContainer");
+    if (!container) {
+      const mainContent = document.querySelector(".content-body");
+      if (!mainContent) return;
+      container = document.createElement("div");
+      container.id = "adminPendingWithdrawalBannerContainer";
+      container.style.cssText = "padding: 0 24px 16px 24px;";
+      mainContent.insertBefore(container, mainContent.firstChild);
+    }
+
+    if (!Array.isArray(pendingWithdrawals) || pendingWithdrawals.length === 0) {
+      container.innerHTML = "";
+      container.style.display = "none";
+      return;
+    }
+
+    container.style.display = "block";
+    const count = pendingWithdrawals.length;
+    const latest = pendingWithdrawals[0];
+    const name = [latest.first_name, latest.last_name].filter(Boolean).join(" ").trim() || latest.affiliate_name || latest.email || "Affiliato";
+    const amt = this.formatCurrency(latest.amount || 0);
+
+    container.innerHTML = `
+      <div style="background:rgba(255,138,36,0.12); border:1px solid rgba(255,138,36,0.45); border-radius:12px; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; box-shadow:0 4px 18px rgba(0,0,0,0.25);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:24px;">💸</span>
+          <div>
+            <div style="font-size:13.5px; font-weight:800; color:#FF8A24;">
+              ${count === 1 ? '1 richiesta di prelievo in attesa' : `${count} richieste di prelievo in attesa`}
+            </div>
+            <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">
+              <strong>${this.escapeHtml(name)}</strong> (${this.escapeHtml(latest.email)}) ha richiesto il prelievo di <span style="color:#10B981; font-weight:800;">${amt} €</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-primary-orange" onclick="window.adminConsole.switchView('affiliates'); setTimeout(() => { const el = document.getElementById('adminWithdrawalsTableBody'); if (el) el.scrollIntoView({ behavior:'smooth', block:'center'}); }, 100);" style="padding:7px 16px; font-size:12px; height:auto; white-space:nowrap;">
+          Gestisci prelievi (${count}) ›
+        </button>
+      </div>
+    `;
+  }
+
   async fetchNotifications() {
+    let combinedNotifications = [];
+
+    // 1. Recupero prioritario da /api/admin-affiliates (sempre sincronizzato con prelievi reali)
     try {
-      const res = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?select=*&order=created_at.desc&limit=30`, {
+      const res = await fetch("/api/admin-affiliates", {
+        headers: { "x-admin-pin": "101540" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          if (Array.isArray(data.notifications)) {
+            combinedNotifications.push(...data.notifications);
+          }
+          if (Array.isArray(data.withdrawals)) {
+            this.cachedAdminWithdrawals = data.withdrawals;
+            const pendingList = data.withdrawals.filter(w => ['pending', 'processing'].includes(w.status));
+            this.updateAffiliatesSidebarBadge(pendingList.length);
+            this.updatePendingWithdrawalBanner(pendingList);
+
+            if (pendingList.length > 0 && !this.withdrawalAlertShown) {
+              this.withdrawalAlertShown = true;
+              const first = pendingList[0];
+              const pName = [first.first_name, first.last_name].filter(Boolean).join(" ").trim() || first.email;
+              this.showToast(`💸 Avviso: ${pendingList.length} richiesta/e di prelievo in attesa! Ultima da ${pName} (${first.amount} €)`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[Admin] Errore fetch /api/admin-affiliates:", e);
+    }
+
+    // 2. Fallback Supabase REST admin_notifications
+    try {
+      const sbRes = await fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?select=*&order=created_at.desc&limit=30`, {
         headers: {
           "apikey": this.supabaseConfig.anonKey,
           "Authorization": `Bearer ${this.supabaseConfig.anonKey}`
         }
       });
-      if (res.ok) {
-        const rows = await res.json();
+      if (sbRes.ok) {
+        const rows = await sbRes.json();
         if (Array.isArray(rows)) {
-          this.notifications = rows;
-          this.renderNotifications();
+          rows.forEach(n => {
+            if (!combinedNotifications.some(ex => ex.id === n.id)) {
+              combinedNotifications.push(n);
+            }
+          });
         }
       }
-    } catch (e) {}
+    } catch (_) {}
+
+    this.notifications = combinedNotifications;
+    this.renderNotifications();
   }
 
   renderNotifications() {
@@ -2741,7 +2842,7 @@ class AdminConsole {
 
     const typeIcons = {
       success: "🟢",
-      warning: "⚠️",
+      warning: "💸",
       danger: "🚨",
       info: "ℹ️"
     };
@@ -2750,15 +2851,16 @@ class AdminConsole {
       const isUnread = !n.is_read;
       const icon = typeIcons[n.type] || "🔔";
       const timeStr = n.created_at ? new Date(n.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : "Recente";
+      const targetLink = n.link || (n.withdrawal_id ? '#view-affiliates' : '#view-bars');
       return `
-        <div class="notif-item ${isUnread ? 'unread' : ''}" onclick="window.adminConsole.handleNotificationClick('${n.id}', '${n.link || '#view-bars'}')">
+        <div class="notif-item ${isUnread ? 'unread' : ''}" onclick="window.adminConsole.handleNotificationClick('${n.id}', '${targetLink}')" style="cursor:pointer;">
           <div class="notif-icon">${icon}</div>
           <div class="notif-content">
             <div class="notif-title">
-              <span>${n.title}</span>
-              ${isUnread ? '<span style="width:7px; height:7px; border-radius:50%; background:#FF6B00; display:inline-block;"></span>' : ''}
+              <span>${this.escapeHtml(n.title)}</span>
+              ${isUnread ? '<span style="width:7px; height:7px; border-radius:50%; background:#FF8A24; display:inline-block;"></span>' : ''}
             </div>
-            <div class="notif-msg">${n.message}</div>
+            <div class="notif-msg">${this.escapeHtml(n.message)}</div>
             <div class="notif-time">${timeStr}</div>
           </div>
         </div>
@@ -2770,6 +2872,16 @@ class AdminConsole {
     (this.notifications || []).forEach(n => { n.is_read = true; });
     this.renderNotifications();
     try {
+      await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({ action: "mark_notifications_read" })
+      });
+    } catch (_) {}
+    try {
       await fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?is_read=eq.false`, {
         method: "PATCH",
         headers: {
@@ -2779,7 +2891,7 @@ class AdminConsole {
         },
         body: JSON.stringify({ is_read: true })
       });
-    } catch (e) {}
+    } catch (_) {}
     this.showToast("Notifiche contrassegnate come lette");
   }
 
@@ -2792,20 +2904,27 @@ class AdminConsole {
     if (menu) menu.style.display = "none";
 
     try {
-      fetch(`${this.supabaseConfig.url}/rest/v1/admin_notifications?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
+      fetch("/api/admin-affiliates", {
+        method: "POST",
         headers: {
-          "apikey": this.supabaseConfig.anonKey,
-          "Authorization": `Bearer ${this.supabaseConfig.anonKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
         },
-        body: JSON.stringify({ is_read: true })
+        body: JSON.stringify({ action: "mark_notifications_read", id })
       });
-    } catch (e) {}
+    } catch (_) {}
 
     if (link) {
       const cleanView = link.replace("#view-", "").replace("#", "");
       this.switchView(cleanView);
+      if (cleanView === "affiliates" || (notif && notif.withdrawal_id)) {
+        setTimeout(() => {
+          const wTable = document.getElementById("adminWithdrawalsTableBody");
+          if (wTable) {
+            wTable.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 120);
+      }
     }
   }
 

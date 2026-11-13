@@ -416,48 +416,54 @@ function maskPaymentMethodReference(payout) {
 }
 
 async function sendAdminWithdrawalEmail({ firstName, lastName, email, amount, requestedAt, requestId, paymentMethodRef }) {
-  const adminEmail = 'admin@barpilot.eu';
-  const subject = '💰 BarPilot — Nuova richiesta di prelievo';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@barpilot.eu';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || email;
   const formattedAmt = Number(amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   const dateStr = new Date(requestedAt || Date.now()).toLocaleString('it-IT', { timeZone: 'Europe/Rome' });
+  const subject = `💰 Nuova richiesta di prelievo: ${fullName} (${formattedAmt})`;
 
-  const textBody = `È stata ricevuta una nuova richiesta di prelievo dal programma affiliazioni BarPilot.
+  const textBody = `Richiesta di prelievo ricevuta dal programma affiliazioni BarPilot.
 
 Nome: ${firstName || '-'}
 Cognome: ${lastName || '-'}
 Email: ${email || '-'}
-Importo richiesto: ${formattedAmt}
-Metodo pagamento: ${paymentMethodRef || '-'}
-Data richiesta: ${dateStr}
-ID richiesta: ${requestId}
-Stato: In attesa di approvazione
+ha fatto un prelievo di ${formattedAmt}.
 
-Accedi al pannello Super Admin per verificare e gestire la richiesta:
+Dettagli richiesta:
+- Importo: ${formattedAmt}
+- Metodo pagamento: ${paymentMethodRef || '-'}
+- Data richiesta: ${dateStr}
+- ID richiesta: ${requestId}
+- Stato: In attesa di approvazione
+
+Accedi alla dashboard di amministrazione per gestire e approvare la richiesta:
 https://www.barpilot.eu/app/administration`;
 
   const htmlBody = `
   <div style="font-family:Inter,Arial,sans-serif;background:#0B1220;color:#F1F5F9;padding:28px;border-radius:14px;max-width:580px;margin:0 auto;border:1px solid rgba(255,138,36,0.35);">
     <h2 style="margin:0 0 12px;color:#FF8A24;">💰 BarPilot — Nuova richiesta di prelievo</h2>
-    <p style="color:#CBD5E1;line-height:1.55;">È stata ricevuta una nuova richiesta di prelievo dal programma affiliazioni BarPilot.</p>
+    <p style="color:#CBD5E1;line-height:1.55;font-size:15px;">
+      <strong>${firstName || ''} ${lastName || ''}</strong> (<code>${email}</code>) ha fatto una richiesta di prelievo.
+    </p>
     <div style="background:#131E36;padding:16px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);margin:18px 0;">
       <p style="margin:6px 0;"><strong>Nome:</strong> ${firstName || '-'}</p>
       <p style="margin:6px 0;"><strong>Cognome:</strong> ${lastName || '-'}</p>
       <p style="margin:6px 0;"><strong>Email:</strong> ${email || '-'}</p>
-      <p style="margin:6px 0;"><strong>Importo richiesto:</strong> <span style="color:#10B981;font-weight:800;">${formattedAmt}</span></p>
-      <p style="margin:6px 0;"><strong>Metodo:</strong> ${paymentMethodRef || '-'}</p>
+      <p style="margin:6px 0;"><strong>Importo richiesto:</strong> <span style="color:#10B981;font-weight:800;font-size:16px;">${formattedAmt}</span></p>
+      <p style="margin:6px 0;"><strong>Metodo di accredito:</strong> ${paymentMethodRef || '-'}</p>
       <p style="margin:6px 0;"><strong>Data richiesta:</strong> ${dateStr}</p>
       <p style="margin:6px 0;"><strong>ID richiesta:</strong> <code>${requestId}</code></p>
       <p style="margin:6px 0;"><strong>Stato:</strong> <span style="color:#F59E0B;font-weight:700;">In attesa di approvazione</span></p>
     </div>
     <p style="margin:18px 0 0;">
       <a href="https://www.barpilot.eu/app/administration" style="display:inline-block;background:#FF8A24;color:#FFFFFF;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">
-        Accedi al pannello Super Admin
+        Accedi a www.barpilot.eu/app/administration
       </a>
     </p>
   </div>`;
 
   let sent = false;
-  let provider = 'admin_notification_only';
+  let provider = 'none';
 
   if (process.env.RESEND_API_KEY) {
     try {
@@ -530,23 +536,52 @@ https://www.barpilot.eu/app/administration`;
     } catch (_) {}
   }
 
-  // Registra anche notifica in-app per il Super Admin su Supabase
+  // 1. Registra SEMPRE notifica in-memory / store garantito per www.barpilot.eu/app/administration
+  try {
+    const store = readAffiliatesStore();
+    store.notifications = store.notifications || [];
+    const notifObj = {
+      id: 'notif_wd_' + requestId,
+      withdrawal_id: requestId,
+      title: 'Nuova richiesta di prelievo',
+      message: `${firstName || ''} ${lastName || ''} (${email}) ha richiesto un prelievo di ${formattedAmt}.`,
+      first_name: firstName || '',
+      last_name: lastName || '',
+      email: email || '',
+      amount: parseFloat(amount || 0),
+      payment_method_ref: paymentMethodRef || '',
+      status: 'pending',
+      type: 'warning',
+      link: '#view-affiliates',
+      is_read: false,
+      created_at: requestedAt || new Date().toISOString()
+    };
+    const exIdx = store.notifications.findIndex(n => n.withdrawal_id === requestId || n.id === notifObj.id);
+    if (exIdx >= 0) {
+      store.notifications[exIdx] = notifObj;
+    } else {
+      store.notifications.unshift(notifObj);
+    }
+    writeAffiliatesStore(store);
+  } catch (_) {}
+
+  // 2. Registra anche su Supabase REST se tabella presente
   try {
     await supabaseFetch('admin_notifications', {
       method: 'POST',
       body: JSON.stringify({
-        id: 'notif_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+        id: 'notif_wd_' + requestId,
         title: 'Nuova richiesta di prelievo',
-        message: `${firstName || ''} ${lastName || ''} (${email}) ha richiesto il prelievo di ${formattedAmt} [${requestId}].`,
+        message: `${firstName || ''} ${lastName || ''} (${email}) ha richiesto il prelievo di ${formattedAmt}.`,
         type: 'warning',
         link: '#view-affiliates',
-        created_at: new Date().toISOString()
+        created_at: requestedAt || new Date().toISOString()
       })
     });
   } catch (_) {}
 
   console.log(`[Affiliate Withdrawal Email] To: ${adminEmail} | Provider: ${provider} | Sent: ${sent} | ID: ${requestId}`);
-  return { sent, provider };
+  return { sent, provider, recipient: adminEmail };
 }
 
 /**
@@ -877,10 +912,52 @@ async function handleAdminRequest(req, res) {
         default_commission_rate: commissionRate
       };
 
+      const activeNotifications = [];
+      const notifSeen = new Set();
+
+      // Genera notifiche automatiche garantite per ogni richiesta di prelievo
+      (withdrawals || []).forEach(w => {
+        const isPending = ['pending', 'processing'].includes(w.status);
+        const fName = w.affiliate_first_name || w.first_name || '';
+        const lName = w.affiliate_last_name || w.last_name || '';
+        const wName = [fName, lName].filter(Boolean).join(' ').trim() || w.affiliate_name || w.affiliate_email || w.email || 'Affiliato';
+        const wEmail = w.affiliate_email || w.email || '';
+        const amtStr = Number(w.amount || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        const nId = 'notif_wd_' + w.id;
+        notifSeen.add(nId);
+        notifSeen.add(w.id);
+
+        activeNotifications.push({
+          id: nId,
+          withdrawal_id: w.id,
+          title: isPending ? 'Nuova richiesta di prelievo' : `Richiesta prelievo (${getWithdrawalStatusLabel(w.status)})`,
+          message: `${wName} (${wEmail}) ha fatto una richiesta di prelievo di ${amtStr}. Metodo: ${w.payment_method_reference || 'Configurato'}`,
+          first_name: fName,
+          last_name: lName,
+          name: wName,
+          email: wEmail,
+          amount: parseFloat(w.amount || 0),
+          status: w.status,
+          type: isPending ? 'warning' : 'info',
+          link: '#view-affiliates',
+          created_at: w.requested_at || w.created_at || new Date().toISOString(),
+          is_read: !isPending
+        });
+      });
+
+      // Integra eventuali altre notifiche dallo store
+      (store.notifications || []).forEach(n => {
+        if (!notifSeen.has(n.id) && !notifSeen.has(n.withdrawal_id)) {
+          activeNotifications.push(n);
+        }
+      });
+
       return res.status(200).json({
         success: true,
         summary: summaryObj,
         kpis: summaryObj,
+        notifications: activeNotifications,
+        pending_withdrawals_count: pendingWithdrawalsCount,
         settings: {
           affiliate_commission_rate: commissionRate,
           default_commission_rate: commissionRate
