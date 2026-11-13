@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/assets/css/style.css">
   <script src="https://js.stripe.com/v3/"></script>
   <script async src="https://pay.google.com/gp/p/js/pay.js" onload="window.onGooglePayLoaded && window.onGooglePayLoaded()"></script>
+  <script async src="https://www.paypal.com/sdk/js?client-id=BAAiojiJrp2Dn4K4RXmDAtXkGcH4YHsiNZCO-lAQj7IWNRznKtGWjmifeUVaXJeEa6zKVQI-RdZn2pThbg&currency=EUR&locale=it_IT" onload="window.initPayPalSmartButtons && window.initPayPalSmartButtons()"></script>
   <style>
     body.checkout-direct-page {
       margin: 0;
@@ -99,6 +100,14 @@
       <button type="button" class="btn-gpay-pill-black" id="btnGPayExpressTop" onclick="handleDirectGooglePay()" aria-label="Paga con Google Pay">
         <img src="/assets/images/google-pay-button.png" class="btn-gpay-img" alt="Google Pay">
       </button>
+
+      <!-- Express PayPal Button -->
+      <div id="paypalSmartButtonTop" style="width:100%; margin-top: -6px; margin-bottom: 16px;">
+        <button type="button" class="btn-paypal-pill" id="btnPayPalExpressTop" onclick="handleDirectPayPal()" style="width:100%; height:48px; background:#FFC439; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.12); transition:all 0.2s ease;" aria-label="Paga con PayPal">
+          <img src="/assets/images/paypal-logo.png" style="height:26px; width:26px; border-radius:6px; object-fit:cover;" alt="PayPal">
+          <span style="font-size:16px; font-weight:800; color:#003087; font-family:'Helvetica Neue', Arial, sans-serif;">Paga con <span style="color:#0079C1;">PayPal</span></span>
+        </button>
+      </div>
 
       <!-- Divider "oppure" -->
       <div class="checkout-pro-divider">
@@ -213,6 +222,37 @@
                 </p>
                 <button type="button" id="btnVerifyStripe" class="btn-primary" onclick="verifyStripeConfirmation()" style="background:#4F46E5; border-color:#4F46E5; width:100%; height:38px; border-radius:8px; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
                   <span>🔍</span> <span>Verifica e Conferma Pagamento Stripe</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- METHOD 3: PayPal (Client ID: BAAiojiJrp2Dn4K4RXmDAtXkGcH4YHsiNZCO-lAQj7IWNRznKtGWjmifeUVaXJeEa6zKVQI-RdZn2pThbg) -->
+          <div class="checkout-pro-method-row" id="proMethodRowPaypal">
+            <div class="checkout-pro-method-header" onclick="selectProPaymentMethod('paypal')">
+              <div class="pro-radio-dot"><div class="pro-radio-inner"></div></div>
+              <div class="pro-method-icon">
+                <img src="/assets/images/paypal-logo.png" style="width:20px; height:20px; border-radius:4px; object-fit:cover;" alt="PayPal">
+              </div>
+              <span class="pro-method-title">PayPal</span>
+              <span class="pro-badge-card" style="font-size:9.5px; color:#0079C1; border-color:rgba(0,121,193,0.3); background:rgba(0,121,193,0.06); font-weight:700;">Conto o Paga in 3 rate</span>
+            </div>
+            <div class="checkout-pro-method-body" id="proMethodBodyPaypal">
+              <div style="background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:12px; margin-bottom:12px; font-size:12px; line-height:1.45; color:#374151;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <img src="/assets/images/paypal-logo.png" style="width:18px; height:18px; border-radius:4px; object-fit:cover;" alt="PayPal">
+                  <strong style="color:#003087; font-size:12.5px;">Pagamento con Protezione Acquisti PayPal</strong>
+                </div>
+                <div style="color:#6B7280; font-size:11.5px; margin-top:4px;">
+                  Paga in sicurezza tramite il tuo conto PayPal o carta collegata. Nessun addebito durante i <strong>14 giorni di prova gratuita</strong> (0,00 € oggi), poi 59,00 €/mese disattivabile in qualsiasi momento.
+                </div>
+              </div>
+
+              <!-- PayPal Smart Button Render Container -->
+              <div id="paypalSmartButtonAccordion" style="width:100%; min-height:44px;">
+                <button type="button" onclick="handleDirectPayPal()" style="width:100%; height:46px; background:#FFC439; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:800; color:#003087; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
+                  <img src="/assets/images/paypal-logo.png" style="height:22px; width:22px; border-radius:4px; object-fit:cover;" alt="PayPal">
+                  <span>Conferma e Paga con PayPal (0,00 € oggi)</span>
                 </button>
               </div>
             </div>
@@ -435,11 +475,16 @@
           }
         });
       }
+
+      // Initialize PayPal Smart Buttons
+      if (typeof initPayPalSmartButtons === "function") {
+        initPayPalSmartButtons();
+      }
     });
 
     function selectProPaymentMethod(method) {
       currentProMethod = method;
-      const methods = ['card', 'stripe', 'google'];
+      const methods = ['card', 'stripe', 'paypal'];
       methods.forEach(m => {
         const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
         if (row) {
@@ -451,6 +496,8 @@
       if (submitBtn) {
         if (method === 'stripe') {
           submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
+        } else if (method === 'paypal') {
+          submitBtn.innerHTML = '<span>🔒</span> <span>Paga con PayPal</span> <span>➔</span>';
         } else if (method === 'google') {
           submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
         } else {
@@ -789,6 +836,11 @@
         return;
       }
 
+      if (currentProMethod === 'paypal') {
+        handleDirectPayPal();
+        return;
+      }
+
       if (currentProMethod === 'google') {
         handleDirectGooglePay();
         return;
@@ -842,6 +894,105 @@
         showCheckoutAlert("❌ Errore imprevisto durante la verifica con Stripe: " + (err.message || "Riprova più tardi."), "error");
       }
     }
+
+    function initPayPalSmartButtons() {
+      if (window._paypalButtonsRendered) return;
+      if (typeof paypal === 'undefined' || !paypal.Buttons) {
+        setTimeout(() => {
+          if (typeof paypal !== 'undefined' && paypal.Buttons && !window._paypalButtonsRendered) {
+            initPayPalSmartButtons();
+          }
+        }, 600);
+        return;
+      }
+      window._paypalButtonsRendered = true;
+
+      const createOrder = (data, actions) => {
+        return actions.order.create({
+          purchase_units: [{
+            description: "BarPilot Pro — Abbonamento Gestionale (14 giorni di prova gratuita inclusi)",
+            amount: {
+              currency_code: "EUR",
+              value: "59.00"
+            }
+          }]
+        });
+      };
+
+      const onApprove = (data, actions) => {
+        showCheckoutAlert("⏳ Verifica autorizzazione PayPal in corso...", "info");
+        return actions.order.capture().then((details) => {
+          const payerEmail = (details && details.payer && details.payer.email_address) || 'Conto PayPal';
+          const txnId = (details && details.id) || data.orderID || ('pp_' + Date.now());
+          showCheckoutAlert("✅ Pagamento PayPal autorizzato con successo!", "success");
+          confirmAndUnlockSubscription("paypal", txnId, "PayPal (" + payerEmail + ")");
+        }).catch((err) => {
+          console.error("PayPal capture error:", err);
+          showCheckoutAlert("Errore durante la finalizzazione del pagamento PayPal. Riprova.", "error");
+        });
+      };
+
+      const onError = (err) => {
+        console.error("PayPal SDK error:", err);
+        showCheckoutAlert("Errore o annullamento durante la connessione con PayPal. Riprova.", "error");
+      };
+
+      // Top Express PayPal
+      const topContainer = document.getElementById('paypalSmartButtonTop');
+      if (topContainer) {
+        try {
+          topContainer.innerHTML = '';
+          paypal.Buttons({
+            style: {
+              layout: 'horizontal',
+              color: 'gold',
+              shape: 'rect',
+              label: 'paypal',
+              height: 48,
+              tagline: false
+            },
+            createOrder,
+            onApprove,
+            onError
+          }).render('#paypalSmartButtonTop');
+        } catch (e) {
+          console.warn("Failed rendering PayPal top button:", e);
+        }
+      }
+
+      // Accordion PayPal
+      const accContainer = document.getElementById('paypalSmartButtonAccordion');
+      if (accContainer) {
+        try {
+          accContainer.innerHTML = '';
+          paypal.Buttons({
+            style: {
+              layout: 'vertical',
+              color: 'gold',
+              shape: 'rect',
+              label: 'paypal',
+              height: 44
+            },
+            createOrder,
+            onApprove,
+            onError
+          }).render('#paypalSmartButtonAccordion');
+        } catch (e) {
+          console.warn("Failed rendering PayPal accordion button:", e);
+        }
+      }
+    }
+    window.initPayPalSmartButtons = initPayPalSmartButtons;
+
+    function handleDirectPayPal() {
+      selectProPaymentMethod('paypal');
+      const acc = document.getElementById('proMethodRowPaypal');
+      if (acc) {
+        acc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      showCheckoutAlert("Clicca sul pulsante PayPal per procedere con l'autorizzazione in sicurezza.", "info");
+    }
+    window.handleDirectPayPal = handleDirectPayPal;
   </script>
 
   <!-- Google Play In-App Purchase Modal Sheet -->

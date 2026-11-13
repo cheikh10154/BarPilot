@@ -9465,7 +9465,7 @@ let isProSaveCardChecked = true;
 
 function selectProPaymentMethod(method) {
   currentProMethod = method;
-  const methods = ['card', 'stripe', 'google'];
+  const methods = ['card', 'stripe', 'paypal', 'google'];
   methods.forEach(m => {
     const row = document.getElementById('proMethodRow' + m.charAt(0).toUpperCase() + m.slice(1));
     if (row) {
@@ -9477,6 +9477,8 @@ function selectProPaymentMethod(method) {
   if (submitBtn) {
     if (method === 'stripe') {
       submitBtn.innerHTML = '<span>⚡</span> <span>Apri Stripe Checkout Client</span> <span>↗</span>';
+    } else if (method === 'paypal') {
+      submitBtn.innerHTML = '<span>🔒</span> <span>Paga con PayPal</span> <span>➔</span>';
     } else if (method === 'google') {
       submitBtn.innerHTML = '<span>🔒</span> <span>Paga con Google Pay</span> <span>➔</span>';
     } else {
@@ -9496,11 +9498,118 @@ function toggleProSaveCard() {
 }
 window.toggleProSaveCard = toggleProSaveCard;
 
+function initPayPalSmartButtons() {
+  if (window._paypalButtonsRendered) return;
+  if (typeof paypal === 'undefined' || !paypal.Buttons) {
+    setTimeout(() => {
+      if (typeof paypal !== 'undefined' && paypal.Buttons && !window._paypalButtonsRendered) {
+        initPayPalSmartButtons();
+      }
+    }, 600);
+    return;
+  }
+  window._paypalButtonsRendered = true;
+
+  const createOrder = (data, actions) => {
+    return actions.order.create({
+      purchase_units: [{
+        description: "BarPilot Pro — Abbonamento Gestionale (14 giorni di prova gratuita inclusi)",
+        amount: {
+          currency_code: "EUR",
+          value: "59.00"
+        }
+      }]
+    });
+  };
+
+  const onApprove = (data, actions) => {
+    showToast("⏳ Verifica autorizzazione PayPal in corso...");
+    return actions.order.capture().then((details) => {
+      const payerEmail = (details && details.payer && details.payer.email_address) || 'Conto PayPal';
+      const txnId = (details && details.id) || data.orderID || ('pp_' + Date.now());
+      showToast("✅ Pagamento PayPal autorizzato con successo!");
+      if (typeof activateSubscription === "function") {
+        activateSubscription('paypal');
+      }
+      if (typeof switchView === "function") {
+        switchView('dashboard');
+      }
+    }).catch((err) => {
+      console.error("PayPal capture error:", err);
+      showToast("❌ Errore durante la finalizzazione del pagamento PayPal. Riprova.");
+    });
+  };
+
+  const onError = (err) => {
+    console.error("PayPal SDK error:", err);
+    showToast("❌ Errore o annullamento durante la connessione con PayPal.");
+  };
+
+  const topContainer = document.getElementById('paypalSmartButtonTop');
+  if (topContainer) {
+    try {
+      topContainer.innerHTML = '';
+      paypal.Buttons({
+        style: {
+          layout: 'horizontal',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal',
+          height: 48,
+          tagline: false
+        },
+        createOrder,
+        onApprove,
+        onError
+      }).render('#paypalSmartButtonTop');
+    } catch (e) {
+      console.warn("Failed rendering PayPal top button in app:", e);
+    }
+  }
+
+  const accContainer = document.getElementById('paypalSmartButtonAccordion');
+  if (accContainer) {
+    try {
+      accContainer.innerHTML = '';
+      paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal',
+          height: 44
+        },
+        createOrder,
+        onApprove,
+        onError
+      }).render('#paypalSmartButtonAccordion');
+    } catch (e) {
+      console.warn("Failed rendering PayPal accordion button in app:", e);
+    }
+  }
+}
+window.initPayPalSmartButtons = initPayPalSmartButtons;
+
+function handleDirectPayPal() {
+  selectProPaymentMethod('paypal');
+  const acc = document.getElementById('proMethodRowPaypal');
+  if (acc) {
+    acc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  showToast("Clicca sul pulsante PayPal per procedere con l'autorizzazione protetta.");
+}
+window.handleDirectPayPal = handleDirectPayPal;
+
 async function handleProCheckoutSubmit(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   if (currentProMethod === 'stripe') {
     handleStripeCheckoutSubmit();
+    return;
+  }
+
+  if (currentProMethod === 'paypal') {
+    handleDirectPayPal();
     return;
   }
 
