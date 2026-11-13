@@ -1747,7 +1747,10 @@
           </label>
           <label class="payout-type-pill" id="pillTypePaypal" onclick="selectPayoutType('paypal')">
             <input type="radio" name="payoutType" value="paypal" style="display:none;">
-            <span>🅿️ PayPal</span>
+            <span style="display:inline-flex; align-items:center; gap:8px;">
+              <img src="/assets/images/paypal-logo.png" style="width:20px; height:20px; border-radius:4px; object-fit:cover;" alt="PayPal">
+              <span>PayPal</span>
+            </span>
           </label>
         </div>
 
@@ -1772,6 +1775,13 @@
 
         <!-- Form PayPal -->
         <div id="formPayoutPaypal" style="display:none;">
+          <div style="background:rgba(0,121,193,0.08); border:1px solid rgba(0,121,193,0.25); border-radius:12px; padding:12px; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+            <img src="/assets/images/paypal-logo.png" style="width:26px; height:26px; border-radius:6px; object-fit:cover;" alt="PayPal">
+            <div>
+              <strong style="color:#38BDF8; font-size:13px; display:block;">Accredito rapido su conto PayPal</strong>
+              <span style="font-size:11.5px; color:var(--text-muted);">Riceverai l'accredito dei prelievi direttamente sul tuo conto PayPal.</span>
+            </div>
+          </div>
           <div class="form-group">
             <label class="form-label" for="payoutPaypalEmail">Email associata al conto PayPal *</label>
             <input type="email" id="payoutPaypalEmail" class="form-input" placeholder="nome@esempio.it">
@@ -2651,7 +2661,7 @@
       }
 
       if (payout.type === "paypal") {
-        statusVal.innerHTML = `<span>🅿️</span> <strong>PayPal: ${escapeHtml(payout.email)}</strong>`;
+        statusVal.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;"><img src="/assets/images/paypal-logo.png" style="width:18px; height:18px; border-radius:4px; object-fit:cover;" alt="PayPal"> <strong>PayPal: ${escapeHtml(payout.email)}</strong></span>`;
         if (actionTitle) actionTitle.textContent = "Modifica metodo di pagamento";
       } else {
         const shortIban = payout.iban && payout.iban.length > 10
@@ -2688,11 +2698,16 @@
         else if (s === "paid") { color = "#10B981"; bg = "rgba(16, 185, 129, 0.14)"; dot = "✅"; }
         else if (s === "rejected") { color = "#EF4444"; bg = "rgba(239, 68, 68, 0.14)"; dot = "🚫"; }
 
+        const rawRef = w.payment_method_reference || '--';
+        const methodCell = rawRef.toLowerCase().includes('paypal')
+          ? `<span style="display:inline-flex; align-items:center; gap:6px;"><img src="/assets/images/paypal-logo.png" style="width:16px; height:16px; border-radius:3px; object-fit:cover;" alt="PayPal"> <span>${escapeHtml(rawRef)}</span></span>`
+          : escapeHtml(rawRef);
+
         return `
           <tr>
             <td style="color:var(--text-muted); font-size:13px;">${dateFormatted}</td>
             <td style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-dim);">${escapeHtml(w.id)}</td>
-            <td style="font-size:12.5px;">${escapeHtml(w.payment_method_reference || '--')}</td>
+            <td style="font-size:12.5px;">${methodCell}</td>
             <td><span class="amount-badge">${formatCurrency(w.amount)} €</span></td>
             <td>
               <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; color:${color}; background:${bg}; border:1px solid ${color}33;">
@@ -2721,13 +2736,26 @@
       return payout;
     }
 
-    function formatMaskedPayoutText(payout) {
+    function formatMaskedPayoutHtml(payout) {
       if (!payout) return "--";
-      if (payout.type === "paypal") return `🅿️ PayPal (${payout.email})`;
+      if (payout.type === "paypal") {
+        return `<span style="display:inline-flex; align-items:center; gap:6px;"><img src="/assets/images/paypal-logo.png" style="width:18px; height:18px; border-radius:4px; object-fit:cover;" alt="PayPal"> <span>PayPal (${escapeHtml(payout.email)})</span></span>`;
+      }
       if (payout.type === "iban" && payout.iban) {
         const clean = payout.iban.replace(/\s+/g, "");
         const masked = clean.length > 8 ? `${clean.slice(0, 4)}****${clean.slice(-4)}` : clean;
-        return `🏦 IBAN ${masked}${payout.holder ? " · " + payout.holder : ""}`;
+        return `<span>🏦 IBAN ${masked}${payout.holder ? " · " + escapeHtml(payout.holder) : ""}</span>`;
+      }
+      return "Metodo configurato";
+    }
+
+    function formatMaskedPayoutText(payout) {
+      if (!payout) return "--";
+      if (payout.type === "paypal") return `PayPal (${payout.email})`;
+      if (payout.type === "iban" && payout.iban) {
+        const clean = payout.iban.replace(/\s+/g, "");
+        const masked = clean.length > 8 ? `${clean.slice(0, 4)}****${clean.slice(-4)}` : clean;
+        return `IBAN ${masked}${payout.holder ? " · " + payout.holder : ""}`;
       }
       return "Metodo configurato";
     }
@@ -2759,7 +2787,7 @@
       const actionsEl = document.getElementById("wdModalActions");
 
       if (availText) availText.textContent = `${formatCurrency(availableVal)} €`;
-      if (payoutRefEl) payoutRefEl.textContent = formatMaskedPayoutText(payout);
+      if (payoutRefEl) payoutRefEl.innerHTML = formatMaskedPayoutHtml(payout);
       if (amountInput) {
         amountInput.value = availableVal.toFixed(2);
         amountInput.max = availableVal.toFixed(2);
