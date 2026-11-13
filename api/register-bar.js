@@ -77,11 +77,18 @@ export default async function handler(req, res) {
         if (aRes.ok) {
           const aData = await aRes.json();
           const usersList = aData.users || (Array.isArray(aData) ? aData : []);
+          // Solo le registrazioni fatte su /app sono considerati bar; le iscrizioni su /app/affiliazioni sono semplici utenti
+          const barUsersList = usersList.filter(u => {
+            const meta = u.user_metadata || u.raw_user_meta_data || {};
+            if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) return false;
+            if ((meta.affiliate_code || meta.affiliate_id) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) return false;
+            return true;
+          });
           return res.status(200).json({
             success: true,
             source: 'auth.users',
-            total: usersList.length,
-            users: usersList
+            total: barUsersList.length,
+            users: barUsersList
           });
         }
       } catch (errAuth) {
@@ -93,10 +100,16 @@ export default async function handler(req, res) {
       const viewRes = await supabaseFetch('auth_users?select=*&order=created_at.desc');
       if (viewRes.ok) {
         const viewUsers = await viewRes.json();
+        const filteredView = (viewUsers || []).filter(u => {
+          const meta = u.user_metadata || u.raw_user_meta_data || {};
+          if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) return false;
+          if ((meta.affiliate_code || meta.affiliate_id) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) return false;
+          return true;
+        });
         return res.status(200).json({
           success: true,
           source: 'public.auth_users',
-          users: viewUsers
+          users: filteredView
         });
       }
     } catch (_) {}
@@ -660,6 +673,10 @@ export default async function handler(req, res) {
             const metaUpdate = {
               ...(matchedBarUser?.user_metadata || {}),
               bar_registered_id: barId,
+              bar_name: cleanBarName,
+              account_type: 'bar',
+              registered_from: 'app',
+              is_bar: true,
               bar_subscription_id: subId,
               vat_number: cleanVat || null,
               affiliate_code: accountAffiliateCode,

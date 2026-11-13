@@ -191,6 +191,9 @@ async function syncAffiliateInAuthUsers(affObj, password = null) {
     const baseMeta = (existing && existing.user_metadata) ? { ...existing.user_metadata } : {};
     const mergedMeta = {
       ...baseMeta,
+      account_type: baseMeta.account_type === 'bar' ? 'bar' : 'affiliate',
+      registered_from: baseMeta.registered_from === 'app' ? 'app' : 'affiliazioni',
+      is_bar: baseMeta.is_bar === true,
       affiliate_id: affObj.id || baseMeta.affiliate_id,
       affiliate_code: affObj.code || baseMeta.affiliate_code || getConsistentCodeForAccount(normalizedEmail),
       affiliate_name: affObj.name || baseMeta.affiliate_name || normalizedEmail.split('@')[0],
@@ -2274,6 +2277,9 @@ async function handleUserAffiliateRequest(req, res) {
             password: cleanPassword,
             code: permanentCode,
             status: 'active',
+            account_type: 'affiliate',
+            registered_from: 'affiliazioni',
+            is_bar: false,
             commission_rate: 5.0,
             total_earned: 0.00,
             created_at: nowIso,

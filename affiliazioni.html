@@ -2094,7 +2094,10 @@
           name: data.user.name || `${firstName} ${lastName}`,
           phone: data.user.phone || phone,
           email: data.user.email || email,
-          code: affCode
+          code: affCode,
+          account_type: 'affiliate',
+          is_bar: false,
+          registered_from: 'affiliazioni'
         };
 
         localStorage.setItem(`barpilot_affiliate_code_${email}`, affCode);

@@ -370,6 +370,24 @@ class AdminConsole {
   }
 
   // ==========================================================================
+  // Discriminatore: Solo le registrazioni su /app sono Bar.
+  // Le iscrizioni su /app/affiliazioni sono semplici utenti / affiliati e non bar.
+  // ==========================================================================
+  isBarUser(u) {
+    if (!u) return false;
+    const meta = u.user_metadata || u.raw_user_meta_data || {};
+    // Iscrizioni fatte su /app/affiliazioni: sono semplici utenti / affiliati, NON bar
+    if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) {
+      return false;
+    }
+    // Utenti con codice/id affiliazione senza alcun dato bar: semplici utenti
+    if ((meta.affiliate_code || meta.affiliate_id || u.code) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) {
+      return false;
+    }
+    return true;
+  }
+
+  // ==========================================================================
   // Mapper: Da Supabase Authentication > Users (auth.users) al Bar Data Model
   // ==========================================================================
   mapAuthUserToBar(u) {
@@ -447,7 +465,7 @@ class AdminConsole {
           if (apiRes.ok) {
             const apiData = await apiRes.json();
             if (apiData.success && Array.isArray(apiData.users)) {
-              this.data.bars = apiData.users.map(u => this.mapAuthUserToBar(u));
+              this.data.bars = apiData.users.filter(u => this.isBarUser(u)).map(u => this.mapAuthUserToBar(u));
               authUsersLoaded = true;
             }
           }
@@ -462,7 +480,7 @@ class AdminConsole {
             if (viewRes.ok) {
               const viewUsers = await viewRes.json();
               if (Array.isArray(viewUsers) && viewUsers.length > 0) {
-                this.data.bars = viewUsers.map(u => this.mapAuthUserToBar(u));
+                this.data.bars = viewUsers.filter(u => this.isBarUser(u)).map(u => this.mapAuthUserToBar(u));
                 authUsersLoaded = true;
               }
             }
@@ -478,7 +496,7 @@ class AdminConsole {
             if (barsRes.ok) {
               const remoteBars = await barsRes.json();
               if (Array.isArray(remoteBars) && remoteBars.length > 0) {
-                this.data.bars = remoteBars.map(rb => this.mapAuthUserToBar(rb));
+                this.data.bars = remoteBars.filter(rb => this.isBarUser(rb)).map(rb => this.mapAuthUserToBar(rb));
               }
             }
           } catch (barsErr) {
