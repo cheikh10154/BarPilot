@@ -23,6 +23,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "favicon.ico",
+      "use": "@vercel/static"
+    },
+    {
       "src": "demo.html",
       "use": "@vercel/static"
     },
@@ -147,6 +151,10 @@
     {
       "src": "^/robots.txt$",
       "dest": "/robots.txt"
+    },
+    {
+      "src": "^/favicon\\.ico$",
+      "dest": "/favicon.ico"
     },
     {
       "src": "^/locales/(.*)$",
