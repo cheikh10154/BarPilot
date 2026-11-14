@@ -2515,6 +2515,69 @@ function handleIncomingKdsOrders(updatedOrders, highlightId = null) {
 }
 window.handleIncomingKdsOrders = handleIncomingKdsOrders;
 
+function getKdsOrderElapsedMinutes(order) {
+  if (!order) return "1 min";
+
+  let createdMs = null;
+  if (order.createdAt) {
+    const t = new Date(order.createdAt).getTime();
+    if (!isNaN(t)) createdMs = t;
+  }
+
+  if (!createdMs) {
+    if (order.time && typeof order.time === "string") {
+      const match = order.time.match(/(\d+)/);
+      const baseMin = match ? parseInt(match[1], 10) : 1;
+      createdMs = Date.now() - (baseMin - 1) * 60 * 1000;
+      order.createdAt = new Date(createdMs).toISOString();
+    } else {
+      createdMs = Date.now();
+      order.createdAt = new Date(createdMs).toISOString();
+    }
+  }
+
+  // Se la comanda è già completata o saldata, fissa il minutaggio
+  let endMs = Date.now();
+  if (order.closedAt || order.paidAt) {
+    const endT = new Date(order.closedAt || order.paidAt).getTime();
+    if (!isNaN(endT)) endMs = endT;
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((endMs - createdMs) / 1000));
+  // All'inizio 1 min, e per ogni 60 secondi passati cresce aggiungendo +1 min
+  const minutes = 1 + Math.floor(elapsedSeconds / 60);
+  return `${minutes} min`;
+}
+
+let kdsMinuteTickerTimer = null;
+function updateKdsTimers() {
+  const timerEls = document.querySelectorAll(".kds-ticket-timer[data-order-id]");
+  if (!timerEls || timerEls.length === 0) return;
+  const orders = (window.db ? window.db.get("orders") : []) || [];
+  let updatedAny = false;
+  timerEls.forEach(el => {
+    const id = el.getAttribute("data-order-id");
+    const ord = orders.find(o => String(o.id) === String(id));
+    if (ord) {
+      const timeStr = getKdsOrderElapsedMinutes(ord);
+      if (el.textContent !== timeStr) {
+        el.textContent = timeStr;
+        ord.time = timeStr;
+        updatedAny = true;
+      }
+    }
+  });
+  if (updatedAny && window.db) {
+    try {
+      window.db.set("orders", orders);
+    } catch (_) {}
+  }
+}
+
+if (!kdsMinuteTickerTimer) {
+  kdsMinuteTickerTimer = setInterval(updateKdsTimers, 1000);
+}
+
 function renderKDS(highlightId = null) {
   const orders = (window.db ? window.db.get("orders") : []) || [];
   const kdsContainer = document.getElementById("kdsTicketsGrid");
@@ -2629,7 +2692,7 @@ function renderKDS(highlightId = null) {
               <span class="kds-ticket-num">#${o.id}</span>
               ${statusPill}
             </div>
-            <span class="kds-ticket-timer">${o.time || "Adesso"}</span>
+            <span class="kds-ticket-timer" data-order-id="${o.id}">${getKdsOrderElapsedMinutes(o)}</span>
           </div>
           <div class="kds-ticket-table">${o.table || "Banco"} · <span style="font-size:12px; color:var(--text-muted);">${o.server || "Cameriere"}</span></div>
           <ul class="kds-ticket-items">
@@ -2661,6 +2724,9 @@ function renderKDS(highlightId = null) {
 }
 
 function startKdsRealtimeSync() {
+  if (!kdsMinuteTickerTimer) {
+    kdsMinuteTickerTimer = setInterval(updateKdsTimers, 1000);
+  }
   if (kdsRemoteSyncTimer) return;
 
   const localOrders = (window.db ? window.db.get("orders") : []) || [];
