@@ -7440,19 +7440,6 @@ function initSplashScreen() {
     return;
   }
 
-  // Se l'utente è già connesso, mantieni la sessione attiva e non mostrare storie né login
-  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
-    if (splashTimer) clearTimeout(splashTimer);
-    if (splash) {
-      splash.classList.add("hidden");
-      splash.style.display = "none";
-    }
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
-    return;
-  }
-
   // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
   splash.classList.remove("hidden");
   splash.style.display = "flex";
@@ -7603,6 +7590,18 @@ function goToStory(index) {
     skipBtn.style.display = "inline-flex";
   }
 
+  // Se l'utente è già loggato, adatta il pulsante dell'ultima storia
+  const isLogged = typeof isUserLoggedIn === "function" && isUserLoggedIn();
+  const storyStartBtn = document.querySelector('[data-i18n="storyStartBtn"]');
+  if (storyStartBtn && isLogged) {
+    storyStartBtn.innerText = "Accedi alla tua Dashboard →";
+    storyStartBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      finishStoriesAndGoToAuth("dashboard");
+    };
+  }
+
   // Move slide track
   const track = document.getElementById("storiesTrack");
   if (track) {
@@ -7665,6 +7664,17 @@ function finishStoriesAndGoToAuth(targetTab = "login") {
   if (storiesOverlay) {
     storiesOverlay.classList.add("hidden");
     storiesOverlay.style.display = "none";
+  }
+
+  // Se l'utente è già connesso, entra direttamente nella dashboard senza mostrare login
+  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+    const authOverlay = document.getElementById("authOverlay");
+    if (authOverlay) {
+      authOverlay.classList.add("hidden");
+      authOverlay.style.display = "none";
+    }
+    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
+    return;
   }
 
   // Open authentication & registration screen
