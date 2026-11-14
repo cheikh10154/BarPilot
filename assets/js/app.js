@@ -40,6 +40,11 @@ function initBarPilotApp() {
           window.db.set("activeBar", bar);
         }
       } catch (e) {}
+    } else {
+      // Quando disconnesso, assicura che all'aggiornamento della pagina non rientri senza connettersi
+      if (typeof openAuthScreen === "function") {
+        openAuthScreen("login");
+      }
     }
 
     // 3. Initialize Active Staff Member
@@ -7185,12 +7190,32 @@ window.showToast = showToast;
 // ==========================================================================
 let splashTimer = null;
 
+function clearAuthCookies() {
+  try {
+    const cookieNames = ["barpilot_auth"];
+    const paths = ["/", "/app", "/app/", ""];
+    const domains = [window.location.hostname, "." + window.location.hostname, ""];
+    cookieNames.forEach(name => {
+      paths.forEach(path => {
+        domains.forEach(domain => {
+          document.cookie = `${name}=; path=${path}; ${domain ? "domain=" + domain + ";" : ""} expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+          document.cookie = `${name}=; path=${path}; ${domain ? "domain=" + domain + ";" : ""} expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0`;
+        });
+      });
+    });
+  } catch (_) {}
+}
+
 function isUserLoggedIn() {
-  return localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true");
+  if (localStorage.getItem("barpilot_logged_out") === "true") {
+    return false;
+  }
+  return localStorage.getItem("barpilot_is_logged_in") === "true";
 }
 
 function setUserLoggedIn(status, userMeta = null) {
   if (status) {
+    localStorage.removeItem("barpilot_logged_out");
     localStorage.setItem("barpilot_is_logged_in", "true");
     document.cookie = "barpilot_auth=true; path=/; max-age=31536000; SameSite=Lax";
     document.documentElement.classList.add("user-authenticated");
@@ -7198,6 +7223,7 @@ function setUserLoggedIn(status, userMeta = null) {
       localStorage.setItem("barpilot_logged_user", JSON.stringify(userMeta));
     }
   } else {
+    localStorage.setItem("barpilot_logged_out", "true");
     localStorage.removeItem("barpilot_is_logged_in");
     localStorage.removeItem("barpilot_logged_user");
     localStorage.removeItem("barpilot_active_staff");
@@ -7205,7 +7231,7 @@ function setUserLoggedIn(status, userMeta = null) {
     localStorage.removeItem("barpilot_is_demo");
     closeCheckoutModal(true);
     closeGooglePlayModal(true);
-    document.cookie = "barpilot_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
+    clearAuthCookies();
     document.documentElement.classList.remove("user-authenticated");
   }
   if (typeof updateTicketButtonVisibility === "function") {
@@ -7216,6 +7242,7 @@ function setUserLoggedIn(status, userMeta = null) {
 function clearConnectionCache() {
   // 1. Cancellazione completa cache localStorage (auth, token, sessioni, affiliazioni)
   try {
+    localStorage.setItem("barpilot_logged_out", "true");
     localStorage.removeItem("barpilot_is_logged_in");
     localStorage.removeItem("barpilot_logged_user");
     localStorage.removeItem("barpilot_active_staff");
@@ -7225,6 +7252,8 @@ function clearConnectionCache() {
     localStorage.removeItem("barpilot_active_bar_name");
     localStorage.removeItem("barpilot_bar_name");
     localStorage.removeItem("barpilot_registration_date");
+    localStorage.removeItem("barpilot_is_demo");
+    clearAuthCookies();
 
     // Rimuove dati e cache affiliazioni per impedire perdite tra account
     localStorage.removeItem("barpilot_affiliate_user");
@@ -7326,12 +7355,12 @@ function confirmLogoutAction() {
   closeSidebar();
 
   // Mostra la schermata di login pulita
-  openAuthScreen();
+  openAuthScreen("login");
 
   const isIt = !window.i18n || window.i18n.currentLang === "it";
   showToast(isIt
-    ? "Disconnessione effettuata. Cache di connessione eliminata!"
-    : "Déconnexion réussie. Cache de connexion effacé !");
+    ? "Disconnessione effettuata. Per accedere nuovamente bisogna riconnettersi."
+    : "Déconnexion réussie. Veuillez vous reconnecter pour accéder.");
 }
 
 function openDeleteAccountModal() {

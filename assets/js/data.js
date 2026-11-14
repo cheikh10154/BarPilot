@@ -792,6 +792,8 @@ if (typeof window !== "undefined") {
 }
 
 // Ensure active session is kept in cache on load
-if (localStorage.getItem("barpilot_is_logged_in") === "true" || document.cookie.includes("barpilot_auth=true")) {
+if (localStorage.getItem("barpilot_logged_out") !== "true" && localStorage.getItem("barpilot_is_logged_in") === "true") {
   document.documentElement.classList.add("user-authenticated");
+} else {
+  document.documentElement.classList.remove("user-authenticated");
 }
