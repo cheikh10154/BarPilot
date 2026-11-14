@@ -1,12 +1,11 @@
 // BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v130';
+const CACHE_NAME = 'barpilot-cache-v131';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './checkout.html',
   './pro.html',
   './demo.html',
-  './demo.tml',
   './manifest.json',
   './assets/css/style.css',
   './assets/js/i18n.js',
@@ -16,6 +15,9 @@ const ASSETS_TO_CACHE = [
   './assets/js/stripePaymentService.js',
   './assets/js/app.js',
   './assets/images/logo.png',
+  './assets/images/icons/icon-192x192.png',
+  './assets/images/icons/icon-512x512.png',
+  './assets/images/icons/icon-maskable.png',
   './assets/images/barpilot-logo-app.png',
   './assets/images/google-pay-button.png'
 ];
