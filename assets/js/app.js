@@ -7354,6 +7354,16 @@ function confirmLogoutAction() {
   // Chiude la sidebar se aperta
   closeSidebar();
 
+  const isDemo = (typeof isDemoMode === "function" && isDemoMode()) ||
+                 window.location.pathname.toLowerCase().includes("demo") ||
+                 window.location.search.toLowerCase().includes("demo") ||
+                 window.location.hash.toLowerCase().includes("demo");
+
+  if (isDemo) {
+    window.location.href = "https://www.barpilot.eu/app";
+    return;
+  }
+
   // Mostra la schermata di login pulita
   openAuthScreen("login");
 
