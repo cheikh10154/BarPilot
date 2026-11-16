@@ -290,5 +290,6 @@
     "copyright": "© 2026 BarPilot — Tutti i diritti riservati."
   },
   "regPromoLabel": "Hai un codice promo o partner?",
-  "regPromoPlaceholder": "Inserisci il codice di 6 caratteri"
+  "regPromoPlaceholder": "Inserisci il codice di 6 caratteri",
+  "regTermsConsent": "Dichiaro di aver letto e accetto i <a href=\"/termini-e-condizioni\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Termini e Condizioni</a> e l'<a href=\"/norme-sulla-privacy\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Informativa sulla Privacy</a>."
 }

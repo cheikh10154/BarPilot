@@ -125,6 +125,8 @@ const i18nData = {
     regPromoCodeValid: "✓ Codice partner {code} valido — 14 giorni di prova gratuita inclusi",
     regPromoCodeNotFound: "Codice partner non trovato su Supabase",
     regPromoCodeError: "Errore durante la verifica del codice promo/partner.",
+    regTermsConsent: "Dichiaro di aver letto e accetto i <a href=\"/termini-e-condizioni\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Termini e Condizioni</a> e l'<a href=\"/norme-sulla-privacy\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Informativa sulla Privacy</a>.",
+    regTermsError: "È necessario accettare i Termini e Condizioni e l'Informativa sulla Privacy per registrare il bar.",
     barNameLabel: "Nome del tuo Bar / Locale",
     barNamePlaceholder: "Es: Bar Centrale",
     ownerNameLabel: "Il tuo Nome e Cognome",
@@ -474,6 +476,8 @@ const i18nData = {
     regPromoCodeValid: "✓ Code partenaire {code} valide — 14 jours d'essai gratuit inclus",
     regPromoCodeNotFound: "Code partenaire introuvable sur Supabase",
     regPromoCodeError: "Erreur lors de la vérification du code promo/partenaire.",
+    regTermsConsent: "Je déclare avoir lu et accepté les <a href=\"/termini-e-condizioni\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Conditions Générales</a> et la <a href=\"/norme-sulla-privacy\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:var(--primary); font-weight:700; text-decoration:none;\">Politique de Confidentialité</a>.",
+    regTermsError: "Veuillez accepter les Conditions Générales et la Politique de Confidentialité pour créer votre compte.",
     barNameLabel: "Nom de votre établissement",
     barNamePlaceholder: "Ex: Bar Centrale",
     ownerNameLabel: "Nom et Prénom du gérant",
@@ -758,7 +762,12 @@ window.i18n = {
         const nameVal = params.name || (window.db ? (window.db.get("activeBar")?.managerName?.split(" ")[0]) : 'Marco') || 'Marco';
         el.innerHTML = this.t(targetKey, { name: `<span id="userGreetingName">${nameVal}</span>` });
       } else {
-        el.textContent = this.t(key, params);
+        const transVal = this.t(key, params);
+        if (typeof transVal === 'string' && (transVal.includes('<a ') || transVal.includes('<span ') || transVal.includes('<strong>'))) {
+          el.innerHTML = transVal;
+        } else {
+          el.textContent = transVal;
+        }
       }
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
@@ -774,6 +783,15 @@ window.i18n = {
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-lang') === this.currentLang);
     });
+
+    if (typeof currentAuthTab !== 'undefined' && currentAuthTab === 'register') {
+      const submitBtn = document.getElementById("authSubmitBtn");
+      if (submitBtn) {
+        submitBtn.textContent = this.currentLang === 'fr' 
+          ? "Créer un bar et activer 14 jours d'essai" 
+          : "🚀 Crea un bar e attiva 14 giorni di prova";
+      }
+    }
 
     const promoInput = document.getElementById("regPromoCode");
     if (promoInput && promoInput.value && typeof window.verifyPartnerCodeInput === "function") {
