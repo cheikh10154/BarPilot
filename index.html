@@ -19,7 +19,9 @@
       .chart-bars-wrap .bar-col { flex: 0 0 38px !important; min-width: 38px !important; width: 38px !important; height: 100% !important; touch-action: pan-x pan-y !important; }
       .chart-scroll-hint { display: flex !important; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--primary); padding: 6px 0 2px 0; }
     }
-    html.user-authenticated #authOverlay {
+    html.user-authenticated #authOverlay,
+    html.user-authenticated #splashScreen,
+    html.user-authenticated #storiesOverlay {
       display: none !important;
     }
   </style>
@@ -27,14 +29,14 @@
   <script>
     (function() {
       try {
-        localStorage.removeItem("barpilot_is_demo");
-        sessionStorage.removeItem("barpilot_demo_active");
         const isLoggedOut = localStorage.getItem("barpilot_logged_out") === "true";
         const hasRealUser = Boolean(localStorage.getItem("barpilot_logged_user"));
         const isAuth = !isLoggedOut && hasRealUser && localStorage.getItem("barpilot_is_logged_in") === "true";
         if (isAuth) {
           document.documentElement.classList.add("user-authenticated");
         } else {
+          localStorage.removeItem("barpilot_is_demo");
+          sessionStorage.removeItem("barpilot_demo_active");
           document.documentElement.classList.remove("user-authenticated");
         }
       } catch (e) {}
@@ -67,12 +69,19 @@
     // Fail-safe per lo Splash Screen all'apertura dell'app
     setTimeout(function() {
       try {
+        var isLoggedOut = localStorage.getItem("barpilot_logged_out") === "true";
+        var hasRealUser = Boolean(localStorage.getItem("barpilot_logged_user"));
+        var isAuth = !isLoggedOut && hasRealUser && localStorage.getItem("barpilot_is_logged_in") === "true";
         var sp = document.getElementById("splashScreen");
         if (sp && !sp.classList.contains("hidden")) {
           sp.classList.add("hidden");
           setTimeout(function() { sp.style.display = "none"; }, 500);
-          if (typeof initStoriesOnboarding === "function") {
-            initStoriesOnboarding();
+          if (isAuth) {
+            if (typeof updateDashboardLockState === "function") updateDashboardLockState();
+          } else if (isLoggedOut) {
+            if (typeof openAuthScreen === "function") openAuthScreen("login");
+          } else {
+            if (typeof initStoriesOnboarding === "function") initStoriesOnboarding();
           }
         }
       } catch (_) {}

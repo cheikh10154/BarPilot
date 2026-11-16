@@ -7536,13 +7536,37 @@ function initSplashScreen() {
   if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
 
   // All'apertura dell'app non andare mai direttamente alla pagina demo:
-  // resetta eventuale stato demo residuo
   try {
     localStorage.removeItem("barpilot_is_demo");
     sessionStorage.removeItem("barpilot_demo_active");
   } catch (_) {}
 
-  // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
+  const isLoggedOut = localStorage.getItem("barpilot_logged_out") === "true";
+  const isRealUserLogged = !isLoggedOut && typeof isUserLoggedIn === "function" && isUserLoggedIn() && Boolean(localStorage.getItem("barpilot_logged_user"));
+
+  // CASO 1: Una volta registrato/autenticato finché non effettui il logout,
+  // quando si apre l'app va DIRETTAMENTE alla dashboard
+  if (isRealUserLogged) {
+    if (splashTimer) clearTimeout(splashTimer);
+    if (splash) {
+      splash.classList.add("hidden");
+      splash.style.display = "none";
+    }
+    if (storiesOverlay) {
+      storiesOverlay.classList.add("hidden");
+      storiesOverlay.style.display = "none";
+    }
+    if (authOverlay) {
+      authOverlay.classList.add("hidden");
+      authOverlay.style.display = "none";
+    }
+    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
+    if (typeof switchView === "function") switchView("dashboard");
+    return;
+  }
+
+  // CASO 2: Se si è effettuato il logout (o non ancora registrato):
+  // All'avvio mostra il logo che si carica
   splash.classList.remove("hidden");
   splash.style.display = "flex";
 
@@ -7554,8 +7578,18 @@ function initSplashScreen() {
         splash.style.display = "none";
       }, 500);
     }
-    // Dopo il caricamento del logo, manda alle storie poi ai login e registrazione bar
-    initStoriesOnboarding();
+
+    // Se si è effettuato il logout: salta il BarPilot Stories per poi portare sulla pagina accesso/registrazione
+    if (isLoggedOut) {
+      if (storiesOverlay) {
+        storiesOverlay.classList.add("hidden");
+        storiesOverlay.style.display = "none";
+      }
+      openAuthScreen("login");
+    } else {
+      // Primo avvio assoluto: mostra BarPilot Stories
+      initStoriesOnboarding();
+    }
   };
 
   if (skipBtn) {
