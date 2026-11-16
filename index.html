@@ -27,8 +27,11 @@
   <script>
     (function() {
       try {
+        localStorage.removeItem("barpilot_is_demo");
+        sessionStorage.removeItem("barpilot_demo_active");
         const isLoggedOut = localStorage.getItem("barpilot_logged_out") === "true";
-        const isAuth = !isLoggedOut && localStorage.getItem("barpilot_is_logged_in") === "true";
+        const hasRealUser = Boolean(localStorage.getItem("barpilot_logged_user"));
+        const isAuth = !isLoggedOut && hasRealUser && localStorage.getItem("barpilot_is_logged_in") === "true";
         if (isAuth) {
           document.documentElement.classList.add("user-authenticated");
         } else {
@@ -65,8 +68,7 @@
     setTimeout(function() {
       try {
         var sp = document.getElementById("splashScreen");
-        var isDemo = window.location.pathname.includes("demo") || window.location.search.includes("demo=true");
-        if (!isDemo && sp && !sp.classList.contains("hidden")) {
+        if (sp && !sp.classList.contains("hidden")) {
           sp.classList.add("hidden");
           setTimeout(function() { sp.style.display = "none"; }, 500);
           if (typeof initStoriesOnboarding === "function") {

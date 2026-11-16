@@ -7535,15 +7535,12 @@ function initSplashScreen() {
   // Ensure checkout modal is closed on start
   if (typeof closeCheckoutModal === "function") closeCheckoutModal(true);
 
-  // IN DEMO MODE: Keep demo page 100% free, unblocked, and directly open!
-  if (typeof isDemoMode === "function" && isDemoMode()) {
-    if (splashTimer) clearTimeout(splashTimer);
-    if (splash) splash.classList.add("hidden");
-    if (storiesOverlay) storiesOverlay.classList.add("hidden");
-    if (authOverlay) authOverlay.classList.add("hidden");
-    if (typeof updateDashboardLockState === "function") updateDashboardLockState();
-    return;
-  }
+  // All'apertura dell'app non andare mai direttamente alla pagina demo:
+  // resetta eventuale stato demo residuo
+  try {
+    localStorage.removeItem("barpilot_is_demo");
+    sessionStorage.removeItem("barpilot_demo_active");
+  } catch (_) {}
 
   // MOSTRA LO SPLASH SCREEN CON IL LOGO ANIMATO CHE CARICA ALL'APERTURA DELL'APP
   splash.classList.remove("hidden");
@@ -7771,8 +7768,9 @@ function finishStoriesAndGoToAuth(targetTab = "login") {
     storiesOverlay.style.display = "none";
   }
 
-  // Se l'utente è già connesso, entra direttamente nella dashboard senza mostrare login
-  if (typeof isUserLoggedIn === "function" && isUserLoggedIn()) {
+  // Se l'utente è autenticato con un account reale registrato (non demo), entra in dashboard
+  const isRealUser = typeof isUserLoggedIn === "function" && isUserLoggedIn() && localStorage.getItem("barpilot_is_demo") !== "true" && localStorage.getItem("barpilot_logged_user");
+  if (isRealUser) {
     const authOverlay = document.getElementById("authOverlay");
     if (authOverlay) {
       authOverlay.classList.add("hidden");
@@ -7782,8 +7780,8 @@ function finishStoriesAndGoToAuth(targetTab = "login") {
     return;
   }
 
-  // Open authentication & registration screen
-  openAuthScreen(targetTab);
+  // Altrimenti mostra sempre la schermata di accesso/registrazione
+  openAuthScreen(targetTab || "login");
 }
 
 window.initStoriesOnboarding = initStoriesOnboarding;
