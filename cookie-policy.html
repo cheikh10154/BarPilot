@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Informativa sui Cookie e Tecnologie di Tracciamento — BarPilot</title>
+  <meta name="description" content="Informativa trasparente sui cookie tecnici e sulle tecnologie di memorizzazione locale utilizzate da BarPilot.">
+  <link rel="canonical" href="https://www.barpilot.eu/cookie-policy">
+  <link rel="icon" type="image/png" href="assets/images/logo.png">
+  <link rel="apple-touch-icon" href="assets/images/logo.png">
+  <meta name="theme-color" content="#FF8A24">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0B1220;
+      --bg-surface: #111A2E;
+      --bg-card: rgba(17, 26, 46, 0.94);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(255, 138, 36, 0.35);
+      --primary: #FF8A24;
+      --primary-hover: #FFA24C;
+      --primary-glow: rgba(255, 138, 36, 0.25);
+      --text-main: #FFFFFF;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-full: 9999px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      background: rgba(11, 18, 32, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 100;
+      padding: 14px 24px;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      object-fit: contain;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .brand-name {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .brand-name span { color: var(--primary); }
+    .header-nav { display: flex; align-items: center; gap: 10px; }
+    .lang-switcher {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+    }
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+    .btn-nav-app {
+      background: linear-gradient(135deg, #FF8A24 0%, #EA580C 100%);
+      color: #FFFFFF;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: transform 0.2s ease;
+    }
+    .btn-nav-app:hover { transform: translateY(-1px); }
+
+    .hero-section {
+      padding: 56px 24px 36px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      background: radial-gradient(circle at top center, rgba(255, 138, 36, 0.08) 0%, transparent 70%);
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 138, 36, 0.12);
+      border: 1px solid var(--border-accent);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    .hero-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 680px;
+      margin: 0 auto 18px;
+    }
+    .hero-date {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 40px;
+      position: relative;
+    }
+    @media (max-width: 960px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sidebar-toc {
+      position: sticky;
+      top: 90px;
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .toc-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+    .toc-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .toc-link {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+    }
+    .toc-link:hover, .toc-link.active {
+      color: #FFFFFF;
+      background: rgba(255, 138, 36, 0.12);
+      border-left: 3px solid var(--primary);
+    }
+
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .legal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+    }
+    .legal-card h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .legal-card p {
+      color: #CBD5E1;
+      margin-bottom: 14px;
+      font-size: 14.5px;
+    }
+    .legal-card ul {
+      margin-left: 20px;
+      margin-bottom: 16px;
+      color: #CBD5E1;
+    }
+    .legal-card li { margin-bottom: 8px; }
+
+    .data-table-wrap {
+      overflow-x: auto;
+      margin: 16px 0;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+    }
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: #CBD5E1;
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .badge-tech {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ADE80;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .site-footer {
+      border-top: 1px solid var(--border-color);
+      background: #080D17;
+      padding: 40px 24px;
+      margin-top: auto;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-links a:hover { color: var(--primary); }
+
+    /* Cookie Consent Banner */
+    .cookie-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92%, 840px);
+      background: rgba(11, 18, 32, 0.98);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      z-index: 99999;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      backdrop-filter: blur(16px);
+    }
+    .cookie-banner.show { display: flex; }
+    .cookie-banner-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cookie-banner-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .cookie-banner-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-cookie-accept {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 18px;
+      font-weight: 800;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .btn-cookie-reject {
+      background: rgba(255, 255, 255, 0.08);
+      color: #CBD5E1;
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .btn-cookie-customize {
+      background: transparent;
+      color: var(--primary);
+      border: none;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="brand-link">
+        <img src="assets/images/logo.png" alt="BarPilot Logo" class="brand-logo" onerror="this.src='favicon.ico'">
+        <span class="brand-name">Bar<span>Pilot</span></span>
+      </a>
+      <div class="header-nav">
+        <div class="lang-switcher">
+          <button type="button" class="lang-btn active" id="btnLangIT" onclick="switchLang('it')">IT</button>
+          <button type="button" class="lang-btn" id="btnLangFR" onclick="switchLang('fr')">FR</button>
+        </div>
+        <a href="/app" class="btn-nav-app" id="navAppBtn">Accedi all'App</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="badge-pill" id="heroBadge">Trasparenza & Privacy</div>
+    <h1 class="hero-title" id="heroTitle">Informativa sui Cookie e Archiviazione Locale</h1>
+    <p class="hero-subtitle" id="heroSubtitle">Spiegazione chiara di come BarPilot utilizza cookie tecnici essenziali e tecnologie di archiviazione web per il funzionamento del servizio.</p>
+    <div class="hero-date" id="heroDate">Ultimo aggiornamento: 16 novembre 2026</div>
+  </section>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    
+    <!-- Sidebar TOC -->
+    <aside class="sidebar-toc">
+      <div class="toc-title" id="tocHeading">Indice Sezioni</div>
+      <ul class="toc-list">
+        <li><a href="#art-titolare" class="toc-link" id="toc-1">1. Titolare del Trattamento</a></li>
+        <li><a href="#art-cosa-sono" class="toc-link" id="toc-2">2. Cosa sono Cookie e Web Storage</a></li>
+        <li><a href="#art-tipologie" class="toc-link" id="toc-3">3. Tecnologie Utilizzate</a></li>
+        <li><a href="#art-tabella" class="toc-link" id="toc-4">4. Tabella Dettagliata</a></li>
+        <li><a href="#art-terze-parti" class="toc-link" id="toc-5">5. Servizi di Terze Parti</a></li>
+        <li><a href="#art-gestione" class="toc-link" id="toc-6">6. Gestione del Consenso</a></li>
+        <li><a href="#art-contatti" class="toc-link" id="toc-7">7. Contatti Privacy</a></li>
+      </ul>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-color);">
+        <button type="button" class="btn-cookie-reject" style="width:100%; text-align:center;" onclick="openCookieManager()" id="btnManagePreferences">
+          ⚙️ Gestisci Consenso
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Area (Italian Version) -->
+    <div class="content-area" id="contentAreaIT">
+
+      <section id="art-titolare" class="legal-card">
+        <h2>1. Titolare del Trattamento</h2>
+        <p>Il titolare del trattamento dei dati per la piattaforma BarPilot (sito web <strong>www.barpilot.eu</strong>, applicazione web e app Android) è:</p>
+        <p>
+          <strong>Ragione Sociale:</strong> LinkVisions<br>
+          <strong>Partita IVA:</strong> IT02799820036<br>
+          <strong>Sede Legale:</strong> Fraz. Bellon, 9 – 11010 Sarre (AO), Italia<br>
+          <strong>Email Privacy & DPO:</strong> <a href="mailto:admin@barpilot.eu" style="color:var(--primary); text-decoration:none;">admin@barpilot.eu</a>
+        </p>
+      </section>
+
+      <section id="art-cosa-sono" class="legal-card">
+        <h2>2. Cosa sono i Cookie e le Tecnologie di Archiviazione Locale</h2>
+        <p>I <strong>cookie</strong> sono piccoli file di testo che i siti visitati inviano al browser dell'utente, dove vengono memorizzati per essere ritrasmessi agli stessi siti alle visite successive.</p>
+        <p>Oltre ai cookie HTTP tradizionali, le moderne Progressive Web App come <strong>BarPilot</strong> utilizzano il <strong>Web Storage (LocalStorage, SessionStorage e Cache Storage)</strong>. Queste tecnologie consentono di memorizzare in modo sicuro sul dispositivo del gestore le preferenze operative (come la lingua scelta o il tavolo selezionato) e garantiscono il funzionamento dell'app anche con connessioni deboli o instabili.</p>
+      </section>
+
+      <section id="art-tipologie" class="legal-card">
+        <h2>3. Quali Tecnologie Utilizza BarPilot</h2>
+        <p>BarPilot adotta un approccio orientato alla <strong>massima riservatezza</strong> e al principio di minimizzazione dei dati (GDPR):</p>
+        <ul>
+          <li><strong>Cookie e Storage Strettamente Necessari (Tecnici):</strong> indispensabili per l'autenticazione dell'esercente, la sicurezza delle comande, la stabilità della cassa e la prevenzione delle frodi nei pagamenti. Per l'installazione di questi strumenti non è richiesto il consenso preventivo dell'utente ai sensi dell'art. 122 del Codice Privacy.</li>
+          <li><strong>Nessun Cookie di Profilazione Pubblicitaria:</strong> BarPilot <strong>non</strong> utilizza Google AdSense, Meta Pixel, monitoraggi cross-site o strumenti di pubblicità comportamentale.</li>
+          <li><strong>Nessun Tracciamento Analitico Invasivo di Terze Parti:</strong> la piattaforma non impiega strumenti analitici invasivi di terze parti a fini commerciali.</li>
+        </ul>
+      </section>
+
+      <section id="art-tabella" class="legal-card">
+        <h2>4. Tabella Dettagliata delle Tecnologie Utilizzate</h2>
+        <p>Di seguito l'elenco analitico delle chiavi tecniche memorizzate da BarPilot sul browser o dispositivo dell'utente:</p>
+        
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome / Chiave</th>
+                <th>Tipologia</th>
+                <th>Fornitore</th>
+                <th>Finalità</th>
+                <th>Durata</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>barpilot_supabase_session</code></td>
+                <td><span class="badge-tech">Tecnico / Storage</span></td>
+                <td>Supabase / BarPilot</td>
+                <td>Mantiene la sessione protetta del gestore o del cameriere per accedere alla dashboard.</td>
+                <td>Fino al Logout</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_lang</code></td>
+                <td><span class="badge-tech">Tecnico / Storage</span></td>
+                <td>BarPilot</td>
+                <td>Memorizza la lingua prescelta (Italiano o Francese) per l'interfaccia.</td>
+                <td>Persistente (1 anno)</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_theme</code></td>
+                <td><span class="badge-tech">Tecnico / Storage</span></td>
+                <td>BarPilot</td>
+                <td>Memorizza il tema visivo selezionato (Chiaro o Scuro).</td>
+                <td>Persistente (1 anno)</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_cookie_consent</code></td>
+                <td><span class="badge-tech">Tecnico / Storage</span></td>
+                <td>BarPilot</td>
+                <td>Registra la presa visione dell'informativa cookie e delle preferenze espresse.</td>
+                <td>12 mesi</td>
+              </tr>
+              <tr>
+                <td><code>__stripe_mid, __stripe_sid</code></td>
+                <td><span class="badge-tech">Cookie Tecnico</span></td>
+                <td>Stripe Payments Europe</td>
+                <td>Prevenzione delle frodi e sicurezza durante l'elaborazione dei pagamenti e abbonamenti.</td>
+                <td>1 anno / 30 minuti</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="art-terze-parti" class="legal-card">
+        <h2>5. Servizi di Terze Parti Integrati</h2>
+        <p>Per l'erogazione sicura del servizio gestionale, BarPilot si avvale dei seguenti fornitori tecnici:</p>
+        <ul>
+          <li><strong>Supabase Inc.</strong>: infrastruttura di database e autenticazione sicura (conforme GDPR con server in UE).</li>
+          <li><strong>Stripe Payments Europe Ltd.</strong>: elaborazione crittografata dei pagamenti e conformità PCI-DSS Livello 1.</li>
+          <li><strong>Vercel Inc.</strong>: piattaforma di hosting e content delivery network globale per garantire la massima velocità di caricamento.</li>
+          <li><strong>Google Fonts</strong>: caricamento ottimizzato dei caratteri tipografici visuali.</li>
+        </ul>
+      </section>
+
+      <section id="art-gestione" class="legal-card">
+        <h2>6. Come Gestire o Disabilitare i Cookie</h2>
+        <p>L'utente può in qualunque momento modificare o revocare le proprie preferenze utilizzando il pulsante <strong>"Gestisci Consenso"</strong> presente su questa pagina e nel footer di BarPilot.</p>
+        <p>Inoltre, l'utente può configurare il proprio browser (Chrome, Firefox, Safari, Edge) per bloccare o cancellare i cookie. Si fa presente che la disabilitazione dei cookie tecnici e dell'archiviazione locale comprometterà la possibilità di effettuare il login e gestire le ordinazioni del locale.</p>
+      </section>
+
+      <section id="art-contatti" class="legal-card">
+        <h2>7. Contatti e Diritti dell'Utente</h2>
+        <p>Per qualsiasi informazione o esercizio dei diritti previsti dal GDPR (accesso, rettifica, cancellazione, limitazione), l'utente può inviare una richiesta all'indirizzo email dedicato:</p>
+        <p><strong>Email:</strong> <a href="mailto:admin@barpilot.eu" style="color:var(--primary); text-decoration:none;">admin@barpilot.eu</a></p>
+        <p>Consulta anche la nostra <a href="/norme-sulla-privacy" style="color:var(--primary); text-decoration:none; font-weight:700;">Informativa sulla Privacy</a> e i <a href="/termini-e-condizioni" style="color:var(--primary); text-decoration:none; font-weight:700;">Termini e Condizioni</a>.</p>
+      </section>
+
+    </div>
+
+    <!-- Content Area (French Version) -->
+    <div class="content-area" id="contentAreaFR" style="display:none;">
+
+      <section class="legal-card">
+        <h2>1. Responsable du Traitement</h2>
+        <p>Le responsable du traitement des données pour la plateforme BarPilot (site web <strong>www.barpilot.eu</strong>, application web et application Android) est :</p>
+        <p>
+          <strong>Raison Sociale :</strong> LinkVisions<br>
+          <strong>Numéro de TVA :</strong> IT02799820036<br>
+          <strong>Siège Social :</strong> Fraz. Bellon, 9 – 11010 Sarre (AO), Italie<br>
+          <strong>Email Confidentialité :</strong> <a href="mailto:admin@barpilot.eu" style="color:var(--primary); text-decoration:none;">admin@barpilot.eu</a>
+        </p>
+      </section>
+
+      <section class="legal-card">
+        <h2>2. Qu'est-ce que les Cookies et le Stockage Local ?</h2>
+        <p>Les <strong>cookies</strong> sont de petits fichiers texte envoyés par les sites web à votre navigateur, où ils sont stockés pour être retransmis lors de visites ultérieures.</p>
+        <p>En tant qu'application web progressive (PWA), <strong>BarPilot</strong> utilise également le <strong>stockage web local (LocalStorage et SessionStorage)</strong>. Ces technologies permettent de mémoriser en toute sécurité sur l'appareil vos préférences de service (comme la langue choisie ou la table active) et assurent la continuité de fonctionnement même en cas de réseau instable.</p>
+      </section>
+
+      <section class="legal-card">
+        <h2>3. Technologies Utilisées par BarPilot</h2>
+        <p>BarPilot applique une politique stricte de respect de la vie privée et de minimisation des données :</p>
+        <ul>
+          <li><strong>Cookies et Stockage Strictement Nécessaires (Techniques) :</strong> essentiels pour l'authentification sécurisée, la synchronisation des commandes et la sécurité des paiements. Conformément à la réglementation européenne, ils ne requièrent pas de consentement préalable.</li>
+          <li><strong>Aucun Cookie Publicitaire ni de Profilage :</strong> BarPilot n'utilise aucun traceur publicitaire (pas de Google AdSense, pas de Pixel Meta, pas de suivi tiers).</li>
+          <li><strong>Aucun Suivi Analytique Intrusif de Tiers.</strong></li>
+        </ul>
+      </section>
+
+      <section class="legal-card">
+        <h2>4. Tableau Détaillé des Technologies</h2>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Clé / Identifiant</th>
+                <th>Type</th>
+                <th>Fournisseur</th>
+                <th>Finalité</th>
+                <th>Durée</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>barpilot_supabase_session</code></td>
+                <td><span class="badge-tech">Technique / Stockage</span></td>
+                <td>Supabase / BarPilot</td>
+                <td>Maintient la session sécurisée du gestionnaire ou du serveur.</td>
+                <td>Jusqu'à la déconnexion</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_lang</code></td>
+                <td><span class="badge-tech">Technique / Stockage</span></td>
+                <td>BarPilot</td>
+                <td>Mémorise la langue de l'interface (Italien ou Français).</td>
+                <td>Persistant (1 an)</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_theme</code></td>
+                <td><span class="badge-tech">Technique / Stockage</span></td>
+                <td>BarPilot</td>
+                <td>Mémorise le thème d'affichage sélectionné.</td>
+                <td>Persistant (1 an)</td>
+              </tr>
+              <tr>
+                <td><code>barpilot_cookie_consent</code></td>
+                <td><span class="badge-tech">Technique / Stockage</span></td>
+                <td>BarPilot</td>
+                <td>Enregistre la prise de connaissance de la politique relative aux cookies.</td>
+                <td>12 mois</td>
+              </tr>
+              <tr>
+                <td><code>__stripe_mid, __stripe_sid</code></td>
+                <td><span class="badge-tech">Cookie Technique</span></td>
+                <td>Stripe Payments Europe</td>
+                <td>Sécurité et prévention des fraudes lors des règlements d'abonnements.</td>
+                <td>1 an / 30 minutes</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="legal-card">
+        <h2>5. Gestion des Préférences et Droits</h2>
+        <p>Vous pouvez à tout moment gérer ou réinitialiser vos préférences en utilisant le bouton <strong>"Gérer les Préférences"</strong> accessible sur cette page et dans le pied de page du site.</p>
+        <p>Pour toute question ou exercice de vos droits (RGPD), vous pouvez nous contacter à : <strong>admin@barpilot.eu</strong>.</p>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Cookie Consent Banner -->
+  <div class="cookie-banner" id="cookieBanner">
+    <div class="cookie-banner-title">
+      <span>🍪</span>
+      <span id="bannerTitle">Informativa sui Cookie e Tecnologie di Servizio</span>
+    </div>
+    <div class="cookie-banner-desc" id="bannerDesc">
+      BarPilot utilizza esclusivamente cookie tecnici e tecnologie di archiviazione locale strettamente necessarie per garantire l'accesso sicuro, la gestione delle comande e la sicurezza dei pagamenti. Non utilizziamo cookie di profilazione pubblicitaria.
+    </div>
+    <div class="cookie-banner-actions">
+      <button type="button" class="btn-cookie-reject" onclick="handleCookieChoice('essential')" id="btnBannerEssential">Solo Tecnici Necessari</button>
+      <button type="button" class="btn-cookie-accept" onclick="handleCookieChoice('all')" id="btnBannerAccept">Accetta e Continua</button>
+      <a href="/cookie-policy" class="btn-cookie-customize" id="btnBannerLearn">Maggiori informazioni</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/norme-sulla-privacy">Privacy Policy</a>
+      <a href="/termini-e-condizioni">Termini e Condizioni</a>
+      <a href="/cookie-policy" style="color:var(--primary); font-weight:700;">Cookie Policy</a>
+      <a href="/eliminazione-account">Eliminazione Account</a>
+      <a href="javascript:void(0)" onclick="openCookieManager()">Preferenze Cookie</a>
+    </div>
+    <div>&copy; 2026 BarPilot &bull; LinkVisions &bull; P.IVA IT02799820036 &bull; Sede: Fraz. Bellon, 9 – 11010 Sarre (AO)</div>
+  </footer>
+
+  <script>
+    function switchLang(lang) {
+      const itContent = document.getElementById('contentAreaIT');
+      const frContent = document.getElementById('contentAreaFR');
+      const btnIT = document.getElementById('btnLangIT');
+      const btnFR = document.getElementById('btnLangFR');
+
+      if (lang === 'fr') {
+        itContent.style.display = 'none';
+        frContent.style.display = 'flex';
+        btnIT.classList.remove('active');
+        btnFR.classList.add('active');
+        document.getElementById('heroBadge').textContent = 'Transparence & Vie Privée';
+        document.getElementById('heroTitle').textContent = 'Politique relative aux Cookies et au Stockage';
+        document.getElementById('heroSubtitle').textContent = 'Explications claires sur l’utilisation des cookies techniques et des technologies de stockage web par BarPilot.';
+        document.getElementById('heroDate').textContent = 'Dernière mise à jour : 16 novembre 2026';
+        document.getElementById('navAppBtn').textContent = "Accéder à l'App";
+        document.getElementById('btnManagePreferences').textContent = '⚙️ Gérer le Consentement';
+      } else {
+        itContent.style.display = 'flex';
+        frContent.style.display = 'none';
+        btnFR.classList.remove('active');
+        btnIT.classList.add('active');
+        document.getElementById('heroBadge').textContent = 'Trasparenza & Privacy';
+        document.getElementById('heroTitle').textContent = 'Informativa sui Cookie e Archiviazione Locale';
+        document.getElementById('heroSubtitle').textContent = 'Spiegazione chiara di come BarPilot utilizza cookie tecnici essenziali e tecnologie di archiviazione web per il funzionamento del servizio.';
+        document.getElementById('heroDate').textContent = 'Ultimo aggiornamento: 16 novembre 2026';
+        document.getElementById('navAppBtn').textContent = "Accedi all'App";
+        document.getElementById('btnManagePreferences').textContent = '⚙️ Gestisci Consenso';
+      }
+      try { localStorage.setItem('barpilot_lang', lang); } catch(e) {}
+    }
+
+    function checkCookieConsent() {
+      try {
+        const consent = localStorage.getItem('barpilot_cookie_consent');
+        if (!consent) {
+          const banner = document.getElementById('cookieBanner');
+          if (banner) banner.classList.add('show');
+        }
+      } catch(e) {}
+    }
+
+    function handleCookieChoice(choice) {
+      try {
+        localStorage.setItem('barpilot_cookie_consent', JSON.stringify({
+          choice: choice,
+          timestamp: new Date().toISOString()
+        }));
+      } catch(e) {}
+      const banner = document.getElementById('cookieBanner');
+      if (banner) banner.classList.remove('show');
+    }
+
+    function openCookieManager() {
+      const banner = document.getElementById('cookieBanner');
+      if (banner) {
+        banner.classList.add('show');
+        banner.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('barpilot_lang');
+      if (savedLang === 'fr') switchLang('fr');
+      checkCookieConsent();
+    });
+  </script>
+</body>
+</html>

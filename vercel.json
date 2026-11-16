@@ -71,6 +71,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "cookie-policy.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "affiliazioni.html",
       "use": "@vercel/static"
     },
@@ -273,6 +277,18 @@
       "dest": "/eliminazione-account.html"
     },
     {
+      "src": "^/app/cookie-policy/?$",
+      "dest": "/cookie-policy.html"
+    },
+    {
+      "src": "^/app/cookie-policy.html$",
+      "dest": "/cookie-policy.html"
+    },
+    {
+      "src": "^/app/cookies/?$",
+      "dest": "/cookie-policy.html"
+    },
+    {
       "src": "^/app/affiliazioni/?$",
       "dest": "/affiliazioni.html"
     },
@@ -419,6 +435,18 @@
     {
       "src": "^/eliminazione-account.html$",
       "dest": "/eliminazione-account.html"
+    },
+    {
+      "src": "^/cookie-policy/?$",
+      "dest": "/cookie-policy.html"
+    },
+    {
+      "src": "^/cookie-policy.html$",
+      "dest": "/cookie-policy.html"
+    },
+    {
+      "src": "^/cookies/?$",
+      "dest": "/cookie-policy.html"
     },
     {
       "src": "^/affiliazioni/?$",
