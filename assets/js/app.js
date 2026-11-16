@@ -8289,6 +8289,13 @@ async function handleAuthSubmit(e) {
     }
 
   if (currentAuthTab === 'register') {
+    const termsCheck = document.getElementById("regTermsConsent");
+    if (termsCheck && !termsCheck.checked) {
+      showAuthError(window.i18n && window.i18n.currentLang === 'fr'
+        ? "Veuillez accepter les Conditions Générales et la Politique de Confidentialité pour créer votre compte."
+        : "È necessario accettare i Termini e Condizioni e l'Informativa sulla Privacy per registrare il bar.");
+      return;
+    }
     const credential = (document.getElementById("authPassword")?.value || "").trim();
     if (!checkPasswordRules(credential)) {
       showAuthError(window.i18n ? window.i18n.t("pwdRulesError") : "La password deve contenere almeno 8 caratteri, 1 maiuscola, 1 numero e 1 carattere speciale.");
@@ -8376,6 +8383,9 @@ async function handleAuthSubmit(e) {
       trial_end_date: trialEndIso,
       role: "Proprietario",
       status: "active_trial",
+      terms_accepted: true,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: "2026-11-16",
       created_at: new Date().toISOString()
     };
 

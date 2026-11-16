@@ -63,6 +63,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "termini-e-condizioni.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "eliminazione-account.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "affiliazioni.html",
       "use": "@vercel/static"
     },
@@ -245,6 +253,26 @@
       "dest": "/norme-sulla-privacy.html"
     },
     {
+      "src": "^/app/termini-e-condizioni/?$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/app/termini-e-condizioni.html$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/app/terms/?$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/app/eliminazione-account/?$",
+      "dest": "/eliminazione-account.html"
+    },
+    {
+      "src": "^/app/eliminazione-account.html$",
+      "dest": "/eliminazione-account.html"
+    },
+    {
       "src": "^/app/affiliazioni/?$",
       "dest": "/affiliazioni.html"
     },
@@ -367,6 +395,30 @@
     {
       "src": "^/privacy/?$",
       "dest": "/norme-sulla-privacy.html"
+    },
+    {
+      "src": "^/termini-e-condizioni/?$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/termini-e-condizioni.html$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/terms/?$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/conditions/?$",
+      "dest": "/termini-e-condizioni.html"
+    },
+    {
+      "src": "^/eliminazione-account/?$",
+      "dest": "/eliminazione-account.html"
+    },
+    {
+      "src": "^/eliminazione-account.html$",
+      "dest": "/eliminazione-account.html"
     },
     {
       "src": "^/affiliazioni/?$",
