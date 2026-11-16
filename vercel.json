@@ -59,6 +59,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "norme-sulla-privacy.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "affiliazioni.html",
       "use": "@vercel/static"
     },
@@ -229,6 +233,18 @@
       "dest": "/gestisci-abbonamento.html"
     },
     {
+      "src": "^/app/norme-sulla-privacy/?$",
+      "dest": "/norme-sulla-privacy.html"
+    },
+    {
+      "src": "^/app/norme-sulla-privacy.html$",
+      "dest": "/norme-sulla-privacy.html"
+    },
+    {
+      "src": "^/app/privacy/?$",
+      "dest": "/norme-sulla-privacy.html"
+    },
+    {
       "src": "^/app/affiliazioni/?$",
       "dest": "/affiliazioni.html"
     },
@@ -339,6 +355,18 @@
     {
       "src": "^/gestisci-abbonamento.html$",
       "dest": "/gestisci-abbonamento.html"
+    },
+    {
+      "src": "^/norme-sulla-privacy/?$",
+      "dest": "/norme-sulla-privacy.html"
+    },
+    {
+      "src": "^/norme-sulla-privacy.html$",
+      "dest": "/norme-sulla-privacy.html"
+    },
+    {
+      "src": "^/privacy/?$",
+      "dest": "/norme-sulla-privacy.html"
     },
     {
       "src": "^/affiliazioni/?$",
