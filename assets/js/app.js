@@ -7976,7 +7976,7 @@ function verifyPartnerCodeInput(val) {
   if (code.length < 6) {
     feedbackEl.style.display = "block";
     feedbackEl.style.color = "#94A3B8";
-    feedbackEl.textContent = "Inserisci tutti i 6 caratteri del codice partner";
+    feedbackEl.textContent = window.i18n ? window.i18n.t("regPromoCodeLength") : "Inserisci tutti i 6 caratteri del codice partner";
     return;
   }
   if (partnerCodeVerifyTimer) clearTimeout(partnerCodeVerifyTimer);
@@ -7991,11 +7991,12 @@ function verifyPartnerCodeInput(val) {
       if (data.valid) {
         feedbackEl.style.display = "block";
         feedbackEl.style.color = "#10B981";
-        feedbackEl.textContent = `✓ Codice partner ${data.code} valido — 14 giorni di prova gratuita inclusi`;
+        feedbackEl.textContent = window.i18n ? window.i18n.t("regPromoCodeValid", { code: data.code }) : `✓ Codice partner ${data.code} valido — 14 giorni di prova gratuita inclusi`;
       } else {
         feedbackEl.style.display = "block";
         feedbackEl.style.color = "#F59E0B";
-        feedbackEl.textContent = data.message || "Codice partner non trovato su Supabase";
+        const notFoundText = window.i18n ? window.i18n.t("regPromoCodeNotFound") : "Codice partner non trovato su Supabase";
+        feedbackEl.textContent = data.message || notFoundText;
       }
     } catch (_) {}
   }, 250);
@@ -8423,7 +8424,7 @@ async function handleAuthSubmit(e) {
           submitBtnEmail.disabled = false;
           submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
         }
-        showAuthError(regJson.error || "Errore durante la verifica del codice promo/partner.");
+        showAuthError(regJson.error || (window.i18n ? window.i18n.t("regPromoCodeError") : "Errore durante la verifica del codice promo/partner."));
         return;
       }
       if (regRes.ok && regJson) {

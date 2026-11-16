@@ -119,6 +119,12 @@ const i18nData = {
     rememberMe: "Resta connesso su questo dispositivo",
     forgotPass: "Password dimenticata?",
     submitLogin: "Accedi al gestionale",
+    regPromoLabel: "Hai un codice promo o partner?",
+    regPromoPlaceholder: "Inserisci il codice di 6 caratteri",
+    regPromoCodeLength: "Inserisci tutti i 6 caratteri del codice partner",
+    regPromoCodeValid: "✓ Codice partner {code} valido — 14 giorni di prova gratuita inclusi",
+    regPromoCodeNotFound: "Codice partner non trovato su Supabase",
+    regPromoCodeError: "Errore durante la verifica del codice promo/partner.",
     barNameLabel: "Nome del tuo Bar / Locale",
     barNamePlaceholder: "Es: Bar Centrale",
     ownerNameLabel: "Il tuo Nome e Cognome",
@@ -462,6 +468,12 @@ const i18nData = {
     rememberMe: "Se souvenir de moi sur cet appareil",
     forgotPass: "Mot de passe oublié ?",
     submitLogin: "Accéder à BarPilot",
+    regPromoLabel: "Avez-vous un code promo ou partenaire ?",
+    regPromoPlaceholder: "Entrez le code à 6 caractères",
+    regPromoCodeLength: "Entrez les 6 caractères du code partenaire",
+    regPromoCodeValid: "✓ Code partenaire {code} valide — 14 jours d'essai gratuit inclus",
+    regPromoCodeNotFound: "Code partenaire introuvable sur Supabase",
+    regPromoCodeError: "Erreur lors de la vérification du code promo/partenaire.",
     barNameLabel: "Nom de votre établissement",
     barNamePlaceholder: "Ex: Bar Centrale",
     ownerNameLabel: "Nom et Prénom du gérant",
@@ -762,6 +774,11 @@ window.i18n = {
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-lang') === this.currentLang);
     });
+
+    const promoInput = document.getElementById("regPromoCode");
+    if (promoInput && promoInput.value && typeof window.verifyPartnerCodeInput === "function") {
+      window.verifyPartnerCodeInput(promoInput.value);
+    }
 
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: this.currentLang } }));
   }

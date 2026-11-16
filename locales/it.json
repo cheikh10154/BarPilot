@@ -288,5 +288,7 @@
     "cookies": "Cookie Policy",
     "terms": "Termini e Condizioni",
     "copyright": "© 2026 BarPilot — Tutti i diritti riservati."
-  }
+  },
+  "regPromoLabel": "Hai un codice promo o partner?",
+  "regPromoPlaceholder": "Inserisci il codice di 6 caratteri"
 }
