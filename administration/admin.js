@@ -2202,6 +2202,31 @@ class AdminConsole {
     }
   }
 
+  async resetAffiliatesData() {
+    const confirmReset = window.confirm("Sei sicuro di voler azzerare TUTTI i dati del menu Affiliazioni (affiliati, referral, commissioni, prelievi e notifiche)? L'azione è irreversibile.");
+    if (!confirmReset) return;
+    try {
+      this.showToast("Azzeramento dati affiliazioni in corso...");
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({ action: "reset_affiliates_data" })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Errore durante l'azzeramento");
+      this.showToast("✓ Dati affiliazioni azzerati con successo!");
+      await this.renderAffiliatesView();
+      if (typeof this.updateAffiliatesSidebarBadge === "function") {
+        this.updateAffiliatesSidebarBadge(0);
+      }
+    } catch (err) {
+      alert("Errore azzeramento: " + err.message);
+    }
+  }
+
   async updateCommissionStatus(commId, newStatus) {
     try {
       const res = await fetch("/api/admin-affiliates", {

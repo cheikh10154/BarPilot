@@ -242,8 +242,13 @@ async function syncAffiliateInAuthUsers(affObj, password = null) {
 function hydrateAffiliateFromAuthUser(u) {
   if (!u || !u.email) return null;
   const meta = u.user_metadata || {};
+  // Considera affiliato solo chi è registrato esplicitamente per il programma affiliazione
+  const isAffiliateAccount = meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_affiliate === true;
+  if (!isAffiliateAccount || !meta.affiliate_code) {
+    return null;
+  }
   const email = u.email.trim().toLowerCase();
-  const code = (meta.affiliate_code || getConsistentCodeForAccount(email)).toUpperCase();
+  const code = String(meta.affiliate_code).toUpperCase();
   return {
     id: meta.affiliate_id || ('aff_' + u.id.replace(/-/g, '').slice(0, 12)),
     user_id: u.id,
@@ -1099,6 +1104,95 @@ async function handleAdminRequest(req, res) {
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
       const action = body.action || '';
+
+      if (action === 'reset_affiliates_data') {
+        // 1. Reset in-memory cache
+        affiliatesCache.affiliates = [];
+        affiliatesCache.referrals = [];
+        affiliatesCache.commissions = [];
+        affiliatesCache.withdrawals = [];
+        affiliatesCache.notifications = [];
+        writeAffiliatesStore(affiliatesCache);
+
+        // 2. Cancella storage manifest Supabase
+        try {
+          const srKey = getServiceRoleKey();
+          if (srKey) {
+            await writeMediaManifest('superadmin', { affiliates: [], referrals: [], commissions: [], withdrawals: [] }, srKey);
+            await writeMediaManifest('default', { affiliates: [], referrals: [], commissions: [], withdrawals: [] }, srKey);
+          }
+        } catch (_) {}
+
+        // 3. Cancella tabelle SQL Supabase se esistenti
+        try {
+          await supabaseFetch('affiliate_withdrawals?id=neq.none', { method: 'DELETE' });
+        } catch (_) {}
+        try {
+          await supabaseFetch('affiliate_commissions?id=neq.none', { method: 'DELETE' });
+        } catch (_) {}
+        try {
+          await supabaseFetch('affiliate_referrals?id=neq.none', { method: 'DELETE' });
+        } catch (_) {}
+        try {
+          await supabaseFetch('affiliates?id=neq.none', { method: 'DELETE' });
+        } catch (_) {}
+
+        // 4. Pulisci metadati affiliazione da tutti gli account in auth.users
+        try {
+          const srKey = getServiceRoleKey();
+          if (srKey) {
+            const authUsers = await fetchAllAuthUsers();
+            for (const u of authUsers) {
+              const meta = { ...(u.user_metadata || {}) };
+              let changed = false;
+              const affKeys = [
+                'affiliate_referrals',
+                'affiliate_commissions',
+                'affiliate_withdrawals',
+                'affiliate_code',
+                'affiliate_id',
+                'affiliate_status',
+                'affiliate_name',
+                'affiliate_phone',
+                'affiliate_payout_method',
+                'affiliate_created_at',
+                'is_affiliate'
+              ];
+              affKeys.forEach(k => {
+                if (meta[k] !== undefined) {
+                  delete meta[k];
+                  changed = true;
+                }
+              });
+              if (meta.account_type === 'affiliate') {
+                delete meta.account_type;
+                changed = true;
+              }
+              if (meta.registered_from === 'affiliazioni') {
+                delete meta.registered_from;
+                changed = true;
+              }
+
+              if (changed) {
+                await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(u.id)}`, {
+                  method: 'PUT',
+                  headers: {
+                    'apikey': srKey,
+                    'Authorization': `Bearer ${srKey}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ user_metadata: meta })
+                });
+              }
+            }
+          }
+        } catch (_) {}
+
+        return res.status(200).json({
+          success: true,
+          message: "Tutti i dati del menu Affiliazioni sono stati azzerati con successo."
+        });
+      }
 
       if (action === 'mark_notifications_read') {
         const notifId = body.id;
