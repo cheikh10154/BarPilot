@@ -848,7 +848,27 @@ async function handleAdminRequest(req, res) {
         }
       } catch (_) {}
 
-      if (!sqlAffiliatesAvailable || affiliates.length === 0 || !sqlWithdrawalsAvailable) {
+      const srKey = getServiceRoleKey();
+      let isExplicitlyReset = false;
+      try {
+        if (srKey) {
+          const resetManifest = await readMediaManifest('affiliates_reset', srKey);
+          if (resetManifest && resetManifest.reset_all) {
+            isExplicitlyReset = true;
+            store.affiliates = [];
+            store.referrals = [];
+            store.commissions = [];
+            store.withdrawals = [];
+            store.notifications = [];
+            affiliates = [];
+            referrals = [];
+            commissions = [];
+            withdrawals = [];
+          }
+        }
+      } catch (_) {}
+
+      if (!isExplicitlyReset && (!sqlAffiliatesAvailable || affiliates.length === 0 || !sqlWithdrawalsAvailable)) {
         const authUsers = await fetchAllAuthUsers();
         const affMap = new Map();
         (affiliates || []).forEach(a => affMap.set((a.email || '').toLowerCase(), a));
@@ -885,9 +905,9 @@ async function handleAdminRequest(req, res) {
         });
         affiliates = Array.from(affMap.values());
       }
-      if (!sqlReferralsAvailable && referrals.length === 0) referrals = store.referrals || [];
-      if (!sqlCommissionsAvailable && commissions.length === 0) commissions = store.commissions || [];
-      if (!sqlWithdrawalsAvailable) {
+      if (!isExplicitlyReset && !sqlReferralsAvailable && referrals.length === 0) referrals = store.referrals || [];
+      if (!isExplicitlyReset && !sqlCommissionsAvailable && commissions.length === 0) commissions = store.commissions || [];
+      if (!isExplicitlyReset && !sqlWithdrawalsAvailable) {
         (store.withdrawals || []).forEach(w => {
           if (!withdrawals.some(ex => ex.id === w.id)) withdrawals.push(w);
         });
@@ -1114,10 +1134,12 @@ async function handleAdminRequest(req, res) {
         affiliatesCache.notifications = [];
         writeAffiliatesStore(affiliatesCache);
 
-        // 2. Cancella storage manifest Supabase
+        // 2. Scrivi manifest di reset su Supabase Storage per invalidazione cross-container
         try {
           const srKey = getServiceRoleKey();
           if (srKey) {
+            await ensureMediaBucket(srKey);
+            await writeMediaManifest('affiliates_reset', { reset_all: true, reset_at: new Date().toISOString() }, srKey);
             await writeMediaManifest('superadmin', { affiliates: [], referrals: [], commissions: [], withdrawals: [] }, srKey);
             await writeMediaManifest('default', { affiliates: [], referrals: [], commissions: [], withdrawals: [] }, srKey);
           }
@@ -1144,46 +1166,34 @@ async function handleAdminRequest(req, res) {
             const authUsers = await fetchAllAuthUsers();
             for (const u of authUsers) {
               const meta = { ...(u.user_metadata || {}) };
-              let changed = false;
-              const affKeys = [
-                'affiliate_referrals',
-                'affiliate_commissions',
-                'affiliate_withdrawals',
-                'affiliate_code',
-                'affiliate_id',
-                'affiliate_status',
-                'affiliate_name',
-                'affiliate_phone',
-                'affiliate_payout_method',
-                'affiliate_created_at',
-                'is_affiliate'
-              ];
-              affKeys.forEach(k => {
-                if (meta[k] !== undefined) {
-                  delete meta[k];
-                  changed = true;
-                }
-              });
-              if (meta.account_type === 'affiliate') {
-                delete meta.account_type;
-                changed = true;
+              const updatedMeta = { ...meta };
+              updatedMeta.affiliate_referrals = [];
+              updatedMeta.affiliate_commissions = [];
+              updatedMeta.affiliate_withdrawals = [];
+              updatedMeta.affiliate_code = null;
+              updatedMeta.affiliate_id = null;
+              updatedMeta.affiliate_status = null;
+              updatedMeta.affiliate_name = null;
+              updatedMeta.affiliate_phone = null;
+              updatedMeta.affiliate_payout_method = null;
+              updatedMeta.affiliate_created_at = null;
+              updatedMeta.is_affiliate = false;
+              if (updatedMeta.account_type === 'affiliate') {
+                updatedMeta.account_type = 'user';
               }
-              if (meta.registered_from === 'affiliazioni') {
-                delete meta.registered_from;
-                changed = true;
+              if (updatedMeta.registered_from === 'affiliazioni') {
+                updatedMeta.registered_from = null;
               }
 
-              if (changed) {
-                await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(u.id)}`, {
-                  method: 'PUT',
-                  headers: {
-                    'apikey': srKey,
-                    'Authorization': `Bearer ${srKey}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ user_metadata: meta })
-                });
-              }
+              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(u.id)}`, {
+                method: 'PUT',
+                headers: {
+                  'apikey': srKey,
+                  'Authorization': `Bearer ${srKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_metadata: updatedMeta })
+              });
             }
           }
         } catch (_) {}
@@ -2353,6 +2363,12 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       if (action === 'auth_register') {
+        try {
+          const srKeyReg = getServiceRoleKey();
+          if (srKeyReg) {
+            await writeMediaManifest('affiliates_reset', { reset_all: false }, srKeyReg);
+          }
+        } catch (_) {}
         const { firstName, lastName, phone, email, password } = body;
         const cleanFirst = (firstName || '').trim();
         const cleanLast = (lastName || '').trim();
