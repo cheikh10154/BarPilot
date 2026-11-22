@@ -9881,6 +9881,9 @@ window.handleProCheckoutSubmit = handleProCheckoutSubmit;
 // ASSISTENZA BARPILOT & APERTURA TICKET (Destinatario: admin@barpilot.eu)
 // ============================================================================
 function openSupportTicketModal(topic = null) {
+  if (typeof closeSidebar === "function" && window.innerWidth <= 1024) {
+    closeSidebar();
+  }
   const modal = document.getElementById("supportTicketModal");
   if (modal) {
     modal.classList.add("active");
@@ -10370,13 +10373,13 @@ function updateTicketButtonVisibility() {
   const staffRole = (currentStaff && currentStaff.role) || "Proprietario";
   const isOwnerOrManager = staffRole === "Proprietario" || staffRole === "Manager";
 
-  // Deve apparire solo se autorizzato (demo o login), senza overlay pre-accesso, solo su Dashboard e solo per Manager / Proprietario
-  const shouldShow = isAuthorized && !onPreAuthScreen && isDashboardView && isOwnerOrManager;
+  // Deve apparire nel menu laterale se autorizzato (demo o login), senza overlay pre-accesso e per Manager / Proprietario
+  const shouldShow = isAuthorized && !onPreAuthScreen && isOwnerOrManager;
 
   if (fab) {
     if (shouldShow) {
       fab.classList.add("visible");
-      fab.style.display = "inline-flex";
+      fab.style.display = "flex";
     } else {
       fab.classList.remove("visible");
       fab.style.display = "none";

@@ -5122,45 +5122,64 @@ input:checked + .toggle-slider:before {
   }
 }
 
-/* 2. Floating Action Button (FAB) at Bottom-Right (Visibile solo nel Dashboard in demo o dopo aver effettuato l'accesso) */
-.fab-ticket-btn {
-  position: fixed !important;
-  bottom: 24px !important;
-  right: 24px !important;
-  z-index: 1050 !important;
-  display: none;
+/* 2. Pulsante 'Apri un ticket' nel Menu Laterale */
+.fab-ticket-btn,
+.sidebar-ticket-action-btn {
+  position: static !important;
+  bottom: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+  display: flex !important;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: var(--radius-full);
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  margin: 6px 0 2px 0;
+  border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #FF6B00 0%, #FF8A24 100%);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 25px rgba(255, 107, 0, 0.42);
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.16) 0%, rgba(255, 138, 36, 0.24) 100%);
+  color: #FFFFFF;
+  border: 1.5px solid rgba(255, 138, 36, 0.55);
+  box-shadow: 0 4px 14px rgba(255, 107, 0, 0.2);
   cursor: pointer !important;
   pointer-events: auto !important;
   touch-action: manipulation !important;
   user-select: none;
+  text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
-.fab-ticket-btn.visible {
-  display: inline-flex !important;
+.fab-ticket-btn.visible,
+.sidebar-ticket-action-btn.visible {
+  display: flex !important;
 }
-.fab-ticket-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 14px 30px rgba(255, 107, 0, 0.55);
+.fab-ticket-btn:hover,
+.sidebar-ticket-action-btn:hover {
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8A24 100%);
+  color: #ffffff;
+  border-color: #FF8A24;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 107, 0, 0.45);
 }
-.fab-ticket-btn:active {
-  transform: scale(0.97);
+.fab-ticket-btn:active,
+.sidebar-ticket-action-btn:active {
+  transform: scale(0.98);
 }
-.fab-ticket-btn .fab-ticket-icon {
-  font-size: 17px;
+.fab-ticket-btn .fab-ticket-icon,
+.sidebar-ticket-action-btn .fab-ticket-icon {
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   pointer-events: none;
 }
-.fab-ticket-btn .fab-ticket-text {
+.fab-ticket-btn .fab-ticket-text,
+.sidebar-ticket-action-btn .fab-ticket-text {
+  flex: 1;
   pointer-events: none;
 }
 .fab-pulse-dot {
@@ -5179,17 +5198,20 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 640px) {
-  .fab-ticket-btn {
-    bottom: 20px !important;
-    right: 18px !important;
-    padding: 10px 16px !important;
-    font-size: 13px !important;
-    z-index: 1050 !important;
-    display: none;
-    pointer-events: auto !important;
+  .fab-ticket-btn,
+  .sidebar-ticket-action-btn {
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    margin: 6px 0 !important;
+    width: 100% !important;
+    z-index: auto !important;
   }
-  .fab-ticket-btn.visible {
-    display: inline-flex !important;
+  .fab-ticket-btn.visible,
+  .sidebar-ticket-action-btn.visible {
+    display: flex !important;
   }
 }
 
