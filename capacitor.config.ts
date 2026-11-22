@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.barpilot.app',
+  appId: 'eu.barpilot.gestionale',
   appName: 'BarPilot',
   webDir: 'out',
   server: {

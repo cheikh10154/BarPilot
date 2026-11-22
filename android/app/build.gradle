@@ -4,17 +4,26 @@ plugins {
 
 android {
     namespace 'eu.barpilot.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "eu.barpilot.app"
         minSdk 24
-        targetSdk 35
-        versionCode 2
-        versionName "1.0.1"
+        targetSdk 36
+        versionCode 20
+        versionName "1.1.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    android {
+        compileSdk = 36
+        defaultConfig {
+            targetSdk = 36
+            // ...
+        }
+    }
+
 
     signingConfigs {
         release {
