@@ -1120,13 +1120,16 @@ body {
    ORDER TAKING VIEW (Mobile-first "Nuova comanda")
    ======================================================== */
 .order-screen-layout {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 120px);
+  min-height: 580px;
 }
 
 .order-catalog-pane {
+  flex: 1 1 55%;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1218,6 +1221,7 @@ body {
   gap: 14px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
   padding-right: 4px;
 }
 
@@ -1290,24 +1294,28 @@ body {
   transform: scale(1.1);
 }
 
-/* Order Cart Sheet (Right Pane / Bottom Sheet) */
+/* Order Cart Sheet (Bottom Pane) */
 .order-cart-pane {
+  flex: 0 1 45%;
+  min-height: 230px;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: var(--shadow-card);
 }
 
 .cart-items-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 16px 0;
+  margin: 12px 0;
   padding-right: 4px;
 }
 
@@ -1366,8 +1374,9 @@ body {
 
 .cart-footer {
   border-top: 1px solid var(--border-color);
-  padding-top: 16px;
+  padding-top: 14px;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .cart-total-row {
@@ -1959,8 +1968,25 @@ body {
     grid-template-columns: 1fr;
   }
   .order-screen-layout {
-    grid-template-columns: 1fr;
-    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: calc(100dvh - 90px);
+    min-height: 520px;
+  }
+  .order-catalog-pane {
+    flex: 1 1 54%;
+    min-height: 220px;
+    padding: 12px;
+  }
+  .order-cart-pane {
+    flex: 0 1 46%;
+    min-height: 210px;
+    padding: 12px 14px;
+  }
+  .products-catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
   }
   .plans-grid {
     display: flex;
