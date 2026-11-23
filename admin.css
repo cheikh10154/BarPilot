@@ -1492,21 +1492,32 @@ html, body {
 
   .topbar-right > .search-box-wrap,
   .topbar-right > div:has(.date-filter-btn),
+  .topbar-right > .topbar-avatar-pill,
   .topbar-right > .btn-primary-orange,
   .topbar-right > .notif-center-wrap,
-  .topbar-right > div:has(#adminNotificationBellBtn),
-  .topbar-user-btn {
+  .topbar-right > div:has(#adminNotificationBellBtn) {
     display: none !important;
   }
 
-  .topbar-right > .topbar-avatar-pill {
+  .topbar-user-btn {
     display: flex !important;
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 50% !important;
-    overflow: hidden !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
     cursor: pointer !important;
-    flex-shrink: 0 !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+  }
+
+  .topbar-user-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #FFFFFF !important;
+    display: block !important;
   }
 
   .sidebar {
