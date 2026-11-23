@@ -1222,6 +1222,83 @@
         font-size: 20px;
       }
     }
+
+    /* TOPBAR MOBILE & TABLET (Menu sinistra, logo centro, profilo destra) */
+    .aff-mobile-menu-btn,
+    .topbar-center-brand,
+    .topbar-user-btn {
+      display: none;
+    }
+    @media (max-width: 1024px) {
+      .topbar {
+        height: 58px !important;
+        padding: 0 16px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: relative !important;
+        background: #0B1220 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      }
+      .desktop-brand-wrap {
+        display: none !important;
+      }
+      .aff-mobile-menu-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        margin: 0 !important;
+        text-decoration: none !important;
+      }
+      .topbar-center-brand {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+      }
+      .topbar-brand-logo-img {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        object-fit: contain !important;
+      }
+      .topbar-brand-title {
+        font-size: 21px !important;
+        font-weight: 800 !important;
+        color: #FFFFFF !important;
+        letter-spacing: -0.5px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+      }
+      .topbar-brand-title span {
+        color: #FF8A24 !important;
+      }
+      .topbar-actions > button:not(.topbar-user-btn),
+      .topbar-actions > .profile-menu-container > .user-pill-btn {
+        display: none !important;
+      }
+      .topbar-user-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        margin: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1230,7 +1307,17 @@
   <div class="app-layout">
     <!-- Topbar Header -->
     <header class="topbar">
-      <a href="/app" class="brand-wrap">
+      <!-- Left Hamburger / Navigation Button (Mobile & Tablet) -->
+      <a href="/app" class="aff-mobile-menu-btn" aria-label="Menu" title="Torna all'App">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </a>
+
+      <!-- Desktop Brand Wrap -->
+      <a href="/app" class="brand-wrap desktop-brand-wrap">
         <img src="assets/images/logo.png" alt="BarPilot Logo" class="brand-logo-img">
         <div class="brand-text-wrap">
           <div class="brand-title">
@@ -1239,6 +1326,12 @@
           </div>
           <span class="brand-sub">Programma Referral Bar & Ristoranti</span>
         </div>
+      </a>
+
+      <!-- Center Brand Logo (Mobile & Tablet) -->
+      <a href="/app" class="topbar-center-brand" aria-label="BarPilot Home">
+        <img src="/assets/images/logo.png" alt="BarPilot Logo" class="topbar-brand-logo-img">
+        <span class="topbar-brand-title">Bar<span>Pilot</span></span>
       </a>
 
       <div class="topbar-actions">
@@ -1306,6 +1399,14 @@
             </button>
           </div>
         </div>
+
+        <!-- Mobile & Tablet Profile User Icon -->
+        <button type="button" class="topbar-user-btn" id="affMobileUserBtn" onclick="toggleAffiliateMobileProfile()" aria-label="Profilo" title="Profilo utente">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -2516,6 +2617,15 @@
       if (!menu) return;
       const isOpen = menu.classList.toggle("show");
       if (btn) btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+
+    function toggleAffiliateMobileProfile(e) {
+      if (e) e.stopPropagation();
+      if (currentAffiliateUser) {
+        toggleProfileMenu(e);
+      } else {
+        showAffiliateAuthModal('login');
+      }
     }
 
     function closeProfileMenu() {

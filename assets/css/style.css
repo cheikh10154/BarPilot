@@ -5530,3 +5530,153 @@ input:checked + .toggle-slider:before {
   background: rgba(239, 68, 68, 0.85);
   transform: scale(1.08);
 }
+
+/* ========================================================
+   TOPBAR MOBILE & TABLET LAYOUT (Menu a sinistra, logo in mezzo, profilo a destra)
+   ======================================================== */
+.topbar-center-brand {
+  display: none;
+}
+.topbar-user-btn {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .topbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 0 16px !important;
+    background: #0B1220 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    z-index: 100 !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* Nascondi saluti e titoli desktop su mobile e tablet */
+  .topbar-left > div:not(.menu-toggle-btn),
+  .greeting-title,
+  .greeting-subtitle,
+  .topbar-title,
+  .topbar-subtitle {
+    display: none !important;
+  }
+
+  .menu-toggle-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .menu-toggle-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #FFFFFF !important;
+    display: block !important;
+  }
+
+  /* Logo BarPilot perfettamente centrato */
+  .topbar-center-brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+  }
+
+  .topbar-brand-logo-img {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  .topbar-brand-title {
+    font-size: 21px !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    font-family: inherit !important;
+  }
+
+  .topbar-brand-title span {
+    color: #FF8A24 !important;
+  }
+
+  .topbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* Nascondi date pill, ticket button e notifiche su mobile/tablet per lasciare solo l'icona profilo */
+  .topbar-date-ticket-group,
+  .date-pill,
+  .btn-topbar-ticket,
+  .icon-btn,
+  .topbar-right > .search-box-wrap,
+  .topbar-right > div:has(.date-filter-btn),
+  .topbar-right > .btn-primary-orange,
+  #topbarUserAvatar {
+    display: none !important;
+  }
+
+  /* Icona profilo utente a destra */
+  .topbar-user-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+  }
+
+  .topbar-user-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #FFFFFF !important;
+    display: block !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .topbar-center-brand {
+    display: none !important;
+  }
+  .topbar-user-btn {
+    display: none !important;
+  }
+}

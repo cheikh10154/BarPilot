@@ -3,6 +3,25 @@
  * Sincronizzazione in tempo reale con Supabase Database, Stripe Billing e Realtime WebSockets
  */
 
+window.toggleAdminSidebar = function() {
+  const sb = document.querySelector('.sidebar');
+  if (sb) {
+    sb.classList.toggle('mobile-open');
+    let backdrop = document.getElementById('adminSidebarBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'adminSidebarBackdrop';
+      backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;backdrop-filter:blur(3px);';
+      backdrop.onclick = () => {
+        sb.classList.remove('mobile-open');
+        backdrop.style.display = 'none';
+      };
+      document.body.appendChild(backdrop);
+    }
+    backdrop.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+  }
+};
+
 const SUPABASE_ADMIN_CONFIG = {
   url: "https://cprxxxlgaofopmogeuer.supabase.co",
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"

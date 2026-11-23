@@ -250,10 +250,21 @@
 
       <!-- Topbar Header -->
       <header class="topbar">
-        <div class="topbar-left" style="display:none !important;">
-          <h1 class="topbar-title" id="topbarTitle" style="display:none !important;"></h1>
-          <p class="topbar-subtitle" id="topbarSubtitle" style="display:none !important;"></p>
+        <div class="topbar-left">
+          <button type="button" class="menu-toggle-btn" id="mobileMenuBtn" onclick="toggleAdminSidebar()" aria-label="Menu" title="Menu navigazione">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
         </div>
+
+        <!-- Center Brand Logo (Mobile & Tablet) -->
+        <a href="#view-overview" class="topbar-center-brand" aria-label="BarPilot Admin">
+          <img src="/assets/images/logo.png" alt="BarPilot Logo" class="topbar-brand-logo-img">
+          <span class="topbar-brand-title">Bar<span>Pilot</span></span>
+        </a>
 
         <div class="topbar-right">
 
@@ -310,6 +321,14 @@
           <button type="button" class="btn-primary-orange" onclick="window.adminConsole.openNewBarModal()">
             <span>+</span>
             <span>Nuovo bar</span>
+          </button>
+
+          <!-- Mobile & Tablet Profile User Icon -->
+          <button type="button" class="topbar-user-btn" onclick="window.adminConsole && window.adminConsole.switchView('settings')" aria-label="Profilo" title="Impostazioni Super Admin">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
           </button>
         </div>
       </header>

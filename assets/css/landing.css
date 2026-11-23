@@ -1971,6 +1971,137 @@ img, svg {
   }
 }
 
+/* ========================================================
+   LANDING TOPBAR MOBILE & TABLET (Menu sinistra, logo centro, profilo destra)
+   ======================================================== */
+.landing-mobile-menu-btn,
+.landing-mobile-user-btn,
+.mobile-only-brand {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .site-header {
+    height: 58px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    background: #0B1220 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .site-header .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 16px !important;
+  }
+
+  .nav-wrap {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Hamburger button a sinistra */
+  .landing-mobile-menu-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    order: 1 !important;
+    line-height: 1 !important;
+  }
+
+  .landing-mobile-menu-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #FFFFFF !important;
+    display: block !important;
+  }
+
+  /* Logo BarPilot centrato */
+  .nav-wrap .brand-logo {
+    order: 2 !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    z-index: 10 !important;
+  }
+
+  .nav-wrap .brand-logo .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .mobile-logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  .mobile-brand-title {
+    font-size: 21px !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-brand-title span {
+    color: #FF8A24 !important;
+  }
+
+  /* Icona profilo a destra */
+  .landing-mobile-user-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    order: 3 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+  }
+
+  .landing-mobile-user-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #FFFFFF !important;
+    display: block !important;
+  }
+
+  /* Nascondi controlli desktop su mobile/tablet */
+  .nav-links,
+  .nav-actions {
+    display: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

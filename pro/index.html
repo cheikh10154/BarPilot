@@ -966,6 +966,77 @@
         display: none; /* Keep clean on small mobile devices to avoid overlap */
       }
     }
+    .pro-mobile-menu-btn,
+    .pro-mobile-user-btn,
+    .pro-mobile-brand {
+      display: none;
+    }
+    @media (max-width: 1024px) {
+      .top-nav {
+        position: relative;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 58px !important;
+        padding: 0 16px !important;
+        margin: -24px -24px 24px -24px !important;
+        background: #0B1220 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      }
+      .top-nav .brand-block {
+        display: none !important;
+      }
+      .top-nav > div:last-child {
+        display: none !important;
+      }
+      .pro-mobile-menu-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        color: #fff !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        text-decoration: none !important;
+      }
+      .pro-mobile-brand {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        text-decoration: none !important;
+      }
+      .pro-mobile-brand img {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        object-fit: contain !important;
+      }
+      .pro-mobile-brand span {
+        font-size: 21px !important;
+        font-weight: 800 !important;
+        color: #fff !important;
+        letter-spacing: -0.5px !important;
+      }
+      .pro-mobile-brand span span {
+        color: #FF8A24 !important;
+      }
+      .pro-mobile-user-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        color: #fff !important;
+        cursor: pointer !important;
+        padding: 6px !important;
+        text-decoration: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -977,6 +1048,21 @@
 
     <!-- Top Navigation / Brand Row -->
     <header class="top-nav">
+      <!-- Mobile Left Menu Button -->
+      <a href="/index.html" class="pro-mobile-menu-btn" aria-label="Menu" title="Torna all'App">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </a>
+
+      <!-- Mobile Center Brand Logo -->
+      <a href="/index.html" class="pro-mobile-brand" aria-label="BarPilot Home">
+        <img src="/assets/images/logo.png" alt="BarPilot Logo">
+        <span>Bar<span>Pilot</span></span>
+      </a>
+
       <a href="/index.html" class="brand-block" title="BarPilot Home">
         <div class="brand-logo-row">
           <img src="/assets/images/barpilot-logo-app.png" alt="BarPilot Logo" class="brand-logo-icon" style="border-radius: 8px;">
@@ -985,13 +1071,22 @@
         <div class="brand-slogan">GESTISCI &bull; SERVI &bull; CRESCI</div>
       </a>
 
-      <div style="display:flex; align-items:center; gap:16px;">
-        <a href="/demo" style="display:inline-flex; align-items:center; gap:6px; background:#FF7A00; color:#fff; text-decoration:none; padding:8px 16px; border-radius:10px; font-weight:800; font-size:13px; box-shadow:0 4px 12px rgba(255,122,0,0.3);">⚡ Prova la Demo</a>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <a href="/#support" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); color:#fff; text-decoration:none; padding:8px 14px; border-radius:10px; font-weight:700; font-size:13px; border:1px solid rgba(255,255,255,0.2);">🎧 Assistenza</a>
+        <a href="/demo.html" style="display:inline-flex; align-items:center; gap:6px; background:#FF7A00; color:#fff; text-decoration:none; padding:8px 16px; border-radius:10px; font-weight:800; font-size:13px; box-shadow:0 4px 12px rgba(255,122,0,0.3);">⚡ Prova la Demo</a>
         <div class="top-cursive-hook">
           La soluzione completa<br>per il tuo bar
           <span class="curved-line"></span>
         </div>
       </div>
+
+      <!-- Mobile Right User Profile Button -->
+      <a href="/app/index.html#view-dashboard" class="pro-mobile-user-btn" aria-label="Profilo" title="Accedi">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </a>
     </header>
 
     <!-- Main Hero Section (Offer & Interactive Device Mockups) -->
@@ -1358,7 +1453,7 @@
       </a>
 
       <!-- Secondary CTA: Direct Free Demo Access -->
-      <a href="/demo" class="btn-demo-free-cta" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; color:#FFF; font-size:14px; font-weight:700; text-decoration:none; padding:12px 24px; border-radius:12px; border:1.5px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); transition:all 0.2s;">
+      <a href="/demo.html" class="btn-demo-free-cta" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; color:#FFF; font-size:14px; font-weight:700; text-decoration:none; padding:12px 24px; border-radius:12px; border:1.5px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); transition:all 0.2s;">
         <span>⚡ Oppure esplora subito la Demo gratuita senza carta né registrazione</span>
         <span class="arrow">&rarr;</span>
       </a>
