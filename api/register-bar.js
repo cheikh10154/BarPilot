@@ -205,10 +205,11 @@ export default async function handler(req, res) {
               u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true
             );
 
-            // Escludi solo chi è esclusivamente un affiliato senza alcun bar
+            // Escludi chi ha is_bar === false o chi è un puro affiliato privo di dati bar
+            const isExplicitlyNonBar = meta.is_bar === false;
             const isPureAffiliate = (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni') && !hasExplicitBar;
 
-            if (hasExplicitBar || (!isPureAffiliate && email)) {
+            if (hasExplicitBar || (!isExplicitlyNonBar && !isPureAffiliate && email)) {
               const barId = meta.bar_registered_id || u.id;
               barUsersMap.set(barId, {
                 id: barId,
