@@ -55,11 +55,96 @@ function generateUniqueCode() {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-pin');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // DELETE: Permette al Super Admin di eliminare definitivamente un bar da Supabase Authentication > Users (e tabelle collegate)
+  if (req.method === 'DELETE') {
+    const adminPin = req.headers['x-admin-pin'] || '';
+    if (String(adminPin).trim() !== '101540') {
+      return res.status(401).json({ error: 'Accesso non autorizzato. Solo il Super Admin può eliminare i bar.' });
+    }
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
+    if (!serviceRoleKey) {
+      return res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY mancante sul server.' });
+    }
+
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      let targetUserId = (body.userId || req.query?.userId || '').trim();
+      const targetBarId = (body.barId || req.query?.barId || '').trim();
+      const targetEmail = (body.email || req.query?.email || '').trim().toLowerCase();
+
+      if (!targetUserId && !targetEmail && !targetBarId) {
+        return res.status(400).json({ error: 'ID utente, ID bar o email obbligatori per eliminare il bar.' });
+      }
+
+      // Se abbiamo solo email o barId non UUID, trova l'utente su Supabase auth.users
+      if (!targetUserId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetUserId)) {
+        try {
+          const listRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=500`, {
+            headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${serviceRoleKey}` }
+          });
+          if (listRes.ok) {
+            const listData = await listRes.json();
+            const users = listData.users || (Array.isArray(listData) ? listData : []);
+            const found = users.find(u =>
+              (targetUserId && u.id === targetUserId) ||
+              (targetEmail && (u.email || '').toLowerCase() === targetEmail) ||
+              (targetBarId && u.user_metadata?.bar_registered_id === targetBarId)
+            );
+            if (found) targetUserId = found.id;
+          }
+        } catch (_) {}
+      }
+
+      let deletedFromAuth = false;
+      if (targetUserId) {
+        const delAuthRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(targetUserId)}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`
+          }
+        });
+        if (delAuthRes.ok || delAuthRes.status === 404) {
+          deletedFromAuth = true;
+        } else {
+          const errTxt = await delAuthRes.text().catch(() => '');
+          console.warn('[Register Bar DELETE] auth.users delete error:', delAuthRes.status, errTxt);
+        }
+      }
+
+      // Pulizia record collegati nelle tabelle pubbliche (non bloccante)
+      try {
+        if (targetUserId) {
+          await supabaseFetch(`bar_members?user_id=eq.${encodeURIComponent(targetUserId)}`, { method: 'DELETE' });
+          await supabaseFetch(`bars?owner_id=eq.${encodeURIComponent(targetUserId)}`, { method: 'DELETE' });
+        }
+        if (targetBarId) {
+          await supabaseFetch(`subscriptions?bar_id=eq.${encodeURIComponent(targetBarId)}`, { method: 'DELETE' });
+          await supabaseFetch(`bars?id=eq.${encodeURIComponent(targetBarId)}`, { method: 'DELETE' });
+        }
+        if (targetEmail) {
+          await supabaseFetch(`bars?email=eq.${encodeURIComponent(targetEmail)}`, { method: 'DELETE' });
+        }
+      } catch (_) {}
+
+      return res.status(200).json({
+        success: true,
+        deletedFromAuth,
+        deletedUserId: targetUserId || null,
+        deletedEmail: targetEmail || null
+      });
+    } catch (delErr) {
+      console.error('[Register Bar DELETE] Errore:', delErr);
+      return res.status(500).json({ error: delErr.message || 'Errore durante eliminazione del bar.' });
+    }
   }
 
   // GET: Restituisce l'elenco dei bar direttamente da Supabase Authentication > Users
@@ -114,23 +199,11 @@ export default async function handler(req, res) {
       }
     } catch (_) {}
 
-    try {
-      const barsRes = await supabaseFetch('bars?select=*&order=created_at.desc');
-      if (barsRes.ok) {
-        const barsData = await barsRes.json();
-        return res.status(200).json({
-          success: true,
-          source: 'public.bars',
-          users: barsData
-        });
-      }
-    } catch (_) {}
-
     return res.status(200).json({ success: true, source: 'empty', users: [] });
   }
 
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'GET, POST, OPTIONS');
+    res.setHeader('Allow', 'GET, POST, DELETE, OPTIONS');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 

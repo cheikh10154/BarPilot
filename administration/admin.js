@@ -314,23 +314,7 @@ class AdminConsole {
           }
         }
 
-        // Metodo 3: Tabella pubblica bars (fallback compatibilità)
         if (!authUsersLoaded) {
-          try {
-            const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
-            if (barsRes.ok) {
-              const remoteBars = await barsRes.json();
-              if (Array.isArray(remoteBars)) {
-                this.data.bars = remoteBars.filter(rb => this.isBarUser(rb)).map(rb => this.mapAuthUserToBar(rb));
-                authUsersLoaded = true;
-              }
-            }
-          } catch (barsErr) {
-            console.warn("[Admin] Note /rest/v1/bars:", barsErr);
-          }
-        }
-
-        if (!authUsersLoaded && (!this.data.bars || this.data.bars.length === 0)) {
           this.data.bars = [];
         }
       } catch (e) {
@@ -1247,6 +1231,7 @@ class AdminConsole {
               <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Visualizza Scheda">👁️</button>
               <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica Bar">✏️</button>
               <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Invia Promemoria Email">✉️</button>
+              <button class="btn-table-action" style="color:#EF4444; border-color:rgba(239,68,68,0.35);" onclick="window.adminConsole.deleteBar('${bar.id}')" title="Elimina Bar dal database Users">🗑️</button>
             </div>
           </td>
         </tr>
@@ -1310,11 +1295,48 @@ class AdminConsole {
               <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Dettaglio completo">👁️</button>
               <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica dati">✏️</button>
               <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Sollecita via Email">📱</button>
+              <button class="btn-table-action" style="color:#EF4444; border-color:rgba(239,68,68,0.35);" onclick="window.adminConsole.deleteBar('${bar.id}')" title="Elimina Bar dal database Users">🗑️</button>
             </div>
           </td>
         </tr>
       `;
     }).join("");
+  }
+
+  async deleteBar(barId) {
+    const bar = (this.data.bars || []).find(b => b.id === barId || b.authId === barId);
+    if (!bar) return;
+
+    const ok = window.confirm(
+      `Vuoi eliminare definitivamente il bar "${bar.name}" (${bar.email || bar.id}) dal database Supabase Users?\n\nQuesta azione non può essere annullata.`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch("/api/register-bar", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          userId: bar.authId || bar.id,
+          barId: bar.id,
+          email: bar.email || ""
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Errore durante l'eliminazione del bar.");
+      }
+
+      this.data.bars = (this.data.bars || []).filter(b => b.id !== bar.id && b.authId !== bar.authId);
+      this.renderAllViews();
+      this.showToast(`🗑️ Bar "${bar.name}" eliminato definitivamente da Supabase Users.`);
+      this.syncWithSupabase(false);
+    } catch (err) {
+      alert("Errore eliminazione bar: " + err.message);
+    }
   }
 
   // ==========================================================================
