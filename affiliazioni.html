@@ -1530,11 +1530,11 @@
             Accesso riservato. Effettua il login per accedere alla tua dashboard affiliato.
           </h2>
           <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
-            Inserisci indirizzo email e password del tuo account Supabase.
+            Accedi con email e password del tuo account BarPilot Affiliazioni.
           </p>
         </div>
 
-        <div id="affLoginAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px;">
+        <div id="affLoginAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;">
           <span id="affLoginAlertErrorText">Credenziali non valide. Verifica email e password.</span>
         </div>
 
@@ -1545,7 +1545,10 @@
           </div>
 
           <div class="form-group" style="margin-bottom:22px;">
-            <label class="form-label" for="affViewLoginPassword" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Password *</label>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <label class="form-label" for="affViewLoginPassword" style="font-size:12.5px; font-weight:700; color:var(--text-muted); margin:0;">Password *</label>
+              <button type="button" onclick="openAffForgotPassword()" style="background:none; border:none; color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; padding:0;">Password dimenticata?</button>
+            </div>
             <div style="position:relative;">
               <input type="password" id="affViewLoginPassword" class="form-input" style="width:100%; padding:12px 42px 12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="••••••••" required autocomplete="current-password">
               <button type="button" onclick="toggleAffPasswordVisibility('affViewLoginPassword', this)" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;">👁️</button>
@@ -1560,27 +1563,27 @@
 
         <div style="text-align:center; margin-top:22px; font-size:13px; color:var(--text-muted);">
           Non hai ancora un account affiliato?
-          <button type="button" onclick="showAffView('register')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-family:inherit; margin-left:4px;">Iscriviti subito</button>
+          <button type="button" onclick="openAffRegisterView()" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-family:inherit; margin-left:4px;">Iscriviti subito</button>
         </div>
       </div>
     </div>
 
-    <!-- 3. Schermata di Iscrizione al Programma (Mostrata se autenticati ma senza profilo affiliato) -->
+    <!-- 3. Schermata di Iscrizione al Programma (Mostrata se nuovi o autenticati senza profilo affiliato) -->
     <div id="affRegisterView" style="display:none; max-width:520px; margin:40px auto; padding:0 20px; width:100%;">
       <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5);">
         <div style="text-align:center; margin-bottom:24px;">
           <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:16px; background:rgba(255,138,36,0.12); border:1px solid rgba(255,138,36,0.3); font-size:28px; margin-bottom:16px;">
             🤝
           </div>
-          <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
+          <h2 id="affRegViewTitle" style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
             Iscriviti al Programma Affiliazioni
           </h2>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+          <p id="affRegViewSubtitle" style="font-size:13px; color:var(--text-muted); line-height:1.5;">
             Crea il tuo profilo e genera il tuo codice referral univoco permanente.
           </p>
         </div>
 
-        <div id="affRegisterAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px;">
+        <div id="affRegisterAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;">
           <span id="affRegisterAlertErrorText">Errore</span>
         </div>
 
@@ -1606,7 +1609,7 @@
             <input type="email" id="affViewRegEmail" class="form-input" style="width:100%; padding:11px 12px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px;" placeholder="mario.rossi@email.it" required autocomplete="username">
           </div>
 
-          <div class="form-group" style="margin-bottom:18px;">
+          <div class="form-group" id="affViewRegPasswordGroup" style="margin-bottom:18px;">
             <label class="form-label" for="affViewRegPassword" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Password *</label>
             <div style="position:relative;">
               <input type="password" id="affViewRegPassword" oninput="checkAffPasswordRules(this.value)" class="form-input" style="width:100%; padding:11px 42px 11px 12px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px;" placeholder="Min. 8 caratteri, 1 Maiuscola, 1 Numero, 1 Simbolo" required autocomplete="new-password">
@@ -1647,6 +1650,103 @@
           Hai già un account?
           <button type="button" onclick="showAffView('login')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-family:inherit; margin-left:4px;">Accedi</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 3b. Schermata Recupero Password -->
+    <div id="affForgotView" style="display:none; max-width:480px; margin:40px auto; padding:0 20px; width:100%;">
+      <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5);">
+        <div style="text-align:center; margin-bottom:24px;">
+          <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:16px; background:rgba(255,138,36,0.12); border:1px solid rgba(255,138,36,0.3); font-size:28px; margin-bottom:16px;">
+            🔑
+          </div>
+          <h2 style="font-size:19px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
+            Reimposta la tua password
+          </h2>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+            Inserisci la tua email: ti invieremo un link sicuro per scegliere una nuova password.
+          </p>
+        </div>
+
+        <div id="affForgotAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
+        <div id="affForgotAlertSuccess" style="display:none; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); color:#6EE7B7; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
+
+        <form id="affViewForgotForm" onsubmit="handleAffForgotSubmit(event)">
+          <div class="form-group" style="margin-bottom:20px;">
+            <label class="form-label" for="affForgotEmail" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Indirizzo Email *</label>
+            <input type="email" id="affForgotEmail" class="form-input" style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="mario.rossi@email.it" required>
+          </div>
+
+          <button type="submit" id="btnAffForgotSubmit" style="width:100%; padding:13px; font-size:14px; font-weight:800; border-radius:10px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(255,138,36,0.35); font-family:inherit;">
+            <span>📩</span>
+            <span>Invia link di recupero</span>
+          </button>
+        </form>
+
+        <div style="text-align:center; margin-top:22px; font-size:13px; color:var(--text-muted);">
+          Ricordi la password?
+          <button type="button" onclick="showAffView('login')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-family:inherit; margin-left:4px;">Torna al login</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3c. Schermata Imposta Nuova Password (da link email di recupero) -->
+    <div id="affResetPasswordView" style="display:none; max-width:480px; margin:40px auto; padding:0 20px; width:100%;">
+      <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5);">
+        <div style="text-align:center; margin-bottom:24px;">
+          <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:16px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-size:28px; margin-bottom:16px;">
+            🛡️
+          </div>
+          <h2 style="font-size:19px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
+            Scegli la tua nuova password
+          </h2>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+            Inserisci una nuova password sicura per il tuo account BarPilot Affiliazioni.
+          </p>
+        </div>
+
+        <div id="affResetAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
+
+        <form id="affViewResetForm" onsubmit="handleAffResetPasswordSubmit(event)">
+          <div class="form-group" style="margin-bottom:20px;">
+            <label class="form-label" for="affNewPasswordInput" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Nuova Password *</label>
+            <div style="position:relative;">
+              <input type="password" id="affNewPasswordInput" class="form-input" style="width:100%; padding:12px 42px 12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="Min. 8 caratteri, 1 Maiuscola, 1 Numero, 1 Simbolo" required autocomplete="new-password">
+              <button type="button" onclick="toggleAffPasswordVisibility('affNewPasswordInput', this)" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;">👁️</button>
+            </div>
+          </div>
+
+          <button type="submit" id="btnAffResetSubmit" style="width:100%; padding:13px; font-size:14px; font-weight:800; border-radius:10px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(255,138,36,0.35); font-family:inherit;">
+            <span>✅</span>
+            <span>Salva nuova password e accedi</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3d. Schermata Conferma Email in Attesa -->
+    <div id="affConfirmEmailView" style="display:none; max-width:480px; margin:40px auto; padding:0 20px; width:100%;">
+      <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:center;">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:62px; height:62px; border-radius:18px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-size:30px; margin-bottom:16px;">
+          ✉️
+        </div>
+        <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin-bottom:10px;">
+          Conferma il tuo indirizzo email
+        </h2>
+        <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6; margin-bottom:20px;">
+          Abbiamo inviato un link di conferma a <strong id="affConfirmEmailAddress" style="color:#fff;"></strong>.<br>
+          Apri l'email (controlla anche la cartella Spam) e clicca sul link per accedere subito alla tua dashboard affiliato.
+        </p>
+
+        <div id="affConfirmResendStatus" style="display:none; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); color:#6EE7B7; border-radius:10px; padding:10px 12px; font-size:12.5px; font-weight:600; margin-bottom:16px;"></div>
+
+        <button type="button" id="btnAffResendConfirm" onclick="handleAffResendConfirm()" style="width:100%; padding:12px; font-size:13.5px; font-weight:700; border-radius:10px; background:rgba(255,138,36,0.15); color:var(--primary); border:1px solid rgba(255,138,36,0.35); cursor:pointer; font-family:inherit; margin-bottom:12px;">
+          🔄 Reinvia email di conferma
+        </button>
+
+        <button type="button" onclick="showAffView('login')" style="width:100%; padding:12px; font-size:13.5px; font-weight:700; border-radius:10px; background:transparent; color:var(--text-muted); border:1px solid var(--border-color); cursor:pointer; font-family:inherit;">
+          Torna al login
+        </button>
       </div>
     </div>
 
@@ -2256,19 +2356,53 @@
       };
     }
 
-    // Gestione visualizzazione schermate (loading, login, register, dashboard)
+    let pendingConfirmEmail = "";
+    let pendingRecoveryToken = "";
+
+    // Traduce gli errori Supabase Auth in italiano chiaro
+    function translateAffAuthError(rawMsg = "", rawCode = "") {
+      if (typeof window.translateSupabaseMessage === "function") {
+        const translated = window.translateSupabaseMessage(rawMsg, rawCode, "login");
+        if (translated) return translated;
+      }
+      const lower = (rawMsg || "").toLowerCase();
+      if (lower.includes("invalid login credentials") || lower.includes("invalid_grant") || lower.includes("invalid_credentials")) {
+        return "Email o password non corretti. Verifica i dati inseriti oppure clicca su «Password dimenticata?» per reimpostarla.";
+      }
+      if (lower.includes("email not confirmed") || rawCode === "email_not_confirmed") {
+        return "Devi prima confermare il tuo indirizzo email. Controlla la posta (anche Spam) e clicca sul link di conferma.";
+      }
+      if (lower.includes("already registered") || lower.includes("already exists")) {
+        return "Questo indirizzo email è già registrato. Accedi oppure usa «Password dimenticata?».";
+      }
+      if (lower.includes("rate limit")) {
+        return "Troppi tentativi ravvicinati. Attendi un minuto prima di riprovare.";
+      }
+      return rawMsg || "Credenziali non valide. Verifica email e password.";
+    }
+
+    // Gestione visualizzazione schermate (loading, login, register, forgot, reset, confirm, dashboard)
     function showAffView(viewName) {
-      const vLoading = document.getElementById("affLoadingView");
-      const vLogin = document.getElementById("affLoginView");
-      const vRegister = document.getElementById("affRegisterView");
-      const vDashboard = document.getElementById("affDashboardView");
+      const views = {
+        loading: document.getElementById("affLoadingView"),
+        login: document.getElementById("affLoginView"),
+        register: document.getElementById("affRegisterView"),
+        forgot: document.getElementById("affForgotView"),
+        reset: document.getElementById("affResetPasswordView"),
+        confirm: document.getElementById("affConfirmEmailView"),
+        dashboard: document.getElementById("affDashboardView")
+      };
       const userPillWrap = document.getElementById("userPillWrap");
       const btnTopbarAuth = document.getElementById("btnTopbarAuth");
 
-      if (vLoading) vLoading.style.display = viewName === 'loading' ? 'flex' : 'none';
-      if (vLogin) vLogin.style.display = viewName === 'login' ? 'block' : 'none';
-      if (vRegister) vRegister.style.display = viewName === 'register' ? 'block' : 'none';
-      if (vDashboard) vDashboard.style.display = viewName === 'dashboard' ? 'block' : 'none';
+      Object.keys(views).forEach(k => {
+        if (!views[k]) return;
+        if (k === viewName) {
+          views[k].style.display = k === 'loading' ? 'flex' : 'block';
+        } else {
+          views[k].style.display = 'none';
+        }
+      });
 
       if (viewName === 'dashboard') {
         if (userPillWrap) userPillWrap.style.display = 'flex';
@@ -2276,6 +2410,201 @@
       } else {
         if (userPillWrap) userPillWrap.style.display = 'none';
         if (btnTopbarAuth) btnTopbarAuth.style.display = 'inline-flex';
+      }
+    }
+
+    // Apre la schermata di iscrizione pulita per nuovi utenti
+    function openAffRegisterView() {
+      const emailInput = document.getElementById("affViewRegEmail");
+      const pwdGroup = document.getElementById("affViewRegPasswordGroup");
+      const pwdInput = document.getElementById("affViewRegPassword");
+      const titleEl = document.getElementById("affRegViewTitle");
+      const subEl = document.getElementById("affRegViewSubtitle");
+      const btnSubmit = document.getElementById("btnAffViewRegSubmit");
+      const errBox = document.getElementById("affRegisterAlertError");
+      if (errBox) errBox.style.display = "none";
+
+      if (!currentSession) {
+        if (emailInput) { emailInput.readOnly = false; }
+        if (pwdGroup) pwdGroup.style.display = "block";
+        if (pwdInput) pwdInput.required = true;
+        if (titleEl) titleEl.textContent = "Iscriviti al Programma Affiliazioni";
+        if (subEl) subEl.textContent = "Crea il tuo profilo e genera il tuo codice referral univoco permanente.";
+        if (btnSubmit) btnSubmit.innerHTML = `<span>🚀</span> <span>Iscriviti e crea codice</span>`;
+      }
+      showAffView('register');
+    }
+
+    // Apre la schermata di recupero password
+    function openAffForgotPassword() {
+      const loginEmail = (document.getElementById("affViewLoginEmail")?.value || "").trim();
+      const forgotEmail = document.getElementById("affForgotEmail");
+      if (forgotEmail && loginEmail) forgotEmail.value = loginEmail;
+      const errBox = document.getElementById("affForgotAlertError");
+      const okBox = document.getElementById("affForgotAlertSuccess");
+      if (errBox) errBox.style.display = "none";
+      if (okBox) okBox.style.display = "none";
+      showAffView('forgot');
+    }
+
+    // Hook compatibile con supabaseClient.js quando l'utente clicca un link di recupero password
+    window.openNewPasswordModal = function() {
+      const stored = getStoredSupabaseSession();
+      if (stored?.access_token) pendingRecoveryToken = stored.access_token;
+      showAffView('reset');
+    };
+
+    // Gestione invio email di recupero password
+    async function handleAffForgotSubmit(e) {
+      if (e) e.preventDefault();
+      const errBox = document.getElementById("affForgotAlertError");
+      const okBox = document.getElementById("affForgotAlertSuccess");
+      if (errBox) errBox.style.display = "none";
+      if (okBox) okBox.style.display = "none";
+
+      const email = (document.getElementById("affForgotEmail")?.value || "").trim().toLowerCase();
+      if (!email) return;
+
+      const btn = document.getElementById("btnAffForgotSubmit");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span> <span>Invio in corso...</span>`;
+      }
+
+      try {
+        const redirectTo = `${window.location.origin}${window.location.pathname}`;
+        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/recover`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": AFF_SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ email, redirect_to: redirectTo })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(translateAffAuthError(data.error_description || data.msg || data.message, data.error_code));
+        }
+        if (okBox) {
+          okBox.innerHTML = `✅ Email di recupero inviata a <strong>${escapeHtml(email)}</strong>! Controlla la tua posta (anche Spam) e clicca sul link per impostare una nuova password.`;
+          okBox.style.display = "block";
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.textContent = err.message || "Impossibile inviare l'email di recupero. Riprova tra poco.";
+          errBox.style.display = "block";
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>📩</span> <span>Invia link di recupero</span>`;
+        }
+      }
+    }
+
+    // Gestione salvataggio nuova password dopo link di recupero
+    async function handleAffResetPasswordSubmit(e) {
+      if (e) e.preventDefault();
+      const errBox = document.getElementById("affResetAlertError");
+      if (errBox) errBox.style.display = "none";
+
+      const newPassword = (document.getElementById("affNewPasswordInput")?.value || "").trim();
+      const valid = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
+      if (!valid) {
+        if (errBox) {
+          errBox.innerHTML = "La nuova password deve avere almeno 8 caratteri, una lettera maiuscola, un numero e un carattere speciale.";
+          errBox.style.display = "block";
+        }
+        return;
+      }
+
+      const token = pendingRecoveryToken || getStoredSupabaseSession()?.access_token;
+      if (!token) {
+        if (errBox) {
+          errBox.textContent = "Il link di recupero è scaduto. Richiedi un nuovo link da «Password dimenticata?».";
+          errBox.style.display = "block";
+        }
+        return;
+      }
+
+      const btn = document.getElementById("btnAffResetSubmit");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span> <span>Salvataggio in corso...</span>`;
+      }
+
+      try {
+        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/user`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": AFF_SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ password: newPassword })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(translateAffAuthError(data.error_description || data.msg || data.message, data.error_code));
+        }
+
+        sessionStorage.removeItem("barpilot_recovery_email");
+        pendingRecoveryToken = "";
+        showToast("✅", "Password aggiornata con successo!");
+        await checkAuthAndInit();
+      } catch (err) {
+        if (errBox) {
+          errBox.textContent = err.message || "Errore durante l'aggiornamento della password.";
+          errBox.style.display = "block";
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>✅</span> <span>Salva nuova password e accedi</span>`;
+        }
+      }
+    }
+
+    // Reinvia email di conferma
+    async function handleAffResendConfirm() {
+      if (!pendingConfirmEmail) return;
+      const statusBox = document.getElementById("affConfirmResendStatus");
+      const btn = document.getElementById("btnAffResendConfirm");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Invio in corso...";
+      }
+      try {
+        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/resend`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": AFF_SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({
+            type: "signup",
+            email: pendingConfirmEmail,
+            options: { email_redirect_to: `${window.location.origin}${window.location.pathname}` }
+          })
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error(translateAffAuthError(d.error_description || d.msg, d.error_code));
+        }
+        if (statusBox) {
+          statusBox.textContent = "✅ Email di conferma reinviata! Controlla la tua posta (anche Spam).";
+          statusBox.style.display = "block";
+        }
+      } catch (err) {
+        if (statusBox) {
+          statusBox.textContent = "⚠️ " + (err.message || "Attendi un minuto prima di reinviare.");
+          statusBox.style.display = "block";
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "🔄 Reinvia email di conferma";
+        }
       }
     }
 
@@ -2350,6 +2679,38 @@
 
     // 1. AUTENTICAZIONE OBBLIGATORIA & PROTEZIONE DELLE PAGINE
     async function checkAuthAndInit() {
+      // 0. Gestione eventuale ritorno da link email (recupero password o conferma account)
+      const hash = window.location.hash || "";
+      if (hash.includes("access_token")) {
+        try {
+          const params = new URLSearchParams(hash.replace(/^#/, ""));
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+          const authType = params.get("type");
+          if (accessToken) {
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            }
+            const sessObj = { access_token: accessToken, refresh_token: refreshToken || "", token_type: "bearer" };
+            localStorage.setItem("barpilot_supabase_session", JSON.stringify(sessObj));
+            if (authType === "recovery") {
+              pendingRecoveryToken = accessToken;
+              showAffView('reset');
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (sessionStorage.getItem("barpilot_recovery_email")) {
+        const storedRec = getStoredSupabaseSession();
+        if (storedRec?.access_token) {
+          pendingRecoveryToken = storedRec.access_token;
+          showAffView('reset');
+          return;
+        }
+      }
+
       // 1. Se non esiste un token salvato in localStorage, mostra SUBITO il login (nessun caricamento infinito)
       const stored = getStoredSupabaseSession();
       if (!stored || !stored.access_token) {
@@ -2419,6 +2780,11 @@
           const firstInput = document.getElementById("affViewRegFirstName");
           const lastInput = document.getElementById("affViewRegLastName");
           const phoneInput = document.getElementById("affViewRegPhone");
+          const pwdGroup = document.getElementById("affViewRegPasswordGroup");
+          const pwdInput = document.getElementById("affViewRegPassword");
+          const titleEl = document.getElementById("affRegViewTitle");
+          const subEl = document.getElementById("affRegViewSubtitle");
+          const btnSubmit = document.getElementById("btnAffViewRegSubmit");
 
           if (emailInput) {
             emailInput.value = user.email || '';
@@ -2433,6 +2799,12 @@
           if (phoneInput && !phoneInput.value) {
             phoneInput.value = user.user_metadata?.phone || user.phone || '';
           }
+          // Utente già autenticato: non serve reinserire la password
+          if (pwdGroup) pwdGroup.style.display = "none";
+          if (pwdInput) pwdInput.required = false;
+          if (titleEl) titleEl.textContent = "Attiva il tuo Profilo Affiliato";
+          if (subEl) subEl.textContent = "Sei già connesso con il tuo account BarPilot. Completa questi dati per generare il tuo codice invito.";
+          if (btnSubmit) btnSubmit.innerHTML = `<span>🚀</span> <span>Attiva profilo affiliato</span>`;
 
           resetDashboardState();
           showAffView('register');
@@ -2528,7 +2900,16 @@
 
         const authData = await res.json();
         if (!res.ok || !authData.access_token) {
-          throw new Error(authData.error_description || authData.msg || "Credenziali non valide. Verifica email e password.");
+          const rawErr = authData.error_description || authData.msg || authData.message || "";
+          const rawCode = authData.error_code || authData.code || "";
+          if (rawErr.toLowerCase().includes("email not confirmed") || rawCode === "email_not_confirmed") {
+            pendingConfirmEmail = email;
+            const addrEl = document.getElementById("affConfirmEmailAddress");
+            if (addrEl) addrEl.textContent = email;
+            showAffView('confirm');
+            return;
+          }
+          throw new Error(translateAffAuthError(rawErr, rawCode));
         }
 
         // Salva la sessione stabilita con Supabase Auth
@@ -2540,7 +2921,7 @@
         await checkAuthAndInit();
       } catch (err) {
         if (alertBox && alertText) {
-          alertText.textContent = err.message || "Credenziali non valide. Verifica email e password.";
+          alertText.textContent = err.message || "Email o password non corretti. Verifica i dati o clicca su «Password dimenticata?».";
           alertBox.style.display = "block";
         }
       } finally {
@@ -2558,21 +2939,22 @@
       const alertText = document.getElementById("affRegisterAlertErrorText");
       if (alertBox) alertBox.style.display = "none";
 
+      const isAlreadyLoggedIn = !!(currentSession && currentSession.access_token);
       const firstName = (document.getElementById("affViewRegFirstName")?.value || "").trim();
       const lastName = (document.getElementById("affViewRegLastName")?.value || "").trim();
       const phone = (document.getElementById("affViewRegPhone")?.value || "").trim();
       const email = (document.getElementById("affViewRegEmail")?.value || "").trim().toLowerCase();
       const password = (document.getElementById("affViewRegPassword")?.value || "").trim();
 
-      if (!firstName || !lastName || !phone || !email || !password) {
+      if (!firstName || !lastName || !phone || !email || (!isAlreadyLoggedIn && !password)) {
         if (alertBox && alertText) {
-          alertText.textContent = "Compila tutti i campi: nome, cognome, telefono, email e password.";
+          alertText.textContent = "Compila tutti i campi obbligatori.";
           alertBox.style.display = "block";
         }
         return;
       }
 
-      if (!checkAffPasswordRules(password)) {
+      if (!isAlreadyLoggedIn && !checkAffPasswordRules(password)) {
         if (alertBox && alertText) {
           alertText.innerHTML = "La password deve rispettare tutti i criteri di sicurezza:<br>• Minimo 8 caratteri<br>• Almeno una lettera maiuscola (A-Z)<br>• Almeno un numero (0-9)<br>• Almeno un carattere speciale (!@#$%^&*...)";
           alertBox.style.display = "block";
@@ -2583,7 +2965,7 @@
       const submitBtn = document.getElementById("btnAffViewRegSubmit");
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span>⏳</span> <span>Creazione account affiliato...</span>`;
+        submitBtn.innerHTML = `<span>⏳</span> <span>Attivazione profilo affiliato...</span>`;
       }
 
       try {
@@ -2601,7 +2983,7 @@
             lastName,
             phone,
             email,
-            password
+            password: isAlreadyLoggedIn ? "" : password
           })
         });
 
@@ -2610,26 +2992,45 @@
           throw new Error(regData.error || "Errore durante l'iscrizione.");
         }
 
-        // Se l'API ha restituito una sessione o se dobbiamo autenticarci
+        // Se Supabase richiede la conferma dell'indirizzo email prima dell'accesso
+        if (regData.email_confirmation_required) {
+          pendingConfirmEmail = email;
+          const addrEl = document.getElementById("affConfirmEmailAddress");
+          if (addrEl) addrEl.textContent = email;
+          const statusBox = document.getElementById("affConfirmResendStatus");
+          if (statusBox) statusBox.style.display = "none";
+          showAffView('confirm');
+          return;
+        }
+
+        // Se l'API ha restituito una sessione attiva, salvala
         if (regData.session && regData.session.access_token) {
           localStorage.setItem("barpilot_supabase_session", JSON.stringify(regData.session));
           currentSession = regData.session;
           currentAuthUser = regData.session.user;
-        } else {
+        } else if (!isAlreadyLoggedIn) {
           // Effettua login con Supabase Auth per ottenere il token di sessione
-          try {
-            const loginRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "apikey": AFF_SUPABASE_ANON_KEY },
-              body: JSON.stringify({ email, password })
-            });
-            if (loginRes.ok) {
-              const authData = await loginRes.json();
-              localStorage.setItem("barpilot_supabase_session", JSON.stringify(authData));
-              currentSession = authData;
-              currentAuthUser = authData.user;
+          const loginRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": AFF_SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email, password })
+          });
+          const authData = await loginRes.json();
+          if (loginRes.ok && authData.access_token) {
+            localStorage.setItem("barpilot_supabase_session", JSON.stringify(authData));
+            currentSession = authData;
+            currentAuthUser = authData.user;
+          } else {
+            const rawErr = authData.error_description || authData.msg || "";
+            if (rawErr.toLowerCase().includes("email not confirmed")) {
+              pendingConfirmEmail = email;
+              const addrEl = document.getElementById("affConfirmEmailAddress");
+              if (addrEl) addrEl.textContent = email;
+              showAffView('confirm');
+              return;
             }
-          } catch (_) {}
+            throw new Error(translateAffAuthError(rawErr, authData.error_code));
+          }
         }
 
         showToast("🎉", `Benvenuto ${firstName}! Profilo affiliato attivato.`);
@@ -2642,7 +3043,9 @@
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>🚀</span> <span>Iscriviti e crea codice</span>`;
+          submitBtn.innerHTML = isAlreadyLoggedIn
+            ? `<span>🚀</span> <span>Attiva profilo affiliato</span>`
+            : `<span>🚀</span> <span>Iscriviti e crea codice</span>`;
         }
       }
     }

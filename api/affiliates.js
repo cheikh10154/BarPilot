@@ -2469,37 +2469,49 @@ async function handleUserAffiliateRequest(req, res) {
         const cleanFirst = (firstName || '').trim();
         const cleanLast = (lastName || '').trim();
         const cleanPhone = (phone || '').trim();
-        const cleanEmail = (email || '').trim().toLowerCase();
+
+        // Verifica se l'utente ha già una sessione attiva Supabase Auth nell'header
+        const tokenUser = await getSupabaseAuthUser(req);
+        const cleanEmail = tokenUser
+          ? (tokenUser.email || '').trim().toLowerCase()
+          : (email || '').trim().toLowerCase();
         const cleanPassword = (password || '').trim();
 
-        if (!cleanFirst || !cleanLast || !cleanPhone || !cleanEmail || !cleanPassword) {
-          return res.status(400).json({ error: "Compila tutti i campi: nome, cognome, telefono, email e password." });
+        if (!cleanFirst || !cleanLast || !cleanPhone || !cleanEmail) {
+          return res.status(400).json({ error: "Compila tutti i campi obbligatori: nome, cognome, telefono ed email." });
         }
 
-        const minLength = cleanPassword.length >= 8;
-        const hasUpper = /[A-Z]/.test(cleanPassword);
-        const hasNumber = /[0-9]/.test(cleanPassword);
-        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(cleanPassword);
+        const fullName = `${cleanFirst} ${cleanLast}`;
+        const nowIso = new Date().toISOString();
+        const permanentCode = (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
 
-        if (!minLength || !hasUpper || !hasNumber || !hasSpecial) {
-          return res.status(400).json({
-            error: "La password deve rispettare tutti i criteri di sicurezza: minimo 8 caratteri, almeno una lettera maiuscola, almeno un numero e almeno un carattere speciale."
-          });
-        }
-
-        // Se l'utente ha già una sessione attiva Supabase Auth passata nell'header
-        const tokenUser = await getSupabaseAuthUser(req);
         let authUserId = tokenUser ? tokenUser.id : null;
         let authSession = null;
+        let emailConfirmationRequired = false;
 
-        // Se non abbiamo un utente autenticato dal token, verifichiamo/creiamo tramite Supabase Auth
+        // Se l'utente NON è già autenticato, valida la password e crea/collega l'account su Supabase Auth
         if (!authUserId) {
-          // Controlliamo se l'utente esiste già in auth.users
-          const authUsers = await fetchAllAuthUsers();
+          if (!cleanPassword) {
+            return res.status(400).json({ error: "Inserisci una password per creare il tuo account." });
+          }
+
+          const minLength = cleanPassword.length >= 8;
+          const hasUpper = /[A-Z]/.test(cleanPassword);
+          const hasNumber = /[0-9]/.test(cleanPassword);
+          const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(cleanPassword);
+
+          if (!minLength || !hasUpper || !hasNumber || !hasSpecial) {
+            return res.status(400).json({
+              error: "La password deve rispettare tutti i criteri di sicurezza: minimo 8 caratteri, almeno una lettera maiuscola, almeno un numero e almeno un carattere speciale."
+            });
+          }
+
+          const srKey = getServiceRoleKey();
+          const authUsers = srKey ? await fetchAllAuthUsers() : [];
           const existingAuth = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
 
           if (existingAuth) {
-            // L'utente esiste già in auth.users: verifichiamo la password tramite Supabase Auth
+            // L'utente esiste già in auth.users: verifica la password tramite Supabase Auth
             const tokenRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
               method: 'POST',
               headers: {
@@ -2510,99 +2522,143 @@ async function handleUserAffiliateRequest(req, res) {
             });
 
             if (!tokenRes.ok) {
-              return res.status(401).json({
-                error: "Questo indirizzo email è già registrato su Supabase. Inserisci la password corretta del tuo account per attivare il programma affiliazioni."
+              return res.status(409).json({
+                code: "email_already_exists",
+                error: "Questo indirizzo email è già registrato su BarPilot. Accedi con la tua password oppure usa 'Password dimenticata' per reimpostarla."
               });
             }
 
             authSession = await tokenRes.json();
             authUserId = authSession.user.id;
-          } else {
-            // Nuovo utente: creiamo tramite Supabase Auth admin o signup
-            const srKey = getServiceRoleKey();
-            if (srKey) {
-              const createRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
-                method: 'POST',
-                headers: {
-                  'apikey': srKey,
-                  'Authorization': `Bearer ${srKey}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  email: cleanEmail,
-                  password: cleanPassword,
-                  email_confirm: true,
-                  user_metadata: {
-                    first_name: cleanFirst,
-                    last_name: cleanLast,
-                    full_name: `${cleanFirst} ${cleanLast}`,
-                    phone: cleanPhone,
-                    account_type: 'affiliate',
-                    is_affiliate: true,
-                    registered_from: 'affiliazioni'
-                  }
-                })
-              });
+          } else if (srKey) {
+            // Nuovo utente tramite Supabase Admin API (conferma email immediata)
+            const createRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+              method: 'POST',
+              headers: {
+                'apikey': srKey,
+                'Authorization': `Bearer ${srKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                email: cleanEmail,
+                password: cleanPassword,
+                email_confirm: true,
+                user_metadata: {
+                  first_name: cleanFirst,
+                  last_name: cleanLast,
+                  full_name: fullName,
+                  phone: cleanPhone,
+                  account_type: 'affiliate',
+                  is_affiliate: true,
+                  registered_from: 'affiliazioni',
+                  affiliate_code: permanentCode,
+                  affiliate_first_name: cleanFirst,
+                  affiliate_last_name: cleanLast,
+                  affiliate_name: fullName,
+                  affiliate_phone: cleanPhone,
+                  affiliate_status: 'active',
+                  affiliate_created_at: nowIso
+                }
+              })
+            });
 
-              if (createRes.ok) {
-                const createdData = await createRes.json();
-                authUserId = (createdData.user || createdData).id;
-              } else {
-                const errJson = await createRes.json().catch(() => ({}));
-                return res.status(400).json({ error: errJson.msg || errJson.error_description || "Errore durante la creazione account Supabase Auth." });
-              }
+            if (createRes.ok) {
+              const createdData = await createRes.json();
+              authUserId = (createdData.user || createdData).id;
             } else {
-              // Fallback via signup pubblico
-              const suRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/signup`, {
-                method: 'POST',
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  email: cleanEmail,
-                  password: cleanPassword,
-                  data: {
-                    first_name: cleanFirst,
-                    last_name: cleanLast,
-                    full_name: `${cleanFirst} ${cleanLast}`,
-                    phone: cleanPhone,
-                    account_type: 'affiliate',
-                    is_affiliate: true,
-                    registered_from: 'affiliazioni'
-                  }
-                })
-              });
-              const suData = await suRes.json();
-              if (!suRes.ok) {
-                return res.status(400).json({ error: suData.error_description || suData.msg || "Errore registrazione Supabase." });
+              const errJson = await createRes.json().catch(() => ({}));
+              const rawMsg = (errJson.msg || errJson.error_description || errJson.message || '').toLowerCase();
+              if (rawMsg.includes('already') || rawMsg.includes('exists') || rawMsg.includes('registered')) {
+                return res.status(409).json({
+                  code: "email_already_exists",
+                  error: "Questo indirizzo email è già registrato su BarPilot. Accedi con la tua password oppure usa 'Password dimenticata'."
+                });
               }
-              authUserId = suData.user?.id || (suData.id);
-              authSession = suData;
+              return res.status(400).json({ error: errJson.msg || errJson.error_description || "Errore durante la creazione dell'account." });
             }
 
-            // Otteniamo sessione per il nuovo utente
-            if (!authSession) {
-              try {
-                const tokenRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY
-                  },
-                  body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
-                });
-                if (tokenRes.ok) {
-                  authSession = await tokenRes.json();
+            // Ottieni sessione immediata per il nuovo utente
+            try {
+              const tokenRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+              });
+              if (tokenRes.ok) {
+                authSession = await tokenRes.json();
+              }
+            } catch (_) {}
+          } else {
+            // Fallback via signup pubblico Supabase
+            const suRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/signup`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                email: cleanEmail,
+                password: cleanPassword,
+                data: {
+                  first_name: cleanFirst,
+                  last_name: cleanLast,
+                  full_name: fullName,
+                  phone: cleanPhone,
+                  account_type: 'affiliate',
+                  is_affiliate: true,
+                  registered_from: 'affiliazioni',
+                  affiliate_code: permanentCode,
+                  affiliate_first_name: cleanFirst,
+                  affiliate_last_name: cleanLast,
+                  affiliate_name: fullName,
+                  affiliate_phone: cleanPhone,
+                  affiliate_status: 'active',
+                  affiliate_created_at: nowIso
                 }
-              } catch (_) {}
+              })
+            });
+            const suData = await suRes.json();
+            if (!suRes.ok) {
+              const rawErr = (suData.error_description || suData.msg || suData.message || '').toLowerCase();
+              if (rawErr.includes('already') || rawErr.includes('exists') || rawErr.includes('registered')) {
+                return res.status(409).json({
+                  code: "email_already_exists",
+                  error: "Questo indirizzo email è già registrato su BarPilot. Accedi con la tua password oppure usa 'Password dimenticata'."
+                });
+              }
+              return res.status(400).json({ error: suData.error_description || suData.msg || "Errore durante la registrazione." });
+            }
+
+            // Supabase restituisce identities: [] quando l'email è già registrata (anti-enumeration)
+            const userIdentities = suData?.user?.identities || suData?.identities;
+            if (Array.isArray(userIdentities) && userIdentities.length === 0) {
+              // Prova comunque a verificare se la password corrisponde all'account esistente
+              const tryLogin = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+                body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+              });
+              if (!tryLogin.ok) {
+                return res.status(409).json({
+                  code: "email_already_exists",
+                  error: "Questo indirizzo email è già registrato su BarPilot. Accedi con la tua password oppure usa 'Password dimenticata' per reimpostarla."
+                });
+              }
+              authSession = await tryLogin.json();
+              authUserId = authSession.user.id;
+            } else {
+              authUserId = suData.user?.id || suData.id;
+              if (suData.access_token) {
+                authSession = suData;
+              } else {
+                emailConfirmationRequired = true;
+              }
             }
           }
         }
-
-        const fullName = `${cleanFirst} ${cleanLast}`;
-        const nowIso = new Date().toISOString();
-        const permanentCode = (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
 
         // Recupera o crea record affiliato
         let aff = store.affiliates.find(a => (a.user_id && a.user_id === authUserId) || (a.email && a.email.toLowerCase() === cleanEmail));
@@ -2663,9 +2719,39 @@ async function handleUserAffiliateRequest(req, res) {
 
         await syncAffiliateInAuthUsers(aff);
 
+        // Se abbiamo un token utente valido (sessione o header), aggiorna anche i metadati dell'utente direttamente
+        const activeUserToken = authSession?.access_token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+        if (activeUserToken) {
+          try {
+            await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/user`, {
+              method: 'PUT',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${activeUserToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                data: {
+                  is_affiliate: true,
+                  affiliate_id: aff.id,
+                  affiliate_code: aff.code,
+                  affiliate_first_name: cleanFirst,
+                  affiliate_last_name: cleanLast,
+                  affiliate_name: fullName,
+                  affiliate_phone: cleanPhone,
+                  affiliate_status: 'active'
+                }
+              })
+            });
+          } catch (_) {}
+        }
+
         return res.status(200).json({
           success: true,
-          message: "Registrazione affiliato completata con successo.",
+          email_confirmation_required: emailConfirmationRequired,
+          message: emailConfirmationRequired
+            ? "Account creato! Controlla la tua email (anche nella cartella Spam) e clicca sul link di conferma per accedere alla dashboard."
+            : "Registrazione affiliato completata con successo.",
           session: authSession,
           user: {
             id: aff.id,
