@@ -565,7 +565,130 @@ function updateDashboardLockState() {
   }
 }
 
+async function finalizePendingBarRegistrationOnPaymentSuccess(method = "stripe_checkout", txnId = null) {
+  let pendingRaw = null;
+  try {
+    pendingRaw = localStorage.getItem("barpilot_pending_bar_registration");
+  } catch (_) {}
+  if (!pendingRaw) return null;
+
+  let pending = null;
+  try {
+    pending = JSON.parse(pendingRaw);
+  } catch (_) {
+    return null;
+  }
+  if (!pending || !pending.email) return null;
+
+  if (window._barpilotFinalizingRegistration) return null;
+  window._barpilotFinalizingRegistration = true;
+
+  let supabaseUser = null;
+  let supabaseOk = false;
+  let apiOk = false;
+  let registeredBarId = pending.tempBarId || ("bar_" + Date.now());
+
+  try {
+    // 1. Crea utente su Supabase Auth (auth.users) e invia il link di conferma registrazione SOLO dopo pagamento riuscito
+    if (window.supabase && window.supabase.auth && pending.password) {
+      try {
+        const signUpRes = await window.supabase.auth.signUp({
+          email: pending.email,
+          password: pending.password,
+          options: {
+            data: {
+              ...(pending.registrationMetadata || {}),
+              subscription_method: method,
+              transaction_id: txnId || ("txn_" + Date.now()),
+              payment_confirmed: true
+            }
+          }
+        });
+        if (signUpRes && signUpRes.data && signUpRes.data.user) {
+          supabaseUser = signUpRes.data.user;
+          supabaseOk = true;
+          console.log("[BarPilot] Utente registrato su Supabase auth.users post-pagamento:", supabaseUser.id);
+        } else if (signUpRes && signUpRes.error) {
+          console.warn("[BarPilot] Supabase signUp post-pagamento errore:", signUpRes.error);
+        }
+      } catch (sbErr) {
+        console.warn("[BarPilot] Supabase signUp post-pagamento eccezione:", sbErr);
+      }
+    }
+
+    // 2. Registra il bar sul database Supabase (/api/register-bar) e invia email di benvenuto
+    try {
+      const regRes = await fetch("/api/register-bar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: supabaseUser ? supabaseUser.id : null,
+          ownerName: pending.ownerName,
+          barName: pending.barName,
+          email: pending.email,
+          phone: pending.phone,
+          vatNumber: pending.vatNumber,
+          city: pending.city,
+          address: pending.address || `Via Principale, 1 - ${pending.city || "Italia"}`,
+          inviteCode: pending.inviteCode || pending.promoCode || null,
+          promoCode: pending.promoCode || pending.inviteCode || null
+        })
+      });
+      const regJson = await regRes.json().catch(() => ({}));
+      if (regRes.ok && regJson) {
+        apiOk = true;
+        if (regJson.barId) registeredBarId = regJson.barId;
+        if (typeof BroadcastChannel !== "undefined") {
+          try {
+            const bc = new BroadcastChannel("barpilot_affiliates_sync");
+            bc.postMessage({
+              type: "new_referral",
+              barId: registeredBarId,
+              code: pending.promoCode || pending.inviteCode || null,
+              bonus: regJson.bonusAmount || 0
+            });
+            bc.close();
+          } catch (_) {}
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[BarPilot] register-bar post-pagamento eccezione:", apiErr);
+    }
+
+    // 3. Aggiorna activeBar e utente locale con i veri ID Supabase
+    if (window.db) {
+      const activeBar = window.db.get("activeBar") || {};
+      if (registeredBarId) activeBar.id = registeredBarId;
+      if (supabaseUser && supabaseUser.id) {
+        activeBar.supabaseId = supabaseUser.id;
+        activeBar.supabaseSaved = true;
+      }
+      window.db.set("activeBar", activeBar);
+    }
+    try {
+      const logged = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+      if (logged && supabaseUser && supabaseUser.id) {
+        logged.supabaseId = supabaseUser.id;
+        localStorage.setItem("barpilot_logged_user", JSON.stringify(logged));
+      }
+      if (supabaseOk || apiOk) {
+        localStorage.removeItem("barpilot_pending_bar_registration");
+      }
+    } catch (_) {}
+
+    return { barId: registeredBarId, supabaseId: supabaseUser ? supabaseUser.id : null };
+  } finally {
+    window._barpilotFinalizingRegistration = false;
+  }
+}
+window.finalizePendingBarRegistrationOnPaymentSuccess = finalizePendingBarRegistrationOnPaymentSuccess;
+
 function activateSubscription(method = "google_pay") {
+  // Registra l'account su Supabase auth.users, salva il bar su DB e invia il link di conferma SOLO ora che il pagamento è riuscito
+  try {
+    finalizePendingBarRegistrationOnPaymentSuccess(method, "sub_" + Date.now());
+  } catch (_) {}
+
   const isFr = window.i18n ? window.i18n.currentLang === "fr" : false;
   const bar = (window.db ? window.db.get("activeBar") : {}) || {};
   bar.plan = "BarPilot Pro 59€";

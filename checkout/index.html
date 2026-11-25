@@ -699,6 +699,8 @@
       window._barpilotFinalizingRegistration = true;
 
       let supabaseUser = null;
+      let supabaseOk = false;
+      let apiOk = false;
       let registeredBarId = pending.tempBarId || ("bar_" + Date.now());
 
       try {
@@ -719,6 +721,9 @@
             });
             if (signUpRes && signUpRes.data && signUpRes.data.user) {
               supabaseUser = signUpRes.data.user;
+              supabaseOk = true;
+            } else if (signUpRes && signUpRes.error) {
+              console.warn("[Checkout] Supabase signUp errore:", signUpRes.error);
             }
           } catch (sbErr) {
             console.warn("[Checkout] Supabase signUp post-pagamento:", sbErr);
@@ -745,6 +750,7 @@
           });
           const regJson = await regRes.json().catch(() => ({}));
           if (regRes.ok && regJson) {
+            apiOk = true;
             if (regJson.barId) registeredBarId = regJson.barId;
             if (typeof BroadcastChannel !== "undefined") {
               try {
@@ -763,9 +769,11 @@
           console.warn("[Checkout] register-bar post-pagamento:", apiErr);
         }
 
-        // 3. Aggiorna stato locale con ID reali e rimuove la registrazione pendente
+        // 3. Aggiorna stato locale con ID reali e rimuove la registrazione pendente solo se salvata su Supabase/API
         try {
-          localStorage.removeItem("barpilot_pending_bar_registration");
+          if (supabaseOk || apiOk) {
+            localStorage.removeItem("barpilot_pending_bar_registration");
+          }
           const logged = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
           if (logged && supabaseUser && supabaseUser.id) {
             logged.supabaseId = supabaseUser.id;
@@ -918,8 +926,8 @@
       }
 
       if (isConfirmed) {
-        showCheckoutAlert("✅ Pagamento Stripe confermato con successo! Accesso in sblocco...", "success");
-        confirmAndUnlockSubscription("stripe_checkout", confirmedTxn || ("cs_live_" + Date.now()), "Stripe Checkout Ufficiale Verificato");
+        showCheckoutAlert("✅ Pagamento Stripe confermato con successo! Registrazione e sblocco in corso...", "success");
+        await confirmAndUnlockSubscription("stripe_checkout", confirmedTxn || ("cs_live_" + Date.now()), "Stripe Checkout Ufficiale Verificato");
       } else {
         showCheckoutAlert("⚠️ Nessun pagamento completato rilevato su Stripe per il tuo account. Se hai appena completato il checkout, attendi qualche secondo affinché la banca registri la transazione e riprova. Se hai chiuso la finestra senza completare, effettua prima il pagamento.", "error");
       }
@@ -993,9 +1001,9 @@
 
           if (res && res.success) {
             closeGooglePlayModal();
-            showCheckoutAlert("✅ Pagamento Google Pay autorizzato con successo!", "success");
+            showCheckoutAlert("✅ Pagamento Google Pay autorizzato con successo! Registrazione in corso...", "success");
             const txnId = res.transactionId || ("GPA." + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "-" + Math.floor(1000 + Math.random() * 9000) + "." + Date.now().toString().slice(-5));
-            confirmAndUnlockSubscription("google_play", txnId, "Google Play Pay (Google Wallet Verificato)");
+            await confirmAndUnlockSubscription("google_play", txnId, "Google Play Pay (Google Wallet Verificato)");
             return;
           } else {
             const errorMsg = (res && (res.message || res.error?.message || res.error?.statusMessage)) || "Autorizzazione Google Pay rifiutata o annullata.";
@@ -1113,11 +1121,11 @@
 
       const onApprove = (data, actions) => {
         showCheckoutAlert("⏳ Verifica autorizzazione PayPal in corso...", "info");
-        return actions.order.capture().then((details) => {
+        return actions.order.capture().then(async (details) => {
           const payerEmail = (details && details.payer && details.payer.email_address) || 'Conto PayPal';
           const txnId = (details && details.id) || data.orderID || ('pp_' + Date.now());
-          showCheckoutAlert("✅ Pagamento PayPal autorizzato con successo!", "success");
-          confirmAndUnlockSubscription("paypal", txnId, "PayPal (" + payerEmail + ")");
+          showCheckoutAlert("✅ Pagamento PayPal autorizzato con successo! Registrazione in corso...", "success");
+          await confirmAndUnlockSubscription("paypal", txnId, "PayPal (" + payerEmail + ")");
         }).catch((err) => {
           console.error("PayPal capture error:", err);
           showCheckoutAlert("Errore durante la finalizzazione del pagamento PayPal. Riprova.", "error");
