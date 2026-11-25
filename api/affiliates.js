@@ -2972,6 +2972,119 @@ async function handleUserAffiliateRequest(req, res) {
         }
       }
 
+      if (action === 'whatsapp_contact') {
+        const cleanMessage = (body.message || '').trim();
+        const cleanName = (body.name || '').trim();
+        const cleanContact = (body.contact || body.phone || body.email || '').trim();
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const cleanCode = (body.code || '').trim().toUpperCase();
+
+        if (!cleanMessage) {
+          return res.status(400).json({ error: "Scrivi un messaggio prima di inviare." });
+        }
+
+        const nowIso = new Date().toISOString();
+        const msgId = 'wa_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@barpilot.eu';
+        const senderLabel = cleanName || cleanContact || cleanEmail || 'Visitatore Affiliazioni';
+        const subject = `[WhatsApp → @barpilot] Messaggio da ${senderLabel}`;
+        const textBody = `Nuovo messaggio WhatsApp dalla pagina Affiliazioni BarPilot\n\nDestinatario: @barpilot\nMittente: ${senderLabel}\nContatto: ${cleanContact || 'Non indicato'}\nEmail: ${cleanEmail || 'Non indicata'}\nCodice Affiliato: ${cleanCode || 'N/D'}\nData: ${nowIso}\n\nMessaggio:\n${cleanMessage}`;
+        const htmlBody = `
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#0B1220;color:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #1E293B;">
+            <div style="background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);padding:18px 22px;">
+              <h2 style="margin:0;font-size:18px;color:#FFFFFF;">💬 Nuovo Messaggio WhatsApp → @barpilot</h2>
+              <p style="margin:4px 0 0;font-size:12.5px;color:rgba(255,255,255,0.9);">Inviato dalla pagina Affiliazioni BarPilot</p>
+            </div>
+            <div style="padding:20px 22px;">
+              <p style="margin:0 0 8px;font-size:13px;color:#94A3B8;"><strong style="color:#FFFFFF;">Mittente:</strong> ${senderLabel.replace(/</g, '&lt;')}</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#94A3B8;"><strong style="color:#FFFFFF;">Contatto (WhatsApp/Email):</strong> ${(cleanContact || cleanEmail || 'Non indicato').replace(/</g, '&lt;')}</p>
+              ${cleanCode ? `<p style="margin:0 0 8px;font-size:13px;color:#94A3B8;"><strong style="color:#FFFFFF;">Codice Affiliato:</strong> ${cleanCode.replace(/</g, '&lt;')}</p>` : ''}
+              <div style="margin-top:16px;background:#111A2E;border-left:4px solid #25D366;border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.6;color:#F8FAFC;white-space:pre-wrap;">${cleanMessage.replace(/</g, '&lt;')}</div>
+            </div>
+          </div>`;
+
+        let delivered = false;
+        let provider = 'stored';
+
+        if (process.env.RESEND_API_KEY) {
+          try {
+            const payload = {
+              from: process.env.EMAIL_FROM || 'BarPilot <benvenuto@barpilot.eu>',
+              to: [adminEmail],
+              subject,
+              text: textBody,
+              html: htmlBody
+            };
+            if (cleanEmail && cleanEmail.includes('@')) payload.reply_to = cleanEmail;
+            const rRes = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+            if (rRes.ok) {
+              delivered = true;
+              provider = 'resend';
+            }
+          } catch (_) {}
+        }
+
+        if (!delivered && process.env.BREVO_API_KEY) {
+          try {
+            const bRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+              method: 'POST',
+              headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                sender: { name: 'BarPilot WhatsApp', email: process.env.EMAIL_FROM_ADDRESS || 'benvenuto@barpilot.eu' },
+                to: [{ email: adminEmail, name: '@barpilot' }],
+                subject,
+                textContent: textBody,
+                htmlContent: htmlBody
+              })
+            });
+            if (bRes.ok) {
+              delivered = true;
+              provider = 'brevo';
+            }
+          } catch (_) {}
+        }
+
+        // Salva anche su Supabase admin_audit_logs per tracciabilità
+        try {
+          await supabaseFetch('admin_audit_logs', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: msgId,
+              admin_id: '@barpilot',
+              action: 'whatsapp_contact_message',
+              entity_type: 'whatsapp_message',
+              entity_id: msgId,
+              new_values: {
+                recipient: '@barpilot',
+                sender: senderLabel,
+                contact: cleanContact || cleanEmail || '',
+                code: cleanCode || '',
+                message: cleanMessage
+              },
+              created_at: nowIso
+            })
+          });
+        } catch (_) {}
+
+        return res.status(200).json({
+          success: true,
+          delivered,
+          provider,
+          recipient: '@barpilot',
+          messageId: msgId
+        });
+      }
+
       if (action === 'auth_logout') {
         const token = (req.headers['authorization'] || req.headers['Authorization'] || '').replace(/^Bearer\s+/i, '').trim();
         if (token) {

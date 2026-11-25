@@ -1400,6 +1400,212 @@
         right: 2px;
       }
     }
+
+    /* WhatsApp Chat Popup (@barpilot) */
+    .wa-chat-popup {
+      position: fixed;
+      bottom: 88px;
+      right: 24px;
+      width: 340px;
+      max-width: calc(100vw - 32px);
+      background: #0F172A;
+      border: 1px solid rgba(37, 211, 102, 0.35);
+      border-radius: 18px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+      z-index: 10000;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      animation: modalSlideUp 0.22s ease-out;
+    }
+
+    .wa-chat-header {
+      background: linear-gradient(135deg, #075E54 0%, #128C7E 100%);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .wa-chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wa-chat-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #0B1220;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .wa-chat-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .wa-chat-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.2;
+    }
+
+    .wa-chat-status {
+      font-size: 11.5px;
+      color: #D1FAE5;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .wa-chat-close {
+      background: rgba(255, 255, 255, 0.14);
+      border: none;
+      color: #FFFFFF;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wa-chat-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .wa-chat-body {
+      padding: 14px;
+      background: #0B1220;
+      min-height: 170px;
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .wa-bubble-in {
+      align-self: flex-start;
+      max-width: 88%;
+      background: #1E293B;
+      color: #F1F5F9;
+      padding: 10px 12px;
+      border-radius: 0 12px 12px 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .wa-bubble-out {
+      align-self: flex-end;
+      max-width: 88%;
+      background: #005C4B;
+      color: #FFFFFF;
+      padding: 10px 12px;
+      border-radius: 12px 0 12px 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .wa-bubble-meta {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .wa-chat-footer {
+      padding: 10px 12px 12px;
+      background: #111A2E;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .wa-contact-input {
+      width: 100%;
+      padding: 8px 11px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9px;
+      color: #FFFFFF;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .wa-contact-input:focus, .wa-msg-input:focus {
+      border-color: #25D366;
+    }
+
+    .wa-compose-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .wa-msg-input {
+      flex: 1;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      max-height: 84px;
+    }
+
+    .wa-send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #25D366;
+      color: #FFFFFF;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .wa-send-btn:hover {
+      background: #2ae26f;
+      transform: scale(1.06);
+    }
+
+    .wa-send-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    @media (max-width: 640px) {
+      .wa-chat-popup {
+        bottom: 80px;
+        right: 16px;
+      }
+    }
   </style>
   <script src="/assets/js/supabaseClient.js"></script>
 </head>
@@ -2244,38 +2450,152 @@
     </div>
   </div>
 
+  <!-- WhatsApp Chat Popup → @barpilot -->
+  <div id="waChatPopup" class="wa-chat-popup" role="dialog" aria-label="Chat WhatsApp con @barpilot">
+    <div class="wa-chat-header">
+      <div class="wa-chat-header-left">
+        <div class="wa-chat-avatar">
+          <img src="/assets/images/logo.png" alt="@barpilot">
+        </div>
+        <div>
+          <div class="wa-chat-title">@barpilot</div>
+          <div class="wa-chat-status">
+            <span style="width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;"></span>
+            <span>Online · Supporto Affiliazioni</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="wa-chat-close" onclick="closeWhatsAppChat()" aria-label="Chiudi chat">✕</button>
+    </div>
+
+    <div class="wa-chat-body" id="waChatMessages">
+      <div class="wa-bubble-in">
+        Ciao! 👋 Scrivi qui il tuo messaggio: arriverà direttamente a <strong>@barpilot</strong>. Ti risponderemo al più presto!
+      </div>
+    </div>
+
+    <form class="wa-chat-footer" id="waChatForm" onsubmit="handleWhatsAppSend(event)">
+      <input type="text" id="waSenderContact" class="wa-contact-input" placeholder="Il tuo numero WhatsApp o email (per la risposta)">
+      <div class="wa-compose-row">
+        <textarea id="waMessageInput" class="wa-msg-input" rows="2" placeholder="Scrivi un messaggio a @barpilot..." required onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); handleWhatsAppSend(event); }"></textarea>
+        <button type="submit" id="waSendBtn" class="wa-send-btn" title="Invia messaggio a @barpilot" aria-label="Invia messaggio">➤</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Floating WhatsApp Contact Button (In Basso a Destra) -->
-  <a href="https://wa.me/?text=Ciao%20BarPilot,%20vorrei%20informazioni%20sul%20programma%20affiliazioni" 
+  <button type="button"
      id="whatsappAffiliateBtn" 
      class="whatsapp-float-btn" 
-     target="_blank" 
-     rel="noopener noreferrer" 
-     aria-label="Contattaci su WhatsApp" 
-     title="Contattaci su WhatsApp">
+     onclick="toggleWhatsAppChat()"
+     aria-label="Scrivi su WhatsApp a @barpilot" 
+     title="Scrivi un messaggio a @barpilot">
     <div class="whatsapp-icon-wrap">
       <svg class="whatsapp-svg-icon" viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
         <path d="M12.031 2C6.516 2 2.031 6.484 2.031 12c0 1.984.578 3.844 1.578 5.422L2 22l4.75-1.547A9.948 9.948 0 0 0 12.031 22c5.516 0 10-4.484 10-10s-4.484-10-10-10zm0 18.25c-1.688 0-3.266-.469-4.641-1.281l-.328-.203-2.828.922.938-2.75-.219-.344A8.21 8.21 0 0 1 3.781 12c0-4.547 3.703-8.25 8.25-8.25 4.547 0 8.25 3.703 8.25 8.25 0 4.547-3.703 8.25-8.25 8.25zm4.844-6.172c-.266-.141-1.578-.781-1.828-.875-.25-.094-.438-.141-.625.141s-.719.875-.875 1.062c-.156.188-.328.203-.594.078-.266-.141-1.125-.422-2.141-1.328-.797-.703-1.328-1.578-1.484-1.844-.156-.266-.016-.406.125-.547.125-.125.266-.328.406-.484.141-.156.188-.266.281-.438.094-.188.047-.344-.016-.484s-.625-1.516-.859-2.078c-.234-.547-.469-.469-.641-.484h-.547c-.188 0-.484.078-.734.344s-.969.953-.969 2.328c0 1.375 1 2.703 1.141 2.891.141.188 1.969 3.016 4.766 4.234.672.297 1.188.469 1.609.609.672.219 1.281.188 1.766.109.547-.078 1.578-.656 1.812-1.297.234-.641.234-1.188.156-1.297-.078-.109-.266-.188-.531-.328z"/>
       </svg>
     </div>
-    <span class="whatsapp-btn-text">Supporto WhatsApp</span>
+    <span class="whatsapp-btn-text">Scrivi a @barpilot</span>
     <span class="whatsapp-badge-status" title="Online"></span>
-  </a>
+  </button>
 
   <!-- Client Integration Script -->
   <script>
-    // Configurazione Contatto WhatsApp
-    const AFF_WHATSAPP_PHONE = ""; // Inserire il numero WhatsApp desiderato con prefisso internazionale (es: 393331234567)
-    const AFF_WHATSAPP_MSG = "Ciao BarPilot, vorrei informazioni sul programma affiliazioni.";
-
+    // Chat WhatsApp interattiva verso @barpilot
     function initWhatsAppButton() {
-      const btn = document.getElementById("whatsappAffiliateBtn");
-      if (!btn) return;
-      const cleanPhone = (AFF_WHATSAPP_PHONE || "").replace(/[^0-9]/g, "");
-      const encodedMsg = encodeURIComponent(AFF_WHATSAPP_MSG);
-      if (cleanPhone) {
-        btn.href = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+      // Precompila eventuale contatto se l'affiliato è autenticato
+      const contactInput = document.getElementById("waSenderContact");
+      if (contactInput && !contactInput.value) {
+        const u = (typeof getAuthenticatedUser === "function") ? getAuthenticatedUser() : null;
+        if (u && (u.phone || u.email)) {
+          contactInput.value = u.phone || u.email;
+        }
+      }
+    }
+
+    function toggleWhatsAppChat() {
+      const popup = document.getElementById("waChatPopup");
+      if (!popup) return;
+      const isOpen = popup.style.display === "flex";
+      if (isOpen) {
+        popup.style.display = "none";
       } else {
-        btn.href = `https://wa.me/?text=${encodedMsg}`;
+        initWhatsAppButton();
+        popup.style.display = "flex";
+        const msgInput = document.getElementById("waMessageInput");
+        if (msgInput) setTimeout(() => msgInput.focus(), 100);
+      }
+    }
+
+    function closeWhatsAppChat() {
+      const popup = document.getElementById("waChatPopup");
+      if (popup) popup.style.display = "none";
+    }
+
+    async function handleWhatsAppSend(e) {
+      if (e) e.preventDefault();
+      const msgInput = document.getElementById("waMessageInput");
+      const contactInput = document.getElementById("waSenderContact");
+      const messagesBox = document.getElementById("waChatMessages");
+      const sendBtn = document.getElementById("waSendBtn");
+
+      const message = (msgInput?.value || "").trim();
+      if (!message) return;
+
+      const user = (typeof getAuthenticatedUser === "function") ? getAuthenticatedUser() : null;
+      const contact = (contactInput?.value || user?.phone || user?.email || "").trim();
+      const nowTime = new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+      // Aggiunge subito il messaggio inviato nella chat
+      if (messagesBox) {
+        const outEl = document.createElement("div");
+        outEl.className = "wa-bubble-out";
+        outEl.innerHTML = `${escapeHtml(message).replace(/\n/g, "<br>")}<div class="wa-bubble-meta">${nowTime} ✓✓</div>`;
+        messagesBox.appendChild(outEl);
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      }
+
+      if (msgInput) msgInput.value = "";
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "⏳"; }
+
+      try {
+        const res = await fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "whatsapp_contact",
+            name: user?.name || "",
+            email: user?.email || (contact.includes("@") ? contact : ""),
+            phone: user?.phone || (!contact.includes("@") ? contact : ""),
+            contact,
+            code: user?.code || "",
+            message
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Errore durante l'invio.");
+        }
+
+        if (messagesBox) {
+          const replyEl = document.createElement("div");
+          replyEl.className = "wa-bubble-in";
+          replyEl.innerHTML = `✅ Messaggio inviato a <strong>@barpilot</strong>! Ti risponderemo al più presto.`;
+          messagesBox.appendChild(replyEl);
+          messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+        showToast("💬", "Messaggio inviato a @barpilot!");
+      } catch (err) {
+        if (messagesBox) {
+          const errEl = document.createElement("div");
+          errEl.className = "wa-bubble-in";
+          errEl.style.borderColor = "rgba(239,68,68,0.45)";
+          errEl.textContent = "⚠️ Non siamo riusciti a inviare il messaggio. Riprova tra poco.";
+          messagesBox.appendChild(errEl);
+          messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+      } finally {
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "➤"; }
       }
     }
     const AFF_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
