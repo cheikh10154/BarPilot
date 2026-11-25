@@ -8389,137 +8389,49 @@ async function handleAuthSubmit(e) {
       created_at: new Date().toISOString()
     };
 
-    // 2. CONTROLLO E SALVATAGGIO DEI DATI SUL DATABASE SUPABASE (AUTH & TABELLE)
-    let supabaseUser = null;
-    let supabaseSuccess = false;
-    if (window.supabase && window.supabase.auth) {
+    // 2. NON registrare ancora su Supabase/database e NON inviare link di conferma email finché il pagamento al checkout non va a buon fine.
+    // Verifica opzionale del codice partner (senza salvare nulla su DB)
+    if (promoCode) {
       try {
-        console.log("[Supabase] Controllo duplicati e registrazione su Supabase Database per:", emailNormalized);
-        const res = await window.supabase.auth.signUp({
-          email: emailNormalized,
-          password: credential,
-          options: {
-            data: registrationMetadata
-          }
+        const vRes = await fetch("/api/affiliates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "verify_code", code: promoCode })
         });
-
-        // Se Supabase risponde che l'utente è già registrato
-        if (res && res.error) {
-          const errMsg = (res.error.message || "").toLowerCase();
-          if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("user_already_exists") || errMsg.includes("già registrato") || errMsg.includes("già presente")) {
-            if (submitBtnEmail) {
-              submitBtnEmail.disabled = false;
-              submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
-            }
-            showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-              ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Réinitialiser mot de passe</button></div>`
-              : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button></div>`);
-            return;
-          }
-        }
-
-        // Supabase con conferme attive restituisce identities vuoto se già registrato
-        const identities = res?.data?.user?.identities || res?.data?.identities;
-        if (Array.isArray(identities) && identities.length === 0) {
+        const vJson = await vRes.json().catch(() => ({}));
+        if (vRes.ok && vJson && vJson.valid === false) {
           if (submitBtnEmail) {
             submitBtnEmail.disabled = false;
             submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
           }
-          showAuthError(window.i18n && window.i18n.currentLang === 'fr'
-            ? `⚠️ Un compte avec cette adresse email existe déjà.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Se connecter</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Réinitialiser mot de passe</button></div>`
-            : `⚠️ Questo indirizzo email è già registrato nel database.<br><div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="switchToLoginWithEmail('${emailNormalized}')">👉 Accedi subito</button><button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:700; padding:7px 14px; cursor:pointer;" onclick="openNewPasswordModal('${emailNormalized}')">🔑 Reimposta password e accedi subito</button></div>`);
+          showAuthError(vJson.message || (window.i18n ? window.i18n.t("regPromoCodeError") : "Codice affiliato non valido."));
           return;
         }
-
-        if (res && res.data && res.data.user) {
-          supabaseSuccess = true;
-          supabaseUser = res.data.user;
-          console.log("[Supabase] Dati salvati con successo in auth.users (ID:", res.data.user.id, ")");
-        }
-      } catch (errSupabase) {
-        console.warn("[Supabase] Errore connessione Supabase:", errSupabase);
-      }
+      } catch (_) {}
     }
 
-    // Registrazione centralizzata su Supabase e sincronizzazione backend (include verifica codice partner e bonus +5€)
+    let supabaseUser = null;
+    let supabaseSuccess = false;
     let registeredBarId = "bar_" + Date.now();
+
+    // Salva i dati di registrazione in attesa di completamento pagamento al checkout ("Avvia l'abbonamento")
     try {
-      const regRes = await fetch("/api/register-bar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: supabaseUser ? supabaseUser.id : null,
-          ownerName: ownerName,
-          barName: barName,
-          email: emailNormalized,
-          phone: phone,
-          vatNumber: vatNumber,
-          city: city,
-          address: `Via Principale, 1 - ${city}`,
-          inviteCode: promoCode || null,
-          promoCode: promoCode || null
-        })
-      });
-      const regJson = await regRes.json().catch(() => ({}));
-      if (!regRes.ok && (regRes.status === 400 || regRes.status === 403)) {
-        if (submitBtnEmail) {
-          submitBtnEmail.disabled = false;
-          submitBtnEmail.innerHTML = window.i18n && window.i18n.currentLang === 'fr' ? "Créer un bar et activer 14 jours d'essai" : "Crea un bar e attiva 14 giorni di prova";
-        }
-        showAuthError(regJson.error || (window.i18n ? window.i18n.t("regPromoCodeError") : "Errore durante la verifica del codice promo/partner."));
-        return;
-      }
-      if (regRes.ok && regJson) {
-        if (regJson.barId) registeredBarId = regJson.barId;
-        console.log("[BarPilot] Registrazione bar completata su backend:", regJson);
-        if (typeof BroadcastChannel !== "undefined") {
-          try {
-            const bc = new BroadcastChannel("barpilot_affiliates_sync");
-            bc.postMessage({ type: "new_referral", barId: registeredBarId, code: promoCode || null, bonus: regJson.bonusAmount || 0 });
-            bc.close();
-          } catch (_) {}
-        }
-      }
-    } catch (errApi) {
-      console.warn("[BarPilot] API register-bar fallback:", errApi);
-    }
-
-    // Salvataggio diretto su tabella Supabase bars solo se client autenticato
-    if (window.supabase && window.supabase.url) {
-      try {
-        const barPayload = {
-          id: registeredBarId,
-          name: barName,
-          business_name: barName,
-          vat_number: vatNumber,
-          tax_code: vatNumber,
-          email: emailNormalized,
-          phone: phone,
-          city: city,
-          address: `Via Principale, 1 - ${city}`,
-          country: 'IT',
-          status: 'trial',
-          invite_code: promoCode || null,
-          "Codice invito": promoCode || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        if (supabaseUser && supabaseUser.id) {
-          barPayload.owner_id = supabaseUser.id;
-        }
-
-        const sbHeaders = {
-          ...window.supabase.getHeaders(false),
-          "Prefer": "resolution=merge-duplicates,return=representation"
-        };
-
-        await fetch(`${window.supabase.url}/rest/v1/bars`, {
-          method: "POST",
-          headers: sbHeaders,
-          body: JSON.stringify(barPayload)
-        });
-      } catch (e) {}
-    }
+      localStorage.setItem("barpilot_pending_bar_registration", JSON.stringify({
+        tempBarId: registeredBarId,
+        email: emailNormalized,
+        password: credential,
+        ownerName: ownerName,
+        barName: barName,
+        phone: phone,
+        vatNumber: vatNumber,
+        city: city,
+        address: `Via Principale, 1 - ${city}`,
+        inviteCode: promoCode || null,
+        promoCode: promoCode || null,
+        registrationMetadata: registrationMetadata,
+        createdAt: new Date().toISOString()
+      }));
+    } catch (_) {}
 
     if (phone) {
       try {
@@ -8690,26 +8602,8 @@ async function handleAuthSubmit(e) {
     closeAuthScreen();
     renderApp();
 
-    // Invia email di benvenuto al nuovo gestore del bar registrato
-    try {
-      await sendWelcomeEmail({
-        email: emailNormalized,
-        ownerName: ownerName,
-        barName: barName,
-        city: city,
-        phone: phone
-      });
-    } catch (e) {
-      console.warn("[Welcome Email] Errore non bloccante invio email:", e);
-    }
-
-    if (window.showToast) {
-      window.showToast(window.i18n?.currentLang === 'it' 
-        ? "✅ Bar registrato ed email di benvenuto inviata con successo!" 
-        : "✅ Bar enregistré et email de bienvenue envoyé avec succès !");
-    }
-
-    // DOPO LA REGISTRAZIONE: reindirizza alla pagina pro.html
+    // NON inviare l'email di benvenuto/conferma prima del pagamento riuscito al checkout!
+    // L'account, il bar su Supabase e il link di conferma vengono creati e inviati solo al checkout dopo pagamento riuscito.
     window.location.href = "pro.html";
     return;
   } else {

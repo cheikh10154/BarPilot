@@ -394,7 +394,7 @@
       return url;
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       // Se si ritorna dopo aver completato il pagamento su Stripe o Gateway
       const urlParams = new URLSearchParams(window.location.search);
       const isPaidReturn = urlParams.get('payment') === 'success' || 
@@ -402,7 +402,7 @@
                            urlParams.get('confirmed') === 'true' || 
                            urlParams.get('session_id');
       if (isPaidReturn) {
-        confirmAndUnlockSubscription("stripe_checkout", urlParams.get('session_id') || ("cs_live_" + Date.now()), "Stripe Checkout");
+        await confirmAndUnlockSubscription("stripe_checkout", urlParams.get('session_id') || ("cs_live_" + Date.now()), "Stripe Checkout");
         window.location.replace("https://www.barpilot.eu/app");
         return;
       }
@@ -679,8 +679,116 @@
       };
     }
 
-    function confirmAndUnlockSubscription(method, txnId, methodLabel) {
+    async function finalizePendingBarRegistrationOnPaymentSuccess(method, txnId) {
+      let pendingRaw = null;
+      try {
+        pendingRaw = localStorage.getItem("barpilot_pending_bar_registration");
+      } catch (_) {}
+      if (!pendingRaw) return null;
+
+      let pending = null;
+      try {
+        pending = JSON.parse(pendingRaw);
+      } catch (_) {
+        return null;
+      }
+      if (!pending || !pending.email) return null;
+
+      // Evita doppie chiamate concorrenti
+      if (window._barpilotFinalizingRegistration) return null;
+      window._barpilotFinalizingRegistration = true;
+
+      let supabaseUser = null;
+      let registeredBarId = pending.tempBarId || ("bar_" + Date.now());
+
+      try {
+        // 1. Crea utente su Supabase Auth e invia il link di conferma email SOLO ora che il pagamento è andato a buon fine
+        if (window.supabase && window.supabase.auth && pending.password) {
+          try {
+            const signUpRes = await window.supabase.auth.signUp({
+              email: pending.email,
+              password: pending.password,
+              options: {
+                data: {
+                  ...(pending.registrationMetadata || {}),
+                  subscription_method: method,
+                  transaction_id: txnId,
+                  payment_confirmed: true
+                }
+              }
+            });
+            if (signUpRes && signUpRes.data && signUpRes.data.user) {
+              supabaseUser = signUpRes.data.user;
+            }
+          } catch (sbErr) {
+            console.warn("[Checkout] Supabase signUp post-pagamento:", sbErr);
+          }
+        }
+
+        // 2. Registra il bar sul database Supabase (/api/register-bar) e invia email di benvenuto/conferma
+        try {
+          const regRes = await fetch("/api/register-bar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: supabaseUser ? supabaseUser.id : null,
+              ownerName: pending.ownerName,
+              barName: pending.barName,
+              email: pending.email,
+              phone: pending.phone,
+              vatNumber: pending.vatNumber,
+              city: pending.city,
+              address: pending.address || `Via Principale, 1 - ${pending.city || "Italia"}`,
+              inviteCode: pending.inviteCode || pending.promoCode || null,
+              promoCode: pending.promoCode || pending.inviteCode || null
+            })
+          });
+          const regJson = await regRes.json().catch(() => ({}));
+          if (regRes.ok && regJson) {
+            if (regJson.barId) registeredBarId = regJson.barId;
+            if (typeof BroadcastChannel !== "undefined") {
+              try {
+                const bc = new BroadcastChannel("barpilot_affiliates_sync");
+                bc.postMessage({
+                  type: "new_referral",
+                  barId: registeredBarId,
+                  code: pending.promoCode || pending.inviteCode || null,
+                  bonus: regJson.bonusAmount || 0
+                });
+                bc.close();
+              } catch (_) {}
+            }
+          }
+        } catch (apiErr) {
+          console.warn("[Checkout] register-bar post-pagamento:", apiErr);
+        }
+
+        // 3. Aggiorna stato locale con ID reali e rimuove la registrazione pendente
+        try {
+          localStorage.removeItem("barpilot_pending_bar_registration");
+          const logged = JSON.parse(localStorage.getItem("barpilot_logged_user") || "null");
+          if (logged && supabaseUser && supabaseUser.id) {
+            logged.supabaseId = supabaseUser.id;
+            localStorage.setItem("barpilot_logged_user", JSON.stringify(logged));
+          }
+        } catch (_) {}
+
+        return { barId: registeredBarId, supabaseId: supabaseUser ? supabaseUser.id : null };
+      } finally {
+        window._barpilotFinalizingRegistration = false;
+      }
+    }
+
+    async function confirmAndUnlockSubscription(method, txnId, methodLabel) {
+      // Prima registra il bar su Supabase/database e invia il link di conferma SOLO ora che il pagamento è riuscito
+      const finalized = await finalizePendingBarRegistrationOnPaymentSuccess(method, txnId);
+
       const bar = (window.db ? window.db.get("activeBar") : {}) || {};
+      if (finalized && finalized.barId) bar.id = finalized.barId;
+      if (finalized && finalized.supabaseId) {
+        bar.supabaseId = finalized.supabaseId;
+        bar.supabaseSaved = true;
+      }
       bar.plan = "BarPilot Pro 59€";
       bar.isSubscribed = true;
       bar.subscriptionStatus = "active";
@@ -965,11 +1073,11 @@
         }
 
         // Verification succeeded!
-        showCheckoutAlert("✅ Carta verificata con successo da Stripe API! Attivazione...", "success");
+        showCheckoutAlert("✅ Carta verificata con successo da Stripe API! Registrazione e attivazione in corso...", "success");
         const txnId = result.tokenId || ("tok_live_" + Date.now());
         const brand = result.brand || "Carta";
         const last4 = result.last4 || validation.data.number.slice(-4);
-        confirmAndUnlockSubscription("stripe_card", txnId, `Carta di Credito verificata Stripe (${brand} •••• ${last4})`);
+        await confirmAndUnlockSubscription("stripe_card", txnId, `Carta di Credito verificata Stripe (${brand} •••• ${last4})`);
       } catch (err) {
         if (submitBtn) {
           submitBtn.disabled = false;
