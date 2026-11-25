@@ -2032,7 +2032,7 @@ class AdminConsole {
     if (!tbody) return;
 
     if (!referrals || referrals.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun bar referral registrato al momento.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun bar referral registrato al momento.</td></tr>`;
       return;
     }
 
@@ -2044,9 +2044,18 @@ class AdminConsole {
       if (s === 'active') pillClass = 'status-active';
       else if (s === 'cancelled' || s === 'expired') pillClass = 'status-late';
 
+      const affFullName = [r.affiliate_first_name, r.affiliate_last_name].filter(Boolean).join(" ").trim() || r.affiliate_name || "Affiliato";
+      const affEmail = r.affiliate_email || "--";
+      const affPhone = r.affiliate_phone || "--";
+
       return `
         <tr>
           <td style="color:var(--text-muted); font-size:12.5px;">${regFormatted}</td>
+          <td>
+            <strong>${this.escapeHtml(affFullName)}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">✉️ ${this.escapeHtml(affEmail)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">📞 ${this.escapeHtml(affPhone)}</div>
+          </td>
           <td>
             <strong>🍸 ${this.escapeHtml(r.bar_name || 'Bar Referral')}</strong>
             <div style="font-size:11px; color:var(--text-muted);">${this.escapeHtml(r.bar_id || '')} ${r.email ? '· ' + this.escapeHtml(r.email) : ''}</div>
@@ -2061,7 +2070,7 @@ class AdminConsole {
             <span class="status-pill ${pillClass}">${this.escapeHtml(r.status_label || s)}</span>
             ${r.fraud_flag ? '<div style="font-size:10.5px; color:#EF4444; font-weight:700; margin-top:2px;">⚠️ Anomalia / Frode</div>' : ''}
           </td>
-          <td><strong style="font-family:'JetBrains Mono', monospace; color:${r.fraud_flag ? '#EF4444' : '#10B981'};">+${this.formatCurrency(r.bonus_amount || 5)} €</strong></td>
+          <td><strong style="font-family:'JetBrains Mono', monospace; color:${r.fraud_flag ? '#EF4444' : '#10B981'};">+${this.formatCurrency(r.bonus_amount || 10)} €</strong></td>
           <td>
             ${s !== 'cancelled' ? `
               <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.cancelFraudBonus('${r.id}', '')">
@@ -2086,11 +2095,13 @@ class AdminConsole {
     tbody.innerHTML = affiliates.map(a => {
       const dateFormatted = a.created_at ? new Date(a.created_at).toLocaleDateString("it-IT") : "--";
       const isSuspended = a.status === "suspended";
+      const fullAffName = [a.first_name, a.last_name].filter(Boolean).join(" ").trim() || a.name || "Affiliato";
       return `
         <tr>
           <td>
-            <strong>${this.escapeHtml(a.name || 'Affiliato')}</strong>
-            <div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(a.email)}</div>
+            <strong>${this.escapeHtml(fullAffName)}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">✉️ ${this.escapeHtml(a.email || '--')}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">📞 ${this.escapeHtml(a.phone || '--')}</div>
           </td>
           <td>
             <span style="font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:800; background:rgba(255,138,36,0.12); color:#FF8A24; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,138,36,0.25);">

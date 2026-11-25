@@ -196,6 +196,8 @@ async function syncAffiliateInAuthUsers(affObj, password = null) {
       is_bar: baseMeta.is_bar === true,
       affiliate_id: affObj.id || baseMeta.affiliate_id,
       affiliate_code: affObj.code || baseMeta.affiliate_code || getConsistentCodeForAccount(normalizedEmail),
+      affiliate_first_name: affObj.first_name || baseMeta.affiliate_first_name || '',
+      affiliate_last_name: affObj.last_name || baseMeta.affiliate_last_name || '',
       affiliate_name: affObj.name || baseMeta.affiliate_name || normalizedEmail.split('@')[0],
       affiliate_phone: affObj.phone || baseMeta.affiliate_phone || '',
       affiliate_status: affObj.status || baseMeta.affiliate_status || 'active',
@@ -249,11 +251,15 @@ function hydrateAffiliateFromAuthUser(u) {
   }
   const email = u.email.trim().toLowerCase();
   const code = String(meta.affiliate_code).toUpperCase();
+  const fullName = meta.affiliate_name || meta.full_name || meta.display_name || email.split('@')[0];
+  const nameParts = String(fullName).trim().split(/\s+/);
   return {
     id: meta.affiliate_id || ('aff_' + u.id.replace(/-/g, '').slice(0, 12)),
     user_id: u.id,
     bar_id: meta.bar_id || null,
-    name: meta.affiliate_name || meta.full_name || meta.display_name || email.split('@')[0],
+    first_name: meta.affiliate_first_name || nameParts[0] || '',
+    last_name: meta.affiliate_last_name || nameParts.slice(1).join(' ') || '',
+    name: fullName,
     email,
     phone: meta.affiliate_phone || u.phone || meta.phone || '',
     code,
@@ -868,14 +874,14 @@ async function handleAdminRequest(req, res) {
         }
       } catch (_) {}
 
+      const authUsersForEnrich = !isExplicitlyReset ? await fetchAllAuthUsers() : [];
       if (!isExplicitlyReset && (!sqlAffiliatesAvailable || affiliates.length === 0 || !sqlWithdrawalsAvailable)) {
-        const authUsers = await fetchAllAuthUsers();
         const affMap = new Map();
         (affiliates || []).forEach(a => affMap.set((a.email || '').toLowerCase(), a));
         (store.affiliates || []).forEach(a => {
           if (!affMap.has((a.email || '').toLowerCase())) affMap.set((a.email || '').toLowerCase(), a);
         });
-        authUsers.forEach(u => {
+        authUsersForEnrich.forEach(u => {
           const hydrated = hydrateAffiliateFromAuthUser(u);
           if (hydrated) {
             if (!affMap.has(hydrated.email)) affMap.set(hydrated.email, hydrated);
@@ -904,6 +910,22 @@ async function handleAdminRequest(req, res) {
           }
         });
         affiliates = Array.from(affMap.values());
+      }
+      // Completa sempre nome, cognome e telefono degli affiliati dai metadati auth.users se mancanti su SQL
+      if (authUsersForEnrich.length > 0 && affiliates.length > 0) {
+        affiliates = affiliates.map(a => {
+          const matchedU = authUsersForEnrich.find(u => (u.email || '').toLowerCase() === (a.email || '').toLowerCase());
+          const meta = matchedU?.user_metadata || {};
+          const fullName = a.name || meta.affiliate_name || meta.full_name || (a.email ? a.email.split('@')[0] : 'Affiliato');
+          const parts = String(fullName).trim().split(/\s+/);
+          return {
+            ...a,
+            first_name: a.first_name || meta.affiliate_first_name || parts[0] || '',
+            last_name: a.last_name || meta.affiliate_last_name || parts.slice(1).join(' ') || '',
+            name: fullName,
+            phone: a.phone || meta.affiliate_phone || matchedU?.phone || meta.phone || ''
+          };
+        });
       }
       if (!isExplicitlyReset && !sqlReferralsAvailable && referrals.length === 0) referrals = store.referrals || [];
       if (!isExplicitlyReset && !sqlCommissionsAvailable && commissions.length === 0) commissions = store.commissions || [];
@@ -970,10 +992,15 @@ async function handleAdminRequest(req, res) {
         const trialCount = affReferrals.filter(r => r.status === 'trial' || r.status === 'registered').length;
         const activeCount = affReferrals.filter(r => r.status === 'active').length;
 
+        const fullAffName = aff.name || 'Affiliato';
+        const affNameParts = String(fullAffName).trim().split(/\s+/);
         return {
           id: aff.id,
-          name: aff.name || 'Affiliato',
+          first_name: aff.first_name || affNameParts[0] || '',
+          last_name: aff.last_name || affNameParts.slice(1).join(' ') || '',
+          name: fullAffName,
           email: aff.email,
+          phone: aff.phone || '',
           code: aff.code,
           status: aff.status || 'active',
           commission_rate: aff.commission_rate ? parseFloat(aff.commission_rate) : commissionRate,
@@ -1066,23 +1093,38 @@ async function handleAdminRequest(req, res) {
           default_commission_rate: commissionRate
         },
         affiliates: affiliatesEnriched,
-        referrals: referrals.map(r => ({
-          id: r.id,
-          affiliate_id: r.affiliate_id,
-          affiliate_code: r.affiliate_code,
-          bar_id: r.referred_bar_id,
-          bar_name: r.referred_bar_name || 'Bar Affiliato',
-          email: r.referred_email || '',
-          status: r.status || 'trial',
-          status_label: getReferralStatusLabel(r.status, r.cancel_at_period_end),
-          trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
-          trial_end_date: r.trial_end_date || null,
-          cancel_at_period_end: Boolean(r.cancel_at_period_end),
-          bonus_amount: parseFloat(r.bonus_amount || 10.00).toFixed(2),
-          fraud_flag: Boolean(r.fraud_flag),
-          fraud_reason: r.fraud_reason || '',
-          registered_at: r.registered_at || r.created_at
-        })),
+        referrals: referrals.map(r => {
+          const ownerAff = affiliatesEnriched.find(a =>
+            (r.affiliate_id && a.id === r.affiliate_id) ||
+            (r.affiliate_code && a.code && a.code.toUpperCase() === String(r.affiliate_code).toUpperCase())
+          );
+          const ownerName = ownerAff?.name || r.affiliate_name || 'Affiliato';
+          const ownerParts = String(ownerName).trim().split(/\s+/);
+          return {
+            id: r.id,
+            affiliate_id: r.affiliate_id,
+            affiliate_code: r.affiliate_code,
+            affiliate_first_name: ownerAff?.first_name || r.affiliate_first_name || ownerParts[0] || '',
+            affiliate_last_name: ownerAff?.last_name || r.affiliate_last_name || ownerParts.slice(1).join(' ') || '',
+            affiliate_name: ownerName,
+            affiliate_email: ownerAff?.email || r.affiliate_email || '',
+            affiliate_phone: ownerAff?.phone || r.affiliate_phone || '',
+            bar_id: r.referred_bar_id,
+            bar_name: r.referred_bar_name || 'Bar Affiliato',
+            referred_owner_name: r.referred_owner_name || '',
+            referred_phone: r.referred_phone || '',
+            email: r.referred_email || '',
+            status: r.status || 'trial',
+            status_label: getReferralStatusLabel(r.status, r.cancel_at_period_end),
+            trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
+            trial_end_date: r.trial_end_date || null,
+            cancel_at_period_end: Boolean(r.cancel_at_period_end),
+            bonus_amount: parseFloat(r.bonus_amount || 10.00).toFixed(2),
+            fraud_flag: Boolean(r.fraud_flag),
+            fraud_reason: r.fraud_reason || '',
+            registered_at: r.registered_at || r.created_at
+          };
+        }),
         commissions: commissions.map(c => ({
           id: c.id,
           affiliate_id: c.affiliate_id,
@@ -1986,6 +2028,7 @@ async function handleUserAffiliateRequest(req, res) {
                 valid: true,
                 code: row.code,
                 affiliate_id: row.id,
+                name: row.name || '',
                 email: row.email,
                 user_id: row.user_id || null,
                 phone: row.phone || '',

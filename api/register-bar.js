@@ -298,6 +298,9 @@ export default async function handler(req, res) {
           matchedAffiliate = {
             id: meta.affiliate_id || ('aff_' + foundUser.id.replace(/-/g, '').slice(0, 12)),
             user_id: foundUser.id,
+            name: meta.affiliate_name || meta.full_name || (foundUser.email ? foundUser.email.split('@')[0] : 'Affiliato'),
+            first_name: meta.affiliate_first_name || '',
+            last_name: meta.affiliate_last_name || '',
             email: (foundUser.email || '').toLowerCase(),
             phone: meta.affiliate_phone || foundUser.phone || meta.phone || '',
             code: (meta.affiliate_code || codeUpper).toUpperCase(),
@@ -321,6 +324,7 @@ export default async function handler(req, res) {
               matchedAffiliate = {
                 id: vData.affiliate_id,
                 user_id: vData.user_id || null,
+                name: vData.name || '',
                 email: (vData.email || '').toLowerCase(),
                 phone: vData.phone || '',
                 code: vData.code,
@@ -585,6 +589,23 @@ export default async function handler(req, res) {
 
           if (referralCredited) {
             console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, 10,00 € in attesa al superamento dei 14 giorni con abbonamento attivo)`);
+            // Invia notifica e riepilogo affiliato (nome, cognome, email, telefono) al pannello Amministrazione -> Affiliazioni
+            try {
+              const affFullName = (matchedAffiliate.name || [matchedAffiliate.first_name, matchedAffiliate.last_name].filter(Boolean).join(' ') || matchedAffiliate.email || 'Affiliato').trim();
+              const affEmailStr = matchedAffiliate.email || '-';
+              const affPhoneStr = matchedAffiliate.phone || '-';
+              await supabaseFetch('admin_notifications', {
+                method: 'POST',
+                body: JSON.stringify({
+                  id: 'notif_ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+                  title: `Nuova registrazione da codice affiliato ${matchedAffiliate.code}`,
+                  message: `Affiliato: ${affFullName} | Email: ${affEmailStr} | Tel: ${affPhoneStr} — Nuovo bar registrato: ${cleanBarName} (${normalizedEmail})`,
+                  type: 'success',
+                  link: '#view-affiliates',
+                  created_at: now.toISOString()
+                })
+              });
+            } catch (_) {}
           }
         }
       } catch (affErr) {
