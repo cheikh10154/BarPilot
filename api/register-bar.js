@@ -448,7 +448,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(subPayload)
     });
 
-    // 4b. Collegamento Programma Affiliazione & Accredito Automatico +5,00 € (solo prima registrazione valida)
+    // 4b. Collegamento Programma Affiliazione & Bonus +10,00 € in attesa (attivo solo se prosegue dopo i 14 giorni di prova)
     let referralCredited = false;
     let bonusAmount = 0.00;
     let duplicateBlocked = Boolean(existingBar || isDuplicateVat);
@@ -469,151 +469,122 @@ export default async function handler(req, res) {
           duplicateBlocked = true;
           console.log(`[Register Bar] Referral già esistente per ${normalizedEmail}. Nessun doppio bonus accreditato.`);
         } else {
-          // 1) Tenta transazione atomica RPC su Supabase
-          let rpcHandled = false;
-          try {
-            const rpcRes = await supabaseFetch('rpc/process_affiliate_registration_bonus', {
-              method: 'POST',
-              body: JSON.stringify({
-                p_affiliate_code: matchedAffiliate.code,
-                p_bar_id: barId,
-                p_bar_name: cleanBarName,
-                p_user_id: userId || '',
-                p_email: normalizedEmail,
-                p_phone: cleanPhone,
-                p_vat: cleanVat
-              })
-            });
-            if (rpcRes.ok) {
-              const rpcData = await rpcRes.json();
-              rpcHandled = true;
-              if (rpcData && !rpcData.already_credited && Number(rpcData.bonus_credited) > 0) {
+          // Registra referral (+1 in prova 14 giorni) e commissione 10,00 € in stato 'pending' (attiva solo dopo i 14 giorni con abbonamento attivo)
+          const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+          const referralPayload = {
+            id: referralId,
+            affiliate_id: matchedAffiliate.id,
+            affiliate_code: matchedAffiliate.code,
+            referred_bar_id: barId,
+            referred_bar_name: cleanBarName,
+            referred_user_id: userId || null,
+            referred_email: normalizedEmail,
+            referred_vat: cleanVat || null,
+            status: 'trial', // +1 in periodo di prova (14 giorni)
+            trial_start_date: now.toISOString(),
+            trial_end_date: trialEnd.toISOString(),
+            cancel_at_period_end: false,
+            bonus_amount: 10.00,
+            registered_at: now.toISOString(),
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          };
+
+          const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+          const commissionPayload = {
+            id: commId,
+            affiliate_id: matchedAffiliate.id,
+            affiliate_code: matchedAffiliate.code,
+            referral_id: referralId,
+            bar_id: barId,
+            bar_name: cleanBarName,
+            bonus_type: 'registration',
+            amount: 10.00,
+            currency: 'EUR',
+            status: 'pending', // REGOLA: finché in periodo di prova (< 14 giorni), i 10€ restano in attesa (pulsante prelievo spento)
+            notes: 'Bonus 10,00 € in attesa: sarà attivo solo se l\'utente prosegue l\'abbonamento dopo i 14 giorni di prova',
+            trial_end_date: trialEnd.toISOString(),
+            available_at: null,
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          };
+
+          const refPost = await supabaseFetch('affiliate_referrals', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+            body: JSON.stringify(referralPayload)
+          });
+
+          if (refPost.ok) {
+            const insertedRefs = await refPost.json();
+            if (Array.isArray(insertedRefs) && insertedRefs.length > 0) {
+              commissionPayload.referral_id = insertedRefs[0].id || referralId;
+              const commPost = await supabaseFetch('affiliate_commissions', {
+                method: 'POST',
+                headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+                body: JSON.stringify(commissionPayload)
+              });
+
+              if (commPost.ok) {
                 referralCredited = true;
-                bonusAmount = Number(rpcData.bonus_credited);
-              } else if (rpcData && rpcData.already_credited) {
-                duplicateBlocked = true;
-              }
-            }
-          } catch (_) {}
+                bonusAmount = 10.00;
 
-          // 2) Fallback REST + Sync su auth.users & /api/affiliates se RPC non ancora installato su DB
-          if (!rpcHandled) {
-            const referralId = 'ref_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-            const referralPayload = {
-              id: referralId,
-              affiliate_id: matchedAffiliate.id,
-              affiliate_code: matchedAffiliate.code,
-              referred_bar_id: barId,
-              referred_bar_name: cleanBarName,
-              referred_user_id: userId || null,
-              referred_email: normalizedEmail,
-              referred_vat: cleanVat || null,
-              status: 'trial', // +1 in periodo di prova (14 giorni)
-              trial_start_date: now.toISOString(),
-              trial_end_date: trialEnd.toISOString(),
-              cancel_at_period_end: false,
-              bonus_amount: 5.00,
-              registered_at: now.toISOString(),
-              created_at: now.toISOString(),
-              updated_at: now.toISOString()
-            };
-
-            const commId = 'comm_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-            const commissionPayload = {
-              id: commId,
-              affiliate_id: matchedAffiliate.id,
-              affiliate_code: matchedAffiliate.code,
-              referral_id: referralId,
-              bar_id: barId,
-              bar_name: cleanBarName,
-              bonus_type: 'registration',
-              amount: 5.00,
-              currency: 'EUR',
-              status: 'pending', // REGOLA: finché in periodo di prova (< 14 giorni), i 5€ restano in attesa (NON accreditati al saldo disponibile)
-              notes: 'Bonus 5,00 € in attesa: verrà accreditato al superamento dei 14 giorni di prova con abbonamento attivo',
-              trial_end_date: trialEnd.toISOString(),
-              available_at: null,
-              created_at: now.toISOString(),
-              updated_at: now.toISOString()
-            };
-
-            const refPost = await supabaseFetch('affiliate_referrals', {
-              method: 'POST',
-              headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
-              body: JSON.stringify(referralPayload)
-            });
-
-            if (refPost.ok) {
-              const insertedRefs = await refPost.json();
-              if (Array.isArray(insertedRefs) && insertedRefs.length > 0) {
-                commissionPayload.referral_id = insertedRefs[0].id || referralId;
-                const commPost = await supabaseFetch('affiliate_commissions', {
-                  method: 'POST',
-                  headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
-                  body: JSON.stringify(commissionPayload)
-                });
-
-                if (commPost.ok) {
-                  referralCredited = true;
-                  bonusAmount = 5.00;
-
-                  // Aggiorna saldo reale su public.affiliates calcolato dalle commissioni
-                  try {
-                    const allCommRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(matchedAffiliate.id)}&select=amount,status`);
-                    if (allCommRes.ok) {
-                      const allComms = await allCommRes.json();
-                      let avail = 0, pend = 0, earned = 0;
-                      (allComms || []).forEach(c => {
-                        const a = parseFloat(c.amount) || 0;
-                        if (c.status === 'available') { avail += a; earned += a; }
-                        else if (c.status === 'pending') { pend += a; earned += a; }
-                        else if (c.status === 'paid') { earned += a; }
-                      });
-                      await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(matchedAffiliate.id)}`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          available_balance: avail.toFixed(2),
-                          pending_balance: pend.toFixed(2),
-                          total_earned: earned.toFixed(2),
-                          updated_at: now.toISOString()
-                        })
-                      });
-                    }
-                  } catch (_) {}
-                }
-              }
-            } else {
-              // Tabelle SQL non ancora create: sincronizza via /api/affiliates & auth.users in modo idempotente
-              try {
-                const syncRes = await fetch(`${appHost}/api/affiliates`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-pin': '101540'
-                  },
-                  body: JSON.stringify({
-                    action: 'record_referral_bonus',
-                    affiliateEmail: matchedAffiliate.email || '',
-                    affiliateCode: matchedAffiliate.code,
-                    referral: referralPayload,
-                    commission: commissionPayload
-                  })
-                });
-                if (syncRes.ok) {
-                  const sData = await syncRes.json();
-                  if (sData.already_credited) {
-                    duplicateBlocked = true;
-                  } else if (Number(sData.bonus_credited) > 0) {
-                    referralCredited = true;
-                    bonusAmount = Number(sData.bonus_credited);
+                // Aggiorna saldo reale su public.affiliates calcolato dalle commissioni
+                try {
+                  const allCommRes = await supabaseFetch(`affiliate_commissions?affiliate_id=eq.${encodeURIComponent(matchedAffiliate.id)}&select=amount,status`);
+                  if (allCommRes.ok) {
+                    const allComms = await allCommRes.json();
+                    let avail = 0, pend = 0, earned = 0;
+                    (allComms || []).forEach(c => {
+                      const a = parseFloat(c.amount) || 0;
+                      if (c.status === 'available') { avail += a; earned += a; }
+                      else if (c.status === 'pending') { pend += a; earned += a; }
+                      else if (c.status === 'paid') { earned += a; }
+                    });
+                    await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(matchedAffiliate.id)}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        available_balance: avail.toFixed(2),
+                        pending_balance: pend.toFixed(2),
+                        total_earned: earned.toFixed(2),
+                        updated_at: now.toISOString()
+                      })
+                    });
                   }
-                }
-              } catch (_) {}
+                } catch (_) {}
+              }
             }
+          } else {
+            // Tabelle SQL non ancora create: sincronizza via /api/affiliates & auth.users in modo idempotente
+            try {
+              const syncRes = await fetch(`${appHost}/api/affiliates`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-admin-pin': '101540'
+                },
+                body: JSON.stringify({
+                  action: 'record_referral_bonus',
+                  affiliateEmail: matchedAffiliate.email || '',
+                  affiliateCode: matchedAffiliate.code,
+                  referral: referralPayload,
+                  commission: commissionPayload
+                })
+              });
+              if (syncRes.ok) {
+                const sData = await syncRes.json();
+                if (sData.already_credited) {
+                  duplicateBlocked = true;
+                } else if (Number(sData.bonus_credited) > 0) {
+                  referralCredited = true;
+                  bonusAmount = Number(sData.bonus_credited);
+                }
+              }
+            } catch (_) {}
           }
 
           if (referralCredited) {
-            console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, 5,00 € in attesa al superamento dei 14 giorni con abbonamento attivo)`);
+            console.log(`[Register Bar] ✅ Bar ${cleanBarName} collegato all'affiliato ${matchedAffiliate.code} (+1 in prova, 10,00 € in attesa al superamento dei 14 giorni con abbonamento attivo)`);
           }
         }
       } catch (affErr) {
@@ -644,7 +615,7 @@ export default async function handler(req, res) {
           phone: cleanPhone || '',
           code: newCode, // Salvato in colonna code su public.affiliates (modificabile a Database)
           status: 'active',
-          commission_rate: 5.00,
+          commission_rate: 10.00,
           total_earned: 0.00,
           created_at: now.toISOString(),
           updated_at: now.toISOString()

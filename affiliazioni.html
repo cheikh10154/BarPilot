@@ -3117,7 +3117,7 @@
           })
           .on("postgres_changes", { event: "*", schema: "public", table: "affiliate_referrals", filter: `affiliate_id=eq.${affiliateId}` }, (payload) => {
             if (payload.eventType === "INSERT") {
-              showToast("🎉", "Nuovo bar registrato con il tuo codice (+1 in prova). I 5,00 € verranno accreditati al termine dei 14 giorni di prova con abbonamento attivo.");
+              showToast("🎉", "Nuovo bar registrato con il tuo codice (+1 in prova). Hai ricevuto 10,00 € in attesa: saranno attivi solo se l'utente prosegue l'abbonamento dopo i 14 giorni di prova.");
             }
             fetchAffiliationsData();
           })

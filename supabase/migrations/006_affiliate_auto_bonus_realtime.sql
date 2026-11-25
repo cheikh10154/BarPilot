@@ -213,13 +213,13 @@ BEGIN
     );
   END IF;
 
-  -- Bonus fisso configurato (default 5.00 EUR)
-  SELECT COALESCE(NULLIF(setting_value, '')::NUMERIC(10,2), 5.00) INTO v_bonus
+  -- Bonus fisso configurato (default 10.00 EUR)
+  SELECT COALESCE(NULLIF(setting_value, '')::NUMERIC(10,2), 10.00) INTO v_bonus
   FROM public.admin_settings
   WHERE setting_key = 'affiliate_registration_bonus'
   LIMIT 1;
   IF v_bonus IS NULL OR v_bonus <= 0 THEN
-    v_bonus := 5.00;
+    v_bonus := 10.00;
   END IF;
 
   v_referral_id := 'ref_' || substr(md5(p_bar_id || v_email || clock_timestamp()::text), 1, 16);
@@ -244,8 +244,8 @@ BEGIN
     notes, created_at, updated_at
   ) VALUES (
     v_comm_id, v_aff.id, v_aff.code, v_referral_id, p_bar_id, COALESCE(NULLIF(trim(p_bar_name), ''), 'Nuovo Bar'),
-    'registration', v_bonus, 'EUR', 'available', v_trial_start, v_trial_end,
-    'Bonus registrazione +5,00 € (Prova gratuita 14 giorni avviata)', v_trial_start, v_trial_start
+    'registration', v_bonus, 'EUR', 'pending', NULL, v_trial_end,
+    'Bonus 10,00 € in attesa: sarà attivo solo se l''utente prosegue l''abbonamento dopo i 14 giorni di prova', v_trial_start, v_trial_start
   )
   ON CONFLICT DO NOTHING;
 

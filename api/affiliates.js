@@ -13,7 +13,7 @@ const affiliatesCache = {
   referrals: [],
   commissions: [],
   withdrawals: [],
-  settings: { default_rate: 5.0 }
+  settings: { default_rate: 10.0 }
 };
 
 function readAffiliatesStore() {
@@ -258,7 +258,7 @@ function hydrateAffiliateFromAuthUser(u) {
     phone: meta.affiliate_phone || u.phone || meta.phone || '',
     code,
     status: meta.affiliate_status || 'active',
-    commission_rate: 5.0,
+    commission_rate: 10.0,
     total_earned: 0.00,
     payout_method: meta.affiliate_payout_method || null,
     created_at: meta.affiliate_created_at || u.created_at,
@@ -652,14 +652,14 @@ async function evaluateReferralsLifecycle(referrals, commissions = []) {
     }
 
     if (isTrialOngoing) {
-      // REGOLA: finché l'app è in periodo di prova (< 14 giorni), resta in 'trial' e i 5€ NON sono accreditati ('pending')
+      // REGOLA: finché l'app è in periodo di prova (< 14 giorni), resta in 'trial' e i 10€ NON sono attivi ('pending', pulsante prelievo spento)
       ref.status = 'trial';
       if (barCancelled && !ref.cancel_at_period_end) {
         ref.cancel_at_period_end = true;
       }
       if (matchingComm && matchingComm.status !== 'paid') {
         matchingComm.status = 'pending';
-        matchingComm.notes = 'Bonus 5,00 € in attesa: verrà accreditato al superamento dei 14 giorni di prova con abbonamento attivo';
+        matchingComm.notes = 'Bonus 10,00 € in attesa: sarà attivo solo se l\'utente prosegue l\'abbonamento dopo i 14 giorni di prova';
       }
     } else {
       // 14 giorni superati: salgono in abbonamento attivo?
@@ -667,14 +667,14 @@ async function evaluateReferralsLifecycle(referrals, commissions = []) {
         ref.status = 'active';
         if (matchingComm && matchingComm.status !== 'paid') {
           matchingComm.status = 'available';
-          matchingComm.notes = 'Bonus 5,00 € accreditato: 14 giorni di prova superati con abbonamento attivo';
+          matchingComm.notes = 'Bonus 10,00 € attivo: 14 giorni di prova superati con abbonamento attivo';
         }
       } else {
         const nextStatus = barCancelled ? 'cancelled' : 'expired';
         ref.status = nextStatus;
         if (matchingComm && matchingComm.status !== 'paid') {
           matchingComm.status = 'cancelled';
-          matchingComm.notes = 'Bonus non accreditato: prova scaduta senza abbonamento attivo o disdetto';
+          matchingComm.notes = 'Bonus non attivato: prova scaduta senza abbonamento attivo o disdetto';
         }
       }
     }
@@ -796,7 +796,7 @@ async function handleAdminRequest(req, res) {
     const store = readAffiliatesStore();
 
     if (req.method === 'GET') {
-      let commissionRate = store.settings?.default_rate || 5.0;
+      let commissionRate = store.settings?.default_rate || 10.0;
       try {
         const setRes = await supabaseFetch("admin_settings?setting_key=eq.affiliate_commission_rate&limit=1");
         if (setRes.ok) {
@@ -1078,7 +1078,7 @@ async function handleAdminRequest(req, res) {
           trial_start_date: r.trial_start_date || r.registered_at || r.created_at,
           trial_end_date: r.trial_end_date || null,
           cancel_at_period_end: Boolean(r.cancel_at_period_end),
-          bonus_amount: parseFloat(r.bonus_amount || 5.00).toFixed(2),
+          bonus_amount: parseFloat(r.bonus_amount || 10.00).toFixed(2),
           fraud_flag: Boolean(r.fraud_flag),
           fraud_reason: r.fraud_reason || '',
           registered_at: r.registered_at || r.created_at
@@ -1572,7 +1572,7 @@ async function handleAdminRequest(req, res) {
         return res.status(200).json({
           success: true,
           already_credited: dupInStore,
-          bonus_credited: dupInStore ? 0 : (parseFloat(commission.amount) || 5.00)
+          bonus_credited: dupInStore ? 0 : (parseFloat(commission.amount) || 10.00)
         });
       }
 
@@ -1670,7 +1670,7 @@ async function handleUserAffiliateRequest(req, res) {
           email: email || `${userId || barId}@barpilot.user`,
           code: permanentCode,
           status: 'active',
-          commission_rate: 5.0,
+          commission_rate: 10.0,
           total_earned: 0.00,
           created_at: nowIso,
           updated_at: nowIso
@@ -1838,7 +1838,7 @@ async function handleUserAffiliateRequest(req, res) {
         const comm = commissions.find(c => c.referral_id === r.id || (r.referred_bar_id && c.bar_id === r.referred_bar_id));
         const defaultStatus = r.status === 'active' ? 'available' : 'pending';
         const commStatus = comm ? comm.status : (r.fraud_flag ? 'cancelled' : defaultStatus);
-        const bonusAmt = comm ? parseFloat(comm.amount || 5.00) : parseFloat(r.bonus_amount || 5.00);
+        const bonusAmt = comm ? parseFloat(comm.amount || 10.00) : parseFloat(r.bonus_amount || 10.00);
         return {
           id: r.id,
           referral_id: r.id,
@@ -2434,7 +2434,7 @@ async function handleUserAffiliateRequest(req, res) {
             account_type: 'affiliate',
             registered_from: 'affiliazioni',
             is_bar: false,
-            commission_rate: 5.0,
+            commission_rate: 10.0,
             total_earned: 0.00,
             created_at: nowIso,
             updated_at: nowIso
@@ -2453,7 +2453,7 @@ async function handleUserAffiliateRequest(req, res) {
                 phone: cleanPhone,
                 code: permanentCode,
                 status: 'active',
-                commission_rate: 5.0,
+                commission_rate: 10.0,
                 total_earned: 0.00,
                 created_at: nowIso,
                 updated_at: nowIso
@@ -2555,7 +2555,7 @@ async function handleUserAffiliateRequest(req, res) {
               password: cleanPassword,
               code: permanentCode,
               status: 'active',
-              commission_rate: 5.0,
+              commission_rate: 10.0,
               total_earned: 0.00,
               created_at: nowIso,
               updated_at: nowIso

@@ -450,7 +450,9 @@ async function handleSubscriptionCancelled(sub) {
 // ----------------------------------------------------------------------------
 async function syncInvoicePaid(invoice) {
   try {
-    const amountTotal = (invoice.amount_paid || invoice.total || 5900) / 100;
+    const amountTotal = typeof invoice.amount_paid === 'number'
+      ? (invoice.amount_paid / 100)
+      : ((invoice.total || 0) / 100);
     const invNumber = invoice.number || `#${invoice.id.slice(-8).toUpperCase()}`;
 
     // Trova il bar da subscription o customer
@@ -669,22 +671,22 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
       }
     }
 
-    // Guadagno fisso di 5€ per abbonamento confermato/continuato
-    let commissionAmount = 5.00;
+    // Guadagno fisso di 10€ per abbonamento confermato/continuato dopo i 14 giorni di prova
+    let commissionAmount = 10.00;
     try {
       const affRes = await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(referral.affiliate_id)}&limit=1`);
       if (affRes.ok) {
         const rows = await affRes.json();
         if (rows && rows[0]?.commission_rate) {
           const customRate = parseFloat(rows[0].commission_rate);
-          if (!isNaN(customRate) && customRate > 0) commissionAmount = customRate;
+          if (!isNaN(customRate) && customRate >= 10) commissionAmount = customRate;
         }
       }
     } catch (_) {}
 
     const nowIso = new Date().toISOString();
 
-    // Verifica se esiste già il bonus registrazione di 5,00 € (assegnato una sola volta per bar)
+    // Verifica se esiste già il bonus registrazione di 10,00 € (assegnato una sola volta per bar)
     const commCheck = await supabaseFetch(`affiliate_commissions?referral_id=eq.${encodeURIComponent(referral.id)}&limit=1`);
     let existingComm = null;
     if (commCheck.ok) {
@@ -701,7 +703,7 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
             status: 'available',
             stripe_invoice_id: invoiceId || existingComm.stripe_invoice_id,
             stripe_event_id: eventId || existingComm.stripe_event_id,
-            notes: 'Commissione 5€ confermata (abbonamento Stripe attivo)',
+            notes: 'Commissione 10,00 € attiva (abbonamento proseguito dopo i 14 giorni di prova)',
             available_at: nowIso,
             updated_at: nowIso
           })
@@ -723,7 +725,7 @@ async function processAffiliateCommissionOnPayment({ barId, email, amountPaid, i
         currency: 'EUR',
         status: 'available',
         available_at: nowIso,
-        notes: 'Bonus affiliazione +5,00 € (abbonamento attivo)',
+        notes: 'Bonus affiliazione +10,00 € attivo (abbonamento proseguito dopo i 14 giorni di prova)',
         created_at: nowIso,
         updated_at: nowIso
       };
