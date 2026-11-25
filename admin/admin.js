@@ -200,20 +200,19 @@ class AdminConsole {
   // ==========================================================================
   isBarUser(u) {
     if (!u) return false;
+    // Se proviene da /api/register-bar o ha già nome/email di bar
+    if (u.name || u.bar_name || u.businessName || u.business_name) return true;
     const meta = u.user_metadata || u.raw_user_meta_data || {};
     const hasBarInfo = Boolean(
       meta.bar_name || meta.barName || meta["Nome bar"] || meta.bar_registered_id ||
-      u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true
+      u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true ||
+      meta.referral_id || (Array.isArray(meta.affiliate_referrals) && meta.affiliate_referrals.length > 0)
     );
     if (hasBarInfo) return true;
-    // Iscrizioni fatte solo su /app/affiliazioni: sono semplici utenti / affiliati, NON bar
-    if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) {
+    if ((meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni') && !hasBarInfo) {
       return false;
     }
-    if (meta.affiliate_code || meta.affiliate_id || u.code) {
-      return false;
-    }
-    return true;
+    return Boolean(u.email || meta.email);
   }
 
   // ==========================================================================
@@ -226,7 +225,7 @@ class AdminConsole {
     const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "-";
     const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || meta.affiliate_phone || "-";
     const address = u.address || meta.address || meta.indirizzo || (city !== "-" ? `Via Centrale 1, ${city}` : "-");
-    const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || "";
+    const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || u.inviteCode || "";
     const vatNumber = u.vat_number || u.vatNumber || u.piva || meta.vat_number || meta.vatNumber || meta.partita_iva || meta["Partita IVA"] || meta.piva || "";
     const createdAt = u.created_at ? new Date(u.created_at) : (u.rawCreatedAt ? new Date(u.rawCreatedAt) : new Date());
     const trialEnd = u.trial_end ? new Date(u.trial_end) : (meta.trial_end_date ? new Date(meta.trial_end_date) : (meta.trial_end ? new Date(meta.trial_end) : new Date(createdAt.getTime() + 14 * 24 * 3600 * 1000)));
@@ -236,10 +235,10 @@ class AdminConsole {
     if (status === "active_trial") status = "trial";
 
     return {
-      id: u.id,
-      authId: u.id,
+      id: u.id || `bar_${Math.random().toString(36).slice(2, 8)}`,
+      authId: u.authId || u.id,
       name: barName,
-      businessName: u.business_name || meta.business_name || barName,
+      businessName: u.businessName || u.business_name || meta.business_name || barName,
       owner: ownerName,
       email: u.email || "",
       phone: phone,
@@ -251,11 +250,11 @@ class AdminConsole {
       piva: vatNumber || "09876543210",
       plan: plan,
       status: status,
-      nextInvoice: u.next_invoice || trialEnd.toLocaleDateString('it-IT'),
+      nextInvoice: u.nextInvoice || u.next_invoice || trialEnd.toLocaleDateString('it-IT'),
       monthlyRevenue: (status === 'active' || daysRemaining === 0) ? 59.00 : 0.00,
       createdAt: createdAt.toLocaleDateString('it-IT'),
       rawCreatedAt: u.created_at || createdAt.toISOString(),
-      lastAccess: u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('it-IT') : (u.last_access || "Recente"),
+      lastAccess: u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('it-IT') : (u.lastAccess || u.last_access || "Recente"),
       avatar: (barName || "BP").substring(0, 2).toUpperCase(),
       photo: u.logo_url || u.photo || meta.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
       taxCode: u.tax_code || meta.tax_code || vatNumber || "",
@@ -980,6 +979,7 @@ class AdminConsole {
     const target = document.getElementById(`view-${viewId}`);
     if (target) target.classList.add("active");
 
+    if (viewId === "bars") this.renderFullBarsTable();
     if (viewId === "payments") this.renderPaymentsTable();
     if (viewId === "stats") this.renderStatsView();
     if (viewId === "support") {

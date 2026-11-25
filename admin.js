@@ -3,6 +3,25 @@
  * Sincronizzazione in tempo reale con Supabase Database, Stripe Billing e Realtime WebSockets
  */
 
+window.toggleAdminSidebar = function() {
+  const sb = document.querySelector('.sidebar');
+  if (sb) {
+    sb.classList.toggle('mobile-open');
+    let backdrop = document.getElementById('adminSidebarBackdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'adminSidebarBackdrop';
+      backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;backdrop-filter:blur(3px);';
+      backdrop.onclick = () => {
+        sb.classList.remove('mobile-open');
+        backdrop.style.display = 'none';
+      };
+      document.body.appendChild(backdrop);
+    }
+    backdrop.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+  }
+};
+
 const SUPABASE_ADMIN_CONFIG = {
   url: "https://cprxxxlgaofopmogeuer.supabase.co",
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI"
@@ -181,16 +200,19 @@ class AdminConsole {
   // ==========================================================================
   isBarUser(u) {
     if (!u) return false;
+    // Se proviene da /api/register-bar o ha già nome/email di bar
+    if (u.name || u.bar_name || u.businessName || u.business_name) return true;
     const meta = u.user_metadata || u.raw_user_meta_data || {};
-    // Iscrizioni fatte su /app/affiliazioni: sono semplici utenti / affiliati, NON bar
-    if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) {
+    const hasBarInfo = Boolean(
+      meta.bar_name || meta.barName || meta["Nome bar"] || meta.bar_registered_id ||
+      u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true ||
+      meta.referral_id || (Array.isArray(meta.affiliate_referrals) && meta.affiliate_referrals.length > 0)
+    );
+    if (hasBarInfo) return true;
+    if ((meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni') && !hasBarInfo) {
       return false;
     }
-    // Utenti con codice/id affiliazione senza alcun dato bar: semplici utenti
-    if ((meta.affiliate_code || meta.affiliate_id || u.code) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) {
-      return false;
-    }
-    return true;
+    return Boolean(u.email || meta.email);
   }
 
   // ==========================================================================
@@ -198,12 +220,12 @@ class AdminConsole {
   // ==========================================================================
   mapAuthUserToBar(u) {
     const meta = u.user_metadata || u.raw_user_meta_data || {};
-    const barName = u.name || meta.bar_name || meta.barName || meta["Nome bar"] || meta.name || (u.email ? `Bar ${u.email.split('@')[0]}` : "Nuovo Bar");
-    const ownerName = u.owner || meta.owner_name || meta.ownerName || meta.full_name || meta.fullName || (meta.first_name ? `${meta.first_name} ${meta.last_name || ''}`.trim() : null) || barName;
-    const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "Roma";
-    const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || "+39 02 1234567";
-    const address = u.address || meta.address || meta.indirizzo || `Via Centrale 1, ${city}`;
-    const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || "";
+    const barName = u.name || meta.bar_name || meta.barName || meta["Nome bar"] || meta.business_name || (u.email ? `Bar ${u.email.split('@')[0]}` : "Nuovo Bar");
+    const ownerName = u.owner || meta.owner_name || meta.ownerName || meta.full_name || meta.fullName || meta.display_name || meta.name || meta.affiliate_name || (meta.first_name ? `${meta.first_name} ${meta.last_name || ''}`.trim() : null) || "-";
+    const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "-";
+    const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || meta.affiliate_phone || "-";
+    const address = u.address || meta.address || meta.indirizzo || (city !== "-" ? `Via Centrale 1, ${city}` : "-");
+    const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || u.inviteCode || "";
     const vatNumber = u.vat_number || u.vatNumber || u.piva || meta.vat_number || meta.vatNumber || meta.partita_iva || meta["Partita IVA"] || meta.piva || "";
     const createdAt = u.created_at ? new Date(u.created_at) : (u.rawCreatedAt ? new Date(u.rawCreatedAt) : new Date());
     const trialEnd = u.trial_end ? new Date(u.trial_end) : (meta.trial_end_date ? new Date(meta.trial_end_date) : (meta.trial_end ? new Date(meta.trial_end) : new Date(createdAt.getTime() + 14 * 24 * 3600 * 1000)));
@@ -213,10 +235,10 @@ class AdminConsole {
     if (status === "active_trial") status = "trial";
 
     return {
-      id: u.id,
-      authId: u.id,
+      id: u.id || `bar_${Math.random().toString(36).slice(2, 8)}`,
+      authId: u.authId || u.id,
       name: barName,
-      businessName: u.business_name || meta.business_name || barName,
+      businessName: u.businessName || u.business_name || meta.business_name || barName,
       owner: ownerName,
       email: u.email || "",
       phone: phone,
@@ -228,11 +250,11 @@ class AdminConsole {
       piva: vatNumber || "09876543210",
       plan: plan,
       status: status,
-      nextInvoice: u.next_invoice || trialEnd.toLocaleDateString('it-IT'),
+      nextInvoice: u.nextInvoice || u.next_invoice || trialEnd.toLocaleDateString('it-IT'),
       monthlyRevenue: (status === 'active' || daysRemaining === 0) ? 59.00 : 0.00,
       createdAt: createdAt.toLocaleDateString('it-IT'),
       rawCreatedAt: u.created_at || createdAt.toISOString(),
-      lastAccess: u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('it-IT') : (u.last_access || "Recente"),
+      lastAccess: u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('it-IT') : (u.lastAccess || u.last_access || "Recente"),
       avatar: (barName || "BP").substring(0, 2).toUpperCase(),
       photo: u.logo_url || u.photo || meta.photo || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=600&h=400&fit=crop",
       taxCode: u.tax_code || meta.tax_code || vatNumber || "",
@@ -295,23 +317,7 @@ class AdminConsole {
           }
         }
 
-        // Metodo 3: Tabella pubblica bars (fallback compatibilità)
         if (!authUsersLoaded) {
-          try {
-            const barsRes = await fetch(`${this.supabaseConfig.url}/rest/v1/bars?select=*&order=created_at.desc`, { headers });
-            if (barsRes.ok) {
-              const remoteBars = await barsRes.json();
-              if (Array.isArray(remoteBars)) {
-                this.data.bars = remoteBars.filter(rb => this.isBarUser(rb)).map(rb => this.mapAuthUserToBar(rb));
-                authUsersLoaded = true;
-              }
-            }
-          } catch (barsErr) {
-            console.warn("[Admin] Note /rest/v1/bars:", barsErr);
-          }
-        }
-
-        if (!authUsersLoaded && (!this.data.bars || this.data.bars.length === 0)) {
           this.data.bars = [];
         }
       } catch (e) {
@@ -973,6 +979,7 @@ class AdminConsole {
     const target = document.getElementById(`view-${viewId}`);
     if (target) target.classList.add("active");
 
+    if (viewId === "bars") this.renderFullBarsTable();
     if (viewId === "payments") this.renderPaymentsTable();
     if (viewId === "stats") this.renderStatsView();
     if (viewId === "support") {
@@ -1228,6 +1235,7 @@ class AdminConsole {
               <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Visualizza Scheda">👁️</button>
               <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica Bar">✏️</button>
               <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Invia Promemoria Email">✉️</button>
+              <button class="btn-table-action" style="color:#EF4444; border-color:rgba(239,68,68,0.35);" onclick="window.adminConsole.deleteBar('${bar.id}')" title="Elimina Bar dal database Users">🗑️</button>
             </div>
           </td>
         </tr>
@@ -1291,11 +1299,48 @@ class AdminConsole {
               <button class="btn-table-action" onclick="window.adminConsole.openBarDetail('${bar.id}')" title="Dettaglio completo">👁️</button>
               <button class="btn-table-action" onclick="window.adminConsole.openEditBarModal('${bar.id}')" title="Modifica dati">✏️</button>
               <button class="btn-table-action" onclick="window.adminConsole.sendReminder('${bar.id}')" title="Sollecita via Email">📱</button>
+              <button class="btn-table-action" style="color:#EF4444; border-color:rgba(239,68,68,0.35);" onclick="window.adminConsole.deleteBar('${bar.id}')" title="Elimina Bar dal database Users">🗑️</button>
             </div>
           </td>
         </tr>
       `;
     }).join("");
+  }
+
+  async deleteBar(barId) {
+    const bar = (this.data.bars || []).find(b => b.id === barId || b.authId === barId);
+    if (!bar) return;
+
+    const ok = window.confirm(
+      `Vuoi eliminare definitivamente il bar "${bar.name}" (${bar.email || bar.id}) dal database Supabase Users?\n\nQuesta azione non può essere annullata.`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch("/api/register-bar", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({
+          userId: bar.authId || bar.id,
+          barId: bar.id,
+          email: bar.email || ""
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Errore durante l'eliminazione del bar.");
+      }
+
+      this.data.bars = (this.data.bars || []).filter(b => b.id !== bar.id && b.authId !== bar.authId);
+      this.renderAllViews();
+      this.showToast(`🗑️ Bar "${bar.name}" eliminato definitivamente da Supabase Users.`);
+      this.syncWithSupabase(false);
+    } catch (err) {
+      alert("Errore eliminazione bar: " + err.message);
+    }
   }
 
   // ==========================================================================
@@ -2013,7 +2058,7 @@ class AdminConsole {
     if (!tbody) return;
 
     if (!referrals || referrals.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun bar referral registrato al momento.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">Nessun bar referral registrato al momento.</td></tr>`;
       return;
     }
 
@@ -2025,9 +2070,18 @@ class AdminConsole {
       if (s === 'active') pillClass = 'status-active';
       else if (s === 'cancelled' || s === 'expired') pillClass = 'status-late';
 
+      const affFullName = [r.affiliate_first_name, r.affiliate_last_name].filter(Boolean).join(" ").trim() || r.affiliate_name || "Affiliato";
+      const affEmail = r.affiliate_email || "--";
+      const affPhone = r.affiliate_phone || "--";
+
       return `
         <tr>
           <td style="color:var(--text-muted); font-size:12.5px;">${regFormatted}</td>
+          <td>
+            <strong>${this.escapeHtml(affFullName)}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">✉️ ${this.escapeHtml(affEmail)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">📞 ${this.escapeHtml(affPhone)}</div>
+          </td>
           <td>
             <strong>🍸 ${this.escapeHtml(r.bar_name || 'Bar Referral')}</strong>
             <div style="font-size:11px; color:var(--text-muted);">${this.escapeHtml(r.bar_id || '')} ${r.email ? '· ' + this.escapeHtml(r.email) : ''}</div>
@@ -2042,7 +2096,7 @@ class AdminConsole {
             <span class="status-pill ${pillClass}">${this.escapeHtml(r.status_label || s)}</span>
             ${r.fraud_flag ? '<div style="font-size:10.5px; color:#EF4444; font-weight:700; margin-top:2px;">⚠️ Anomalia / Frode</div>' : ''}
           </td>
-          <td><strong style="font-family:'JetBrains Mono', monospace; color:${r.fraud_flag ? '#EF4444' : '#10B981'};">+${this.formatCurrency(r.bonus_amount || 5)} €</strong></td>
+          <td><strong style="font-family:'JetBrains Mono', monospace; color:${r.fraud_flag ? '#EF4444' : '#10B981'};">+${this.formatCurrency(r.bonus_amount || 10)} €</strong></td>
           <td>
             ${s !== 'cancelled' ? `
               <button type="button" class="btn-primary-orange" style="background:#EF4444; border-color:#EF4444; padding:4px 10px; font-size:11px; height:auto;" onclick="window.adminConsole.cancelFraudBonus('${r.id}', '')">
@@ -2067,11 +2121,13 @@ class AdminConsole {
     tbody.innerHTML = affiliates.map(a => {
       const dateFormatted = a.created_at ? new Date(a.created_at).toLocaleDateString("it-IT") : "--";
       const isSuspended = a.status === "suspended";
+      const fullAffName = [a.first_name, a.last_name].filter(Boolean).join(" ").trim() || a.name || "Affiliato";
       return `
         <tr>
           <td>
-            <strong>${this.escapeHtml(a.name || 'Affiliato')}</strong>
-            <div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(a.email)}</div>
+            <strong>${this.escapeHtml(fullAffName)}</strong>
+            <div style="font-size:11.5px; color:var(--text-muted);">✉️ ${this.escapeHtml(a.email || '--')}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">📞 ${this.escapeHtml(a.phone || '--')}</div>
           </td>
           <td>
             <span style="font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:800; background:rgba(255,138,36,0.12); color:#FF8A24; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,138,36,0.25);">
@@ -2199,6 +2255,31 @@ class AdminConsole {
       }
     } catch (err) {
       alert("Errore salvataggio regola economica: " + err.message);
+    }
+  }
+
+  async resetAffiliatesData() {
+    const confirmReset = window.confirm("Sei sicuro di voler azzerare TUTTI i dati del menu Affiliazioni (affiliati, referral, commissioni, prelievi e notifiche)? L'azione è irreversibile.");
+    if (!confirmReset) return;
+    try {
+      this.showToast("Azzeramento dati affiliazioni in corso...");
+      const res = await fetch("/api/admin-affiliates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": "101540"
+        },
+        body: JSON.stringify({ action: "reset_affiliates_data" })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Errore durante l'azzeramento");
+      this.showToast("✓ Dati affiliazioni azzerati con successo!");
+      await this.renderAffiliatesView();
+      if (typeof this.updateAffiliatesSidebarBadge === "function") {
+        this.updateAffiliatesSidebarBadge(0);
+      }
+    } catch (err) {
+      alert("Errore azzeramento: " + err.message);
     }
   }
 

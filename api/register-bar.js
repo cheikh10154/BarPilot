@@ -120,6 +120,37 @@ export default async function handler(req, res) {
         }
       }
 
+      // Se il bar è memorizzato dentro affiliate_referrals degli utenti in auth.users, rimuovilo da lì
+      try {
+        const listRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=500`, {
+          headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${serviceRoleKey}` }
+        });
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const allUsers = listData.users || (Array.isArray(listData) ? listData : []);
+          for (const u of allUsers) {
+            const meta = u.user_metadata || {};
+            if (Array.isArray(meta.affiliate_referrals) && meta.affiliate_referrals.length > 0) {
+              const prevLen = meta.affiliate_referrals.length;
+              const updatedRefs = meta.affiliate_referrals.filter(r => {
+                if (targetBarId && (r.bar_id === targetBarId || r.id === targetBarId)) return false;
+                if (targetEmail && (r.referred_email === targetEmail || r.email === targetEmail)) return false;
+                return true;
+              });
+              if (updatedRefs.length !== prevLen) {
+                await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(u.id)}`, {
+                  method: 'PUT',
+                  headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_metadata: { ...meta, affiliate_referrals: updatedRefs } })
+                });
+              }
+            }
+          }
+        }
+      } catch (cleanRefErr) {
+        console.warn('[Register Bar DELETE] pulizia affiliate_referrals:', cleanRefErr.message);
+      }
+
       // Pulizia record collegati nelle tabelle pubbliche (non bloccante)
       try {
         if (targetUserId) {
@@ -152,7 +183,7 @@ export default async function handler(req, res) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
     if (serviceRoleKey) {
       try {
-        const adminUsersUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=200`;
+        const adminUsersUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users?page=1&per_page=500`;
         const aRes = await fetch(adminUsersUrl, {
           headers: {
             'apikey': serviceRoleKey,
@@ -162,24 +193,86 @@ export default async function handler(req, res) {
         if (aRes.ok) {
           const aData = await aRes.json();
           const usersList = aData.users || (Array.isArray(aData) ? aData : []);
-          // Solo le registrazioni fatte su /app sono considerati bar; le iscrizioni solo su /app/affiliazioni sono semplici affiliati
-          const barUsersList = usersList.filter(u => {
+
+          const barUsersMap = new Map();
+
+          // 1. Bar presenti direttamente come account in auth.users
+          usersList.forEach(u => {
             const meta = u.user_metadata || u.raw_user_meta_data || {};
-            const hasBarInfo = Boolean(
+            const email = (u.email || meta.email || '').trim().toLowerCase();
+            const hasExplicitBar = Boolean(
               meta.bar_name || meta.barName || meta["Nome bar"] || meta.bar_registered_id ||
               u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true
             );
-            if (hasBarInfo) return true;
-            if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) return false;
-            if (meta.affiliate_code || meta.affiliate_id) return false;
-            return true;
+
+            // Escludi solo chi è esclusivamente un affiliato senza alcun bar
+            const isPureAffiliate = (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni') && !hasExplicitBar;
+
+            if (hasExplicitBar || (!isPureAffiliate && email)) {
+              const barId = meta.bar_registered_id || u.id;
+              barUsersMap.set(barId, {
+                id: barId,
+                authId: u.id,
+                email: email,
+                name: meta.bar_name || meta.barName || meta["Nome bar"] || meta.business_name || (email ? `Bar ${email.split('@')[0]}` : "Nuovo Bar"),
+                owner: meta.owner_name || meta.ownerName || meta.full_name || meta.name || "-",
+                city: meta.city || meta["Città"] || meta.citta || "-",
+                phone: meta.phone || meta.Phone || meta.phone_number || meta.telefono || "-",
+                plan: meta.plan || 'BarPilot Pro 59€',
+                status: meta.status || 'trial',
+                created_at: u.created_at,
+                trial_start_date: meta.trial_start_date || u.created_at,
+                trial_end_date: meta.trial_end_date || null,
+                user_metadata: meta
+              });
+            }
           });
+
+          // 2. Bar registrati tramite codice affiliato memorizzati in user_metadata.affiliate_referrals
+          usersList.forEach(u => {
+            const meta = u.user_metadata || u.raw_user_meta_data || {};
+            const referrals = Array.isArray(meta.affiliate_referrals) ? meta.affiliate_referrals : [];
+            referrals.forEach(r => {
+              const refEmail = (r.referred_email || r.email || '').trim().toLowerCase();
+              const refBarId = r.bar_id || r.id || (refEmail ? `bar_${refEmail.replace(/[^a-z0-9]/g, '_')}` : `bar_${Math.random().toString(36).substring(2, 9)}`);
+
+              if (!barUsersMap.has(refBarId)) {
+                const matchedAuthUser = usersList.find(au => (au.email || '').trim().toLowerCase() === refEmail);
+                barUsersMap.set(refBarId, {
+                  id: refBarId,
+                  authId: matchedAuthUser ? matchedAuthUser.id : u.id,
+                  email: refEmail,
+                  name: r.referred_bar_name || r.bar_name || (refEmail ? `Bar ${refEmail.split('@')[0]}` : "Nuovo Bar"),
+                  owner: r.referred_owner_name || r.referred_bar_name || r.owner_name || "-",
+                  city: r.referred_city || r.city || "-",
+                  phone: r.referred_phone || r.phone || "-",
+                  plan: r.plan || 'BarPilot Pro 59€',
+                  status: r.status || 'trial',
+                  created_at: r.registered_at || r.created_at || u.created_at,
+                  trial_start_date: r.trial_start_date || r.registered_at || u.created_at,
+                  trial_end_date: r.trial_end_date || null,
+                  user_metadata: {
+                    bar_name: r.referred_bar_name || r.bar_name,
+                    owner_name: r.referred_owner_name || r.referred_bar_name,
+                    city: r.referred_city || r.city,
+                    phone: r.referred_phone || r.phone,
+                    plan: r.plan || 'BarPilot Pro 59€',
+                    status: r.status || 'trial',
+                    invite_code: r.affiliate_code || meta.affiliate_code || null,
+                    referral_id: r.id
+                  }
+                });
+              }
+            });
+          });
+
+          const finalBarList = Array.from(barUsersMap.values());
           return res.status(200).json({
             success: true,
             source: 'auth.users',
             authUsersTotal: usersList.length,
-            total: barUsersList.length,
-            users: barUsersList
+            total: finalBarList.length,
+            users: finalBarList
           });
         }
       } catch (errAuth) {
@@ -193,8 +286,7 @@ export default async function handler(req, res) {
         const viewUsers = await viewRes.json();
         const filteredView = (viewUsers || []).filter(u => {
           const meta = u.user_metadata || u.raw_user_meta_data || {};
-          if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) return false;
-          if ((meta.affiliate_code || meta.affiliate_id) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) return false;
+          if (meta.account_type === 'affiliate' && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) return false;
           return true;
         });
         return res.status(200).json({
