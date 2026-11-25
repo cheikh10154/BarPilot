@@ -629,6 +629,7 @@ async function finalizePendingBarRegistrationOnPaymentSuccess(method = "stripe_c
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: supabaseUser ? supabaseUser.id : null,
+          password: pending.password || null,
           ownerName: pending.ownerName,
           barName: pending.barName,
           email: pending.email,

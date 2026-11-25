@@ -172,6 +172,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
             success: true,
             source: 'auth.users',
+            authUsersTotal: usersList.length,
             total: barUsersList.length,
             users: barUsersList
           });
@@ -293,10 +294,6 @@ export default async function handler(req, res) {
             } : {})
           }
         };
-        if (cleanPhone) {
-          updateBody.phone = cleanPhone;
-          updateBody.phone_confirm = true;
-        }
         await fetch(adminUrl, {
           method: 'PUT',
           headers: {
@@ -306,7 +303,7 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify(updateBody)
         });
-        console.log(`[Register Bar] ✅ auth.users aggiornato con successo per ${userId}`);
+        console.log(`[Register Bar] ✅ auth.users metadata aggiornato con successo per ${userId}`);
       } catch (adminErr) {
         console.warn('[Register Bar] Nota aggiornamento auth.users:', adminErr.message);
       }
@@ -813,8 +810,9 @@ export default async function handler(req, res) {
               affiliate_phone: cleanPhone || '',
               affiliate_status: 'active'
             };
+            let authSaved = false;
             if (targetAuthId) {
-              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(targetAuthId)}`, {
+              const putRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(targetAuthId)}`, {
                 method: 'PUT',
                 headers: {
                   'apikey': serviceRoleKey,
@@ -823,8 +821,13 @@ export default async function handler(req, res) {
                 },
                 body: JSON.stringify({ user_metadata: metaUpdate })
               });
-            } else {
-              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+              authSaved = putRes.ok;
+              if (!putRes.ok) {
+                console.warn('[Register Bar] PUT auth.users fallito:', putRes.status, await putRes.text().catch(() => ''));
+              }
+            }
+            if (!authSaved) {
+              const postRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
                 method: 'POST',
                 headers: {
                   'apikey': serviceRoleKey,
@@ -833,11 +836,14 @@ export default async function handler(req, res) {
                 },
                 body: JSON.stringify({
                   email: normalizedEmail,
-                  password: 'BpBar_' + Math.random().toString(36).slice(2, 12) + '!1A',
+                  password: (body.password && String(body.password).length >= 6) ? String(body.password) : ('BpBar_' + Math.random().toString(36).slice(2, 12) + '!1A'),
                   email_confirm: true,
                   user_metadata: metaUpdate
                 })
               });
+              if (!postRes.ok) {
+                console.warn('[Register Bar] POST auth.users fallito:', postRes.status, await postRes.text().catch(() => ''));
+              }
             }
           } catch (_) {}
         }
