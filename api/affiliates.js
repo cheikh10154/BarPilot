@@ -773,26 +773,51 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Verifica se la richiesta è destinata alla gestione Super Admin
+  // Verifica se la richiesta è destinata alla console Super Admin (richiede PIN 101540)
   const pathname = (req.url || '').split('?')[0];
-  const isExplicitAdminUrl = pathname.includes('admin');
+  const isExplicitAdminUrl = pathname.includes('admin-affiliates');
   const hasAdminPin = req.headers['x-admin-pin'] === '101540' || (req.query && req.query.pin === '101540');
-  const isAdminQuery = req.query && (req.query.admin === 'true' || req.query.view === 'admin');
+  const isAdminAction = req.query && (req.query.action === 'admin_affiliates' || req.query.admin === 'true');
 
-  if (isExplicitAdminUrl || hasAdminPin || isAdminQuery) {
+  if (isExplicitAdminUrl || hasAdminPin || isAdminAction) {
     return handleAdminRequest(req, res);
   }
 
   return handleUserAffiliateRequest(req, res);
 }
 
+// Helper: Valida in modo crittografico il token JWT Bearer della sessione Supabase Auth
+async function getSupabaseAuthUser(req) {
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return null;
+  }
+  const token = authHeader.substring(7).trim();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    if (!user || !user.id || !user.email) return null;
+    return user;
+  } catch (err) {
+    console.warn('[Affiliates Auth] Errore verifica token Supabase:', err.message);
+    return null;
+  }
+}
+
 // ----------------------------------------------------------------------------
 // HANDLER 1: SUPER AMMINISTRAZIONE AFFILIAZIONI (/api/admin-affiliates)
 // ----------------------------------------------------------------------------
 async function handleAdminRequest(req, res) {
-  const pin = req.headers['x-admin-pin'] || req.query.pin || (req.body && req.body.pin);
-  const authHeader = req.headers['authorization'] || '';
-  const isAuthorized = pin === '101540' || authHeader.includes('Bearer');
+  const pin = req.headers['x-admin-pin'] || req.query?.pin || (req.body && req.body.pin);
+  const isAuthorized = String(pin).trim() === '101540';
 
   if (!isAuthorized) {
     return res.status(401).json({ error: "Accesso non autorizzato. Richiesta autenticazione Super Admin." });
@@ -1644,19 +1669,32 @@ async function handleUserAffiliateRequest(req, res) {
         return res.status(200).json({ success: true, scope: mediaScope, media });
       }
 
-      const email = (req.query.email || '').trim().toLowerCase();
-      const userId = (req.query.userId || '').trim();
-      const barId = (req.query.barId || '').trim();
-      const clientCode = (req.query.code || '').trim().toUpperCase();
-
-      if (!email && !userId && !barId) {
-        return res.status(400).json({ error: "Email o UserId obbligatori per visualizzare le affiliazioni." });
+      // 1. AUTENTICAZIONE OBBLIGATORIA: Verifica crittografica del token Supabase Auth
+      const authUser = await getSupabaseAuthUser(req);
+      if (!authUser) {
+        return res.status(401).json({
+          success: false,
+          error: "Accesso riservato. Effettua il login per accedere alla tua dashboard affiliato."
+        });
       }
 
-      let affiliate = null;
-      let authUserMatched = null;
+      const email = authUser.email.trim().toLowerCase();
+      const userId = authUser.id;
+      const clientCode = (req.query.code || '').trim().toUpperCase();
 
-      if (email) {
+      let affiliate = null;
+      let authUserMatched = authUser;
+
+      // Cerca nei record affiliati
+      try {
+        const affRes = await supabaseFetch(`affiliates?user_id=eq.${encodeURIComponent(userId)}&limit=1`);
+        if (affRes.ok) {
+          const rows = await affRes.json();
+          if (rows && rows.length > 0) affiliate = rows[0];
+        }
+      } catch (_) {}
+
+      if (!affiliate) {
         try {
           const affRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(email)}&limit=1`);
           if (affRes.ok) {
@@ -1666,29 +1704,12 @@ async function handleUserAffiliateRequest(req, res) {
         } catch (_) {}
       }
 
-      if (!affiliate && userId) {
-        try {
-          const affRes = await supabaseFetch(`affiliates?user_id=eq.${encodeURIComponent(userId)}&limit=1`);
-          if (affRes.ok) {
-            const rows = await affRes.json();
-            if (rows && rows.length > 0) affiliate = rows[0];
-          }
-        } catch (_) {}
-      }
-
       if (!affiliate) {
         affiliate = store.affiliates.find(a => 
-          (email && a.email && a.email.toLowerCase() === email) ||
-          (userId && a.user_id && a.user_id === userId)
+          (a.user_id && a.user_id === userId) ||
+          (a.email && a.email.toLowerCase() === email)
         );
       }
-
-      // Cerca sempre anche in Supabase auth.users per garantire persistenza cross-container
-      const authUsers = await fetchAllAuthUsers();
-      authUserMatched = authUsers.find(u =>
-        (email && (u.email || '').toLowerCase() === email) ||
-        (userId && u.id === userId)
-      );
 
       if (!affiliate && authUserMatched) {
         affiliate = hydrateAffiliateFromAuthUser(authUserMatched);
@@ -1698,20 +1719,45 @@ async function handleUserAffiliateRequest(req, res) {
         }
       }
 
+      // Se l'utente è autenticato su Supabase Auth ma non è ancora iscritto al programma affiliazioni
+      const isAffiliateUser = Boolean(
+        affiliate ||
+        (authUserMatched.user_metadata && (
+          authUserMatched.user_metadata.affiliate_code ||
+          authUserMatched.user_metadata.account_type === 'affiliate' ||
+          authUserMatched.user_metadata.is_affiliate === true
+        ))
+      );
+
+      if (!isAffiliateUser) {
+        return res.status(200).json({
+          success: true,
+          is_affiliate: false,
+          user: {
+            id: userId,
+            email: email,
+            name: authUserMatched.user_metadata?.full_name || authUserMatched.user_metadata?.name || email.split('@')[0],
+            phone: authUserMatched.user_metadata?.phone || ''
+          }
+        });
+      }
+
       // Codice univoco permanente per questo account (non cambia MAI)
-      const permanentCode = (affiliate && affiliate.code) || (authUserMatched?.user_metadata?.affiliate_code) || getConsistentCodeForAccount(email || userId);
+      const permanentCode = (affiliate && affiliate.code) || (authUserMatched?.user_metadata?.affiliate_code) || getConsistentCodeForAccount(email);
 
       if (!affiliate) {
         const nowIso = new Date().toISOString();
-
+        const fullName = authUserMatched.user_metadata?.full_name || authUserMatched.user_metadata?.name || email.split('@')[0];
         affiliate = {
           id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-          user_id: userId || null,
-          bar_id: barId || null,
-          name: req.query.name || (email ? email.split('@')[0] : 'Affiliato'),
-          email: email || `${userId || barId}@barpilot.user`,
+          user_id: userId,
+          name: fullName,
+          email: email,
           code: permanentCode,
           status: 'active',
+          account_type: 'affiliate',
+          registered_from: 'affiliazioni',
+          is_bar: false,
           commission_rate: 10.0,
           total_earned: 0.00,
           created_at: nowIso,
@@ -1730,6 +1776,7 @@ async function handleUserAffiliateRequest(req, res) {
         writeAffiliatesStore(store);
       } else {
         affiliate.code = permanentCode;
+        if (!affiliate.user_id) affiliate.user_id = userId;
         if (!authUserMatched || !authUserMatched.user_metadata?.affiliate_code) {
           await syncAffiliateInAuthUsers(affiliate);
         }
@@ -2090,14 +2137,20 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       if (action === 'save_payout_method') {
-        const { email, affiliateId, payoutMethod } = body;
+        const authUser = await getSupabaseAuthUser(req);
+        if (!authUser) {
+          return res.status(401).json({ error: "Accesso non autorizzato. Sessione Supabase non valida o assente." });
+        }
+        const email = authUser.email.trim().toLowerCase();
+        const userId = authUser.id;
+        const { payoutMethod } = body;
         if (!payoutMethod) {
           return res.status(400).json({ error: "Dati metodo di pagamento mancanti." });
         }
 
         const aff = store.affiliates.find(a => 
-          (affiliateId && a.id === affiliateId) ||
-          (email && a.email && a.email.toLowerCase() === String(email).toLowerCase())
+          (a.user_id && a.user_id === userId) ||
+          (a.email && a.email.toLowerCase() === email)
         );
 
         if (aff) {
@@ -2107,9 +2160,8 @@ async function handleUserAffiliateRequest(req, res) {
         }
 
         try {
-          const targetId = affiliateId || (aff ? aff.id : null);
-          if (targetId) {
-            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(targetId)}`, {
+          if (aff && aff.id) {
+            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(aff.id)}`, {
               method: 'PATCH',
               body: JSON.stringify({
                 payout_method: typeof payoutMethod === 'object' ? JSON.stringify(payoutMethod) : payoutMethod,
@@ -2120,18 +2172,14 @@ async function handleUserAffiliateRequest(req, res) {
         } catch (_) {}
 
         const srKeyPm = getServiceRoleKey();
-        if (srKeyPm && email) {
+        if (srKeyPm) {
           try {
-            const users = await fetchAllAuthUsers();
-            const uMatch = users.find(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
-            if (uMatch) {
-              const meta = { ...(uMatch.user_metadata || {}), affiliate_payout_method: payoutMethod };
-              await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(uMatch.id)}`, {
-                method: 'PUT',
-                headers: { 'apikey': srKeyPm, 'Authorization': `Bearer ${srKeyPm}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_metadata: meta })
-              });
-            }
+            const meta = { ...(authUser.user_metadata || {}), affiliate_payout_method: payoutMethod };
+            await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+              method: 'PUT',
+              headers: { 'apikey': srKeyPm, 'Authorization': `Bearer ${srKeyPm}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_metadata: meta })
+            });
           } catch (_) {}
         }
 
@@ -2143,40 +2191,50 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       if (action === 'request_withdrawal') {
-        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const authUser = await getSupabaseAuthUser(req);
+        if (!authUser) {
+          return res.status(401).json({ error: "Accesso non autorizzato. Sessione Supabase non valida o assente." });
+        }
+        const cleanEmail = authUser.email.trim().toLowerCase();
+        const userId = authUser.id;
         const requestedAmount = parseFloat(body.amount);
-        const firstNameInput = (body.firstName || '').trim();
-        const lastNameInput = (body.lastName || '').trim();
-        const fullNameInput = (body.name || '').trim();
+        const firstNameInput = (body.firstName || authUser.user_metadata?.first_name || '').trim();
+        const lastNameInput = (body.lastName || authUser.user_metadata?.last_name || '').trim();
+        const fullNameInput = (body.name || authUser.user_metadata?.full_name || '').trim();
         const payoutMethodInput = body.payoutMethod || null;
 
-        if (!cleanEmail) {
-          return res.status(400).json({ error: "Email affiliato obbligatoria per richiedere un prelievo." });
-        }
         if (isNaN(requestedAmount) || requestedAmount < 50.00) {
           return res.status(400).json({ error: "L'importo minimo per richiedere un prelievo è 50,00 €." });
         }
 
         // Recupera affiliato e verifica saldo reale dal database (mai fidarsi del browser)
         let affiliate = null;
-        let authUserMatched = null;
+        let authUserMatched = authUser;
         try {
-          const affRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&limit=1`);
+          const affRes = await supabaseFetch(`affiliates?user_id=eq.${encodeURIComponent(userId)}&limit=1`);
           if (affRes.ok) {
             const rows = await affRes.json();
             if (rows && rows.length > 0) affiliate = rows[0];
           }
         } catch (_) {}
 
-        const authUsers = await fetchAllAuthUsers();
-        authUserMatched = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
         if (!affiliate) {
-          affiliate = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail) ||
+          try {
+            const affRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&limit=1`);
+            if (affRes.ok) {
+              const rows = await affRes.json();
+              if (rows && rows.length > 0) affiliate = rows[0];
+            }
+          } catch (_) {}
+        }
+
+        if (!affiliate) {
+          affiliate = store.affiliates.find(a => (a.user_id && a.user_id === userId) || (a.email && a.email.toLowerCase() === cleanEmail)) ||
             (authUserMatched ? hydrateAffiliateFromAuthUser(authUserMatched) : null);
         }
 
         if (!affiliate) {
-          return res.status(404).json({ error: "Account affiliato non trovato." });
+          return res.status(404).json({ error: "Account affiliato non trovato per questo utente." });
         }
 
         const effectivePayout = payoutMethodInput || affiliate.payout_method || authUserMatched?.user_metadata?.affiliate_payout_method;
@@ -2406,12 +2464,6 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       if (action === 'auth_register') {
-        try {
-          const srKeyReg = getServiceRoleKey();
-          if (srKeyReg) {
-            await writeMediaManifest('affiliates_reset', { reset_all: false }, srKeyReg);
-          }
-        } catch (_) {}
         const { firstName, lastName, phone, email, password } = body;
         const cleanFirst = (firstName || '').trim();
         const cleanLast = (lastName || '').trim();
@@ -2434,44 +2486,135 @@ async function handleUserAffiliateRequest(req, res) {
           });
         }
 
-        const fullName = `${cleanFirst} ${cleanLast}`;
-        const nowIso = new Date().toISOString();
+        // Se l'utente ha già una sessione attiva Supabase Auth passata nell'header
+        const tokenUser = await getSupabaseAuthUser(req);
+        let authUserId = tokenUser ? tokenUser.id : null;
+        let authSession = null;
 
-        // Cerca se l'affiliato esiste già in store, SQL o auth.users
-        let aff = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail);
-
-        if (!aff) {
-          try {
-            const checkRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&select=*`);
-            if (checkRes.ok) {
-              const rows = await checkRes.json();
-              if (rows && rows.length > 0) {
-                aff = rows[0];
-              }
-            }
-          } catch (_) {}
-        }
-
-        if (!aff) {
+        // Se non abbiamo un utente autenticato dal token, verifichiamo/creiamo tramite Supabase Auth
+        if (!authUserId) {
+          // Controlliamo se l'utente esiste già in auth.users
           const authUsers = await fetchAllAuthUsers();
           const existingAuth = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
+
           if (existingAuth) {
-            aff = hydrateAffiliateFromAuthUser(existingAuth);
+            // L'utente esiste già in auth.users: verifichiamo la password tramite Supabase Auth
+            const tokenRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY
+              },
+              body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+            });
+
+            if (!tokenRes.ok) {
+              return res.status(401).json({
+                error: "Questo indirizzo email è già registrato su Supabase. Inserisci la password corretta del tuo account per attivare il programma affiliazioni."
+              });
+            }
+
+            authSession = await tokenRes.json();
+            authUserId = authSession.user.id;
+          } else {
+            // Nuovo utente: creiamo tramite Supabase Auth admin o signup
+            const srKey = getServiceRoleKey();
+            if (srKey) {
+              const createRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+                method: 'POST',
+                headers: {
+                  'apikey': srKey,
+                  'Authorization': `Bearer ${srKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: cleanEmail,
+                  password: cleanPassword,
+                  email_confirm: true,
+                  user_metadata: {
+                    first_name: cleanFirst,
+                    last_name: cleanLast,
+                    full_name: `${cleanFirst} ${cleanLast}`,
+                    phone: cleanPhone,
+                    account_type: 'affiliate',
+                    is_affiliate: true,
+                    registered_from: 'affiliazioni'
+                  }
+                })
+              });
+
+              if (createRes.ok) {
+                const createdData = await createRes.json();
+                authUserId = (createdData.user || createdData).id;
+              } else {
+                const errJson = await createRes.json().catch(() => ({}));
+                return res.status(400).json({ error: errJson.msg || errJson.error_description || "Errore durante la creazione account Supabase Auth." });
+              }
+            } else {
+              // Fallback via signup pubblico
+              const suRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/signup`, {
+                method: 'POST',
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: cleanEmail,
+                  password: cleanPassword,
+                  data: {
+                    first_name: cleanFirst,
+                    last_name: cleanLast,
+                    full_name: `${cleanFirst} ${cleanLast}`,
+                    phone: cleanPhone,
+                    account_type: 'affiliate',
+                    is_affiliate: true,
+                    registered_from: 'affiliazioni'
+                  }
+                })
+              });
+              const suData = await suRes.json();
+              if (!suRes.ok) {
+                return res.status(400).json({ error: suData.error_description || suData.msg || "Errore registrazione Supabase." });
+              }
+              authUserId = suData.user?.id || (suData.id);
+              authSession = suData;
+            }
+
+            // Otteniamo sessione per il nuovo utente
+            if (!authSession) {
+              try {
+                const tokenRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY
+                  },
+                  body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+                });
+                if (tokenRes.ok) {
+                  authSession = await tokenRes.json();
+                }
+              } catch (_) {}
+            }
           }
         }
 
-        // Codice univoco permanente per questo account (non cambia MAI)
-        const permanentCode = (aff && aff.code) || (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
+        const fullName = `${cleanFirst} ${cleanLast}`;
+        const nowIso = new Date().toISOString();
+        const permanentCode = (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
+
+        // Recupera o crea record affiliato
+        let aff = store.affiliates.find(a => (a.user_id && a.user_id === authUserId) || (a.email && a.email.toLowerCase() === cleanEmail));
 
         if (!aff) {
           aff = {
             id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
+            user_id: authUserId,
             first_name: cleanFirst,
             last_name: cleanLast,
             name: fullName,
             phone: cleanPhone,
             email: cleanEmail,
-            password: cleanPassword,
             code: permanentCode,
             status: 'active',
             account_type: 'affiliate',
@@ -2482,57 +2625,50 @@ async function handleUserAffiliateRequest(req, res) {
             created_at: nowIso,
             updated_at: nowIso
           };
-
           store.affiliates.push(aff);
-          writeAffiliatesStore(store);
-
-          try {
-            await supabaseFetch('affiliates', {
-              method: 'POST',
-              body: JSON.stringify({
-                id: aff.id,
-                name: fullName,
-                email: cleanEmail,
-                phone: cleanPhone,
-                code: permanentCode,
-                status: 'active',
-                commission_rate: 10.0,
-                total_earned: 0.00,
-                created_at: nowIso,
-                updated_at: nowIso
-              })
-            });
-          } catch (_) {}
         } else {
-          aff.code = permanentCode;
+          aff.user_id = authUserId;
           aff.first_name = cleanFirst;
           aff.last_name = cleanLast;
           aff.name = fullName;
           aff.phone = cleanPhone;
-          aff.password = cleanPassword;
+          aff.code = permanentCode;
           aff.updated_at = nowIso;
-          writeAffiliatesStore(store);
-
-          try {
-            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(aff.id)}`, {
-              method: 'PATCH',
-              body: JSON.stringify({
-                name: fullName,
-                phone: cleanPhone,
-                code: permanentCode,
-                updated_at: nowIso
-              })
-            });
-          } catch (_) {}
         }
 
-        await syncAffiliateInAuthUsers(aff, cleanPassword);
+        // MAI memorizzare password in chiaro
+        delete aff.password;
+        writeAffiliatesStore(store);
+
+        // Salvataggio nel database PostgreSQL / Supabase REST
+        try {
+          await supabaseFetch('affiliates', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: aff.id,
+              user_id: authUserId,
+              name: fullName,
+              email: cleanEmail,
+              phone: cleanPhone,
+              code: permanentCode,
+              status: 'active',
+              commission_rate: 10.0,
+              total_earned: 0.00,
+              created_at: aff.created_at,
+              updated_at: nowIso
+            })
+          });
+        } catch (_) {}
+
+        await syncAffiliateInAuthUsers(aff);
 
         return res.status(200).json({
           success: true,
           message: "Registrazione affiliato completata con successo.",
+          session: authSession,
           user: {
             id: aff.id,
+            userId: authUserId,
             firstName: cleanFirst,
             lastName: cleanLast,
             name: fullName,
@@ -2548,84 +2684,115 @@ async function handleUserAffiliateRequest(req, res) {
         const cleanPassword = (body.password || '').trim();
 
         if (!cleanEmail || !cleanPassword) {
-          return res.status(400).json({ error: "Inserisci sia l'email che la password." });
+          return res.status(400).json({ error: "Inserisci sia l'indirizzo email che la password." });
         }
 
-        let aff = store.affiliates.find(a => a.email && a.email.toLowerCase() === cleanEmail);
+        // Verifica le credenziali ESCLUSIVAMENTE tramite Supabase Auth (nessuna verifica fittizia o locale)
+        let authSession = null;
+        try {
+          const authRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+              email: cleanEmail,
+              password: cleanPassword
+            })
+          });
+
+          if (!authRes.ok) {
+            const errJson = await authRes.json().catch(() => ({}));
+            return res.status(401).json({
+              error: errJson.error_description || errJson.msg || "Credenziali non valide. Verifica email e password."
+            });
+          }
+
+          authSession = await authRes.json();
+        } catch (e) {
+          console.error('[Affiliates Auth] Errore verifica Supabase Auth:', e);
+          return res.status(500).json({ error: "Errore durante la verifica con Supabase Auth." });
+        }
+
+        if (!authSession || !authSession.user || !authSession.access_token) {
+          return res.status(401).json({ error: "Credenziali non valide. Verifica email e password." });
+        }
+
+        const authUser = authSession.user;
+        const userId = authUser.id;
+
+        // Recupera l'affiliato associato all'utente autenticato
+        let aff = null;
+        try {
+          const affRes = await supabaseFetch(`affiliates?user_id=eq.${encodeURIComponent(userId)}&limit=1`);
+          if (affRes.ok) {
+            const rows = await affRes.json();
+            if (rows && rows.length > 0) aff = rows[0];
+          }
+        } catch (_) {}
 
         if (!aff) {
           try {
-            const checkRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&select=*`);
-            if (checkRes.ok) {
-              const rows = await checkRes.json();
-              if (rows && rows.length > 0) {
-                aff = rows[0];
-                store.affiliates.push(aff);
-              }
+            const affRes = await supabaseFetch(`affiliates?email=eq.${encodeURIComponent(cleanEmail)}&limit=1`);
+            if (affRes.ok) {
+              const rows = await affRes.json();
+              if (rows && rows.length > 0) aff = rows[0];
             }
           } catch (_) {}
         }
 
         if (!aff) {
-          const authUsers = await fetchAllAuthUsers();
-          const existingAuth = authUsers.find(u => (u.email || '').toLowerCase() === cleanEmail);
-          if (existingAuth) {
-            aff = hydrateAffiliateFromAuthUser(existingAuth);
-            if (aff) {
-              store.affiliates.push(aff);
-              writeAffiliatesStore(store);
-            }
-          }
+          aff = store.affiliates.find(a => (a.user_id && a.user_id === userId) || (a.email && a.email.toLowerCase() === cleanEmail));
         }
 
-        const permanentCode = (aff && aff.code) || (body.code || '').trim().toUpperCase() || getConsistentCodeForAccount(cleanEmail);
-
-        let isValid = false;
-        if (aff) {
-          if (!aff.password || aff.password === cleanPassword) {
-            isValid = true;
-            aff.code = permanentCode;
-          }
-        } else {
-          // Creazione automatica affiliato se prima volta con password valida
-          if (cleanPassword.length >= 4) {
-            isValid = true;
-            const nowIso = new Date().toISOString();
-            aff = {
-              id: 'aff_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
-              name: cleanEmail.split('@')[0],
-              email: cleanEmail,
-              password: cleanPassword,
-              code: permanentCode,
-              status: 'active',
-              commission_rate: 10.0,
-              total_earned: 0.00,
-              created_at: nowIso,
-              updated_at: nowIso
-            };
+        if (!aff) {
+          aff = hydrateAffiliateFromAuthUser(authUser);
+          if (aff) {
             store.affiliates.push(aff);
             writeAffiliatesStore(store);
-
-            try {
-              await supabaseFetch('affiliates', {
-                method: 'POST',
-                body: JSON.stringify(aff)
-              });
-            } catch (_) {}
           }
         }
 
-        if (!isValid || !aff) {
-          return res.status(401).json({ error: "Credenziali non valide. Verifica email e password." });
+        // Se l'utente è autenticato su Supabase Auth ma non ha ancora un profilo affiliato
+        if (!aff) {
+          return res.status(200).json({
+            success: true,
+            is_affiliate: false,
+            message: "Utente autenticato ma non ancora registrato come affiliato.",
+            session: authSession,
+            user: {
+              id: userId,
+              email: cleanEmail,
+              name: authUser.user_metadata?.full_name || authUser.user_metadata?.first_name || cleanEmail.split('@')[0],
+              phone: authUser.user_metadata?.phone || ''
+            }
+          });
         }
 
-        await syncAffiliateInAuthUsers(aff, cleanPassword);
+        // Assicura associazione user_id se mancante
+        if (!aff.user_id && userId) {
+          aff.user_id = userId;
+          writeAffiliatesStore(store);
+          try {
+            await supabaseFetch(`affiliates?id=eq.${encodeURIComponent(aff.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ user_id: userId, updated_at: new Date().toISOString() })
+            });
+          } catch (_) {}
+        }
+
+        // MAI memorizzare o ritornare password in chiaro
+        delete aff.password;
 
         return res.status(200).json({
           success: true,
+          is_affiliate: true,
           message: "Accesso completato con successo.",
+          session: authSession,
           user: {
             id: aff.id,
+            userId: userId,
             name: aff.name || cleanEmail.split('@')[0],
             email: aff.email,
             phone: aff.phone || '',
