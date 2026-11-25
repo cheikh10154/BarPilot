@@ -252,37 +252,61 @@ export default async function handler(req, res) {
 
     console.log(`[Register Bar] Inizio registrazione per ${cleanBarName} (${normalizedEmail})`);
 
-    // 0. Sincronizzazione diretta su auth.users (phone & Codice invito) tramite Supabase Admin API
+    // 0. Sincronizzazione diretta su auth.users (Locale, Città, Titolare, Telefono, Piano, Stato & Codice invito) tramite Supabase Admin API
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || (SUPABASE_KEY.includes("service_role") ? SUPABASE_KEY : null);
     if (userId && serviceRoleKey) {
       try {
         const adminUrl = `${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`;
-        const updateBody = {};
+        const nowIsoInit = new Date().toISOString();
+        const trialEndIsoInit = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        const updateBody = {
+          user_metadata: {
+            account_type: 'bar',
+            registered_from: 'app',
+            is_bar: true,
+            bar_name: cleanBarName,
+            barName: cleanBarName,
+            "Nome bar": cleanBarName,
+            city: cleanCity,
+            citta: cleanCity,
+            "Città": cleanCity,
+            owner_name: cleanOwner,
+            full_name: cleanOwner,
+            display_name: cleanOwner,
+            name: cleanOwner,
+            phone: cleanPhone,
+            Phone: cleanPhone,
+            phone_number: cleanPhone,
+            vat_number: cleanVat || null,
+            "Partita IVA": cleanVat || null,
+            address: cleanAddress,
+            plan: 'BarPilot Pro 59€',
+            status: 'trial',
+            trial_start_date: nowIsoInit,
+            trial_end_date: trialEndIsoInit,
+            ...(cleanInviteCode ? {
+              "Codice invito": cleanInviteCode,
+              "Codice Invito": cleanInviteCode,
+              codice_invito: cleanInviteCode,
+              invite_code: cleanInviteCode,
+              promo_code: cleanInviteCode
+            } : {})
+          }
+        };
         if (cleanPhone) {
           updateBody.phone = cleanPhone;
           updateBody.phone_confirm = true;
         }
-        if (cleanInviteCode) {
-          updateBody.user_metadata = {
-            "Codice invito": cleanInviteCode,
-            "Codice Invito": cleanInviteCode,
-            codice_invito: cleanInviteCode,
-            invite_code: cleanInviteCode,
-            promo_code: cleanInviteCode
-          };
-        }
-        if (Object.keys(updateBody).length > 0) {
-          await fetch(adminUrl, {
-            method: 'PUT',
-            headers: {
-              'apikey': serviceRoleKey,
-              'Authorization': `Bearer ${serviceRoleKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(updateBody)
-          });
-          console.log(`[Register Bar] ✅ auth.users aggiornato con successo per ${userId}`);
-        }
+        await fetch(adminUrl, {
+          method: 'PUT',
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateBody)
+        });
+        console.log(`[Register Bar] ✅ auth.users aggiornato con successo per ${userId}`);
       } catch (adminErr) {
         console.warn('[Register Bar] Nota aggiornamento auth.users:', adminErr.message);
       }
@@ -760,11 +784,30 @@ export default async function handler(req, res) {
               ...(matchedBarUser?.user_metadata || {}),
               bar_registered_id: barId,
               bar_name: cleanBarName,
+              barName: cleanBarName,
+              "Nome bar": cleanBarName,
+              city: cleanCity,
+              citta: cleanCity,
+              "Città": cleanCity,
+              owner_name: cleanOwner,
+              full_name: cleanOwner,
+              display_name: cleanOwner,
+              name: cleanOwner,
+              phone: cleanPhone || '',
+              Phone: cleanPhone || '',
+              phone_number: cleanPhone || '',
+              address: cleanAddress,
+              plan: 'BarPilot Pro 59€',
+              status: existingBar ? (existingBar.status || 'trial') : 'trial',
+              trial_start_date: now.toISOString(),
+              trial_end_date: trialEnd.toISOString(),
               account_type: 'bar',
               registered_from: 'app',
               is_bar: true,
               bar_subscription_id: subId,
               vat_number: cleanVat || null,
+              "Partita IVA": cleanVat || null,
+              invite_code: cleanInviteCode ? cleanInviteCode.toUpperCase() : (matchedBarUser?.user_metadata?.invite_code || null),
               affiliate_code: accountAffiliateCode,
               affiliate_name: cleanOwner || cleanBarName,
               affiliate_phone: cleanPhone || '',

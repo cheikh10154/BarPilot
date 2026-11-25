@@ -217,11 +217,11 @@ class AdminConsole {
   // ==========================================================================
   mapAuthUserToBar(u) {
     const meta = u.user_metadata || u.raw_user_meta_data || {};
-    const barName = u.name || meta.bar_name || meta.barName || meta["Nome bar"] || meta.name || (u.email ? `Bar ${u.email.split('@')[0]}` : "Nuovo Bar");
-    const ownerName = u.owner || meta.owner_name || meta.ownerName || meta.full_name || meta.fullName || (meta.first_name ? `${meta.first_name} ${meta.last_name || ''}`.trim() : null) || barName;
-    const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "Roma";
-    const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || "+39 02 1234567";
-    const address = u.address || meta.address || meta.indirizzo || `Via Centrale 1, ${city}`;
+    const barName = u.name || meta.bar_name || meta.barName || meta["Nome bar"] || meta.business_name || (u.email ? `Bar ${u.email.split('@')[0]}` : "Nuovo Bar");
+    const ownerName = u.owner || meta.owner_name || meta.ownerName || meta.full_name || meta.fullName || meta.display_name || meta.name || meta.affiliate_name || (meta.first_name ? `${meta.first_name} ${meta.last_name || ''}`.trim() : null) || "-";
+    const city = u.city || u["Città"] || meta.city || meta["Città"] || meta.citta || "-";
+    const phone = u.phone || meta.phone || meta.Phone || meta.phone_number || meta.telefono || meta.affiliate_phone || "-";
+    const address = u.address || meta.address || meta.indirizzo || (city !== "-" ? `Via Centrale 1, ${city}` : "-");
     const inviteCode = meta["Codice invito"] || meta["Codice Invito"] || meta.codice_invito || meta.invite_code || meta.promo_code || "";
     const vatNumber = u.vat_number || u.vatNumber || u.piva || meta.vat_number || meta.vatNumber || meta.partita_iva || meta["Partita IVA"] || meta.piva || "";
     const createdAt = u.created_at ? new Date(u.created_at) : (u.rawCreatedAt ? new Date(u.rawCreatedAt) : new Date());
