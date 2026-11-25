@@ -1308,6 +1308,98 @@
       }
     }
     @keyframes affSpin { to { transform: rotate(360deg); } }
+
+    /* Floating WhatsApp Contact Button (In basso a destra) */
+    .whatsapp-float-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      color: #FFFFFF !important;
+      text-decoration: none !important;
+      padding: 12px 18px 12px 14px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .whatsapp-float-btn:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 12px 30px rgba(37, 211, 102, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+      color: #FFFFFF !important;
+      background: linear-gradient(135deg, #2ae26f 0%, #179b8c 100%);
+    }
+
+    .whatsapp-float-btn:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .whatsapp-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+
+    .whatsapp-svg-icon {
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    }
+
+    .whatsapp-btn-text {
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      font-family: inherit;
+      color: #FFFFFF;
+    }
+
+    .whatsapp-badge-status {
+      width: 9px;
+      height: 9px;
+      background-color: #22c55e;
+      border: 2px solid #FFFFFF;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px #22c55e;
+      animation: waPulse 2s infinite;
+    }
+
+    @keyframes waPulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    @media (max-width: 640px) {
+      .whatsapp-float-btn {
+        bottom: 18px;
+        right: 18px;
+        padding: 12px;
+        border-radius: 50%;
+        width: 52px;
+        height: 52px;
+        justify-content: center;
+      }
+      .whatsapp-btn-text {
+        display: none;
+      }
+      .whatsapp-badge-status {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+      }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2070,8 +2162,40 @@
     </div>
   </div>
 
+  <!-- Floating WhatsApp Contact Button (In Basso a Destra) -->
+  <a href="https://wa.me/?text=Ciao%20BarPilot,%20vorrei%20informazioni%20sul%20programma%20affiliazioni" 
+     id="whatsappAffiliateBtn" 
+     class="whatsapp-float-btn" 
+     target="_blank" 
+     rel="noopener noreferrer" 
+     aria-label="Contattaci su WhatsApp" 
+     title="Contattaci su WhatsApp">
+    <div class="whatsapp-icon-wrap">
+      <svg class="whatsapp-svg-icon" viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+        <path d="M12.031 2C6.516 2 2.031 6.484 2.031 12c0 1.984.578 3.844 1.578 5.422L2 22l4.75-1.547A9.948 9.948 0 0 0 12.031 22c5.516 0 10-4.484 10-10s-4.484-10-10-10zm0 18.25c-1.688 0-3.266-.469-4.641-1.281l-.328-.203-2.828.922.938-2.75-.219-.344A8.21 8.21 0 0 1 3.781 12c0-4.547 3.703-8.25 8.25-8.25 4.547 0 8.25 3.703 8.25 8.25 0 4.547-3.703 8.25-8.25 8.25zm4.844-6.172c-.266-.141-1.578-.781-1.828-.875-.25-.094-.438-.141-.625.141s-.719.875-.875 1.062c-.156.188-.328.203-.594.078-.266-.141-1.125-.422-2.141-1.328-.797-.703-1.328-1.578-1.484-1.844-.156-.266-.016-.406.125-.547.125-.125.266-.328.406-.484.141-.156.188-.266.281-.438.094-.188.047-.344-.016-.484s-.625-1.516-.859-2.078c-.234-.547-.469-.469-.641-.484h-.547c-.188 0-.484.078-.734.344s-.969.953-.969 2.328c0 1.375 1 2.703 1.141 2.891.141.188 1.969 3.016 4.766 4.234.672.297 1.188.469 1.609.609.672.219 1.281.188 1.766.109.547-.078 1.578-.656 1.812-1.297.234-.641.234-1.188.156-1.297-.078-.109-.266-.188-.531-.328z"/>
+      </svg>
+    </div>
+    <span class="whatsapp-btn-text">Supporto WhatsApp</span>
+    <span class="whatsapp-badge-status" title="Online"></span>
+  </a>
+
   <!-- Client Integration Script -->
   <script>
+    // Configurazione Contatto WhatsApp
+    const AFF_WHATSAPP_PHONE = ""; // Inserire il numero WhatsApp desiderato con prefisso internazionale (es: 393331234567)
+    const AFF_WHATSAPP_MSG = "Ciao BarPilot, vorrei informazioni sul programma affiliazioni.";
+
+    function initWhatsAppButton() {
+      const btn = document.getElementById("whatsappAffiliateBtn");
+      if (!btn) return;
+      const cleanPhone = (AFF_WHATSAPP_PHONE || "").replace(/[^0-9]/g, "");
+      const encodedMsg = encodeURIComponent(AFF_WHATSAPP_MSG);
+      if (cleanPhone) {
+        btn.href = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+      } else {
+        btn.href = `https://wa.me/?text=${encodedMsg}`;
+      }
+    }
     const AFF_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
     const AFF_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
 
@@ -3316,6 +3440,7 @@
     // Inizializzazione automatica
     document.addEventListener("DOMContentLoaded", () => {
       checkAuthAndInit();
+      initWhatsAppButton();
 
       // Sincronizzazione istantanea cross-tab via BroadcastChannel
       if (typeof BroadcastChannel !== "undefined") {
