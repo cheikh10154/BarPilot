@@ -3423,8 +3423,6 @@
         .replace(/'/g, "&#039;");
     }
 
-    const AFF_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
-    const AFF_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
     let affRealtimeChannel = null;
     let affRealtimeSubId = null;
 
@@ -3514,7 +3512,7 @@
         if (e.key === "Escape") {
           closeProfileMenu();
           closePaymentMethodModal();
-          if (isAffiliateAuthenticated()) {
+          if (isAffiliateAuthenticated() && typeof closeAffiliateAuthModal === "function") {
             closeAffiliateAuthModal();
           }
         }
