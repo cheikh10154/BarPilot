@@ -1401,7 +1401,7 @@
       }
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabaseClient.js"></script>
 </head>
 <body>
   <div class="bg-ambient"></div>
@@ -2199,18 +2199,24 @@
     const AFF_SUPABASE_URL = "https://cprxxxlgaofopmogeuer.supabase.co";
     const AFF_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwcnh4eGxnYW9mb3Btb2dldWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4Mzg1OTQsImV4cCI6MjEwODQxNDU5NH0.wuB9OUgmYo8n1xeJsGl-YpyzVRwg8Sr4k3XAKaYltRI";
 
-    let sbClient = null;
-    function getSupabaseClient() {
-      if (!sbClient && typeof window.supabase !== "undefined" && typeof window.supabase.createClient === "function") {
-        sbClient = window.supabase.createClient(AFF_SUPABASE_URL, AFF_SUPABASE_ANON_KEY);
-      }
-      return sbClient;
-    }
-
     let currentSession = null;
     let currentAuthUser = null;
     let currentAffiliateData = null;
     let allCommissionsList = [];
+
+    // Recupera la sessione memorizzata in localStorage in modo sicuro
+    function getStoredSupabaseSession() {
+      try {
+        const raw = localStorage.getItem("barpilot_supabase_session");
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.access_token || parsed.token)) {
+          if (!parsed.access_token && parsed.token) parsed.access_token = parsed.token;
+          return parsed;
+        }
+      } catch (_) {}
+      return null;
+    }
 
     // Recupera l'utente autenticato esclusivamente dalla sessione verificata Supabase Auth
     function getAuthenticatedUser() {
@@ -2239,14 +2245,10 @@
 
     // Helper per intestazioni autenticate con token JWT Bearer
     async function getAuthHeaders() {
-      const sb = getSupabaseClient();
       let token = currentSession?.access_token;
-      if (!token && sb) {
-        try {
-          const sessRes = await sb.auth.getSession();
-          token = sessRes?.data?.session?.access_token;
-          if (token) currentSession = sessRes.data.session;
-        } catch (_) {}
+      if (!token) {
+        const stored = getStoredSupabaseSession();
+        token = stored?.access_token;
       }
       return {
         "Content-Type": "application/json",
@@ -2348,16 +2350,40 @@
 
     // 1. AUTENTICAZIONE OBBLIGATORIA & PROTEZIONE DELLE PAGINE
     async function checkAuthAndInit() {
-      showAffView('loading');
-      const sb = getSupabaseClient();
-      if (!sb) {
-        setTimeout(checkAuthAndInit, 150);
+      // 1. Se non esiste un token salvato in localStorage, mostra SUBITO il login (nessun caricamento infinito)
+      const stored = getStoredSupabaseSession();
+      if (!stored || !stored.access_token) {
+        currentSession = null;
+        currentAuthUser = null;
+        resetDashboardState();
+        showAffView('login');
         return;
       }
 
+      // Se esiste una sessione, mostra l'indicatore di caricamento solo per la verifica
+      showAffView('loading');
+
       try {
-        const { data: { session }, error: sessErr } = await sb.auth.getSession();
-        if (sessErr || !session || !session.access_token) {
+        // Convalida il token direttamente contro le API di Supabase Auth (timeout massimo 4 secondi)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        let userRes;
+        try {
+          userRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/user`, {
+            headers: {
+              "apikey": AFF_SUPABASE_ANON_KEY,
+              "Authorization": `Bearer ${stored.access_token}`
+            },
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        if (!userRes.ok) {
+          // Token scaduto o non valido: azzera sessione e mostra login
+          localStorage.removeItem("barpilot_supabase_session");
           currentSession = null;
           currentAuthUser = null;
           resetDashboardState();
@@ -2365,28 +2391,19 @@
           return;
         }
 
-        const { data: { user }, error: userErr } = await sb.auth.getUser();
-        if (userErr || !user) {
-          await sb.auth.signOut().catch(() => {});
-          currentSession = null;
-          currentAuthUser = null;
-          resetDashboardState();
-          showAffView('login');
-          return;
-        }
-
-        currentSession = session;
+        const user = await userRes.json();
+        currentSession = stored;
         currentAuthUser = user;
 
-        // Verifica profilo affiliato su backend con token crittografico
-        const res = await fetch("/api/affiliates", {
+        // Verifica profilo affiliato su backend BarPilot con token crittografico
+        const affRes = await fetch("/api/affiliates", {
           headers: {
-            "Authorization": `Bearer ${session.access_token}`
+            "Authorization": `Bearer ${stored.access_token}`
           }
         });
 
-        if (res.status === 401) {
-          await sb.auth.signOut().catch(() => {});
+        if (affRes.status === 401) {
+          localStorage.removeItem("barpilot_supabase_session");
           currentSession = null;
           currentAuthUser = null;
           resetDashboardState();
@@ -2394,7 +2411,7 @@
           return;
         }
 
-        const data = await res.json();
+        const data = await affRes.json();
 
         // Se l'utente è autenticato su Supabase Auth ma non è ancora affiliato
         if (data.is_affiliate === false) {
@@ -2431,7 +2448,7 @@
           showAffView('login');
         }
       } catch (err) {
-        console.error("[Affiliates] Errore verifica sessione:", err);
+        console.warn("[Affiliates] Verifica sessione:", err.message);
         showAffView('login');
       }
     }
@@ -2500,21 +2517,26 @@
       }
 
       try {
-        const sb = getSupabaseClient();
-        if (!sb) throw new Error("Servizio di autenticazione non pronto.");
+        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": AFF_SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ email, password })
+        });
 
-        const { data, error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) {
-          throw new Error("Credenziali non valide. Verifica email e password.");
+        const authData = await res.json();
+        if (!res.ok || !authData.access_token) {
+          throw new Error(authData.error_description || authData.msg || "Credenziali non valide. Verifica email e password.");
         }
 
-        if (!data || !data.session) {
-          throw new Error("Impossibile connettersi a Supabase Auth.");
-        }
+        // Salva la sessione stabilita con Supabase Auth
+        localStorage.setItem("barpilot_supabase_session", JSON.stringify(authData));
+        currentSession = authData;
+        currentAuthUser = authData.user;
 
-        currentSession = data.session;
-        currentAuthUser = data.user;
-        showToast("👋", `Bentornato, ${data.user.email}!`);
+        showToast("👋", `Bentornato, ${authData.user?.email || email}!`);
         await checkAuthAndInit();
       } catch (err) {
         if (alertBox && alertText) {
@@ -2565,7 +2587,6 @@
       }
 
       try {
-        const sb = getSupabaseClient();
         const headers = { "Content-Type": "application/json" };
         if (currentSession?.access_token) {
           headers["Authorization"] = `Bearer ${currentSession.access_token}`;
@@ -2589,13 +2610,26 @@
           throw new Error(regData.error || "Errore durante l'iscrizione.");
         }
 
-        // Effettua login con Supabase Auth se non ancora autenticati
-        if (!currentSession && sb) {
-          const { data: authData, error: authErr } = await sb.auth.signInWithPassword({ email, password });
-          if (!authErr && authData?.session) {
-            currentSession = authData.session;
-            currentAuthUser = authData.user;
-          }
+        // Se l'API ha restituito una sessione o se dobbiamo autenticarci
+        if (regData.session && regData.session.access_token) {
+          localStorage.setItem("barpilot_supabase_session", JSON.stringify(regData.session));
+          currentSession = regData.session;
+          currentAuthUser = regData.session.user;
+        } else {
+          // Effettua login con Supabase Auth per ottenere il token di sessione
+          try {
+            const loginRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "apikey": AFF_SUPABASE_ANON_KEY },
+              body: JSON.stringify({ email, password })
+            });
+            if (loginRes.ok) {
+              const authData = await loginRes.json();
+              localStorage.setItem("barpilot_supabase_session", JSON.stringify(authData));
+              currentSession = authData;
+              currentAuthUser = authData.user;
+            }
+          } catch (_) {}
         }
 
         showToast("🎉", `Benvenuto ${firstName}! Profilo affiliato attivato.`);
@@ -2616,10 +2650,17 @@
     // 6. LOGOUT E SCADENZA DELLA SESSIONE (Chiusura Supabase Auth e pulizia cache)
     async function logoutAffiliateUser() {
       stopAffiliateRealtime();
-      const sb = getSupabaseClient();
-      if (sb) {
+      
+      const token = currentSession?.access_token;
+      if (token) {
         try {
-          await sb.auth.signOut();
+          fetch(`${AFF_SUPABASE_URL}/auth/v1/logout`, {
+            method: "POST",
+            headers: {
+              "apikey": AFF_SUPABASE_ANON_KEY,
+              "Authorization": `Bearer ${token}`
+            }
+          }).catch(() => {});
         } catch (_) {}
       }
 
