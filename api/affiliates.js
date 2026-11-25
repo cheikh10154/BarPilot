@@ -2888,6 +2888,105 @@ async function handleUserAffiliateRequest(req, res) {
         });
       }
 
+      if (action === 'auth_forgot') {
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const redirectTo = (body.redirectTo || 'https://www.barpilot.eu/app/affiliazioni.html').trim();
+        if (!cleanEmail) {
+          return res.status(400).json({ error: "Inserisci il tuo indirizzo email." });
+        }
+        try {
+          const recRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/recover`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({ email: cleanEmail, redirect_to: redirectTo })
+          });
+          const recData = await recRes.json().catch(() => ({}));
+          if (!recRes.ok) {
+            return res.status(recRes.status).json({ error: recData.error_description || recData.msg || "Impossibile inviare l'email di recupero." });
+          }
+          return res.status(200).json({ success: true, message: "Email di recupero inviata." });
+        } catch (e) {
+          return res.status(500).json({ error: "Errore durante l'invio dell'email di recupero." });
+        }
+      }
+
+      if (action === 'auth_reset_password') {
+        const newPassword = (body.password || '').trim();
+        const token = (req.headers['authorization'] || req.headers['Authorization'] || '').replace(/^Bearer\s+/i, '').trim();
+        if (!token) {
+          return res.status(401).json({ error: "Link di recupero scaduto o non valido. Richiedine uno nuovo." });
+        }
+        if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword)) {
+          return res.status(400).json({ error: "La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale." });
+        }
+        try {
+          const updRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/user`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password: newPassword })
+          });
+          const updData = await updRes.json().catch(() => ({}));
+          if (!updRes.ok) {
+            return res.status(updRes.status).json({ error: updData.error_description || updData.msg || "Errore durante l'aggiornamento della password." });
+          }
+          return res.status(200).json({ success: true, user: updData });
+        } catch (e) {
+          return res.status(500).json({ error: "Errore durante l'aggiornamento della password." });
+        }
+      }
+
+      if (action === 'auth_resend_confirm') {
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const redirectTo = (body.redirectTo || 'https://www.barpilot.eu/app/affiliazioni.html').trim();
+        if (!cleanEmail) {
+          return res.status(400).json({ error: "Indirizzo email mancante." });
+        }
+        try {
+          const resendRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/resend`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+              type: 'signup',
+              email: cleanEmail,
+              options: { email_redirect_to: redirectTo }
+            })
+          });
+          const resendData = await resendRes.json().catch(() => ({}));
+          if (!resendRes.ok) {
+            return res.status(resendRes.status).json({ error: resendData.error_description || resendData.msg || "Impossibile reinviare l'email." });
+          }
+          return res.status(200).json({ success: true });
+        } catch (e) {
+          return res.status(500).json({ error: "Errore durante il reinvio dell'email." });
+        }
+      }
+
+      if (action === 'auth_logout') {
+        const token = (req.headers['authorization'] || req.headers['Authorization'] || '').replace(/^Bearer\s+/i, '').trim();
+        if (token) {
+          try {
+            await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/logout`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          } catch (_) {}
+        }
+        return res.status(200).json({ success: true });
+      }
+
       return res.status(400).json({ error: "Azione non riconosciuta." });
     }
 

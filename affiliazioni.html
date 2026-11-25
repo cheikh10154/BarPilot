@@ -2404,6 +2404,11 @@
         }
       });
 
+      if (viewName === 'login') {
+        const loginErr = document.getElementById("affLoginAlertError");
+        if (loginErr) loginErr.style.display = 'none';
+      }
+
       if (viewName === 'dashboard') {
         if (userPillWrap) userPillWrap.style.display = 'flex';
         if (btnTopbarAuth) btnTopbarAuth.style.display = 'none';
@@ -2473,17 +2478,14 @@
 
       try {
         const redirectTo = `${window.location.origin}${window.location.pathname}`;
-        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/recover`, {
+        const res = await fetch("/api/affiliates", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": AFF_SUPABASE_ANON_KEY
-          },
-          body: JSON.stringify({ email, redirect_to: redirectTo })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "auth_forgot", email, redirectTo })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(translateAffAuthError(data.error_description || data.msg || data.message, data.error_code));
+        if (!res.ok || !data.success) {
+          throw new Error(translateAffAuthError(data.error || data.error_description || data.msg, data.error_code));
         }
         if (okBox) {
           okBox.innerHTML = `✅ Email di recupero inviata a <strong>${escapeHtml(email)}</strong>! Controlla la tua posta (anche Spam) e clicca sul link per impostare una nuova password.`;
@@ -2534,18 +2536,17 @@
       }
 
       try {
-        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/user`, {
-          method: "PUT",
+        const res = await fetch("/api/affiliates", {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "apikey": AFF_SUPABASE_ANON_KEY,
             "Authorization": `Bearer ${token}`
           },
-          body: JSON.stringify({ password: newPassword })
+          body: JSON.stringify({ action: "auth_reset_password", password: newPassword })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(translateAffAuthError(data.error_description || data.msg || data.message, data.error_code));
+        if (!res.ok || !data.success) {
+          throw new Error(translateAffAuthError(data.error || data.error_description || data.msg, data.error_code));
         }
 
         sessionStorage.removeItem("barpilot_recovery_email");
@@ -2575,21 +2576,18 @@
         btn.textContent = "⏳ Invio in corso...";
       }
       try {
-        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/resend`, {
+        const res = await fetch("/api/affiliates", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": AFF_SUPABASE_ANON_KEY
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            type: "signup",
+            action: "auth_resend_confirm",
             email: pendingConfirmEmail,
-            options: { email_redirect_to: `${window.location.origin}${window.location.pathname}` }
+            redirectTo: `${window.location.origin}${window.location.pathname}`
           })
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          throw new Error(translateAffAuthError(d.error_description || d.msg, d.error_code));
+          throw new Error(translateAffAuthError(d.error || d.error_description || d.msg, d.error_code));
         }
         if (statusBox) {
           statusBox.textContent = "✅ Email di conferma reinviata! Controlla la tua posta (anche Spam).";
@@ -2725,15 +2723,14 @@
       showAffView('loading');
 
       try {
-        // Convalida il token direttamente contro le API di Supabase Auth (timeout massimo 4 secondi)
+        // Verifica token crittografico E carica profilo affiliato in un'unica chiamata al backend BarPilot
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        let userRes;
+        let affRes;
         try {
-          userRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/user`, {
+          affRes = await fetch("/api/affiliates", {
             headers: {
-              "apikey": AFF_SUPABASE_ANON_KEY,
               "Authorization": `Bearer ${stored.access_token}`
             },
             signal: controller.signal
@@ -2741,27 +2738,6 @@
         } finally {
           clearTimeout(timeoutId);
         }
-
-        if (!userRes.ok) {
-          // Token scaduto o non valido: azzera sessione e mostra login
-          localStorage.removeItem("barpilot_supabase_session");
-          currentSession = null;
-          currentAuthUser = null;
-          resetDashboardState();
-          showAffView('login');
-          return;
-        }
-
-        const user = await userRes.json();
-        currentSession = stored;
-        currentAuthUser = user;
-
-        // Verifica profilo affiliato su backend BarPilot con token crittografico
-        const affRes = await fetch("/api/affiliates", {
-          headers: {
-            "Authorization": `Bearer ${stored.access_token}`
-          }
-        });
 
         if (affRes.status === 401) {
           localStorage.removeItem("barpilot_supabase_session");
@@ -2773,6 +2749,20 @@
         }
 
         const data = await affRes.json();
+        const user = stored.user || data.user || (data.affiliate ? {
+          id: data.affiliate.user_id || data.affiliate.id,
+          email: data.affiliate.email,
+          user_metadata: {
+            full_name: data.affiliate.name,
+            first_name: data.affiliate.first_name,
+            last_name: data.affiliate.last_name,
+            phone: data.affiliate.phone,
+            affiliate_code: data.affiliate.code
+          }
+        } : null);
+
+        currentSession = stored;
+        currentAuthUser = user;
 
         // Se l'utente è autenticato su Supabase Auth ma non è ancora affiliato
         if (data.is_affiliate === false) {
@@ -2889,19 +2879,17 @@
       }
 
       try {
-        const res = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        const res = await fetch("/api/affiliates", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": AFF_SUPABASE_ANON_KEY
-          },
-          body: JSON.stringify({ email, password })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "auth_login", email, password })
         });
 
-        const authData = await res.json();
-        if (!res.ok || !authData.access_token) {
-          const rawErr = authData.error_description || authData.msg || authData.message || "";
-          const rawCode = authData.error_code || authData.code || "";
+        const loginData = await res.json();
+        const authData = loginData.session;
+        if (!res.ok || !loginData.success || !authData || !authData.access_token) {
+          const rawErr = loginData.error || loginData.error_description || loginData.msg || "";
+          const rawCode = loginData.code || loginData.error_code || "";
           if (rawErr.toLowerCase().includes("email not confirmed") || rawCode === "email_not_confirmed") {
             pendingConfirmEmail = email;
             const addrEl = document.getElementById("affConfirmEmailAddress");
@@ -3009,19 +2997,20 @@
           currentSession = regData.session;
           currentAuthUser = regData.session.user;
         } else if (!isAlreadyLoggedIn) {
-          // Effettua login con Supabase Auth per ottenere il token di sessione
-          const loginRes = await fetch(`${AFF_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          // Effettua login tramite backend per ottenere il token di sessione
+          const loginRes = await fetch("/api/affiliates", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": AFF_SUPABASE_ANON_KEY },
-            body: JSON.stringify({ email, password })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "auth_login", email, password })
           });
-          const authData = await loginRes.json();
-          if (loginRes.ok && authData.access_token) {
+          const loginData = await loginRes.json();
+          const authData = loginData.session;
+          if (loginRes.ok && loginData.success && authData && authData.access_token) {
             localStorage.setItem("barpilot_supabase_session", JSON.stringify(authData));
             currentSession = authData;
             currentAuthUser = authData.user;
           } else {
-            const rawErr = authData.error_description || authData.msg || "";
+            const rawErr = loginData.error || loginData.error_description || loginData.msg || "";
             if (rawErr.toLowerCase().includes("email not confirmed")) {
               pendingConfirmEmail = email;
               const addrEl = document.getElementById("affConfirmEmailAddress");
@@ -3029,7 +3018,7 @@
               showAffView('confirm');
               return;
             }
-            throw new Error(translateAffAuthError(rawErr, authData.error_code));
+            throw new Error(translateAffAuthError(rawErr, loginData.code || loginData.error_code));
           }
         }
 
@@ -3057,12 +3046,13 @@
       const token = currentSession?.access_token;
       if (token) {
         try {
-          fetch(`${AFF_SUPABASE_URL}/auth/v1/logout`, {
+          fetch("/api/affiliates", {
             method: "POST",
             headers: {
-              "apikey": AFF_SUPABASE_ANON_KEY,
+              "Content-Type": "application/json",
               "Authorization": `Bearer ${token}`
-            }
+            },
+            body: JSON.stringify({ action: "auth_logout" })
           }).catch(() => {});
         } catch (_) {}
       }
