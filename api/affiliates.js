@@ -1681,6 +1681,7 @@ async function handleUserAffiliateRequest(req, res) {
 
       const email = authUser.email.trim().toLowerCase();
       const userId = authUser.id;
+      const barId = authUser.user_metadata?.bar_id || null;
       const clientCode = (req.query.code || '').trim().toUpperCase();
 
       let affiliate = null;
