@@ -1524,7 +1524,7 @@
           <h2 style="font-size:19px; font-weight:800; color:var(--text-main); margin-bottom:8px; line-height:1.4;">
             Accesso riservato. Effettua il login per accedere alla tua dashboard affiliato.
           </h2>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+          <p id="affLoginSubtitle" style="font-size:13px; color:var(--text-muted); line-height:1.5;">
             Accedi con email e password del tuo account BarPilot Affiliazioni.
           </p>
         </div>
@@ -1542,7 +1542,7 @@
           <div class="form-group" style="margin-bottom:22px;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
               <label class="form-label" for="affViewLoginPassword" style="font-size:12.5px; font-weight:700; color:var(--text-muted); margin:0;">Password *</label>
-              <button type="button" onclick="openAffForgotPassword()" style="background:none; border:none; color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; padding:0;">Password dimenticata?</button>
+              <a href="#" onclick="openPasswordRecoveryModal(); return false;" style="font-size:12px; color:var(--primary); font-weight:700; text-decoration:none;">Password dimenticata?</a>
             </div>
             <div style="position:relative;">
               <input type="password" id="affViewLoginPassword" class="form-input" style="width:100%; padding:12px 42px 12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="••••••••" required autocomplete="current-password">
@@ -1648,73 +1648,60 @@
       </div>
     </div>
 
-    <!-- 3b. Schermata Recupero Password -->
-    <div id="affForgotView" style="display:none; max-width:480px; margin:40px auto; padding:0 20px; width:100%;">
-      <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5);">
-        <div style="text-align:center; margin-bottom:24px;">
-          <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:16px; background:rgba(255,138,36,0.12); border:1px solid rgba(255,138,36,0.3); font-size:28px; margin-bottom:16px;">
-            🔑
+    <!-- Modal: Recupero Password (uguale all'app BarPilot, utilizza il template email Supabase) -->
+    <div class="modal-overlay" id="passwordRecoveryModal" style="display:none;" onclick="if(event.target===this) closePasswordRecoveryModal()">
+      <div class="modal-card" style="max-width:420px; width:92%; padding:26px 24px; border-radius:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">🔑</span>
+            <h3 style="font-size:17px; font-weight:800; color:var(--text-main); margin:0;">Recupero Password</h3>
           </div>
-          <h2 style="font-size:19px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
-            Reimposta la tua password
-          </h2>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
-            Inserisci la tua email: ti invieremo un link sicuro per scegliere una nuova password.
-          </p>
+          <button type="button" class="btn-modal-close" onclick="closePasswordRecoveryModal()" aria-label="Chiudi finestra">✕</button>
         </div>
-
-        <div id="affForgotAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
-        <div id="affForgotAlertSuccess" style="display:none; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); color:#6EE7B7; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
-
-        <form id="affViewForgotForm" onsubmit="handleAffForgotSubmit(event)">
-          <div class="form-group" style="margin-bottom:20px;">
-            <label class="form-label" for="affForgotEmail" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Indirizzo Email *</label>
-            <input type="email" id="affForgotEmail" class="form-input" style="width:100%; padding:12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="mario.rossi@email.it" required>
+        <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:16px;">
+          Inserisci l'indirizzo email del tuo account BarPilot. Ti invieremo un link sicuro tramite Supabase per reimpostare la tua password.
+        </p>
+        <div id="affForgotAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:10px 12px; font-size:12.5px; font-weight:600; margin-bottom:14px; line-height:1.4;"></div>
+        <form id="passwordRecoveryForm" onsubmit="handlePasswordRecoverySubmit(event)">
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label" for="recoveryEmailInput">Email registrata</label>
+            <input type="email" id="recoveryEmailInput" class="form-input" placeholder="titolare@bar.it" required>
           </div>
-
-          <button type="submit" id="btnAffForgotSubmit" style="width:100%; padding:13px; font-size:14px; font-weight:800; border-radius:10px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(255,138,36,0.35); font-family:inherit;">
-            <span>📩</span>
-            <span>Invia link di recupero</span>
-          </button>
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn-modal-cancel" onclick="closePasswordRecoveryModal()" style="flex:1; padding:10px;">Annulla</button>
+            <button type="submit" class="btn-modal-save" id="recoverySubmitBtn" style="flex:1; padding:10px; justify-content:center;">Invia Link →</button>
+          </div>
         </form>
-
-        <div style="text-align:center; margin-top:22px; font-size:13px; color:var(--text-muted);">
-          Ricordi la password?
-          <button type="button" onclick="showAffView('login')" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline; font-family:inherit; margin-left:4px;">Torna al login</button>
-        </div>
       </div>
     </div>
 
-    <!-- 3c. Schermata Imposta Nuova Password (da link email di recupero) -->
-    <div id="affResetPasswordView" style="display:none; max-width:480px; margin:40px auto; padding:0 20px; width:100%;">
-      <div style="padding:34px 28px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); box-shadow:0 12px 36px rgba(0,0,0,0.5);">
-        <div style="text-align:center; margin-bottom:24px;">
-          <div style="display:inline-flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:16px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-size:28px; margin-bottom:16px;">
-            🛡️
+    <!-- Modal: Reimposta Nuova Password (dal link email di recupero) -->
+    <div class="modal-overlay" id="newPasswordModal" style="display:none;" onclick="if(event.target===this) closeNewPasswordModal()">
+      <div class="modal-card" style="max-width:420px; width:92%; padding:26px 24px; border-radius:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">🔒</span>
+            <h3 style="font-size:17px; font-weight:800; color:var(--text-main); margin:0;">Reimposta Password e Accedi</h3>
           </div>
-          <h2 style="font-size:19px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
-            Scegli la tua nuova password
-          </h2>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
-            Inserisci una nuova password sicura per il tuo account BarPilot Affiliazioni.
-          </p>
+          <button type="button" class="btn-modal-close" onclick="closeNewPasswordModal()" aria-label="Chiudi finestra">✕</button>
         </div>
-
-        <div id="affResetAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:12px 14px; font-size:13px; font-weight:600; margin-bottom:18px; line-height:1.5;"></div>
-
-        <form id="affViewResetForm" onsubmit="handleAffResetPasswordSubmit(event)">
-          <div class="form-group" style="margin-bottom:20px;">
-            <label class="form-label" for="affNewPasswordInput" style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-muted);">Nuova Password *</label>
-            <div style="position:relative;">
-              <input type="password" id="affNewPasswordInput" class="form-input" style="width:100%; padding:12px 42px 12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:10px; color:#fff; font-size:14px; outline:none;" placeholder="Min. 8 caratteri, 1 Maiuscola, 1 Numero, 1 Simbolo" required autocomplete="new-password">
-              <button type="button" onclick="toggleAffPasswordVisibility('affNewPasswordInput', this)" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;">👁️</button>
-            </div>
+        <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-bottom:14px;">
+          Imposta la nuova password per l'account <strong id="newPasswordEmailDisplay" style="color:var(--text-main);"></strong>:
+        </p>
+        <div id="affResetAlertError" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5; border-radius:10px; padding:10px 12px; font-size:12.5px; font-weight:600; margin-bottom:14px; line-height:1.4;"></div>
+        <form id="newPasswordForm" onsubmit="handleNewPasswordSubmit(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" for="newPasswordInput">Nuova Password</label>
+            <input type="password" id="newPasswordInput" class="form-input" placeholder="Almeno 8 caratteri (Maiuscola, Numero, Simbolo)" required autocomplete="new-password">
           </div>
-
-          <button type="submit" id="btnAffResetSubmit" style="width:100%; padding:13px; font-size:14px; font-weight:800; border-radius:10px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(255,138,36,0.35); font-family:inherit;">
-            <span>✅</span>
-            <span>Salva nuova password e accedi</span>
-          </button>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label" for="confirmNewPasswordInput">Conferma Nuova Password</label>
+            <input type="password" id="confirmNewPasswordInput" class="form-input" placeholder="Ripeti la password" required autocomplete="new-password">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn-modal-cancel" onclick="closeNewPasswordModal()" style="flex:1; padding:10px;">Annulla</button>
+            <button type="submit" class="btn-modal-save" id="saveNewPasswordBtn" style="flex:1.4; padding:10px; justify-content:center; font-weight:700;">Salva e Accedi</button>
+          </div>
         </form>
       </div>
     </div>
@@ -2435,44 +2422,79 @@
       showAffView('register');
     }
 
-    // Apre la schermata di recupero password
-    function openAffForgotPassword() {
+    // Apre il modal di recupero password (uguale all'app BarPilot) precompilando l'email
+    function openPasswordRecoveryModal(prefillEmail) {
+      const modal = document.getElementById("passwordRecoveryModal");
+      if (!modal) return;
       const loginEmail = (document.getElementById("affViewLoginEmail")?.value || "").trim();
-      const forgotEmail = document.getElementById("affForgotEmail");
-      if (forgotEmail && loginEmail) forgotEmail.value = loginEmail;
+      const targetEmail = (prefillEmail || loginEmail || "").toLowerCase();
+      const input = document.getElementById("recoveryEmailInput");
+      if (input && targetEmail) {
+        input.value = targetEmail;
+      }
       const errBox = document.getElementById("affForgotAlertError");
-      const okBox = document.getElementById("affForgotAlertSuccess");
       if (errBox) errBox.style.display = "none";
-      if (okBox) okBox.style.display = "none";
-      showAffView('forgot');
+      modal.style.display = "flex";
+      if (input) setTimeout(() => input.focus(), 120);
     }
+    window.openPasswordRecoveryModal = openPasswordRecoveryModal;
 
-    // Hook compatibile con supabaseClient.js quando l'utente clicca un link di recupero password
-    window.openNewPasswordModal = function() {
+    function closePasswordRecoveryModal() {
+      const modal = document.getElementById("passwordRecoveryModal");
+      if (modal) modal.style.display = "none";
+    }
+    window.closePasswordRecoveryModal = closePasswordRecoveryModal;
+
+    // Apre il modal per impostare la nuova password dopo il click sul link email
+    function openNewPasswordModal(email) {
+      closePasswordRecoveryModal();
+      const modal = document.getElementById("newPasswordModal");
+      if (!modal) return;
       const stored = getStoredSupabaseSession();
       if (stored?.access_token) pendingRecoveryToken = stored.access_token;
-      showAffView('reset');
-    };
+      const targetEmail = (email || sessionStorage.getItem("barpilot_recovery_email") || stored?.user?.email || document.getElementById("affViewLoginEmail")?.value || "").trim().toLowerCase();
+      const emailDisplay = document.getElementById("newPasswordEmailDisplay");
+      if (emailDisplay) emailDisplay.textContent = targetEmail || "il tuo account";
+      const p1 = document.getElementById("newPasswordInput");
+      const p2 = document.getElementById("confirmNewPasswordInput");
+      if (p1) p1.value = "";
+      if (p2) p2.value = "";
+      const errBox = document.getElementById("affResetAlertError");
+      if (errBox) errBox.style.display = "none";
+      modal.style.display = "flex";
+      if (p1) setTimeout(() => p1.focus(), 120);
+    }
+    window.openNewPasswordModal = openNewPasswordModal;
 
-    // Gestione invio email di recupero password
-    async function handleAffForgotSubmit(e) {
+    function closeNewPasswordModal() {
+      const modal = document.getElementById("newPasswordModal");
+      if (modal) modal.style.display = "none";
+    }
+    window.closeNewPasswordModal = closeNewPasswordModal;
+
+    // Gestione invio email di recupero password (utilizza il template email precompilato di Supabase)
+    async function handlePasswordRecoverySubmit(e) {
       if (e) e.preventDefault();
       const errBox = document.getElementById("affForgotAlertError");
-      const okBox = document.getElementById("affForgotAlertSuccess");
       if (errBox) errBox.style.display = "none";
-      if (okBox) okBox.style.display = "none";
 
-      const email = (document.getElementById("affForgotEmail")?.value || "").trim().toLowerCase();
-      if (!email) return;
+      const email = (document.getElementById("recoveryEmailInput")?.value || "").trim().toLowerCase();
+      if (!email) {
+        showToast("⚠️", "Inserisci prima il tuo indirizzo email.");
+        return;
+      }
 
-      const btn = document.getElementById("btnAffForgotSubmit");
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<span>⏳</span> <span>Invio in corso...</span>`;
+      const submitBtn = document.getElementById("recoverySubmitBtn");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>⏳</span> Invio link Supabase...`;
       }
 
       try {
-        const redirectTo = `${window.location.origin}${window.location.pathname}`;
+        const origin = window.location.origin || "https://www.barpilot.eu";
+        const path = (window.location.pathname && window.location.pathname !== "/") ? window.location.pathname : "/app/affiliazioni.html";
+        const redirectTo = `${origin}${path}`;
+
         const res = await fetch("/api/affiliates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2482,9 +2504,12 @@
         if (!res.ok || !data.success) {
           throw new Error(translateAffAuthError(data.error || data.error_description || data.msg, data.error_code));
         }
-        if (okBox) {
-          okBox.innerHTML = `✅ Email di recupero inviata a <strong>${escapeHtml(email)}</strong>! Controlla la tua posta (anche Spam) e clicca sul link per impostare una nuova password.`;
-          okBox.style.display = "block";
+
+        closePasswordRecoveryModal();
+        showToast("📩", `Email di reset inviata a ${email}! Controlla la posta e clicca sul link per impostare la nuova password.`);
+        const loginSub = document.getElementById("affLoginSubtitle");
+        if (loginSub) {
+          loginSub.innerHTML = `📩 Email di recupero inviata a <strong>${escapeHtml(email)}</strong> tramite il template Supabase. Clicca sul link nell'email.`;
         }
       } catch (err) {
         if (errBox) {
@@ -2492,21 +2517,33 @@
           errBox.style.display = "block";
         }
       } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = `<span>📩</span> <span>Invia link di recupero</span>`;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `Invia Link →`;
         }
       }
     }
+    window.handlePasswordRecoverySubmit = handlePasswordRecoverySubmit;
 
     // Gestione salvataggio nuova password dopo link di recupero
-    async function handleAffResetPasswordSubmit(e) {
+    async function handleNewPasswordSubmit(e) {
       if (e) e.preventDefault();
       const errBox = document.getElementById("affResetAlertError");
       if (errBox) errBox.style.display = "none";
 
-      const newPassword = (document.getElementById("affNewPasswordInput")?.value || "").trim();
-      const valid = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
+      const p1 = (document.getElementById("newPasswordInput")?.value || "").trim();
+      const p2 = (document.getElementById("confirmNewPasswordInput")?.value || "").trim();
+
+      if (!p1 || !p2) {
+        if (errBox) { errBox.textContent = "Inserisci e conferma la nuova password."; errBox.style.display = "block"; }
+        return;
+      }
+      if (p1 !== p2) {
+        if (errBox) { errBox.textContent = "Le password inserite non coincidono."; errBox.style.display = "block"; }
+        return;
+      }
+
+      const valid = p1.length >= 8 && /[A-Z]/.test(p1) && /[0-9]/.test(p1) && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p1);
       if (!valid) {
         if (errBox) {
           errBox.innerHTML = "La nuova password deve avere almeno 8 caratteri, una lettera maiuscola, un numero e un carattere speciale.";
@@ -2524,10 +2561,10 @@
         return;
       }
 
-      const btn = document.getElementById("btnAffResetSubmit");
+      const btn = document.getElementById("saveNewPasswordBtn");
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<span>⏳</span> <span>Salvataggio in corso...</span>`;
+        btn.innerHTML = `<span>⏳</span> Salvataggio ed accesso...`;
       }
 
       try {
@@ -2537,7 +2574,7 @@
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           },
-          body: JSON.stringify({ action: "auth_reset_password", password: newPassword })
+          body: JSON.stringify({ action: "auth_reset_password", password: p1 })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) {
@@ -2546,6 +2583,7 @@
 
         sessionStorage.removeItem("barpilot_recovery_email");
         pendingRecoveryToken = "";
+        closeNewPasswordModal();
         showToast("✅", "Password aggiornata con successo!");
         await checkAuthAndInit();
       } catch (err) {
@@ -2556,10 +2594,11 @@
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = `<span>✅</span> <span>Salva nuova password e accedi</span>`;
+          btn.innerHTML = `Salva e Accedi`;
         }
       }
     }
+    window.handleNewPasswordSubmit = handleNewPasswordSubmit;
 
     // Reinvia email di conferma
     async function handleAffResendConfirm() {
@@ -2688,7 +2727,8 @@
             localStorage.setItem("barpilot_supabase_session", JSON.stringify(sessObj));
             if (authType === "recovery") {
               pendingRecoveryToken = accessToken;
-              showAffView('reset');
+              showAffView('login');
+              openNewPasswordModal();
               return;
             }
           }
@@ -2699,7 +2739,8 @@
         const storedRec = getStoredSupabaseSession();
         if (storedRec?.access_token) {
           pendingRecoveryToken = storedRec.access_token;
-          showAffView('reset');
+          showAffView('login');
+          openNewPasswordModal(sessionStorage.getItem("barpilot_recovery_email"));
           return;
         }
       }

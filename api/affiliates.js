@@ -2896,7 +2896,7 @@ async function handleUserAffiliateRequest(req, res) {
           return res.status(400).json({ error: "Inserisci il tuo indirizzo email." });
         }
         try {
-          const recRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/recover`, {
+          const recRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
