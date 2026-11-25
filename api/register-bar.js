@@ -162,11 +162,16 @@ export default async function handler(req, res) {
         if (aRes.ok) {
           const aData = await aRes.json();
           const usersList = aData.users || (Array.isArray(aData) ? aData : []);
-          // Solo le registrazioni fatte su /app sono considerati bar; le iscrizioni su /app/affiliazioni sono semplici utenti
+          // Solo le registrazioni fatte su /app sono considerati bar; le iscrizioni solo su /app/affiliazioni sono semplici affiliati
           const barUsersList = usersList.filter(u => {
             const meta = u.user_metadata || u.raw_user_meta_data || {};
+            const hasBarInfo = Boolean(
+              meta.bar_name || meta.barName || meta["Nome bar"] || meta.bar_registered_id ||
+              u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true
+            );
+            if (hasBarInfo) return true;
             if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) return false;
-            if ((meta.affiliate_code || meta.affiliate_id) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) return false;
+            if (meta.affiliate_code || meta.affiliate_id) return false;
             return true;
           });
           return res.status(200).json({

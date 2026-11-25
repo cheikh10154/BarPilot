@@ -201,12 +201,16 @@ class AdminConsole {
   isBarUser(u) {
     if (!u) return false;
     const meta = u.user_metadata || u.raw_user_meta_data || {};
-    // Iscrizioni fatte su /app/affiliazioni: sono semplici utenti / affiliati, NON bar
+    const hasBarInfo = Boolean(
+      meta.bar_name || meta.barName || meta["Nome bar"] || meta.bar_registered_id ||
+      u.bar_name || u.business_name || meta.account_type === 'bar' || meta.is_bar === true
+    );
+    if (hasBarInfo) return true;
+    // Iscrizioni fatte solo su /app/affiliazioni: sono semplici utenti / affiliati, NON bar
     if (meta.account_type === 'affiliate' || meta.registered_from === 'affiliazioni' || meta.is_bar === false || u.is_bar === false) {
       return false;
     }
-    // Utenti con codice/id affiliazione senza alcun dato bar: semplici utenti
-    if ((meta.affiliate_code || meta.affiliate_id || u.code) && !meta.bar_name && !meta.barName && !meta["Nome bar"] && !meta.bar_registered_id && !u.bar_name && !u.business_name) {
+    if (meta.affiliate_code || meta.affiliate_id || u.code) {
       return false;
     }
     return true;

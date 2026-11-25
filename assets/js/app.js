@@ -8483,6 +8483,9 @@ async function handleAuthSubmit(e) {
 
     const trialEndIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const registrationMetadata = {
+      account_type: "bar",
+      registered_from: "app",
+      is_bar: true,
       display_name: ownerName,
       full_name: ownerName,
       name: ownerName,
