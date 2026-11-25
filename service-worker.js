@@ -1,19 +1,7 @@
-// BarPilot Offline Service Worker
-const CACHE_NAME = 'barpilot-cache-v134';
+// BarPilot Offline Service Worker (Network-First per HTML/JS/CSS, mai cache su /api/)
+const CACHE_NAME = 'barpilot-cache-v136';
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './checkout.html',
-  './pro.html',
-  './demo.html',
   './manifest.json',
-  './assets/css/style.css',
-  './assets/js/i18n.js',
-  './assets/js/data.js',
-  './assets/js/supabaseClient.js',
-  './assets/js/googlePayService.js',
-  './assets/js/stripePaymentService.js',
-  './assets/js/app.js',
   './assets/images/logo.png',
   './assets/images/icons/icon-192x192.png',
   './assets/images/icons/icon-512x512.png',
@@ -43,9 +31,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  // Non intercettare mai API, autenticazione Supabase o chiamate esterne
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Network-First: scarica sempre la versione più recente (evita checkout.html/app.js obsoleti in cache)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    }).catch(() => caches.match('./index.html'))
+    fetch(req)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(req))
   );
 });

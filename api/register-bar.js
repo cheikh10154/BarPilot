@@ -513,6 +513,27 @@ export default async function handler(req, res) {
             updated_at: now.toISOString()
           };
 
+          // Assicura che l'affiliato esista in public.affiliates prima di inserire il referral (evita errori Foreign Key)
+          try {
+            await supabaseFetch('affiliates', {
+              method: 'POST',
+              headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+              body: JSON.stringify({
+                id: matchedAffiliate.id,
+                user_id: matchedAffiliate.user_id || null,
+                name: matchedAffiliate.name || [matchedAffiliate.first_name, matchedAffiliate.last_name].filter(Boolean).join(' ') || matchedAffiliate.email || 'Affiliato',
+                email: (matchedAffiliate.email || '').toLowerCase(),
+                phone: matchedAffiliate.phone || '',
+                code: matchedAffiliate.code,
+                status: matchedAffiliate.status || 'active',
+                commission_rate: 10.00,
+                total_earned: 0.00,
+                created_at: now.toISOString(),
+                updated_at: now.toISOString()
+              })
+            });
+          } catch (_) {}
+
           const refPost = await supabaseFetch('affiliate_referrals', {
             method: 'POST',
             headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },

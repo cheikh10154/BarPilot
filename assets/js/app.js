@@ -151,6 +151,12 @@ function initBarPilotApp() {
   if (typeof syncBarMediaFromCloud === "function") {
     syncBarMediaFromCloud();
   }
+  // Se l'utente ha già completato il checkout ma ha ancora una registrazione pendente, finalizzala subito su Supabase
+  try {
+    if (isUserSubscribed() && localStorage.getItem("barpilot_pending_bar_registration")) {
+      finalizePendingBarRegistrationOnPaymentSuccess("checkout_recovered", "rec_" + Date.now());
+    }
+  } catch (_) {}
 }
 
 if (document.readyState === "loading") {
