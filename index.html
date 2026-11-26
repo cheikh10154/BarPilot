@@ -45,7 +45,13 @@
   <!-- Stripe.js & Official Google Pay SDK -->
   <script src="https://js.stripe.com/v3/"></script>
   <script async src="https://pay.google.com/gp/p/js/pay.js" onload="window.onGooglePayLoaded && window.onGooglePayLoaded()"></script>
-</head>
+	  <script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-MHS3NHG2"></script>
+	  <script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+    </script>
+	</head>
 <body>
 
   <!-- 1. ANIMATED SPLASH SCREEN (LOGO LOADING) -->
@@ -256,7 +262,7 @@
             <span class="story-highlight-pill" data-i18n="story5Pill">📈 +18% di marginalità media stimata</span>
           </div>
           <div class="story-action-bottom" style="display:flex; flex-direction:column; gap:8px;">
-            <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#10B981; box-shadow:0 6px 20px rgba(16,185,129,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
+            <button class="btn-story-next" onclick="quickLoginDemo()" style="background:#2563EB; box-shadow:0 6px 20px rgba(37,99,235,0.35);">⚡ Entra subito nella Demo (Accesso Libero)</button>
             <button class="btn-story-next" onclick="finishStoriesAndGoToAuth('register')" data-i18n="storyStartBtn" style="background:transparent; border:1.5px solid rgba(255,255,255,0.25); font-size:13px;">Registra il tuo bar con 14 giorni gratis</button>
           </div>
         </div>
@@ -405,9 +411,9 @@
       </form>
 
       <!-- 1-Click Demo Account Quick Access -->
-      <div class="demo-account-box" style="margin-top:14px; background:rgba(255,122,0,0.08); border:1.5px solid rgba(255,122,0,0.22); border-radius:12px; padding:12px; text-align:center;">
+      <div class="demo-account-box" style="margin-top:14px; background:rgba(37,99,235,0.10); border:1.5px solid rgba(37,99,235,0.30); border-radius:12px; padding:12px; text-align:center;">
         <span style="font-size:11.5px; font-weight:700; color:var(--text-main);" data-i18n="demoQuickLogin">Vuoi testare il gestionale senza registrarti?</span>
-        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" style="margin-top:6px; width:100%; height:40px; background:#FF7A00; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;" data-i18n="demoQuickBtn">
+        <button type="button" class="btn-demo-quick" onclick="quickLoginDemo()" style="margin-top:6px; width:100%; height:40px; background:#2563EB; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;" data-i18n="demoQuickBtn">
           ⚡ Entra con Bar Centrale (Demo)
         </button>
       </div>
