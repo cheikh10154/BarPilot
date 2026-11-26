@@ -4008,6 +4008,22 @@ END $$;`;
     });
   }
 
+  formatCurrency(val) {
+    const num = parseFloat(val);
+    if (isNaN(num)) return "0,00";
+    return num.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   showToast(msg) {
     const toast = document.createElement("div");
     toast.textContent = msg;
