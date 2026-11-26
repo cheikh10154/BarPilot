@@ -2940,6 +2940,7 @@ async function handleUserAffiliateRequest(req, res) {
           return res.status(400).json({ error: "Inserisci il tuo indirizzo email." });
         }
         try {
+          // 1. Prova invio nativo Supabase Authentication -> Users (/auth/v1/recover)
           const recRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
             method: 'POST',
             headers: {
@@ -2948,11 +2949,65 @@ async function handleUserAffiliateRequest(req, res) {
             },
             body: JSON.stringify({ email: cleanEmail, redirect_to: redirectTo })
           });
-          const recData = await recRes.json().catch(() => ({}));
-          if (!recRes.ok) {
-            return res.status(recRes.status).json({ error: recData.error_description || recData.msg || "Impossibile inviare l'email di recupero." });
+          if (recRes.ok) {
+            return res.status(200).json({ success: true, provider: 'supabase', message: "Email di recupero inviata." });
           }
-          return res.status(200).json({ success: true, message: "Email di recupero inviata." });
+
+          const recData = await recRes.json().catch(() => ({}));
+
+          // 2. Fallback automatico via Supabase Admin generate_link + Resend (evita il limite 429 SMTP di Supabase)
+          const srKey = getServiceRoleKey();
+          if (srKey && process.env.RESEND_API_KEY) {
+            const genRes = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/generate_link`, {
+              method: 'POST',
+              headers: {
+                'apikey': srKey,
+                'Authorization': `Bearer ${srKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                type: 'recovery',
+                email: cleanEmail,
+                redirect_to: redirectTo
+              })
+            });
+            const genData = await genRes.json().catch(() => ({}));
+            const actionLink = genData.action_link || genData.properties?.action_link;
+            if (genRes.ok && actionLink) {
+              const mailRes = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  from: process.env.EMAIL_FROM || 'BarPilot <benvenuto@barpilot.eu>',
+                  to: [cleanEmail],
+                  subject: 'Reimposta la tua password — BarPilot Affiliazioni',
+                  html: `
+                    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#0B1220;color:#FFFFFF;border-radius:16px;padding:30px 26px;border:1px solid #1E293B;">
+                      <h2 style="margin:0 0 12px;font-size:20px;color:#FFFFFF;">🔑 Recupero Password BarPilot</h2>
+                      <p style="font-size:14px;line-height:1.6;color:#CBD5E1;margin:0 0 22px;">
+                        Hai richiesto di reimpostare la password del tuo account <strong>${cleanEmail}</strong> su BarPilot Affiliazioni.
+                      </p>
+                      <p style="text-align:center;margin:0 0 24px;">
+                        <a href="${actionLink}" style="display:inline-block;background:#FF8A24;color:#FFFFFF;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px;font-size:14px;">
+                          Reimposta la mia password →
+                        </a>
+                      </p>
+                      <p style="font-size:12px;color:#64748B;margin:0;">
+                        Se non hai richiesto tu il recupero password, puoi ignorare questa email.
+                      </p>
+                    </div>`
+                })
+              });
+              if (mailRes.ok) {
+                return res.status(200).json({ success: true, provider: 'supabase_admin_resend', message: "Email di recupero inviata." });
+              }
+            }
+          }
+
+          return res.status(recRes.status).json({ error: recData.error_description || recData.msg || "Impossibile inviare l'email di recupero." });
         } catch (e) {
           return res.status(500).json({ error: "Errore durante l'invio dell'email di recupero." });
         }
