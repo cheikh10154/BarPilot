@@ -2501,7 +2501,9 @@
 
   <!-- Client Integration Script -->
   <script>
-    // Chat WhatsApp interattiva verso @barpilot
+    // Chat WhatsApp interattiva verso +393715947604 (@barpilot)
+    const AFF_WHATSAPP_NUMBER = "393715947604";
+
     function initWhatsAppButton() {
       // Precompila eventuale contatto se l'affiliato è autenticato
       const contactInput = document.getElementById("waSenderContact");
@@ -2546,6 +2548,15 @@
       const contact = (contactInput?.value || user?.phone || user?.email || "").trim();
       const nowTime = new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
+      // Prepara il testo completo per WhatsApp (+393715947604 / @barpilot)
+      let waText = message;
+      if (user?.code) waText += `\n\nCodice Affiliato: ${user.code}`;
+      if (contact) waText += `\nContatto: ${contact}`;
+      const waUrl = `https://wa.me/${AFF_WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
+
+      // Apri subito WhatsApp sul numero +393715947604 (all'interno del click utente per evitare blocchi popup)
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+
       // Aggiunge subito il messaggio inviato nella chat
       if (messagesBox) {
         const outEl = document.createElement("div");
@@ -2558,8 +2569,9 @@
       if (msgInput) msgInput.value = "";
       if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "⏳"; }
 
+      // In parallelo notifica e salva una copia anche su @barpilot backend
       try {
-        const res = await fetch("/api/affiliates", {
+        await fetch("/api/affiliates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2571,29 +2583,16 @@
             code: user?.code || "",
             message
           })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Errore durante l'invio.");
-        }
+        }).catch(() => {});
 
         if (messagesBox) {
           const replyEl = document.createElement("div");
           replyEl.className = "wa-bubble-in";
-          replyEl.innerHTML = `✅ Messaggio inviato a <strong>@barpilot</strong>! Ti risponderemo al più presto.`;
+          replyEl.innerHTML = `✅ Messaggio pronto su WhatsApp per <strong>@barpilot (+39 371 594 7604)</strong>!<br><a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="color:#4ade80; font-weight:700; text-decoration:underline;">Clicca qui se WhatsApp non si è aperto automaticamente</a>`;
           messagesBox.appendChild(replyEl);
           messagesBox.scrollTop = messagesBox.scrollHeight;
         }
-        showToast("💬", "Messaggio inviato a @barpilot!");
-      } catch (err) {
-        if (messagesBox) {
-          const errEl = document.createElement("div");
-          errEl.className = "wa-bubble-in";
-          errEl.style.borderColor = "rgba(239,68,68,0.45)";
-          errEl.textContent = "⚠️ Non siamo riusciti a inviare il messaggio. Riprova tra poco.";
-          messagesBox.appendChild(errEl);
-          messagesBox.scrollTop = messagesBox.scrollHeight;
-        }
+        showToast("💬", "Apertura WhatsApp verso @barpilot (+39 371 594 7604)!");
       } finally {
         if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = "➤"; }
       }
