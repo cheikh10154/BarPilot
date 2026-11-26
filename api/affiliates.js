@@ -1169,24 +1169,59 @@ async function handleAdminRequest(req, res) {
           created_at: c.created_at,
           paid_at: c.paid_at
         })),
-        withdrawals: withdrawals.map(w => ({
-          id: w.id,
-          affiliate_id: w.affiliate_id,
-          user_id: w.user_id || null,
-          first_name: w.affiliate_first_name || '',
-          last_name: w.affiliate_last_name || '',
-          email: w.affiliate_email || '',
-          amount: parseFloat(w.amount || 0).toFixed(2),
-          currency: w.currency || 'EUR',
-          status: w.status || 'pending',
-          status_label: getWithdrawalStatusLabel(w.status),
-          payment_method_reference: w.payment_method_reference || '',
-          notes: w.notes || '',
-          requested_at: w.requested_at || w.created_at,
-          approved_at: w.approved_at || null,
-          paid_at: w.paid_at || null,
-          rejected_at: w.rejected_at || null
-        }))
+        withdrawals: (() => {
+          const mappedWds = withdrawals.map(w => ({
+            id: w.id,
+            affiliate_id: w.affiliate_id,
+            user_id: w.user_id || null,
+            first_name: w.affiliate_first_name || '',
+            last_name: w.affiliate_last_name || '',
+            affiliate_name: [w.affiliate_first_name, w.affiliate_last_name].filter(Boolean).join(' ').trim() || w.affiliate_name || '',
+            email: w.affiliate_email || '',
+            amount: parseFloat(w.amount || 0).toFixed(2),
+            currency: w.currency || 'EUR',
+            status: w.status || 'pending',
+            status_label: getWithdrawalStatusLabel(w.status),
+            payment_method_reference: w.payment_method_reference || '',
+            notes: w.notes || '',
+            requested_at: w.requested_at || w.created_at,
+            approved_at: w.approved_at || null,
+            paid_at: w.paid_at || null,
+            rejected_at: w.rejected_at || null
+          }));
+          // Includi anche gli affiliati appena iscritti che non hanno ancora effettuato una richiesta di prelievo
+          const wdAffEmails = new Set(mappedWds.map(w => (w.email || '').toLowerCase()).filter(Boolean));
+          const wdAffIds = new Set(mappedWds.map(w => w.affiliate_id).filter(Boolean));
+          affiliatesEnriched.forEach(a => {
+            const emailLower = (a.email || '').toLowerCase();
+            if (!wdAffEmails.has(emailLower) && !wdAffIds.has(a.id)) {
+              const rawAff = affiliates.find(ra => ra.id === a.id || (ra.email || '').toLowerCase() === emailLower);
+              const pmRef = maskPaymentMethodReference(rawAff?.payout_method) || 'Non configurato';
+              mappedWds.push({
+                id: 'acc_' + a.id,
+                affiliate_id: a.id,
+                user_id: rawAff?.user_id || null,
+                first_name: a.first_name || '',
+                last_name: a.last_name || '',
+                affiliate_name: a.name || '',
+                email: a.email || '',
+                affiliate_code: a.code || '',
+                amount: '0.00',
+                currency: 'EUR',
+                status: 'none',
+                status_label: 'Nessun prelievo',
+                payment_method_reference: pmRef,
+                notes: '',
+                requested_at: a.created_at || new Date().toISOString(),
+                approved_at: null,
+                paid_at: null,
+                rejected_at: null,
+                is_account_placeholder: true
+              });
+            }
+          });
+          return mappedWds;
+        })()
       });
     }
 

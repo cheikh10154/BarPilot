@@ -1968,6 +1968,7 @@ class AdminConsole {
 
     const statusBadge = (status, label) => {
       const s = String(status || "pending").toLowerCase();
+      if (s === "none") return `<span class="status-pill" style="background:rgba(148,163,184,0.12); color:#94A3B8; border:1px solid rgba(148,163,184,0.28);">— ${this.escapeHtml(label || "Nessun prelievo")}</span>`;
       if (s === "paid") return `<span class="status-pill status-active">✓ ${this.escapeHtml(label || "Pagato")}</span>`;
       if (s === "approved" || s === "processing") return `<span class="status-pill status-trial">${this.escapeHtml(label || (s === "approved" ? "Approvato" : "In elaborazione"))}</span>`;
       if (s === "rejected") return `<span class="status-pill status-late">✕ ${this.escapeHtml(label || "Rifiutato")}</span>`;
@@ -1983,7 +1984,7 @@ class AdminConsole {
       const s = String(w.status || "pending").toLowerCase();
       const safeId = this.escapeHtml(w.id);
 
-      let actionsHtml = `<span style="font-size:11.5px; color:var(--text-dim);">Chiusa</span>`;
+      let actionsHtml = `<span style="font-size:11.5px; color:var(--text-dim);">${s === "none" ? "In attesa di richiesta" : "Chiusa"}</span>`;
       if (s === "pending") {
         actionsHtml = `
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
