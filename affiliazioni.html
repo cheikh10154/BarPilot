@@ -3377,6 +3377,23 @@
           }
         }
 
+        // Notifica in tempo reale la console Super Admin (administration.html) della nuova registrazione affiliato
+        if (typeof BroadcastChannel !== "undefined") {
+          try {
+            const bc = new BroadcastChannel("barpilot_affiliates_sync");
+            bc.postMessage({
+              type: "new_affiliate",
+              firstName,
+              lastName,
+              name: `${firstName} ${lastName}`.trim(),
+              email,
+              phone,
+              code: regData.user?.code || ""
+            });
+            bc.close();
+          } catch (_) {}
+        }
+
         showToast("🎉", `Benvenuto ${firstName}! Profilo affiliato attivato.`);
         await checkAuthAndInit();
       } catch (err) {

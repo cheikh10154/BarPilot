@@ -828,6 +828,7 @@ async function handleAdminRequest(req, res) {
     const store = readAffiliatesStore();
 
     if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       let commissionRate = store.settings?.default_rate || 10.0;
       try {
         const setRes = await supabaseFetch("admin_settings?setting_key=eq.affiliate_commission_rate&limit=1");
@@ -2466,6 +2467,12 @@ async function handleUserAffiliateRequest(req, res) {
       }
 
       if (action === 'auth_register') {
+        try {
+          const srKeyReg = getServiceRoleKey();
+          if (srKeyReg) {
+            await writeMediaManifest('affiliates_reset', { reset_all: false }, srKeyReg);
+          }
+        } catch (_) {}
         const { firstName, lastName, phone, email, password } = body;
         const cleanFirst = (firstName || '').trim();
         const cleanLast = (lastName || '').trim();

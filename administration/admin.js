@@ -715,7 +715,18 @@ class AdminConsole {
     if (!this.notifPollTimer) {
       this.notifPollTimer = setInterval(() => {
         this.fetchNotifications();
-      }, 20000);
+        if (this.activeView === "affiliates") {
+          this.renderAffiliatesView();
+        }
+      }, 15000);
+    }
+    if (!this.affVisibilityBound) {
+      this.affVisibilityBound = true;
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && this.activeView === "affiliates") {
+          this.renderAffiliatesView();
+        }
+      });
     }
   }
 
@@ -939,6 +950,13 @@ class AdminConsole {
       try {
         this.affiliatesChannel = new BroadcastChannel("barpilot_affiliates_sync");
         this.affiliatesChannel.onmessage = (ev) => {
+          if (ev.data && ev.data.type === "new_affiliate") {
+            const affName = ev.data.name || [ev.data.firstName, ev.data.lastName].filter(Boolean).join(" ") || "Nuovo affiliato";
+            const codeStr = ev.data.code ? ` (${ev.data.code})` : "";
+            this.showToast(`🤝 Nuovo affiliato registrato: ${affName}${codeStr}!`);
+            this.renderAffiliatesView();
+            return;
+          }
           if (ev.data && (ev.data.type === "new_withdrawal" || ev.data.type === "withdrawal_updated")) {
             const affName = ev.data.name || [ev.data.firstName, ev.data.lastName].filter(Boolean).join(" ") || "Affiliato";
             const amtStr = ev.data.amount ? ` di ${ev.data.amount} €` : "";
@@ -1864,8 +1882,9 @@ class AdminConsole {
   // ==========================================================================
   async renderAffiliatesView() {
     try {
-      const res = await fetch("/api/admin-affiliates", {
-        headers: { "x-admin-pin": "101540" }
+      const res = await fetch(`/api/admin-affiliates?_t=${Date.now()}`, {
+        headers: { "x-admin-pin": "101540" },
+        cache: "no-store"
       });
       if (!res.ok) throw new Error("Errore recupero affiliazioni admin");
       const data = await res.json();

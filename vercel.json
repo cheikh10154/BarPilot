@@ -325,6 +325,10 @@
       "dest": "/administration/index.html"
     },
     {
+      "src": "^/app/administration\\.html$",
+      "dest": "/administration/index.html"
+    },
+    {
       "src": "^/app/administration/admin\\.js$",
       "dest": "/administration/admin.js"
     },
