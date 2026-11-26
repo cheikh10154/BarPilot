@@ -2712,6 +2712,8 @@ async function handleUserAffiliateRequest(req, res) {
             body: JSON.stringify({
               id: aff.id,
               user_id: authUserId,
+              first_name: cleanFirst,
+              last_name: cleanLast,
               name: fullName,
               email: cleanEmail,
               phone: cleanPhone,

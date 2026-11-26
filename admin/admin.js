@@ -1929,6 +1929,10 @@ class AdminConsole {
       this.renderAdminCommissionsTable(data.commissions || [], data.affiliates || []);
     } catch (err) {
       console.warn("[Admin Affiliates] Errore render:", err);
+      const tbAff = document.getElementById("adminAffiliatesTableBody");
+      if (tbAff && tbAff.textContent.includes("Caricamento")) {
+        tbAff.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#FCA5A5;">Errore di caricamento affiliati. <button type="button" onclick="window.adminConsole.renderAffiliatesView()" style="margin-left:8px; padding:4px 10px; border-radius:6px; border:1px solid #FF8A24; background:rgba(255,138,36,0.15); color:#fff; cursor:pointer;">Riprova</button></td></tr>`;
+      }
     }
   }
 
